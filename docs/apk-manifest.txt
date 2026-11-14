@@ -1,5 +1,5 @@
-package: name='com.ridleydesk.mobile' versionCode='3' versionName='0.3.0' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'
-sdkVersion:'29'
+package: name='com.ridleydesk.mobile' versionCode='4' versionName='0.3.1' platformBuildVersionName='15' platformBuildVersionCode='35' compileSdkVersion='35' compileSdkVersionCodename='15'
+minSdkVersion:'29'
 targetSdkVersion:'35'
 application-label:'여백의 숲'
 application-icon-160:'res/mipmap-anydpi-v26/ic_launcher.xml'
