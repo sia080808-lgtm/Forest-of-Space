@@ -12,6 +12,8 @@
   "android_build": "passed",
   "signature_matches_0_2_0": true,
   "android_device_test": "not_run",
-  "codeql": "blocked_not_run",
-  "remote_upload": "source_managed_in_sia080808-lgtm/Forest-of-Space"
+  "codeql": "executed_result_upload_blocked_not_passed",
+  "remote_upload": "source_managed_in_sia080808-lgtm/Forest-of-Space",
+  "github_functional_tests": "push_and_pr_passed",
+  "source_commit": "ba15da807e57946210962a303e5ce54390b92d59"
 }

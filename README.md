@@ -28,7 +28,7 @@
 - 브라우저에서 390×844 논리 크기와 넓은 화면으로 진입·선택·상세·별명·배치·설정·야간 대비를 점검했습니다.
 - Android API 35 자원/Java/Dex 컴파일, APK 서명·정렬, 이전 APK와 인증서 일치를 검사했습니다.
 - **Android 실기기 설치·업데이트·파일 선택기·강제 종료·발열·성능은 미검증입니다.** 브라우저 검수는 이를 대체하지 않습니다.
-- **CodeQL은 실행되지 않았습니다.** 설정은 `.github/workflows/codeql.yml`에 준비했으나 현재 개인 비공개 저장소에서 GitHub가 조직용 Advanced Security 필요를 표시합니다. 통과로 표시하지 않습니다.
+- **CodeQL을 실행했으나 결과 등록이 차단됐습니다.** GitHub가 `Code scanning is not enabled for this repository` 오류를 반환했습니다. JavaScript/Python 작업은 SARIF 생성 후 업로드 단계에서 실패한 것을 확인했습니다. 전체 검사 통과나 취약점 0건으로 표시하지 않습니다. 자세한 실행 근거는 `docs/SECURITY_REVIEW.md`에 있습니다.
 
 ## 개발 이어가기
 
