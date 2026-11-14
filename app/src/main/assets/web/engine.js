@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.Forest=api;})(globalThis,function(){
 'use strict';
 // SRS 2.5: the one-second world is independent of rendering, UI, and wall clock.
-const VERSION='0.3.0', RULES='SRS-2.5-stage1', SCHEMA=1;
+const VERSION='0.3.1', RULES='SRS-2.5-stage1', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -24,7 +24,7 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
   rng:{weather:seedInt(seed+'weather'),behavior:seedInt(seed+'behavior'),neighbor:seedInt(seed+'neighbor')},
   weather:{kind:'sun',remaining:120,streak:1,intensity:35,wind:20,strongSeconds:0,transition:0,lastRainEnd:-9999},climate:{T:65,H:70,L:80},
   patches:PATCHES.map(p=>({...p,S:({moss:22,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:p.id==='litter'?3:0,U:p.id==='shelter'?20:3,rainTotal:0})),spring:{x:.20,y:.72,water:60},
-  individuals:[{id,species:'ridley',name:'새싹이',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
+  individuals:[{id,species:'ridley',name:'리들리',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
   settings:{reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,theme:'auto'},
   ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null};
 }
@@ -97,7 +97,7 @@ function step(s,{visible=true}={}){
   if(resting){p.energy=clamp(p.energy+4/60);p.damage=clamp(p.damage-1/60);p.mood=clamp(p.mood+.5/60);}
   else p.nutrition=clamp(p.nutrition-.2/60);
   if(arrived&&(p.action==='drink'||resting)&&p.B<65){const water=Math.min(s.spring.water,10/60,65-p.B);s.spring.water-=water;p.B+=water;}
-  if(p.drinkCycle&&p.B>=65-1e-8){p.drinkCycle=false;p.actionSeconds=0;event(s,'drink','새싹이가 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(visible&&!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',true);}}
+  if(p.drinkCycle&&p.B>=65-1e-8){p.drinkCycle=false;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(visible&&!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',true);}}
   if(resting&&p.nutrition<70){const n=Math.min(1/60,shelter.U,70-p.nutrition);shelter.U-=n;p.nutrition+=n;}
   if(safe(p))p.mood=clamp(p.mood+.5/60);
   if(arrived)p.actionSeconds=Math.max(0,p.actionSeconds-1);
@@ -168,11 +168,11 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace')return valid(clone(old));
+ if(old.app==='ForestOfSpace'){const s=valid(clone(old));for(const p of s.individuals)if(p.name==='새싹이'&&!p.customName)p.name='리들리';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}
- p.id=o.id||old.deviceId+'-deully';p.name=typeof o.name==='string'?o.name.slice(0,40):'새싹이';p.personality=personality(p.id);p.Q=10;p.action='wander';s.legacy=clone(old);
+ p.id=o.id||old.deviceId+'-deully';p.name=typeof o.name==='string'?o.name.slice(0,40):'리들리';p.personality=personality(p.id);p.Q=10;p.action='wander';s.legacy=clone(old);
  // Old XP semantics are incompatible: preserve every original field, do not invent growth history.
  event(s,'migration','이전 수분·체력·기분·영양을 이어왔어요. 구버전 성장·다크리·업무 기록은 원본 보관 중이에요.');return valid(s);
 }

@@ -1,19 +1,19 @@
 {
-  "version": "0.3.0",
-  "version_code": 3,
+  "version": "0.3.1",
+  "version_code": 4,
   "date_kst": "2026-11-15",
   "srs": "2.5",
   "design": "1.2",
-  "apk_sha256": "01c9213ed713334a1acadb5cd52b40773add097d0eaea6439abfb0b0ca339aca",
+  "apk_sha256": "d14a26a9cd91fcd9fe8c942f811b42f7166346d9cbcd9ff4a13105369fd32628",
   "apk_bytes": 8603496,
-  "automated_tests": 26,
+  "automated_tests": 27,
   "tests_result": "passed",
-  "browser_qa": "390x844 and 520px; startup, selection, details, rename, layout, settings, day/night",
+  "browser_qa": "not_run_for_0.3.1: chromium socket permission denied",
   "android_build": "passed",
   "signature_matches_0_2_0": true,
   "android_device_test": "not_run",
   "codeql": "executed_result_upload_blocked_not_passed",
   "remote_upload": "source_managed_in_sia080808-lgtm/Forest-of-Space",
-  "github_functional_tests": "push_and_pr_passed",
-  "source_commit": "ba15da807e57946210962a303e5ce54390b92d59"
+  "github_functional_tests": "pending_for_0.3.1",
+  "signature_matches_0_3_0": true
 }

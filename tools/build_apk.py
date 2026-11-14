@@ -22,7 +22,7 @@ def main():
     p.add_argument('--keystore', type=pathlib.Path, required=True)
     p.add_argument('--password-file', type=pathlib.Path, required=True)
     p.add_argument('--alias', default='ridleydesk-personal')
-    p.add_argument('--output', type=pathlib.Path, default=ROOT/'build/Forest-of-Space-0.3.0.apk')
+    p.add_argument('--output', type=pathlib.Path, default=ROOT/'build/Forest-of-Space-0.3.1.apk')
     a=p.parse_args()
     for key in ('build_tools','android_jar','ecj','keystore','password_file','output'):
         setattr(a,key,getattr(a,key).resolve())
