@@ -1,0 +1,24 @@
+name: Forest functional tests
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate simulation and asset contracts
+        run: node --test tests/forest/*.test.cjs
+      - name: Validate browser JavaScript syntax
+        run: |
+          node --check app/src/main/assets/web/engine.js
+          node --check app/src/main/assets/web/scene.js
+          node --check app/src/main/assets/web/forest-app.js

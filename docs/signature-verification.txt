@@ -1,0 +1,5 @@
+Baseline: RidleyDesk-0.2.0.apk
+Candidate: Forest-of-Space-0.3.0.apk
+Certificate SHA-256 matches: true
+Certificate digest: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d
+Real-device update test: NOT RUN

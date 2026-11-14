@@ -1,0 +1,15 @@
+.gradle/
+.idea/
+.godot/
+build/
+local.properties
+*.apk
+*.apk.idsig
+*.jks
+*.keystore
+*password*
+.env*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store
