@@ -1,3 +1,3 @@
-0.4.0 APK: v3 signature verified; zipalign 4 verified.
-0.3.1 and 0.4.0 certificate SHA-256: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d
-MATCH
+0.4.1 APK v3 signature verified; zipalign verified.
+Certificate SHA-256: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d
+Matches 0.4.0 / 0.3.1.

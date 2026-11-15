@@ -2,7 +2,7 @@
 'use strict';
 // SRS 2.5: the one-second world is independent of rendering, UI, and wall clock.
 const Space=typeof module==='object'?require('./spatial.js'):globalThis.ForestSpace;
-const VERSION='0.4.0', RULES='SRS-2.8-stage2', SCHEMA=1;
+const VERSION='0.4.1', RULES='SRS-2.8-stage2', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -182,7 +182,7 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace'){const s=clone(old);if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}for(const p of s.individuals)delete p.motion;valid(s);for(const p of s.individuals)if(p.name==='새싹이'&&!p.customName)p.name='리들리';return s;}
+ if(old.app==='ForestOfSpace'){const s=clone(old);if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}s.version=VERSION;for(const p of s.individuals)delete p.motion;valid(s);for(const p of s.individuals)if(p.name==='새싹이'&&!p.customName)p.name='리들리';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}

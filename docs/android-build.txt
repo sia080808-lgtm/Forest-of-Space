@@ -1,5 +1,4 @@
-Android API 35 / Build Tools 35.0.0 / ECJ 3.39.0 / Java 21
-Resource compilation, Java compilation and DEX conversion passed.
-APK signing / verification / alignment passed.
-All 33 packaged asset files match source bytes.
-Device installation, audio output and performance: NOT TESTED.
+0.4.1: Android API 35 / Build Tools 35.0.0 / ECJ 3.39.0 / Java 21
+Resource/Java/DEX build, v3 signature and alignment passed.
+All 33 bundled asset files match source.
+Android device testing: NOT RUN.
