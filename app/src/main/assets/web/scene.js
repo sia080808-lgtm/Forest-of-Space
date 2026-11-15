@@ -16,11 +16,12 @@ class ForestScene {
   const wet=Math.max((p.film||0)*.65,Math.max(0,Math.min(1,(Forest.moisture(p)-20)/60))),phase=s.settings.reducedMotion?0:this.phase;
   if(p.id==='shade'){c.fillStyle='#43593619';c.beginPath();c.ellipse(x,y+3,this.w*.16,this.h*.045,0,0,Math.PI*2);c.fill();}
   // Fixed surface marks are driven by saved moisture, never by simulation RNG.
-  for(let i=0;i<7;i++){const threshold=i/9;if(wet<=threshold)continue;c.fillStyle=`rgba(73,94,78,${Math.min(.18,(wet-threshold)*.2)})`;c.beginPath();c.ellipse(x+Math.sin(i*4.3)*size*.20,y+Math.cos(i*3.1)*size*.035,size*(.12+i*.014),size*.035,i*.3,0,Math.PI*2);c.fill();}
+  for(let i=0;i<7;i++){const threshold=i/9;if(wet<=threshold)continue;c.fillStyle=`rgba(73,94,78,${Math.min(.18,(wet-threshold)*.2)})`;c.beginPath();c.ellipse(x+Math.sin(i*4.3)*size*.20,y+Math.cos(i*3.1)*size*.035,size*(.12+i*.014),size*.026,0,0,Math.PI*2);c.fill();}
   c.save();c.translate(x,y);if(p.id==='shade'){const max=s.weather.wind>=60?6:s.weather.wind>=40?4:2;c.rotate(Math.sin(phase*1.3+p.x)*max*Math.PI/180);}
   c.filter=`brightness(${1-.18*wet}) saturate(${1+.12*wet})`;c.drawImage(im,(ix%3)*sw,Math.floor(ix/3)*sh,sw,sh,-size/2,-size*.75,size,size);c.restore();
   if(p.W>.01){c.fillStyle=`rgba(126,170,177,${.08+Math.min(.25,p.W/p.pool*.25)})`;c.beginPath();c.ellipse(x,y+3,size*.22,size*.04,0,0,Math.PI*2);c.fill();this.ripples(p,p.W);}
  }
+ drinkContact(p){return p.motion?.kind==='drink'&&p.target==='spring'&&p.motion.water>0;}
  ripples(p,water){const s=this.state();if(water<=0||s.settings.reducedMotion)return;const drinking=s.individuals.some(x=>x.motion?.water>0&&x.target==='spring'&&p===s.spring&&!this.carry);if(s.weather.kind!=='rain'&&!drinking)return;
   const c=this.ctx,w=this.w,h=this.h,phase=this.phase;for(let i=0;i<2;i++){const age=(phase+i*.5)%1,offset=Math.sin(Math.floor(phase+i*.5)*2.7+i)*.028;c.strokeStyle=`rgba(223,237,230,${(1-age)*.6})`;c.lineWidth=.9;c.beginPath();const radius=(.005+.03*age)*w;c.ellipse((p.x+offset)*w,(p.y+.008)*h,radius,radius*.3,0,0,Math.PI*2);c.stroke();}
  }
@@ -29,8 +30,8 @@ class ForestScene {
   if(!held){c.fillStyle='#484a3328';c.beginPath();c.ellipse(x,y,13*growth,3*growth,0,0,Math.PI*2);c.fill();}
   c.save();c.translate(x,y);c.scale(this.facing?.[p.id]||1,1);const drink=kind==='drink',rest=kind==='rest',groom=kind==='groom',land=kind==='land';
   const bob=reduced?0:moving?-Math.abs(stride)*(kind==='run'?3:1.5):rest?Math.sin(phase*2)*.4:0;
-  c.translate(0,bob);if(!reduced)c.rotate(drink?.1+Math.sin(phase*5)*.06:kind==='run'?.13:stride*.035);
-  c.scale(1,rest?.84:land?.94:1);if(night)c.filter='brightness(1.1)';
+  c.translate(0,bob);if(!reduced)c.rotate(drink?.1+Math.sin(phase*5)*.06:kind==='run'?.13:groom?Math.sin(phase*3)*.035:stride*.035);
+  c.scale(1,land?.97:1);if(night)c.filter='brightness(1.1)';
   const im=this.assets.ridley,draw=()=>c.drawImage(im,-size/2,-size*.85,size,size);
   // Runtime texture rig: original watercolor pixels, anchored feet, body and upper leaves.
   const part=(clip,dx=0,dy=0,angle=0,pivot=[0,0])=>{c.save();c.translate(pivot[0],pivot[1]);c.rotate(angle);c.translate(-pivot[0]+dx,-pivot[1]+dy);c.beginPath();clip();c.clip();draw();c.restore();};
@@ -38,9 +39,7 @@ class ForestScene {
   part(()=>c.rect(-size/2,-size*.85,size,size*.40),0,0,reduced?0:Math.sin(phase*2)*.025,[0,-size*.46]);
   part(()=>c.rect(-size*.18,-size*.02,size*.17,size*.2),stride*1.3,-Math.max(0,stride)*2);
   part(()=>c.rect(size*.05,-size*.02,size*.17,size*.2),-stride*1.3,-Math.max(0,-stride)*2);
-  if(groom&&!reduced){c.save();c.translate(size*.25,-size*.25);c.rotate(-.8-Math.sin(phase*5)*.2);c.drawImage(im,925,847,85,110,-size*.035,-size*.10,size*.07,size*.09);c.restore();}
   if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
-  if(rest){c.strokeStyle='#efe3c7';c.lineWidth=1.4;c.beginPath();c.moveTo(-size*.06,-size*.23);c.lineTo(-size*.015,-size*.23);c.moveTo(size*.07,-size*.23);c.lineTo(size*.115,-size*.23);c.stroke();}
   c.restore();
  }
 
@@ -65,7 +64,7 @@ class ForestScene {
    this.pet(p,carry?this.carry.hover:pos,carry?'held':kind,phase,night,carry);
    const b=document.querySelector('[data-pet="'+p.id+'"]');if(b){b.style.left=pos.x*100+'%';b.style.top=pos.y*100+'%';b.hidden=carry;}
    if(!carry&&s.mode==='game'&&motion?.tick===s.worldTick&&s.worldTick>(this.silentTick??-1)){const id=p.id+':'+s.worldTick;
-    if(motion.water>0&&fraction>=Math.max(.55,motion.duration||0))this.onMarker?.(id+':water','drink',p.id);
+    if(this.drinkContact(p)&&fraction>=Math.max(.55,motion.duration||0))this.onMarker?.(id+':water','drink',p.id);
     if(kind==='groom'&&fraction>=.5&&s.worldTick%3===0)this.onMarker?.(id+':groom','groom',p.id);
     if(motion.distance>0&&fraction<1){const step=Math.floor(fraction*(kind==='run'?4:2));const patch=s.patches.find(z=>Forest.dist(z,pos)<.10);const cue=['rock','crevice'].includes(patch?.id)?'stone':patch?.id==='shelter'?'wood':['litter','moss','shade'].includes(patch?.id)?'leaf':'soil';this.onMarker?.(id+':foot:'+step,cue,p.id);}
    }
