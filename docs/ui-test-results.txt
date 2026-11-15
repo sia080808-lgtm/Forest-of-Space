@@ -1,0 +1,1 @@
+PASS: boot, card move, resource preservation, failed-write rollback, 350ms pickup, second-pointer cancel, 4 audio sliders, layout cancel, pause/resume

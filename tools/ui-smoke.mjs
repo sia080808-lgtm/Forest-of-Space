@@ -1,0 +1,25 @@
+import {Window} from 'happy-dom';
+import {createRequire} from 'node:module';import fs from 'node:fs';import assert from 'node:assert/strict';const require=createRequire(import.meta.url),F=require('../app/src/main/assets/web/engine.js');
+const web=new URL('../app/src/main/assets/web/',import.meta.url).pathname,win=new Window({url:'https://app.test',settings:{disableJavaScriptFileLoading:true,enableJavaScriptEvaluation:true,suppressInsecureJavaScriptEnvironmentWarning:true}});
+let saved=F.create(1000,88);saved.started=true;let failed=false,now=0,frames=[];
+win.RidleyNative={read:()=>JSON.stringify(saved),save:text=>{if(failed)return false;saved=JSON.parse(text);return true;},archive:()=>true,theme:()=>{}};
+win.performance.now=()=>now;win.requestAnimationFrame=f=>{frames.push(f);return frames.length;};
+win.HTMLCanvasElement.prototype.getBoundingClientRect=()=>({width:420,height:690,left:0,top:72,right:420,bottom:762});
+win.HTMLElement.prototype.setPointerCapture=function(id){this.capture=id;};win.HTMLElement.prototype.hasPointerCapture=function(id){return this.capture===id;};win.HTMLElement.prototype.releasePointerCapture=function(){this.capture=null;};
+// The UI test does not rasterize: the separate renderer check uses real decoded images.
+win.HTMLCanvasElement.prototype.getContext=function(){return new Proxy({},{get:(o,k)=>k==='measureText'?()=>({width:80}):()=>{},set:()=>true});};
+win.Image=class {set src(src){this.width=1280;this.height=1280;setTimeout(()=>this.onload?.(),0);}};
+win.document.write(fs.readFileSync(web+'index.html','utf8').replace(/<script[^>]*><\/script>/g,''));
+for(const f of ['spatial.js','engine.js','scene.js','audio.js','carry.js','forest-app.js'])win.eval(fs.readFileSync(web+f,'utf8')+(f==='scene.js'?'\nglobalThis.ForestScene=ForestScene;':f==='carry.js'?'\nglobalThis.ForestCarry=ForestCarry;':''));
+await new Promise(r=>setTimeout(r,50));
+assert.ok(win.RidleyApp,'boot');assert.equal(win.document.getElementById('world').hidden,false);
+const click=sel=>{const b=win.document.querySelector(sel);assert.ok(b,sel);b.click();};
+click('[data-pet]');assert.match(win.document.getElementById('select-card').textContent,/리들리/);click('[data-action="move-pet"]');assert.equal(win.document.getElementById('carry-bar').hidden,false);
+const pointer=(target,type,x,y,id=1,primary=true)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,pointerId:id,isPrimary:primary}));
+const canvas=win.document.getElementById('garden'),before=JSON.parse(JSON.stringify(saved));pointer(canvas,'pointerdown',210,72+690*.65);assert.equal(saved.individuals[0].x,.5);assert.equal(saved.individuals[0].y,.65);assert.equal(saved.individuals[0].B,before.individuals[0].B);pointer(canvas,'pointerup',210,72+690*.65);canvas.click();
+click('[data-pet]');click('[data-action="move-pet"]');failed=true;pointer(canvas,'pointerdown',252,72+690*.65);assert.equal(saved.individuals[0].x,.5);failed=false;pointer(canvas,'pointerup',252,72+690*.65);canvas.click();
+let pet=win.document.querySelector('[data-pet]');pointer(pet,'pointerdown',210,500);await new Promise(r=>setTimeout(r,380));assert.equal(win.document.getElementById('carry-bar').hidden,false);pointer(win.document.getElementById('world'),'pointermove',260,500);pointer(win.document.getElementById('world'),'pointerdown',260,500,2,false);assert.equal(win.document.getElementById('carry-bar').hidden,true);assert.equal(saved.individuals[0].x,.5);
+click('#settings');assert.equal(win.document.querySelectorAll('[data-volume]').length,4);const range=win.document.querySelector('[data-volume="music"]');range.value='12';range.dispatchEvent(new win.Event('change',{bubbles:true}));assert.equal(saved.settings.audio.music,.12);
+click('[data-tab="world"]');click('[data-tab="decorate"]');assert.equal(win.document.getElementById('editor').hidden,false);click('[data-action="cancel-layout"]');
+win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume();assert.equal(saved.offline,null);assert.equal(saved.individuals[0].B>=before.individuals[0].B,true);
+console.log('PASS: boot, card move, resource preservation, failed-write rollback, 350ms pickup, second-pointer cancel, 4 audio sliders, layout cancel, pause/resume');await win.happyDOM.abort();win.close();

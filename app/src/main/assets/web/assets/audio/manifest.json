@@ -1,0 +1,87 @@
+[
+  {
+    "file": "bgm/BGM_DAY_FULL.ogg",
+    "sha256": "589d4159f32d9299c82602cca6c8186dced12147201387d176a67606dda501b5",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "bgm/BGM_NIGHT_FULL.ogg",
+    "sha256": "7e4d48682497c3b8b45bd849580cb4205883158aa1bc981a93a4a6b5fbf7fda0",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_FOREST_DAY.ogg",
+    "sha256": "6514c279d18ec71675ce83af39cc213d46f4d2a53efc3ae7e71545f203eaecf7",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_FOREST_NIGHT.ogg",
+    "sha256": "d7118da51d74765dd30f0ed9a903a2c4c465d39e44199c10c77c3e8fef8626d0",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_RAIN_LEAVES.ogg",
+    "sha256": "37114f163a7abec1feab43d095e11642f25f7dfb25e8cf071e097d0efc5aef0a",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_WIND_LEAVES.ogg",
+    "sha256": "6762f374bed99f482906b5b6188fe49f57e4382be59993ccd10052ff480cca0c",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_SPRING_WATER.ogg",
+    "sha256": "2c6633a03eda6492c48b5d587175e4720da30b6a8752839e08097163047b4abb",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "ambience/AMB_POST_RAIN_DROPS.ogg",
+    "sha256": "26fa05f910d23d896805838b97edd7aacf3d35ced909b8837d69927f021ffec5",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_STEP_SOIL_v01.wav",
+    "sha256": "5a08cce9d8e2e197a8d94325a2c7562989a2bbaa85abc92b8c7e52f2f680c4da",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_STEP_LEAF_v01.wav",
+    "sha256": "f27e9356e105338664ff4b86fcf2e71b88faf073bd7fc1c99c191d2b8769e933",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_STEP_STONE_v01.wav",
+    "sha256": "8bf102a0f1e0371ea1f491183110d80e0e0fd4f0661105c71c710e7c23fecdef",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_STEP_WOOD_v01.wav",
+    "sha256": "658eddcfc820db422fdd19d5c34994c934e028c32b5d4dfdbfeafae3ff428dae",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_WATER_DRINK_v01.wav",
+    "sha256": "e2f86bae9190db0cdd00758818d924f0390fb4a28b1ae141bf86512373820a8e",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_LEAF_BRUSH_v01.wav",
+    "sha256": "75b65e545326b614220cd2d059a94c00d2e6969841586c7fb90cafdbc3a4b082",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_LEAF_PICKUP_v01.wav",
+    "sha256": "fc79d24ab5a2dc7c33f5552869a2e8f1e226dda682edaf6704281d451505c1f9",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_LEAF_PUTDOWN_v01.wav",
+    "sha256": "af4e801c33a5bfb1d30007e6deab825b594f6b4765c525f866f7e3f213a6884d",
+    "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_UI_CLICK_v01.wav",
+    "sha256": "35428525b0a86dc1b237a11af6023f1a4ff250b85083d1aca2f36f3e98ae477f",
+    "status": "synthesized_draft_v0.2"
+  }
+]

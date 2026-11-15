@@ -56,7 +56,7 @@ public final class MainActivity extends Activity {
                 String path = u.getPath();
                 if (path == null || path.contains("..")) return empty();
                 if (path.equals("/")) path = "/index.html";
-                String mime = path.endsWith(".js") ? "text/javascript" : path.endsWith(".css") ? "text/css" : path.endsWith(".png") ? "image/png" : path.endsWith(".jpg") ? "image/jpeg" : path.endsWith(".woff2") ? "font/woff2" : path.endsWith(".ttf") ? "font/ttf" : path.endsWith(".svg") ? "image/svg+xml" : path.endsWith(".json") ? "application/json" : "text/html";
+                String mime = path.endsWith(".js") ? "text/javascript" : path.endsWith(".css") ? "text/css" : path.endsWith(".png") ? "image/png" : path.endsWith(".jpg") ? "image/jpeg" : path.endsWith(".woff2") ? "font/woff2" : path.endsWith(".ttf") ? "font/ttf" : path.endsWith(".svg") ? "image/svg+xml" : path.endsWith(".ogg") ? "audio/ogg" : path.endsWith(".wav") ? "audio/wav" : path.endsWith(".json") ? "application/json" : "text/html";
                 try { return new WebResourceResponse(mime, "UTF-8", getAssets().open("web" + path)); }
                 catch (Exception e) { return empty(); }
             }

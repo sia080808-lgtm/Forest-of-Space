@@ -15,6 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Validate UI event wiring (DOM harness, not a browser)
+        run: npm run test:ui
       - name: Validate simulation and asset contracts
         run: node --test tests/forest/*.test.cjs
       - name: Validate browser JavaScript syntax
@@ -22,3 +25,6 @@ jobs:
           node --check app/src/main/assets/web/engine.js
           node --check app/src/main/assets/web/scene.js
           node --check app/src/main/assets/web/forest-app.js
+          node --check app/src/main/assets/web/spatial.js
+          node --check app/src/main/assets/web/audio.js
+          node --check app/src/main/assets/web/carry.js
