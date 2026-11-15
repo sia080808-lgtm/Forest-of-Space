@@ -1,3 +1,26 @@
-0.4.1 APK v3 signature verified; zipalign verified.
-Certificate SHA-256: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d
-Matches 0.4.0 / 0.3.1.
+{
+  "apk": "Forest-of-Space-0.4.3.apk",
+  "sha256": "b8032ab8a1d55bd1c1790e56c52ec36966cfc6cc71244411695fb5932d147fa8",
+  "bytes": 14704577,
+  "signature_scheme": "v3",
+  "signature_and_content_digest": "verified",
+  "certificate_sha256": [
+    "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d"
+  ],
+  "zip_crc": "passed",
+  "certificate_matches_0_4_2": true,
+  "all_packaged_assets_match_source": 36,
+  "version": "0.4.3",
+  "version_code": 8,
+  "date_kst": "2026-11-15",
+  "automated_tests": 57,
+  "tests_result": "passed",
+  "dom_input_harness": "passed",
+  "android_build": "passed",
+  "apk_rebuilt_this_session": true,
+  "android_device_test": "not_run",
+  "codeql": "not_run_this_session",
+  "browser_qa": "not_run",
+  "github_upload": "not_run_this_session",
+  "changes": "spring water/inflow, ground contact shadows, damp soil and puddle presentation"
+}

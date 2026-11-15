@@ -1,0 +1,14 @@
+{
+  "apk": "Forest-of-Space-0.4.2.apk",
+  "sha256": "904189baabd027ac824ccdc4cb4d48bee9c595d94214f3414de8f017aff0f501",
+  "bytes": 14700413,
+  "signature_scheme": "v3",
+  "signature_and_content_digest": "verified",
+  "certificate_sha256": [
+    "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d"
+  ],
+  "zip_crc": "passed",
+  "certificate_matches_0_4_1": true,
+  "native_dex_matches_0_4_1": true,
+  "all_packaged_assets_match_source": 35
+}

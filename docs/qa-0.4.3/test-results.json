@@ -1,0 +1,21 @@
+{
+  "node_tests": {
+    "total": 57,
+    "passed": 57,
+    "failed": 0
+  },
+  "dom_input": "passed",
+  "render_states": [
+    "dry ground",
+    "wet ground",
+    "full still spring",
+    "refilling spring",
+    "rain",
+    "empty spring",
+    "reduced motion",
+    "day",
+    "zoom",
+    "night rain"
+  ],
+  "android_device": "not run"
+}

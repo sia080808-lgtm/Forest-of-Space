@@ -1,0 +1,12 @@
+const {test}=require('node:test'),a=require('node:assert/strict'),{createCanvas}=require('@napi-rs/canvas');
+const F=require('../../app/src/main/assets/web/engine.js'),S=require('../../app/src/main/assets/web/surfaces.js');
+function draw(state,t=1){const canvas=createCanvas(240,160),c=canvas.getContext('2d');c.scale(3,3);S.spring(c,state,40,32,t);return canvas;}
+const pixels=canvas=>canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+function state(water=60,inflow=0){const s=F.create(1000,88);s.started=true;s.spring.water=water;s.spring.inflow=inflow;return s;}
+test('water, stream, shadows and wet soil rendering never mutate simulation state',()=>{const s=state(30,10/60),before=JSON.stringify(s),c=createCanvas(360,576).getContext('2d');for(let t=0;t<3;t+=.1){S.spring(c,s,76,420,t);for(const p of s.patches){S.ground(c,p,p.x*360,p.y*576,100,1);S.puddle(c,p,p.x*360,p.y*576,100,t,false,true);}}a.equal(JSON.stringify(s),before);});
+test('zero water without inflow is entirely dry',()=>a.ok(pixels(draw(state(0))).every(v=>v===0)));
+test('only actual inflow draws a stream above the basin',()=>{for(const amount of [0,30,60]){const still=draw(state(amount,0)),flow=draw(state(amount,10/60));const alphaTop=can=>{const d=pixels(can);let n=0;for(let y=10;y<50;y++)for(let x=80;x<130;x++)n+=d[(y*240+x)*4+3];return n;};a.equal(alphaTop(still),0);a.ok(alphaTop(flow)>0);}const s=state(30,10/60);s.mode='landscape';a.deepEqual(pixels(draw(s)),pixels(draw({...s,spring:{...s.spring,inflow:0}})));});
+test('reduced motion is frame-invariant for rain and inflow',()=>{const s=state(30,10/60);s.settings.reducedMotion=true;s.weather.kind='rain';a.deepEqual(pixels(draw(s,.2)),pixels(draw(s,2.6)));});
+test('normal water and inflow move gently over time',()=>{const s=state(30,10/60);a.notDeepEqual(pixels(draw(s,.2)),pixels(draw(s,2.6)));});
+test('rain and drinking ripples remain inside the water mask',()=>{const s=state(40),base=pixels(draw(s));s.weather.kind='rain';s.individuals[0].target='spring';s.individuals[0].motion={kind:'drink',water:1};const rain=pixels(draw(s));for(let i=3;i<rain.length;i+=4)if(base[i]===0)a.equal(rain[i],0);});
+test('moist soil with W=0 cannot create a pool',()=>{const s=state(),p=s.patches[0],can=createCanvas(200,100);p.W=0;p.film=1;S.puddle(can.getContext('2d'),p,100,50,100,1,false,true);a.ok(pixels(can).every(v=>v===0));});
