@@ -1,0 +1,134 @@
+[
+  {
+    "viewport": [
+      473,
+      740
+    ],
+    "view": "world",
+    "scale": 1.3138888888888889,
+    "tx": 0,
+    "ty": -8.399999999999977,
+    "visibleHeight": 740
+  },
+  {
+    "viewport": [
+      473,
+      740
+    ],
+    "view": "editor",
+    "scale": 1.3138888888888889,
+    "tx": 0,
+    "ty": -8.399999999999977,
+    "visibleHeight": 440
+  },
+  {
+    "viewport": [
+      473,
+      740
+    ],
+    "view": "editor-bottom",
+    "scale": 1.3138888888888889,
+    "tx": 0,
+    "ty": -316.79999999999995,
+    "visibleHeight": 440
+  },
+  {
+    "viewport": [
+      473,
+      740
+    ],
+    "view": "zoom",
+    "scale": 3.9416666666666664,
+    "tx": -473,
+    "ty": -790.3999999999999,
+    "visibleHeight": 740
+  },
+  {
+    "viewport": [
+      320,
+      600
+    ],
+    "view": "world",
+    "scale": 1.0416666666666667,
+    "tx": -27.5,
+    "ty": 0,
+    "visibleHeight": 600
+  },
+  {
+    "viewport": [
+      320,
+      600
+    ],
+    "view": "editor",
+    "scale": 1.0416666666666667,
+    "tx": -27.5,
+    "ty": 0,
+    "visibleHeight": 312
+  },
+  {
+    "viewport": [
+      320,
+      600
+    ],
+    "view": "editor-bottom",
+    "scale": 1.0416666666666667,
+    "tx": -27.5,
+    "ty": -288.00000000000006,
+    "visibleHeight": 312
+  },
+  {
+    "viewport": [
+      320,
+      600
+    ],
+    "view": "zoom",
+    "scale": 3.125,
+    "tx": -402.5,
+    "ty": -600,
+    "visibleHeight": 600
+  },
+  {
+    "viewport": [
+      412,
+      560
+    ],
+    "view": "world",
+    "scale": 1.1444444444444444,
+    "tx": 0,
+    "ty": -49.599999999999966,
+    "visibleHeight": 560
+  },
+  {
+    "viewport": [
+      412,
+      560
+    ],
+    "view": "editor",
+    "scale": 1.1444444444444444,
+    "tx": 0,
+    "ty": -49.599999999999994,
+    "visibleHeight": 291.2
+  },
+  {
+    "viewport": [
+      412,
+      560
+    ],
+    "view": "editor-bottom",
+    "scale": 1.1444444444444444,
+    "tx": 0,
+    "ty": -368,
+    "visibleHeight": 291.2
+  },
+  {
+    "viewport": [
+      412,
+      560
+    ],
+    "view": "zoom",
+    "scale": 3.433333333333333,
+    "tx": -412,
+    "ty": -857.6000000000001,
+    "visibleHeight": 560
+  }
+]

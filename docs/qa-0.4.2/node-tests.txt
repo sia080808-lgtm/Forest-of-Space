@@ -1,0 +1,62 @@
+
+> forest-of-space@0.4.2 test
+> node --test tests/forest/*.test.cjs
+
+✔ camera fits the fixed 5:8 world on narrow and short screens (1.450521ms)
+✔ screen/world transforms round trip across zoom and pan (0.504458ms)
+✔ pinch preserves the world point beneath its moving midpoint away from bounds (0.220843ms)
+✔ pan clamps all edges and centers a smaller axis (0.252329ms)
+✔ resize preserves apparent scale when valid and snapshot survives reload (0.398849ms)
+✔ stored cameras are bounded and invalid values fall back safely (0.263396ms)
+✔ fresh state validates and the tutorial has safe independent B/Q (19.513132ms)
+✔ 12-hour world conserves every water unit and remains bounded (1328.774611ms)
+✔ same seed and input replay identically (79.05704ms)
+✔ render visibility never changes weather RNG or physiology (78.228372ms)
+✔ autonomous hydration completes and awards the first bonus once (20.188543ms)
+✔ landscape pauses all ecological clocks and growth (0.663107ms)
+✔ layout changes retain patch resources and plant state, with no reward (13.71735ms)
+✔ overlaps, spring blockage, invalid coordinates, shelter movement are rejected atomically (0.782046ms)
+✔ save failure cancels an important transaction (9.211684ms)
+✔ offline recovery conserves water and preserves main world, weather, terrain and position (3.744382ms)
+✔ offline recovery grows only after reaching the health threshold (CARE-04) (0.733744ms)
+✔ 8-hour cap, backwards clock and repeated resume never duplicate XP (14.395871ms)
+✔ duplicate pause does not reset the offline anchor (0.238669ms)
+✔ offline 1-second replay and a saved partial interval agree (8.502828ms)
+✔ mounted plant recovers but does not gain XP (24.243351ms)
+✔ legacy migration preserves the complete old payload without inventing old XP (3.118921ms)
+✔ restoring malformed backups is rejected, not normalized into silent data loss (13.940997ms)
+✔ personality is stable through checkpoint and rename (24.808952ms)
+✔ three consecutive same-weather selections are impossible (206.837296ms)
+✔ light follows canopy position without changing atmosphere humidity (3.183567ms)
+✔ neighbor first visit requires 120 actual valid ticks and unseen visits grant no discovery (5.031517ms)
+✔ the first 3 minutes guarantee safe weak tutorial rain for every seed (260.96964ms)
+✔ five active plants share one offline source without multiplying inflow (1.380796ms)
+✔ old default name migrates without changing progress; custom names survive (11.581719ms)
+✔ all local startup assets exist, with no remote runtime dependency (2.254389ms)
+✔ Android shell remains offline, preserves package identity, and increments version (0.410357ms)
+✔ every bundled font has its distribution license (0.459882ms)
+✔ rest uses original face and preserves body proportions (5.578197ms)
+✔ groom adds no duplicate hand image at any phase (2.727441ms)
+✔ all wet ground ellipses stay flat and attached to the ground plane (2.003762ms)
+✔ sleep recovery transfers water without emitting a drink contact; spring drinking emits one (3.654244ms)
+✔ 0.3.1 migration retains coordinates, resources, rewards, names, clocks and random streams (40.079668ms)
+✔ relocation preserves biology and pending hydration cycle; write failure is atomic (35.381986ms)
+✔ placement validates the footprint and limits correction to one adult diameter (3.386201ms)
+✔ blocked paths go around the water, and finish at a dry drinking socket (1.155177ms)
+✔ held plants stay at their reserved origin, use biology time but gain no resting water or energy (0.408535ms)
+✔ new movement speed depends on need and root hysteresis, never growth size (0.393833ms)
+✔ visible drink contacts spend actual supply and disappear when there is no transfer (1.764233ms)
+✔ connected runoff has one owner and moving terrain never fills its water (6.853554ms)
+✔ sound files exist, source hashes match and music uses only full mixes (14.91888ms)
+✔ sound contacts deduplicate repeated frames, cap six one-shots and cancel an emitter (0.634794ms)
+✔ muted and missing-buffer events are consumed rather than played late (0.241734ms)
+✔ invalid audio settings are rejected without affecting saved biology (4.650092ms)
+✔ surface film wets in rain and dries gradually without creating usable water (6.679592ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2277.721056

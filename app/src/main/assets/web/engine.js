@@ -2,7 +2,7 @@
 'use strict';
 // SRS 2.5: the one-second world is independent of rendering, UI, and wall clock.
 const Space=typeof module==='object'?require('./spatial.js'):globalThis.ForestSpace;
-const VERSION='0.4.1', RULES='SRS-2.8-stage2', SCHEMA=1;
+const VERSION='0.4.4', RULES='SRS-2.8-stage2', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -56,7 +56,7 @@ function step(s,{visible=true,held=null}={}){
  const night=Math.floor(s.worldTick/600)%2===1;
  const targets={T:w.kind==='rain'?55:65,H:w.kind==='rain'?90:70,L:night?15:w.kind==='rain'?30:80};
  for(const k of ['T','H','L'])s.climate[k]+=clamp(targets[k]-s.climate[k],-1,1);
- const inflow=Math.min(10/60,60-s.spring.water);s.spring.water+=inflow;s.ledger.spring+=inflow;
+ const inflow=Math.min(10/60,60-s.spring.water);s.spring.water+=inflow;s.ledger.spring+=inflow;s.spring.inflow=inflow;
  const shelter=s.patches.find(p=>p.id==='shelter');shelter.U=Math.min(20,shelter.U+1/60);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
  const transfers=[];
