@@ -14,3 +14,10 @@
 폰트 기준 출처:
 https://github.com/orioncactus/pretendard
 https://github.com/yangheeryu/Gowun-Dodum
+
+## 0.4.0 기본 모션·음원
+
+- MOT-F01 등 v2.8 키포즈 시트는 타이밍/접점 참고다. 승인된 기존 PNG를 유지하면서 Canvas에서 영역을 나눠 기본 움직임을 추가했다. 시안 시트 전체를 완성 스프라이트로 바꾼 것은 아니다.
+- 음원은 사용자 제공 `여백의숲_사운드에셋_합성시안_v0.2.zip`에서 17개를 바이트 변경 없이 가져왔다. 합성 시안이며 최종 음향 마스터 청취 검수는 미완료다.
+- 음원별 파일/해시는 `app/src/main/assets/web/assets/audio/manifest.json`, 상황 연결은 `docs/SPEC_2_8_STAGE_0_2.md`에 있다. BED/MELODY를 FULL과 중복 재생하지 않는다.
+- 표면 물기/수면/반사/파문은 코드 렌더링이며 원본 PNG를 날씨별 그림으로 교체하지 않는다.

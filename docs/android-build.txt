@@ -1,1 +1,5 @@
-0.3.1: Android API35 resources/Java/Dex compiled; APK v3 signature and zipalign verified. All bundled assets match source. versionCode=4. No Android device install/update test.
+Android API 35 / Build Tools 35.0.0 / ECJ 3.39.0 / Java 21
+Resource compilation, Java compilation and DEX conversion passed.
+APK signing / verification / alignment passed.
+All 33 packaged asset files match source bytes.
+Device installation, audio output and performance: NOT TESTED.

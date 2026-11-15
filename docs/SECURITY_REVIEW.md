@@ -35,3 +35,7 @@ JavaScript/TypeScript와 Python 작업 로그에서 분석 결과의 SARIF 생�
 - https://developer.android.com/develop/ui/views/layout/webapps/load-local-content
 - https://github.com/github/codeql-action/blob/main/README.md
 - https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options
+
+## 0.4.0
+
+로컬 기능 검사 40개, DOM 입력 하네스, Android 빌드/서명/정렬, 이전 인증서 일치와 APK 자산 일치 검사를 수행했다. 전체 브라우저와 Android 실기기 검수는 미수행이다. 사용자가 변경 파일 50개(음원 17개 포함)의 업로드와 검사 후 main 반영을 명시적으로 승인했다. 이번 커밋의 기능 CI/CodeQL 결과는 해당 PR 검사에서 각각 확인한다. 기존 main의 CodeQL 실행 43616879557은 failure이며 이를 새 버전 통과로 사용하지 않는다.

@@ -1,0 +1,12 @@
+{
+  "name": "forest-of-space",
+  "version": "0.4.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/forest/*.test.cjs",
+    "test:ui": "node tools/ui-smoke.mjs"
+  },
+  "devDependencies": {
+    "happy-dom": "21.0.4"
+  }
+}

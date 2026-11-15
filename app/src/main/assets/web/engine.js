@@ -1,7 +1,8 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.Forest=api;})(globalThis,function(){
 'use strict';
 // SRS 2.5: the one-second world is independent of rendering, UI, and wall clock.
-const VERSION='0.3.1', RULES='SRS-2.5-stage1', SCHEMA=1;
+const Space=typeof module==='object'?require('./spatial.js'):globalThis.ForestSpace;
+const VERSION='0.4.0', RULES='SRS-2.8-stage2', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -23,9 +24,9 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
  return {schema:SCHEMA,app:'ForestOfSpace',version:VERSION,rules:RULES,createdAt:now,savedAt:now,deviceId:uid(),mode:'game',started:false,worldTick:0,layoutRevision:0,
   rng:{weather:seedInt(seed+'weather'),behavior:seedInt(seed+'behavior'),neighbor:seedInt(seed+'neighbor')},
   weather:{kind:'sun',remaining:120,streak:1,intensity:35,wind:20,strongSeconds:0,transition:0,lastRainEnd:-9999},climate:{T:65,H:70,L:80},
-  patches:PATCHES.map(p=>({...p,S:({moss:22,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:p.id==='litter'?3:0,U:p.id==='shelter'?20:3,rainTotal:0})),spring:{x:.20,y:.72,water:60},
+  patches:PATCHES.map(p=>({...p,S:({moss:22,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:p.id==='litter'?3:0,U:p.id==='shelter'?20:3,rainTotal:0,film:0})),spring:{x:.20,y:.72,water:60},
   individuals:[{id,species:'ridley',name:'리들리',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
-  settings:{reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,theme:'auto'},
+  settings:{audio:{master:.65,music:.35,environment:.45,effects:.55},reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,theme:'auto'},
   ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null};
 }
 function level(p){let n=1;LEVELS.forEach((x,i)=>{if(p.xp>=x)n=i+1;});return n;}
@@ -41,7 +42,7 @@ function take(p,amount){const a=Math.min(p.W,amount);p.W-=a;const b=Math.min(p.S
 function put(s,p,amount){const a=Math.min(amount,p.cap-p.S);p.S+=a;const b=Math.min(amount-a,p.pool-p.W);p.W+=b;s.ledger.outflow+=amount-a-b;}
 function approach(p,t,speed=.009){const d=dist(p,t);if(d<=speed){p.x=t.x;p.y=t.y;return true;}p.x+=(t.x-p.x)/d*speed;p.y+=(t.y-p.y)/d*speed;return false;}
 function rotate(items,tick){if(!items.length)return items;const n=tick%items.length;return items.slice(n).concat(items.slice(0,n));}
-function step(s,{visible=true}={}){
+function step(s,{visible=true,held=null}={}){
  if(s.mode!=='game'||!s.started||s.offline)return s;
  s.worldTick++;const w=s.weather;w.remaining--;
  if(w.transition>0)w.transition--;
@@ -58,28 +59,34 @@ function step(s,{visible=true}={}){
  const inflow=Math.min(10/60,60-s.spring.water);s.spring.water+=inflow;s.ledger.spring+=inflow;
  const shelter=s.patches.find(p=>p.id==='shelter');shelter.U=Math.min(20,shelter.U+1/60);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
+ const transfers=[];
  for(const p of s.patches){
   let rain=w.kind==='rain'?12/60*w.intensity/100*p.exposure:0;
   // Movable leaf canopy physically shields patches within its radius; intercepted water
   // is routed once to the nearest lower patch, never counted as a second rainfall input.
   s.ledger.rain+=rain;p.rainTotal+=rain;
+  p.film=clamp(p.film+(rain>0?rain*.20:-(.002+.004*light(s,p)/100+.003*w.wind/100)),0,1);
   let receiving=rain;const canopy=s.patches.find(z=>z.id==='shade');
-  if(p.id!=='shade'&&dist(p,canopy)<.16&&rain>0){const redirected=rain*.35;receiving-=redirected;const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y&&dist(z,p)<.42).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)put(s,lower,redirected);else s.ledger.outflow+=redirected;}
+  if(p.id!=='shade'&&dist(p,canopy)<.16&&rain>0){const redirected=rain*.35;receiving-=redirected;const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y&&dist(z,p)<.42).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)transfers.push([lower,redirected]);else s.ledger.outflow+=redirected;}
   receiving+=p.W;p.W=0;const infiltration=Math.min(receiving,p.infiltration/60,p.cap-p.S);p.S+=infiltration;receiving-=infiltration;
   const pool=Math.min(receiving,p.pool);p.W=pool;s.ledger.outflow+=receiving-pool;
-  const drain=take(p,Math.min(p.S+p.W,p.drain/60));s.ledger.outflow+=drain;
+  const drain=take(p,Math.min(p.S+p.W,p.drain/60));const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y+.015&&dist(z,p)<.32).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)transfers.push([lower,drain]);else s.ledger.outflow+=drain;
   const evaporation=take(p,Math.min(p.S+p.W,(.2+.6*light(s,p)/100+.4*w.wind/100)/60));s.ledger.evaporation+=evaporation;
  }
+ for(const [to,amount]of transfers)put(s,to,amount);
  const active=rotate(s.individuals.filter(p=>p.active),s.worldTick);
  for(const p of active){
+  p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
   growth(p);const patch=s.patches.filter(z=>dist(z,p)<.1).sort((a,b)=>dist(a,p)-dist(b,p))[0];
   const bodyUse=Math.min(p.B,(.8+(light(s,p)>=70?.4:0))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
   const absorb=Math.min(p.Q,2/60,Math.max(0,65-p.B));p.Q-=absorb;p.B+=absorb;
-  if(patch&&moisture(patch)>=60&&!p.mounted){const q=take(patch,Math.min(4/60,20-p.Q));p.Q+=q;}
-  if((patch?.id==='shelter'||p.mounted)&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;put(s,shelter,q);}
+  const settled=!p.target||Space.distance(p,Space.socket(s,p.target))<.001||held===p.id;
+  if(settled&&patch&&moisture(patch)>=60&&!p.mounted){const q=take(patch,Math.min(4/60,20-p.Q));p.Q+=q;}
+  if(((settled&&patch?.id==='shelter')||p.mounted)&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;put(s,shelter,q);}
   if(p.Q>16){p.wetSeconds++;if(p.wetSeconds>=60)p.burden=clamp(p.burden+2/60);}else {p.wetSeconds=0;if(p.Q<12)p.burden=clamp(p.burden-4/60);}
   // Root rain supply is taken from actual terrain, not created on the plant.
   if(w.kind==='rain'&&patch&&patch.id!=='shelter'&&!p.mounted)p.Q+=take(patch,Math.min(2/60,20-p.Q));
+  if(held===p.id||p.settleUntil>=s.worldTick&&s.weather.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-.2/60);continue;}
   const needsRecovery=p.burden>=40||p.energy<40||p.nutrition<40||w.wind>=60||p.mounted;
   if(needsRecovery){p.action='rest';p.target='shelter';}
   else if(p.B<35||p.drinkCycle){p.action='drink';p.target='spring';p.drinkCycle=true;}
@@ -89,18 +96,20 @@ function step(s,{visible=true}={}){
    p.actionSeconds=p.action==='groom'?8:20+Math.floor(rng(s,'behavior')*25);
    p.target=p.action==='groom'?null:p.action==='rest'?'shelter':PATCHES[Math.floor(rng(s,'behavior')*PATCHES.length)].id;
   }
-  const target=p.target==='spring'?s.spring:s.patches.find(z=>z.id===p.target);
-  let arrived=!target||dist(p,target)<.025;
-  if(target&&!arrived&&!p.mounted){arrived=approach(p,target);p.energy=clamp(p.energy-1/60);}
+  const target=Space.socket(s,p.target);
+  let arrived=!target||Space.distance(p,target)<.001;
+  if(target&&!arrived&&!p.mounted){const motion=Space.travel(s,p,target);Object.assign(p.motion,motion);arrived=motion.arrived;if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   if(p.mounted)arrived=true;
   const resting=(p.action==='rest'||p.mounted)&&arrived;
   if(resting){p.energy=clamp(p.energy+4/60);p.damage=clamp(p.damage-1/60);p.mood=clamp(p.mood+.5/60);}
   else p.nutrition=clamp(p.nutrition-.2/60);
-  if(arrived&&(p.action==='drink'||resting)&&p.B<65){const water=Math.min(s.spring.water,10/60,65-p.B);s.spring.water-=water;p.B+=water;}
+  if(arrived&&(p.action==='drink'||resting)&&p.B<65){const water=Math.min(s.spring.water,10/60,65-p.B);s.spring.water-=water;p.B+=water;p.motion.water=water;}
+  if(arrived)p.motion.kind=resting?'rest':p.action==='drink'&&p.motion.water>0?'drink':p.action==='groom'?'groom':'idle';
   if(p.drinkCycle&&p.B>=65-1e-8){p.drinkCycle=false;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(visible&&!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',true);}}
   if(resting&&p.nutrition<70){const n=Math.min(1/60,shelter.U,70-p.nutrition);shelter.U-=n;p.nutrition+=n;}
   if(safe(p))p.mood=clamp(p.mood+.5/60);
   if(arrived)p.actionSeconds=Math.max(0,p.actionSeconds-1);
+  if(p.motion.water>0)p.motion.contact=p.id+':'+s.worldTick+':water';
  }
  neighborStep(s,visible);
  return s;
@@ -140,9 +149,13 @@ function resume(s,now=Date.now()){
 function validateLayout(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]}));
  for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<.12||p.x>.88||p.y<.16||p.y>.88)throw Error('정원 가장자리 안쪽에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,s.spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
  for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
+ const world={...s,patches:next};
+ for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
+ for(const pet of s.individuals)if(pet.active&&Space.walkable(s,pet)&&!Space.walkable(world,pet))throw Error('친구가 있는 자리를 비워주세요.');
  return next;
 }
 function layout(s,positions){const next=validateLayout(s,positions);s.patches=next;s.layoutRevision++;event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
+function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);const p=s.individuals.find(x=>x.id===id);p.x=result.x;p.y=result.y;p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}
 function valid(s){
  if(!s||s.schema!==1||s.app!=='ForestOfSpace'||s.rules!==RULES)throw Error('이 버전에서 읽을 수 있는 여백의 숲 백업이 아니에요.');
  const finite=(v,min=0,max=1e15)=>Number.isFinite(v)&&v>=min&&v<=max;
@@ -151,7 +164,7 @@ function valid(s){
  if(!s.climate||['T','H','L'].some(k=>!finite(s.climate[k],0,100)))throw Error('기후 기록을 확인해 주세요.');
  if(!s.rng||['weather','behavior','neighbor'].some(k=>!finite(s.rng[k],0,4294967295)||!Number.isInteger(s.rng[k])))throw Error('난수 기록을 확인해 주세요.');
  if(!s.patches||s.patches.length!==6||new Set(s.patches.map(p=>p.id)).size!==6)throw Error('정원 구역이 누락되었어요.');
- for(const p of s.patches){const def=PATCHES.find(x=>x.id===p.id);if(!def||Object.keys(def).filter(k=>!['x','y','name'].includes(k)).some(k=>p[k]!==def[k])||!finite(p.S,0,p.cap)||!finite(p.W,0,p.pool)||!finite(p.O)||!finite(p.U)||!finite(p.rainTotal))throw Error('정원 자원 기록이 올바르지 않아요.');}
+ for(const p of s.patches){const def=PATCHES.find(x=>x.id===p.id);if(!def||Object.keys(def).filter(k=>!['x','y','name'].includes(k)).some(k=>p[k]!==def[k])||!finite(p.S,0,p.cap)||!finite(p.W,0,p.pool)||!finite(p.O)||!finite(p.U)||!finite(p.rainTotal)||!finite(p.film,0,1))throw Error('정원 자원 기록이 올바르지 않아요.');}
  if(!s.spring||s.spring.x!==.20||s.spring.y!==.72||!finite(s.spring.water,0,60))throw Error('샘터 기록을 확인해 주세요.');
  validateLayout(s,{});
  if(!Array.isArray(s.individuals)||s.individuals.length<1||s.individuals.length>50||s.individuals.filter(p=>p.active).length>5||new Set(s.individuals.map(p=>p.id)).size!==s.individuals.length)throw Error('친구의 식별 기록이 올바르지 않아요.');
@@ -161,6 +174,7 @@ function valid(s){
   if(!finite(p.Q,0,20)||!finite(p.V,0,40)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }
  if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean'))throw Error('설정 기록을 확인해 주세요.');
+ if(!s.settings.audio||['master','music','environment','effects'].some(k=>!finite(s.settings.audio[k],0,1)))throw Error('소리 설정을 확인해 주세요.');
  if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k])))throw Error('물 원장이 올바르지 않아요.');
  if(!Array.isArray(s.events)||s.events.length>256||s.events.some(e=>typeof e.text!=='string'||!finite(e.tick))||!s.discoveries||Object.values(s.discoveries).some(d=>typeof d.text!=='string'||!finite(d.tick)))throw Error('관찰 기록이 올바르지 않아요.');
  if(!s.neighbor||!['none','trace','visiting'].includes(s.neighbor.stage)||['validSeconds','visitSeconds','absentSeconds','cooldown','visits'].some(k=>!finite(s.neighbor[k])))throw Error('작은 이웃 기록을 확인해 주세요.');
@@ -168,7 +182,7 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace'){const s=valid(clone(old));for(const p of s.individuals)if(p.name==='새싹이'&&!p.customName)p.name='리들리';return s;}
+ if(old.app==='ForestOfSpace'){const s=clone(old);if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}for(const p of s.individuals)delete p.motion;valid(s);for(const p of s.individuals)if(p.name==='새싹이'&&!p.customName)p.name='리들리';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}
@@ -177,5 +191,5 @@ function migrate(old,now=Date.now()){
  event(s,'migration','이전 수분·체력·기분·영양을 이어왔어요. 구버전 성장·다크리·업무 기록은 원본 보관 중이에요.');return valid(s);
 }
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
+return {VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
 });
