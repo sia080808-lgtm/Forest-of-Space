@@ -1,0 +1,45 @@
+✔ fresh state validates and the tutorial has safe independent B/Q (56.977456ms)
+✔ 12-hour world conserves every water unit and remains bounded (26600.119148ms)
+✔ same seed and input replay identically (1142.442938ms)
+✔ render visibility never changes weather RNG or physiology (1159.238536ms)
+✔ autonomous hydration completes and awards the first bonus once (407.359109ms)
+✔ landscape pauses all ecological clocks and growth (0.953109ms)
+✔ layout changes retain patch resources and plant state, with no reward (147.819804ms)
+✔ overlaps, spring blockage, invalid coordinates, shelter movement are rejected atomically (1.193629ms)
+✔ save failure cancels an important transaction (68.702122ms)
+✔ offline recovery conserves water and preserves main world, weather, terrain and position (4.132567ms)
+✔ offline recovery grows only after reaching the health threshold (CARE-04) (0.73888ms)
+✔ 8-hour cap, backwards clock and repeated resume never duplicate XP (18.846441ms)
+✔ duplicate pause does not reset the offline anchor (0.262099ms)
+✔ offline 1-second replay and a saved partial interval agree (46.915763ms)
+✔ mounted plant recovers but does not gain XP (33.423113ms)
+✔ legacy migration preserves the complete old payload without inventing old XP (50.676491ms)
+✔ restoring malformed backups is rejected, not normalized into silent data loss (164.724838ms)
+✔ personality is stable through checkpoint and rename (316.217237ms)
+✔ three consecutive same-weather selections are impossible (5235.907625ms)
+✔ light follows canopy position without changing atmosphere humidity (22.234891ms)
+✔ neighbor first visit requires 120 actual valid ticks and unseen visits grant no discovery (83.609882ms)
+✔ the first 3 minutes guarantee safe weak tutorial rain for every seed (4966.462125ms)
+✔ five active plants share one offline source without multiplying inflow (7.729328ms)
+✔ old default name migrates without changing progress; custom names survive (127.668054ms)
+✔ 0.3.1 migration retains coordinates, resources, rewards, names, clocks and random streams (306.26537ms)
+✔ relocation preserves biology and pending hydration cycle; write failure is atomic (352.183226ms)
+✔ placement validates the footprint and limits correction to one adult diameter (17.658266ms)
+✔ blocked paths go around the water, and finish at the shallow drinking entrance (22.433415ms)
+✔ held plants stay at their reserved origin, use biology time but gain no resting water or energy (1.264241ms)
+✔ new movement speed depends on need and root hysteresis, never growth size (0.548805ms)
+✔ visible drink contacts spend actual supply and disappear when there is no transfer (16.788503ms)
+✔ connected runoff has one owner and moving terrain never fills its water (73.540433ms)
+✔ sound files exist, source hashes match and music uses only full mixes (12.761433ms)
+✔ sound contacts deduplicate repeated frames, cap six one-shots and cancel an emitter (1.060871ms)
+✔ muted and missing-buffer events are consumed rather than played late (0.292145ms)
+✔ invalid audio settings are rejected without affecting saved biology (52.703279ms)
+✔ surface film wets in rain and dries gradually without creating usable water (90.27532ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40860.742798

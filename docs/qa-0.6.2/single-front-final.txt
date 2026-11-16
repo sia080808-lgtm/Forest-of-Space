@@ -1,0 +1,20 @@
+✔ all 21 front-leaf frames keep the forehead attachment pixel-identical (139.476982ms)
+✔ unfolded leaf has a single continuous surface per column (78.205595ms)
+✔ renderer never overlays an extra closed front on the animated front (0.605575ms)
+✔ welcome is explicit, once only, dormant, and survives reload without duplicating resources (443.21278ms)
+✔ shade and rain use the forward canopy instead of a radius around the body (0.458142ms)
+✔ leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band (0.514227ms)
+✔ moving Neolbi folds first and then travels (0.66184ms)
+✔ administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched (0.74142ms)
+✔ sleep preserves body proportions (6.794296ms)
+✔ damp soil without standing water draws no oval pools (2.986583ms)
+✔ sleep recovery transfers water without emitting a drink contact; spring drinking emits one (3.695433ms)
+✔ species dispatch keeps Neolbi armless and existing species on the intact common rig (11.108975ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 596.946258

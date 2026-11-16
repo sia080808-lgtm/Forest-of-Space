@@ -1,0 +1,22 @@
+✔ stored water consumes every source proportionally and capacity never creates extra input (38.393355ms)
+✔ rain collectors share the remaining actual input fairly, including a nearly full collector (18.668379ms)
+✔ A04 transfers at most ten units once, preserves reserve and records EC02 only for actual rain (18.22398ms)
+✔ spring/unknown water, full recipient and invisible transfer cannot grant EC02 (73.620711ms)
+✔ duplicate same-tick execution cannot advance phases or settle the same delivery twice (16.176422ms)
+✔ interrupt/reload preserves delivered water, cancels remaining work and retains cooldown (49.442798ms)
+✔ risk and pickup cancel water sharing on the next step without debit or refund (64.999198ms)
+✔ EC03 needs expanded union and a third actual resting participant for twenty visible seconds (94.686624ms)
+✔ hidden interval or layout change breaks EC03 observation rather than joining unrelated time (94.754676ms)
+✔ five active limit includes duplicates and mounted pets; standby physiology remains unchanged (412.176912ms)
+✔ legacy storage is unknown, malformed current source/session state is rejected (146.633146ms)
+✔ real rain simulation conserves water through collection, social behavior and pause/resume (16441.649492ms)
+✔ EC01 requires actual rain in both patches, a resting visitor and twenty uninterrupted visible seconds (248.552004ms)
+✔ prepared EC02 fixture uses real rain history and normal simulation completes the discovery (219.963561ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18044.268817

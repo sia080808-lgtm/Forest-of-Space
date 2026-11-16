@@ -1,0 +1,96 @@
+{
+  "environment": "native Canvas actual scene renderer, not Android WebView",
+  "report": [
+    {
+      "time": "noon",
+      "intensity": 35,
+      "profile": {
+        "intensity": 0.35,
+        "count": 35,
+        "length": 13.55,
+        "width": 1.08,
+        "alpha": 0.46399999999999997,
+        "speed": 276
+      },
+      "renderPure": true
+    },
+    {
+      "time": "noon",
+      "intensity": 60,
+      "profile": {
+        "intensity": 0.6,
+        "count": 60,
+        "length": 16.8,
+        "width": 1.28,
+        "alpha": 0.524,
+        "speed": 316
+      },
+      "renderPure": true
+    },
+    {
+      "time": "noon",
+      "intensity": 100,
+      "profile": {
+        "intensity": 1,
+        "count": 100,
+        "length": 22,
+        "width": 1.6,
+        "alpha": 0.62,
+        "speed": 380
+      },
+      "renderPure": true
+    },
+    {
+      "time": "night",
+      "intensity": 35,
+      "profile": {
+        "intensity": 0.35,
+        "count": 35,
+        "length": 13.55,
+        "width": 1.08,
+        "alpha": 0.46399999999999997,
+        "speed": 276
+      },
+      "renderPure": true
+    },
+    {
+      "time": "night",
+      "intensity": 60,
+      "profile": {
+        "intensity": 0.6,
+        "count": 60,
+        "length": 16.8,
+        "width": 1.28,
+        "alpha": 0.524,
+        "speed": 316
+      },
+      "renderPure": true
+    },
+    {
+      "time": "night",
+      "intensity": 100,
+      "profile": {
+        "intensity": 1,
+        "count": 100,
+        "length": 22,
+        "width": 1.6,
+        "alpha": 0.62,
+        "speed": 380
+      },
+      "renderPure": true
+    },
+    {
+      "splash": {
+        "seconds": 20,
+        "Bstart": 40,
+        "Bend": 41.66666666666664,
+        "springStart": 60,
+        "springEnd": 57.76766666666664,
+        "actualMotion": "splash",
+        "actualWater": 0.1
+      }
+    }
+  ],
+  "stateImmutable": true,
+  "reducedRainStatic": true
+}

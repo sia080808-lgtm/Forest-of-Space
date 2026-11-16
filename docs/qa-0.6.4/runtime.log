@@ -1,0 +1,82 @@
+SH01 [
+  {
+    id: 'ridley-404',
+    x: 0.3111111111111111,
+    y: 0.22923611111111108,
+    phase: 'restingInside',
+    units: 8,
+    energy: 21.916666666666668
+  }
+]
+SH02 [
+  {
+    id: 'ridley-404',
+    x: 0.3111111111111111,
+    y: 0.22923611111111108,
+    phase: 'restingInside',
+    units: 8,
+    energy: 21.916666666666668
+  },
+  {
+    id: 'shelter-friend',
+    x: 0.28,
+    y: 0.4689930555555556,
+    phase: 'waitingOutside',
+    units: undefined,
+    energy: 24.85000000000001
+  }
+]
+SH03 [
+  {
+    id: 'ridley-404',
+    x: 0.28888888888888886,
+    y: 0.2843970959595959,
+    phase: 'restingInside',
+    units: 8,
+    energy: 21.916666666666668
+  },
+  {
+    id: 'shelter-friend',
+    x: 0.4166666666666667,
+    y: 0.26009154040404037,
+    phase: 'restingInside',
+    units: 4,
+    energy: 26.750000000000004
+  }
+]
+SH04 [
+  {
+    id: 'ridley-404',
+    x: 0.4,
+    y: 0.4,
+    phase: 'moving',
+    units: 8,
+    energy: 20
+  },
+  {
+    id: 'door-visitor',
+    x: 0.3111111111111111,
+    y: 0.3689930555555556,
+    phase: 'outside',
+    units: undefined,
+    energy: 75
+  }
+]
+SH05 [
+  {
+    id: 'ridley-404',
+    x: 0.3111111111111111,
+    y: 0.3689930555555556,
+    phase: 'outside',
+    units: undefined,
+    energy: 64.96666666666667
+  },
+  {
+    id: 'shelter-friend',
+    x: 0.18333333333333332,
+    y: 0.25354166666666667,
+    phase: 'restingInside',
+    units: 2,
+    energy: 27.666666666666657
+  }
+]

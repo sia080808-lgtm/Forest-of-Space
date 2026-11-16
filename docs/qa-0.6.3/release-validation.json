@@ -1,0 +1,21 @@
+{
+  "version": "0.6.3",
+  "versionCode": 20,
+  "package": "com.ridleydesk.mobile",
+  "tests": {
+    "passed": 123,
+    "failed": 0,
+    "ui": "PASS"
+  },
+  "runtime_review": "real Scene renderer; no Android capture",
+  "device_install_performance_audio": "not tested",
+  "apk_sha256": "fd5d5df7b0158cf87afae3bab954f12ba84d776a6a4bb0e3d3109ff01b56b1d7",
+  "certificate_sha256": "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d",
+  "embedded_assets_verified": 83,
+  "srs_pages": 352,
+  "srs_changed_pages": [
+    1,
+    88
+  ],
+  "untouched_pages_and_bookmarks_verified": true
+}

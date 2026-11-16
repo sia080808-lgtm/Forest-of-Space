@@ -1,0 +1,11 @@
+✔ all local startup assets exist, with no remote runtime dependency (3.149832ms)
+✔ Android shell remains offline, preserves package identity, and increments version (0.549273ms)
+✔ every bundled font has its distribution license (0.48322ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.913695

@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): false
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=RidleyDesk Personal, OU=Personal Android, O=RidleyDesk
+Signer #1 certificate SHA-256 digest: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d
+Signer #1 certificate SHA-1 digest: cbc31835500006a3576f51e51108255aa0d3a560
+Signer #1 certificate MD5 digest: 281db5a7a5f90caa7e5cd2d9ded2d186
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: 94eaf88e12c0632bc5798fdb0982d492c44c5c5dc5da1f695ebc9b26fcbf34c8
+Signer #1 public key SHA-1 digest: 0c5a03a0cb4462f3c88fc4f9904455a5393c7008
+Signer #1 public key MD5 digest: 6fd7a15037d3d13b752069ed7a720432

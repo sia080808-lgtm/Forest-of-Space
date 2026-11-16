@@ -1,0 +1,12 @@
+{
+  "type": "document validation; new rules not implemented",
+  "pages": 365,
+  "new_sections": 13,
+  "rewritten_existing_sections": 9,
+  "untouched_body_pages_verified": 340,
+  "bookmarks_valid": true,
+  "internal_links_valid": true,
+  "new_acceptance_criteria": 12,
+  "new_apk": false,
+  "issues": []
+}

@@ -11,7 +11,7 @@ class ForestCarry {
  get held(){return this.session?.mode==='drag'?this.session.id:null;}
  clearCandidate(){if(this.candidate){clearTimeout(this.candidate.timer);clearTimeout(this.candidate.feedback);this.candidate.target?.classList.remove('pressing');this.candidate=null;}}
  consume(e){e.preventDefault();e.stopPropagation();this.suppressUntil=performance.now()+700;}
- begin(id,mode='choose',pointer=null){this.cancel(false);const p=this.getState().individuals.find(p=>p.id===id);if(!p||p.mounted)return this.notice('목부작을 마친 뒤 옮길 수 있어요.');
+ begin(id,mode='choose',pointer=null){if(this.scene.inputLocked)return;this.cancel(false);const p=this.getState().individuals.find(p=>p.id===id);if(!p||p.mounted)return this.notice('목부작을 마친 뒤 옮길 수 있어요.');
   this.session={id,mode,pointer,origin:{x:p.x,y:p.y},hover:{x:p.x,y:p.y},result:null,started:performance.now(),phaseStart:this.scene.phase};this.scene.carry=this.session;this.scene.onCarry?.(true);this.world.classList.add('carrying');document.getElementById('carry-bar').hidden=false;document.getElementById('carry-message').textContent=mode==='drag'?'발밑 표시를 보며 내려놓아 주세요.':'지도를 살핀 뒤 놓을 자리를 눌러주세요.';
   this.timer=setTimeout(()=>{this.cancel(false);this.blocked=this.pointers.size>0;this.start=null;this.pinch=null;this.suppressUntil=performance.now()+700;this.notice('원래 자리로 돌아왔어요.');},mode==='drag'?5000:30000);
  }
@@ -23,7 +23,7 @@ class ForestCarry {
   if(this.held)return;const point=this.scene.point(e);
   if(this.scene.editing){const p=this.scene.patchAt(point);if(p?.id===this.scene.selectedPatch&&this.scene.handleHit(point,p))this.scene.drag=p.id;return;}
   if(this.session?.mode==='choose')return;
-  const pet=b?this.getState().individuals.find(p=>p.id===b.dataset.pet):this.scene.petAt(point);if(!pet)return;
+  if(this.scene.inputLocked)return;const pet=b?this.getState().individuals.find(p=>p.id===b.dataset.pet):this.scene.petAt(point);if(!pet)return;
   const c=this.candidate={id:pet.id,target:b};c.feedback=setTimeout(()=>b?.classList.add('pressing'),100);c.timer=setTimeout(()=>{if(this.candidate!==c||this.pointers.size!==1)return;this.clearCandidate();this.begin(c.id,'drag',e.pointerId);this.preview(e);this.suppressUntil=performance.now()+700;},350);
  }
  startPinch(){const pts=[...this.pointers.values()];if(pts.length!==2)return;const r=this.scene.canvas.getBoundingClientRect(),x=(pts[0].x+pts[1].x)/2-r.left,y=(pts[0].y+pts[1].y)/2-r.top;this.pinch={distance:Math.max(1,Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)),z:this.scene.camera.z,anchor:this.scene.camera.world(x,y)};this.start=null;}
@@ -40,7 +40,7 @@ class ForestCarry {
  up(e){if(!this.pointers.has(e.pointerId))return;this.clearCandidate();const held=this.held,pinch=this.pinch,start=this.start;this.pointers.delete(e.pointerId);
   if(this.blocked||pinch){this.blocked=this.pointers.size>0;this.pinch=null;this.start=null;this.consume(e);}
   else if(held&&this.session.pointer===e.pointerId){this.preview(e);this.finish();this.consume(e);}
-  else if(start&&!start.moved){const p=this.scene.point(e);if(this.session?.mode==='choose'){this.preview(e);this.finish();}else if(this.scene.editing){const patch=this.scene.patchAt(p);if(patch){this.scene.selectedPatch=patch.id;this.scene.onMove(patch.id);}}else this.scene.selectAt(p);this.consume(e);}else this.consume(e);
+  else if(start&&!start.moved){const p=this.scene.point(e);if(this.session?.mode==='choose'){this.preview(e);this.finish();}else if(this.scene.editing){const patch=this.scene.patchAt(p);if(patch){this.scene.selectedPatch=patch.id;this.scene.onMove(patch.id);}}else if(!this.scene.inputLocked)this.scene.selectAt(p);this.consume(e);}else this.consume(e);
   this.scene.drag=null;this.start=null;this.scene.saveCamera();if(this.world.hasPointerCapture?.(e.pointerId))this.world.releasePointerCapture(e.pointerId);
  }
  finish(){const session=this.session;if(!session)return;const q=session.result;if(q?.ok){const success=this.commit(s=>Forest.relocate(s,session.id,q));if(success)this.scene.landed(session.id);}else this.notice('내려놓을 수 없어 원래 자리를 유지해요.');this.cancel();}

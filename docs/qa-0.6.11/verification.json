@@ -1,0 +1,30 @@
+{
+  "version": "0.6.11",
+  "versionCode": 28,
+  "spec": "2.21",
+  "rules": "SRS-2.19-objects",
+  "assets_match": true,
+  "same_certificate": true,
+  "package": "com.ridleydesk.mobile",
+  "sha256": "f5167f1a815cecef05e08eb51099cd9c4a5e75512bde90326600f7f5c86949fc",
+  "full_suite_passed": 205,
+  "final_targeted_passed": 29,
+  "unique_tests_covered": 206,
+  "failures_final": 0,
+  "test_provenance": "full205 followed by final29 including new once-per-session hydration-completion guard; first full run204/205 fixed obsolete no-transfer fixture from65 to80 due actual metabolism top-up",
+  "ui": "Happy DOM flow passed;7 object cards plus existing inputs/saves/inspector/recruitment",
+  "render": "native Canvas actual scene: six rain states, two zooms, reduced static scene, splash1/10/20s; pure renderer; real transfer markers",
+  "device_install": "not_run",
+  "android_webview_review": "not_run",
+  "device_performance": "not_run",
+  "listening": "not_run",
+  "source_rules_schema_changed": false,
+  "pdf_validation": "422pages;410body pages preserved; original links and bookmarks retained; 12changed pages visually checked",
+  "mechanics": {
+    "splashPerMinute": 6,
+    "bodyTarget": 65,
+    "minimumSplashWaterRatio": 0.2,
+    "rainMaxStreaks": 100,
+    "rainSpace": "viewport CSS pixels before common world grading"
+  }
+}

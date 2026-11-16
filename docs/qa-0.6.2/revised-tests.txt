@@ -1,0 +1,27 @@
+✔ welcome is explicit, once only, dormant, and survives reload without duplicating resources (731.657444ms)
+✔ shade and rain use the forward canopy instead of a radius around the body (0.591785ms)
+✔ leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band (0.650315ms)
+✔ moving Neolbi folds first and then travels (1.208176ms)
+✔ administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched (1.045251ms)
+✔ stored water consumes every source proportionally and capacity never creates extra input (63.844003ms)
+✔ rain collectors share the remaining actual input fairly, including a nearly full collector (45.370898ms)
+✔ A04 transfers at most ten units once, preserves reserve and records EC02 only for actual rain (43.254958ms)
+✔ spring/unknown water, full recipient and invisible transfer cannot grant EC02 (115.893192ms)
+✔ duplicate same-tick execution cannot advance phases or settle the same delivery twice (31.067722ms)
+✔ interrupt/reload preserves delivered water, cancels remaining work and retains cooldown (92.717056ms)
+✔ risk and pickup cancel water sharing on the next step without debit or refund (131.823778ms)
+✔ EC03 needs expanded union and a third actual resting participant for twenty visible seconds (176.61333ms)
+✔ hidden interval or layout change breaks EC03 observation rather than joining unrelated time (245.957193ms)
+✔ five active limit includes duplicates and mounted pets; standby physiology remains unchanged (1206.7034ms)
+✔ legacy storage is unknown, malformed current source/session state is rejected (233.811043ms)
+✔ real rain simulation conserves water through collection, social behavior and pause/resume (26001.565934ms)
+✔ EC01 requires actual rain in both patches, a resting visitor and twenty uninterrupted visible seconds (310.586249ms)
+✔ prepared EC02 fixture uses real rain history and normal simulation completes the discovery (346.442168ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29183.779647

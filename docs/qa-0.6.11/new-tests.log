@@ -1,0 +1,18 @@
+✔ splash transfers at most 6/min from the real spring, retaining mood and energy costs (8.476466ms)
+✔ splash stops hydration at65 but keeps playing; above65 never loses or receives water (1.541829ms)
+✔ splash awards no remote water while approaching, dry, too shallow, or unsafe (2.308644ms)
+✔ simultaneous splash requests fairly share the actual source without duplication (1.260232ms)
+✔ splash interruption at20 percent stops the next transfer and continued drinking still reaches65 (1.138183ms)
+✔ actual fixed steps raise water during splash, and offline does not keep drinking (110.881368ms)
+✔ rain intensity increases count, length, width and contrast, with zero rain truly absent (1.538766ms)
+✔ rain follows ten-second weather transitions and reduced motion retains contrast (0.296447ms)
+✔ rain renderer is deterministic, preserves game state, and uses static reduced rain (1.413105ms)
+✔ viewport rain stroke sizes stay the same across screen widths; spring card explains real consumption (2.139525ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 319.602277

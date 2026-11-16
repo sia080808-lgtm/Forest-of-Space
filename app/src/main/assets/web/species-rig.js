@@ -1,0 +1,74 @@
+(function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestSpeciesRig=api;})(globalThis,function(){
+'use strict';
+let A={},armBuffer;const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>(x=clamp(x))*x*(3-2*x),lerp=(a,b,t)=>a+(b-a)*t;
+const createCanvas=(w,h)=>{const c=typeof document!=='undefined'?document.createElement('canvas'):require('@napi-rs/canvas').createCanvas(w,h);c.width=w;c.height=h;return c;};
+function ellipse(c,x,y,rx,ry,color){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();}
+const cfg={duri:{w:.92,h:.98,leaf:[-14.3,-37.2,28.6,27.6],tempo:1.12,amp:1.2}};
+let mesh={};
+function initMesh(){if(!mesh.duri)mesh.duri=new (typeof Path2D!=='undefined'?Path2D:require('@napi-rs/canvas').Path2D)('M464 784 C464 730 456 700 438 687 C424 722 390 751 379 727 C370 705 400 679 410 666 C363 699 321 693 312 671 C304 651 328 637 370 621 C301 648 244 647 235 621 C228 592 284 567 359 558 C289 570 245 601 223 579 C202 554 261 518 331 499 C388 482 449 501 478 536 C491 552 509 570 518 584 C506 546 471 506 446 484 C406 464 394 431 413 415 C430 403 455 421 481 446 C450 407 457 367 477 364 C507 357 526 412 546 455 C563 489 568 518 571 540 C615 510 649 480 672 445 C697 406 699 377 678 350 C626 337 567 322 514 311 C452 297 407 284 414 261 C418 237 462 232 502 244 C552 262 589 281 614 297 C581 265 548 228 568 209 C590 185 628 220 652 243 C630 206 615 167 640 152 C674 135 706 169 722 206 C744 250 756 306 759 350 C771 306 777 254 792 212 C810 170 836 128 867 121 C909 114 915 144 899 173 C880 206 857 227 849 249 C888 217 929 194 958 207 C994 224 974 255 951 269 C1013 246 1064 252 1080 280 C1092 311 1045 331 996 348 C925 374 858 396 828 416 C812 433 800 462 799 494 C821 463 848 428 877 417 C907 405 921 425 903 448 C924 424 954 397 975 407 C998 423 980 454 962 478 C1008 459 1069 464 1083 488 C1094 517 1047 533 995 538 C953 541 921 555 907 575 C956 554 1022 555 1045 580 C1066 604 1037 624 999 623 C1053 636 1070 664 1052 682 C1036 700 1008 688 979 673 C1005 709 998 733 980 734 C953 738 945 704 934 681 C914 650 884 625 859 608 C817 579 790 554 767 533 C737 558 708 576 673 598 C590 648 516 721 464 784 Z');}
+const data={
+bonbon:{file:'exec-943eda32-df30-471b-a1df-31dea1a2b879.png',body:[60,140,520,492],leaf:[650,40,580,660],arms:[[98,840,209,350],[326,840,195,350]],legs:[[725,911,170,230],[957,910,172,231]],w:17,h:16.1,fol:[-13,-33,22,25.1],tempo:.72,eyes:[[.67,.37],[.83,.29]]},
+neolbi:{file:'exec-61298b59-50e2-4855-8d96-66ee5a637739.png',body:[65,185,529,350],leaf:[619,150,615,338],legs:[[750,893,132,90],[985,893,133,91]],w:32,h:21.2,fol:[-23,-32,46,25.3],tempo:.62,eyes:[[.49,.47],[.68,.47]]},
+bosong:{file:'exec-fca40df4-cab5-4d71-9958-52906ecf61a3.png',body:[173,65,330,563],leaf:[770,29,342,617],arms:[[131,835,156,351],[346,835,154,351]],legs:[[748,895,145,269],[952,895,147,269]],w:14,h:23.9,fol:[-9.2,-40.3,20,30.6],tempo:.8,eyes:[[.44,.37],[.74,.37]]},
+jureong:{file:'exec-934c2ffe-237d-42c0-9c88-f18cd5ea9a42.png',body:[52,246,541,258],leaf:[626,169,615,367],legs:[[752,906,150,104],[963,904,149,105]],w:38,h:18.1,fol:[-27,-33,54,32.2],tempo:.93,eyes:[[.34,.53],[.57,.53]]}
+};
+function crown(c,k,t,pose={}){const d=cfg[k],b=d.leaf;const rest=pose.rest||0,ang=pose.leafAngle||0;
+ c.save();c.translate(0,-23*d.h*.82);c.rotate(ang+Math.sin(t*d.tempo*1.5-.5)*.012*d.amp+rest*.035);c.scale(pose.spread||1,1-rest*.05);c.translate(0,23*d.h*.82);
+ if(k==='ridley')c.drawImage(A.leaves,238,170,793,776,...b);else{const crop=A[k+'Bounds'];c.save();c.translate(b[0],b[1]);c.scale(b[2]/crop[2],b[3]/crop[3]);c.translate(-crop[0],-crop[1]);if(mesh[k])c.clip(mesh[k]);c.drawImage(A[k],0,0);if(A.snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,A[k],A.snow,0,0);c.restore();}c.restore();}
+function limb(c,root,hand,width){const dx=hand.x-root.x,dy=hand.y-root.y,l=Math.hypot(dx,dy);c.save();c.translate(root.x,root.y);c.rotate(Math.atan2(dy,dx)-Math.PI/2);c.drawImage(A.palm,-width/2,-width*.8,width,l+width*1.4);c.restore();}
+function duriActor(c,k,x,y,t,pose={}){
+ const d=cfg[k],g=pose.growth??.65,bw=22.736*d.w,bh=23.04*d.h,mode=pose.mode||'idle',p=t*d.tempo,walk=['walk','run','slow','evacuate'].includes(mode),beat=Math.sin(p*(mode==='run'?13:mode==='slow'?5:8)),rest=pose.rest??(['rest','sleep','moss'].includes(mode)?1:0);
+ const held=mode==='held',bob=walk?-Math.abs(beat)*.52:Math.sin(p*1.6)*.10;const lift=pose.lift??(held?5:0);let tilt=pose.tilt||0;
+ if(mode==='look')tilt+=Math.sin(p*1.3)*.08*d.amp;if(mode==='groom')tilt+=Math.sin(p)*.025;if(mode==='thirsty')tilt+=.065;if(held)tilt+=Math.sin(t*8)*.035;
+ 
+ c.save();c.translate(x,y);c.scale(g*(pose.facing||1),g);c.translate(0,bob-lift+rest*.9);c.rotate(tilt);const hands=[];
+ for(let i=0;i<2;i++){const side=i?1:-1,root={x:side*bw*.32,y:-bh*.38};let hand={x:side*bw*.46,y:-bh*.24};
+  if(walk)hand.y+=side*beat*.7;if(held){hand.x+=side*1;hand.y-=1.2+Math.sin(t*9+i)*.7;}
+  if(mode==='groom'&&i===1){let reach=Math.sin(Math.min(1,(t%8)/1.0)*Math.PI/2)*(1-ease(((t%8)-6.8)/1.2));hand={x:bw*.17+Math.sin(t*7)*.3,y:lerp(-bh*.24,-bh*.88,reach)};}
+  if(mode==='splash'){hand={x:side*bw*.40,y:-bh*.18+Math.sin(t*7+i*Math.PI)*1.1};}
+  if(mode==='drink'&&i===0){hand={x:-bw*.05,y:-bh*.36};}
+  if(['carry','pass','wave'].includes(mode)&&i===(pose.handSide??1)){hand={x:side*bw*.43,y:-bh*(mode==='wave'?.7:.55)+Math.sin(t*4)*.35};}
+  if(pose.hands?.[i])hand={...pose.hands[i]};limb(c,root,hand,Math.min(2.6,bw*.13));hands.push(hand);
+ }
+ for(let i=0;i<2;i++){const side=i?1:-1;c.save();c.translate(side*bw*.24,-4.0-(i?pose.footTest||0:0));c.rotate(walk?side*beat*.33:held?side*Math.sin(t*9)*.3:0);c.drawImage(A[i?'leg-right':'leg-left'],-1.85,-2.4,3.7,7.0);c.restore();}
+ // Body is a complete, immutable layer. No limb-shaped holes or body cutout masks.
+ c.drawImage(A.body,358,438,594,602,-bw/2,-bh-1.2,bw,bh);
+ let expr=pose.expr||(['sleep','rest','moss'].includes(mode)?'sleepy':mode==='held'?'surprised':mode==='splash'?'happy':mode==='thirsty'?'sad':'neutral');
+ const fy=-bh*.43-1,fx=pose.lookX||0,eyeGap=Math.min(3.25,bw*.18),blink=(t%4.7)<.13;
+ c.lineWidth=.32;c.lineCap='round';c.strokeStyle='#f2e6c7';c.fillStyle='#f2e6c7';
+ for(const side of [-1,1]){const xx=fx+side*eyeGap;c.beginPath();if(expr==='sleepy'||blink){c.moveTo(xx-.57,fy);c.quadraticCurveTo(xx,fy+.6,xx+.57,fy);}else if(expr==='happy'){c.moveTo(xx-.6,fy);c.quadraticCurveTo(xx,fy-.85,xx+.6,fy);}else if(expr==='sad'){c.moveTo(xx-.5,fy+.1);c.lineTo(xx+.5,fy+.35);}else{c.moveTo(xx,fy-.65);c.lineTo(xx,fy+.55);}c.stroke();}
+ if(expr==='surprised')ellipse(c,fx,fy+2.15,.48,.66,'#f2e6c7');else if(expr!=='sleepy'){c.beginPath();c.moveTo(fx-.45,fy+2.1);c.lineTo(fx+.45,fy+2.1);c.stroke();}
+ crown(c,k,t,{...pose,rest});
+ for(let i=0;i<2;i++){const h=hands[i];c.drawImage(A.palm,h.x-1.35,h.y-1.6,2.7,3.2);}
+ if(pose.leafHeld){const h=hands[pose.handSide??1];leaf(c,0,h.x,h.y-1,1.05,Math.sin(t*4)*.3,0,false);}
+ if(mode==='drink')drop(c,hands[0].x,hands[0].y-.9,.6);
+ c.restore();return {hands:hands.map(h=>({x:x+h.x*g,y:y+(h.y+bob-lift+rest*.9)*g})),face:{x:x,y:y+(fy+bob-lift)*g},width:bw*g,height:bh*g};
+}
+function img(c,d,r,x,y,w,h){c.drawImage(d.im,...r,x,y,w,h);if(r===d.leaf&&d.snow>0){const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;if(!d.snowLeaf){d.snowLeaf=createCanvas(r[2],r[3]);d.snowLeaf.getContext('2d').drawImage(d.im,...r,0,0,r[2],r[3]);}E.snow(c,d.snowLeaf,d.snow,x,y,w,h);}}
+function hatLayer(c,d,t,p,inside){const held=p.mode==='held',amp=held?.055:.012,phase=0,angle=(p.leafAngle||0)+Math.sin(t*5+phase)*amp;c.save();c.translate(0,-d.h*.83);c.rotate(angle);c.translate(0,d.h*.83);if(inside)c.drawImage(d.hat,243,876,865,338,-14,-22.5,29,12);else c.drawImage(d.hat,85,40,1090,645,-23,-35.5,46,27.2);c.restore();}
+function leafLayer(c,d,t,p){if(d===data.bosong||d===data.bonbon){img(c,d,d.leaf,...d.fol);return;}if(d.hat){hatLayer(c,d,t,p,false);return;}const f=d.fol,held=p.mode==='held',safe=d===data.bosong?.018:.045,ang=(p.leafAngle||0)+Math.sin(t*(held?5:d.tempo*1.5))*(held?safe:.012);c.save();c.translate(0,-d.h*.78);c.rotate(ang);c.translate(0,d.h*.78);img(c,d,d.leaf,...f);c.restore();}
+function actor(c,k,x,y,t,p={}){if(!data[k])return duriActor(c,k,x,y,t,p);const d=data[k],g=p.growth??.65,m=p.mode||'idle',walk=['walk','run','slow'].includes(m),beat=Math.sin(t*d.tempo*(m==='run'?12:8)),rest=p.rest??(['sleep','rest','moss'].includes(m)?1:0),bob=walk?-Math.abs(beat)*.65:m==='held'?Math.sin(t*7)*.22:Math.sin(t*1.4)*.09;
+c.save();c.translate(x,y);c.scale(g,g);c.translate(0,bob+rest*.7-(p.lift||0));c.rotate((p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:0));if(d.hat)hatLayer(c,d,t,p,true);
+for(let i=0;i<2;i++){const s=i?1:-1;c.save();c.translate(s*d.w*.25,k==='bonbon'?-2.2:-3);c.rotate(walk?s*beat*.35:m==='held'?s*Math.sin(t*10+i)*.62:m==='splash'?s*Math.sin(t*7)*.25:0);img(c,d,d.legs[i],k==='bonbon'?-1.55:-1.9,k==='bonbon'?-2:-2.2,k==='bonbon'?3.1:3.8,k==='bonbon'?4.2:5.7);c.restore();}
+if(k==='bosong'){c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,Math.PI*2);c.clip();img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);c.restore();}else img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);
+// Texture eyelids are a separate animation overlay. The body texture never changes.
+if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h;if(k==='bonbon'||k==='neolbi'){c.save();c.beginPath();c.ellipse(ex,ey,1.6,2.2,0,0,7);c.clip();img(c,d,[d.body[0]+d.body[2]*.42,d.body[1]+d.body[3]*.72,70,80],ex-1.7,ey-2.3,3.4,4.6);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.65,ey);c.quadraticCurveTo(ex,ey+.6,ex+.65,ey);c.stroke();}}
+const hands=[];
+// Front arms are composited after the body and head foliage.
+const armCanvas=armBuffer||(armBuffer=createCanvas(640,640)),armCtx=armCanvas.getContext('2d');armCtx.setTransform(1,0,0,1,0,0);armCtx.clearRect(0,0,640,640);armCtx.translate(320,320);armCtx.scale(10,10);const bodyContext=c;c=armCtx;
+if(d.arms)for(let i=0;i<2;i++){const s=i?1:-1,root={x:s*d.w*.31,y:-d.h*.46};let h={x:s*d.w*.47,y:-d.h*.22};if(walk)h.y+=s*beat*.85;if(m==='held'){h.x=s*d.w*.44;h.y=-d.h*.30+Math.sin(t*9+i*Math.PI)*1.8;}if(m==='splash'){h.x=s*d.w*.49;h.y=-d.h*.35+Math.sin(t*7+i*Math.PI)*1.8;}if(m==='groom'&&i===1){const q=ease(t%8/.9)*(1-ease(((t%8)-6.7)/1.3));h={x:lerp(h.x,d.w*.13,q),y:lerp(h.y,-d.h*.89+Math.sin(t*5)*.45,q)};}if(m==='carry'||m==='pass'){h.y=-d.h*.48;h.x=s*d.w*.5;}if(p.hands?.[i])h=p.hands[i];if(k==='bonbon'){h.x=s*(d.w*.46+.15*Math.cos(t*7+i));h.y=-d.h*.40+(m==='held'?Math.sin(t*9+i*Math.PI)*1.8:walk?s*beat*.7:0);c.save();c.beginPath();c.arc(h.x,h.y,1.65,0,Math.PI*2);c.clip();img(c,d,[d.body[0]+180,d.body[1]+300,100,100],h.x-1.65,h.y-1.65,3.3,3.3);c.restore();c.strokeStyle='#62513f60';c.lineWidth=.12;c.beginPath();c.arc(h.x,h.y,1.65,0,Math.PI*2);c.stroke();hands.push(h);continue;}const dx=h.x-root.x,dy=h.y-root.y,len=Math.hypot(dx,dy),width=Math.min(3,d.w*.18);c.save();c.translate(root.x,root.y);c.rotate(Math.atan2(dy,dx)-Math.PI/2);img(c,d,d.arms[i],-width/2,-width*.8,width,len+width*1.3);c.restore();hands.push(h);}
+c=bodyContext;
+if(k==='bosong'){
+ c.drawImage(armCanvas,-32,-32,64,64);
+ c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,Math.PI*2);c.clip();img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);c.restore();
+ leafLayer(c,d,t,p);
+}else{leafLayer(c,d,t,p);c.drawImage(armCanvas,-32,-32,64,64);}
+// Armless species use the physical leaf-tip contact point, never virtual hands.
+const f=d.fol,tip=k==='jureong'?{x:f[0]+2,y:f[1]+f[3]-3}:{x:f[0]+5,y:f[1]+f[3]-2};
+const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x,ty=tip.y-pivot;tip.x=tx*Math.cos(la)-ty*Math.sin(la);tip.y=pivot+tx*Math.sin(la)+ty*Math.cos(la);
+c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bob+rest*.7-(p.lift||0))*g});return{hands:hands.map(toWorld),tip:toWorld(tip),face:{x,y:y-d.h*g*.55},width:d.w*g,height:d.h*g};}
+
+const files={};for(const k of ['bonbon','bosong','jureong','duri'])files['species_'+k]='assets/forest/species/'+k+'.png';
+function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true});c.restore();return true;}
+return {files,draw};
+});

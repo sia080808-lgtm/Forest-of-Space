@@ -1,0 +1,97 @@
+{
+  "scope": "two actors, four climates, 600 active ticks each; host timing is not Android performance",
+  "results": [
+    {
+      "climate": "C01",
+      "seed": 220,
+      "ticks": 600,
+      "waterBalance": "pass",
+      "leafBalance": "pass",
+      "hostTickP95ms": 20.923941999999897,
+      "friends": [
+        {
+          "name": "리들리",
+          "B": 60.67949999999847,
+          "energy": 75,
+          "nutrition": 68.00000000000182
+        },
+        {
+          "name": "엘레판",
+          "B": 61.381833333332025,
+          "energy": 69.61666666666669,
+          "nutrition": 68.00000000000182
+        }
+      ]
+    },
+    {
+      "climate": "C02",
+      "seed": 221,
+      "ticks": 600,
+      "waterBalance": "pass",
+      "leafBalance": "pass",
+      "hostTickP95ms": 20.621382999999696,
+      "friends": [
+        {
+          "name": "리들리",
+          "B": 60.290999999999016,
+          "energy": 75,
+          "nutrition": 68.00000000000182,
+          "task": "shade"
+        },
+        {
+          "name": "엘레판",
+          "B": 59.73208333333186,
+          "energy": 69.75000000000001,
+          "nutrition": 68.00000000000182,
+          "task": "crevice"
+        }
+      ]
+    },
+    {
+      "climate": "C03",
+      "seed": 222,
+      "ticks": 600,
+      "waterBalance": "pass",
+      "leafBalance": "pass",
+      "hostTickP95ms": 27.279116000001522,
+      "friends": [
+        {
+          "name": "리들리",
+          "B": 60.35633333333232,
+          "energy": 75,
+          "nutrition": 68.00000000000182,
+          "task": "rock"
+        },
+        {
+          "name": "엘레판",
+          "B": 60.467916666665275,
+          "energy": 72.15833333333345,
+          "nutrition": 68.00000000000182,
+          "task": "shelter"
+        }
+      ]
+    },
+    {
+      "climate": "C04",
+      "seed": 223,
+      "ticks": 600,
+      "waterBalance": "pass",
+      "leafBalance": "pass",
+      "hostTickP95ms": 17.033814999998867,
+      "friends": [
+        {
+          "name": "리들리",
+          "B": 61.20099999999874,
+          "energy": 75,
+          "nutrition": 68.00000000000182
+        },
+        {
+          "name": "엘레판",
+          "B": 61.5095833333321,
+          "energy": 69.83333333333334,
+          "nutrition": 68.00000000000182
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+✔ inspection weather motions and frame stepping never change original resources, RNG or progress (28.770281ms)
+✔ stem is blocked, paths and resting socket avoid it, with no side effects (14.096388ms)
+✔ moving spring conserves water and records; rejects overlap and rolls back failed save (229.452545ms)
+✔ new obstacles recover legacy overlap with only position and version adjusted (84.990624ms)
+✔ overview contains all bounds including future sizes, restores view and transforms correctly (0.777358ms)
+✔ rain varies lengths speeds density and per-cycle positions without consuming simulation RNG (1.141894ms)
+✔ all local startup assets exist, with no remote runtime dependency (4.218158ms)
+✔ Android shell remains offline, preserves package identity, and increments version (1.365826ms)
+✔ every bundled font has its distribution license (0.597567ms)
+✔ sleep preserves body proportions (14.961094ms)
+✔ damp soil without standing water draws no oval pools (3.106893ms)
+✔ sleep recovery gives no remote water or drink contact; actual spring drinking emits one (122.060151ms)
+✔ species dispatch uses original species art, with no virtual arms on Elephan or Jureong (2536.152589ms)
+✔ shelter foreground does not paint outside, approaching or waiting characters (3.515412ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2887.143691

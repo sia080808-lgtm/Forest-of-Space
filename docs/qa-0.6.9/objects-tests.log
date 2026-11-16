@@ -1,0 +1,30 @@
+✔ AC219-01/02 empty spring receives only actual precipitation, exact catchment input (11.214367ms)
+✔ AC219-03 snow melts from existing stock, no new external input (0.817241ms)
+✔ AC219-04 dry active timer queues real rain; offline never advances it (198.280771ms)
+✔ AC219-05/06 dry moss has exact gradual effects without entry bonus or duplication (4.467404ms)
+✔ AC219-07 shared moss water budget is at most .5 per minute per user (2.245299ms)
+✔ AC219-08 moss never lowers a value above its recovery ceiling (0.615231ms)
+✔ AC219-09 dangerous conditions interrupt moss on next step, dry stock does not (25.600309ms)
+✔ AC219-10/12 decomposition conserves raw plus compost, boost capped at three (2.895497ms)
+✔ AC219-11/17 absorption consumes compost exactly, not energy (8.567339ms)
+✔ AC219-13/18 raw and compost are separate actions (0.946775ms)
+✔ AC219-14/15 input respects daily quota, shared capacity and no catch-up (5.585193ms)
+✔ AC219-16 pickup, restore, release conserve stock without duplication (92.151084ms)
+✔ AC219-19 real shelter grants energy only, no remote supplies or mood (1.044022ms)
+✔ AC219-21 nutrition deficit selects real compost rather than shelter (15.781326ms)
+✔ AC219-22 dry moss remains eligible for both energy and mood (1.509992ms)
+✔ AC219-26 upgrade requires real use plus pressure, preserves stocks, no free fill (142.253978ms)
+✔ AC219-25 proportional grants never overdraw shared stock (0.481419ms)
+✔ AC219-29 offline freezes water, resources, nutrition, mood and damage (3.239556ms)
+✔ AC219-28 legacy stock migration moves excess water once without reinitializing progress (188.322785ms)
+✔ save write failure rolls back leaf pickup atomically (62.374036ms)
+✔ AC219-27 current day quota stays unchanged on upgrade; next day uses new cap (18.816175ms)
+✔ current and future corrupt resource metadata is rejected, never normalized (62.338433ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1051.486827

@@ -1,0 +1,44 @@
+{
+  "pages": 326,
+  "categories": {
+    "기능 요구사항(SRS)": 9,
+    "디자인 명세": 8,
+    "음향 명세": 6
+  },
+  "source_pages_retained": 291,
+  "source_page_duplicates": 0,
+  "starts": {
+    "S01": 5,
+    "S02": 16,
+    "S03": 23,
+    "S04": 32,
+    "S05": 50,
+    "S06": 63,
+    "S07": 74,
+    "S08": 79,
+    "S09": 85,
+    "D01": 112,
+    "D02": 117,
+    "D03": 120,
+    "D04": 156,
+    "D05": 186,
+    "D06": 241,
+    "D07": 255,
+    "D08": 280,
+    "A01": 294,
+    "A02": 298,
+    "A03": 301,
+    "A04": 309,
+    "A05": 317,
+    "A06": 323
+  },
+  "bookmarks": 328,
+  "legacy_reference_links": 289,
+  "asset_approval": {
+    "spring": "approved",
+    "ridley_0_5_1": "rejected",
+    "ridley_intact_body": "approved",
+    "all_characters": "shared_intact_body_rig",
+    "bonbon_neolbi": "pending_user_approval"
+  }
+}

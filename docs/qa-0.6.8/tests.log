@@ -1,0 +1,33 @@
+✔ all local startup assets exist, with no remote runtime dependency (4.322503ms)
+✔ Android shell remains offline, preserves package identity, and increments version (0.503263ms)
+✔ every bundled font has its distribution license (0.924632ms)
+✔ valid moved terrain blocks first seat entrance but reachable alternate admits adult Ridley (843.044693ms)
+✔ 066 reproduction: empty shelter recovers both friends from the serialized entrance deadlock (1409.994007ms)
+✔ 066 entrance route avoids the other character continuously, with no collision bypass (148.707422ms)
+✔ 066 deadlock save resumes with identity, resources and original positions preserved (438.365725ms)
+✔ 066 repeated shelter departures and arrivals do not leave a vacant shelter deadlocked (5919.585224ms)
+✔ 066 actual capacity remains enforced: an adult Elephan cannot share basic shelter with adult Ridley (391.438515ms)
+✔ 066 no phantom waiting label after rest need ends (2.904382ms)
+✔ 066 blocked entrance explains the path problem and retains the same queue request (244.265996ms)
+✔ 066 too-close saved friends may separate, but cannot walk through each other (81.012528ms)
+✔ SH-AC01 outside goal, threshold and moving frames never claim internal recovery (242.662275ms)
+✔ SH-AC02 every age of both shipped rigs fits inside with no size reduction (9543.819375ms)
+✔ SH-AC03 quarter units and physical geometry both constrain admission (87.981417ms)
+✔ SH-AC04 deterministic simultaneous reservations cannot overbook (6259.27201ms)
+✔ SH-AC05 full shelter waits outside and supplies no phantom protection (212.650703ms)
+✔ SH-AC06 growth defers oversized visual transition until actual exit (133.267677ms)
+✔ SH-AC06 held space is reserved once, cancel restores, direct placement admits after settlement (640.933572ms)
+✔ SH-AC07 geometry has actual capacity for adult families (415.948672ms)
+✔ SH-AC07 expansion validates terrain/path and atomic write preserves original (214.597513ms)
+✔ SH-AC08 world supply and water accounting never multiply with facility count (235.246594ms)
+✔ SH-AC09 old external-rest migration retains name, biology and location, no fake admission (128.855629ms)
+✔ SH-AC10 offline safety retains real outside position and mounted takes no facility space (62.443026ms)
+✔ SH-AC11 exit retains occupied budget until the complete silhouette is outside (651.257539ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19060.562722

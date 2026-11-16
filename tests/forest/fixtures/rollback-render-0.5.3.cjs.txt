@@ -1,0 +1,41 @@
+const {test}=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const {createCanvas,loadImage}=require('@napi-rs/canvas');
+const web=path.resolve(__dirname,'../../app/src/main/assets/web'),F=require(web+'/engine.js');
+async function fixtures(){
+ const sandbox={Forest:F,ForestSurfaces:{...require(web+'/surfaces.js'),wash(){}},ForestCamera:require(web+'/camera.js'),ResizeObserver:class{observe(){}},devicePixelRatio:1,document:{querySelector:()=>null},requestAnimationFrame:()=>{}};
+ vm.createContext(sandbox);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene',sandbox);
+ vm.runInContext(fs.readFileSync(__dirname+'/fixtures/ridley-0.4.4.js.txt','utf8').replace('size=72*growth','size=48*growth'),sandbox);
+ const state=F.create(1000,88),canvas=createCanvas(320,320);canvas.getBoundingClientRect=()=>({width:320,height:320});
+ const current=new sandbox.Scene(canvas,()=>state),previous=new sandbox.HistoricalRidley();
+ Object.assign(previous,{state:()=>state,w:360,h:576});
+ const im=await loadImage(web+'/assets/forest/ridley.png'),reference=await loadImage(__dirname+'/fixtures/ridley-0.4.3.png');
+ Object.assign(current,{assets:{ridley:im},carry:{phaseStart:0}});
+ Object.assign(previous,{assets:{ridley:reference},carry:{phaseStart:0}});
+ function render(scene,kind,t,face=1,neutral=false){
+  const c=canvas.getContext('2d');c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,270);c.scale(6,6);
+  if(neutral)c.rotate(-Math.sin(t*3)*.035);
+  scene.ctx=c;scene.facing={[state.individuals[0].id]:face};
+  scene.pet(state.individuals[0],{x:0,y:0},kind,t,false,kind==='held');
+  return c.getImageData(0,0,320,320).data;
+ }
+ return {state,current,previous,render};
+}
+test('body, feet and base motions match historical 0.4.4 at the current display size',async()=>{
+ const {state,current,previous,render}=await fixtures();
+ for(const xp of [0,15,60,150])for(const face of [-1,1])for(const kind of ['idle','walk','slow','hurry','run','rest','drink','land','held'])for(const t of [0,.13,.4,.9,1.2,2.4,3.8]){
+  state.individuals[0].xp=xp;
+  a.deepEqual(render(current,kind,t,face),render(previous,kind,t,face),`${xp}/${face}/${kind}/${t}`);
+ }
+});
+test('grooming removes the original right palm while the left palm stays intact',async()=>{
+ const {state,current,previous,render}=await fixtures();state.individuals[0].xp=150;
+ const pixel=(sx,sy)=>{const x=Math.round(160+(sx/1254-.5)*48*6),y=Math.round(270+(sy/1254-.85)*48*6);return (y*320+x)*4;};
+ for(const t of [.7,1,1.4,1.9,2.4,2.8,3]){
+  const now=render(current,'groom',t,1,true),old=render(previous,'groom',t,1,true);
+  for(const sy of [885,900,915]){const i=pixel(986,sy);a.ok(old[i+3]>240);a.equal(now[i+3],0,`old palm remains at ${t}/${sy}`);}
+  for(const sx of [385,394,403])for(const sy of [895,910,925]){const i=pixel(sx,sy);a.deepEqual(now.slice(i,i+4),old.slice(i,i+4),'left palm changed');}
+ }
+ a.notDeepEqual(render(current,'groom',0),render(current,'groom',1.2),'grooming must move');
+ state.settings.reducedMotion=true;
+ a.deepEqual(render(current,'groom',1),render(previous,'groom',1),'reduced motion retains the two original palms');
+});

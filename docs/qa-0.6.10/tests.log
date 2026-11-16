@@ -1,0 +1,40 @@
+✔ litter separates playable raw leaves, compost, carried quantity and shared free capacity (5.848382ms)
+✔ capacity and small positive quantities use actual state, not a hard coded 60 (1.040573ms)
+✔ moss has gradual recovery even when water is zero, reservations are not actual use (1.862595ms)
+✔ shelter counts quarter spaces separately from occupants and respects Elephan size (19.914156ms)
+✔ shade, rock and crevice expose their own effects and directional wind, not common filler (1.364485ms)
+✔ litter status follows the same decomposition calculation and shared budget as the engine (1.168437ms)
+✔ rendering all seven cards does not alter RNG, resources or task state; names are escaped (1.914849ms)
+✔ AC219-01/02 empty spring receives only actual precipitation, exact catchment input (8.70574ms)
+✔ AC219-03 snow melts from existing stock, no new external input (4.04712ms)
+✔ AC219-04 dry active timer queues real rain; offline never advances it (174.999955ms)
+✔ AC219-05/06 dry moss has exact gradual effects without entry bonus or duplication (3.69783ms)
+✔ AC219-07 shared moss water budget is at most .5 per minute per user (2.18615ms)
+✔ AC219-08 moss never lowers a value above its recovery ceiling (0.399014ms)
+✔ AC219-09 dangerous conditions interrupt moss on next step, dry stock does not (18.873273ms)
+✔ AC219-10/12 decomposition conserves raw plus compost, boost capped at three (2.341208ms)
+✔ AC219-11/17 absorption consumes compost exactly, not energy (7.584607ms)
+✔ AC219-13/18 raw and compost are separate actions (1.229312ms)
+✔ AC219-14/15 input respects daily quota, shared capacity and no catch-up (6.20476ms)
+✔ AC219-16 pickup, restore, release conserve stock without duplication (93.426237ms)
+✔ AC219-19 real shelter grants energy only, no remote supplies or mood (0.953484ms)
+✔ AC219-21 nutrition deficit selects real compost rather than shelter (16.834372ms)
+✔ AC219-22 dry moss remains eligible for both energy and mood (4.200161ms)
+✔ AC219-26 upgrade requires real use plus pressure, preserves stocks, no free fill (151.028431ms)
+✔ AC219-25 proportional grants never overdraw shared stock (0.508888ms)
+✔ AC219-29 offline freezes water, resources, nutrition, mood and damage (3.099533ms)
+✔ AC219-28 legacy stock migration moves excess water once without reinitializing progress (188.360895ms)
+✔ save write failure rolls back leaf pickup atomically (66.609904ms)
+✔ AC219-27 current day quota stays unchanged on upgrade; next day uses new cap (24.002672ms)
+✔ current and future corrupt resource metadata is rejected, never normalized (66.009519ms)
+✔ all local startup assets exist, with no remote runtime dependency (2.182758ms)
+✔ Android shell remains offline, preserves package identity, and increments version (1.157705ms)
+✔ every bundled font has its distribution license (0.864312ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1009.495035

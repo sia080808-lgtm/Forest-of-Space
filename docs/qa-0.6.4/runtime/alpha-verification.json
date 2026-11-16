@@ -1,0 +1,15 @@
+{
+  "samples": 384,
+  "escaped": 0,
+  "ages": 4,
+  "species": [
+    "ridley",
+    "neolbi"
+  ],
+  "facing": 2,
+  "clips": [
+    "rest",
+    "slow",
+    "idle"
+  ]
+}

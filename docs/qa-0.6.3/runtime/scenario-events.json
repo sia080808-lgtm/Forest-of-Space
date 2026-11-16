@@ -1,0 +1,194 @@
+[
+  {
+    "t": 1,
+    "phase": "approach",
+    "wind": 20,
+    "guest": {
+      "wind": 20,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 2,
+    "phase": "approach",
+    "wind": 20,
+    "guest": {
+      "wind": 20,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 3,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 20,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 4,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 12,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 5,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 12,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 6,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 12,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 7,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 12,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 8,
+    "phase": "rest",
+    "wind": 20,
+    "guest": {
+      "wind": 12,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 9,
+    "phase": "rest",
+    "wind": 65,
+    "guest": {
+      "wind": 39,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 10,
+    "phase": "rest",
+    "wind": 65,
+    "guest": {
+      "wind": 39,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 11,
+    "phase": "rest",
+    "wind": 65,
+    "guest": {
+      "wind": 39,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 12,
+    "phase": "rest",
+    "wind": 65,
+    "guest": {
+      "wind": 39,
+      "rain": 0.3,
+      "damage": 0,
+      "protectedBy": "weather-elephan"
+    },
+    "hostProgress": 1
+  },
+  {
+    "t": 13,
+    "phase": "none",
+    "wind": 75,
+    "guest": {
+      "wind": 75,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 0
+  },
+  {
+    "t": 14,
+    "phase": "none",
+    "wind": 75,
+    "guest": {
+      "wind": 75,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 0
+  },
+  {
+    "t": 15,
+    "phase": "none",
+    "wind": 75,
+    "guest": {
+      "wind": 75,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 0
+  },
+  {
+    "t": 16,
+    "phase": "none",
+    "wind": 75,
+    "guest": {
+      "wind": 75,
+      "rain": 0.6,
+      "damage": 0,
+      "protectedBy": null
+    },
+    "hostProgress": 0
+  }
+]

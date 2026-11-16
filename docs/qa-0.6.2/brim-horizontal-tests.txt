@@ -1,0 +1,25 @@
+✔ all 21 front-leaf frames keep the forehead attachment pixel-identical (68.852534ms)
+✔ extended brim bridge has a single continuous surface per column (29.533448ms)
+✔ renderer never overlays an extra closed front on the animated front (0.776754ms)
+✔ horizontal extension keeps the inner hood static in every frame (92.387103ms)
+✔ inner and outer surfaces use exactly the same pose-frame rectangle, with no fixed patch (1.665377ms)
+✔ foreground hood exactly matches the local hood transform through grooming, sleep and wriggle (342.999616ms)
+✔ Neolbi uses a 1.5 scale at every growth tier, including body collision size (0.782132ms)
+✔ placement rejects a gap that fits ordinary friends but not the enlarged Neolbi (1.397993ms)
+✔ welcome is explicit, once only, dormant, and survives reload without duplicating resources (484.216304ms)
+✔ shade and rain use the forward canopy instead of a radius around the body (0.632696ms)
+✔ leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band (0.481547ms)
+✔ moving Neolbi folds first and then travels (0.811927ms)
+✔ administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched (0.753719ms)
+✔ sleep preserves body proportions (5.431327ms)
+✔ damp soil without standing water draws no oval pools (2.039111ms)
+✔ sleep recovery transfers water without emitting a drink contact; spring drinking emits one (2.62694ms)
+✔ species dispatch keeps Neolbi armless and existing species on the intact common rig (6.328483ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 773.131027

@@ -1,0 +1,26 @@
+{
+  "version": "0.6.7",
+  "versionCode": 24,
+  "package": "com.ridleydesk.mobile",
+  "sha256": "f4408171849a18922d4d4908d32c8811df1622ca48f15ada65ffc0ed867d1a70",
+  "assets_match": true,
+  "asset_files_verified": 104,
+  "same_signing_certificate_as_0_6_6": true,
+  "certificate_sha256": "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d",
+  "unique_automated_tests_verified": 165,
+  "full_run": {
+    "passed": 164,
+    "failed": 1,
+    "failure": "package version expectation remained 0.6.6; corrected and rerun"
+  },
+  "package_test_rerun": {
+    "passed": 3,
+    "failed": 0
+  },
+  "new_regression_tests": 8,
+  "ui_smoke": "passed",
+  "runtime_recovery_seconds": 12,
+  "runtime_review_frames": 4,
+  "device_install": "not_run",
+  "github_upload": "not_requested"
+}

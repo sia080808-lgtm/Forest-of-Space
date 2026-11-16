@@ -1,0 +1,19 @@
+{
+  "version": "0.6.10",
+  "versionCode": 27,
+  "spec": "2.20",
+  "rules": "SRS-2.19-objects",
+  "assets_match": true,
+  "same_certificate": true,
+  "package": "com.ridleydesk.mobile",
+  "sha256": "ca6734ae294b11200b4be3d24f6220f1440ca87d74d6d6979be63c500ea95673",
+  "automated_tests": 32,
+  "failures": 0,
+  "ui": "7 object cards plus existing DOM UI flow passed",
+  "ui_scope": "Happy DOM only; no pixel layout or touch verification",
+  "browser_pixel_review": "not_run_successfully_environment_restricted",
+  "device_install": "not_run",
+  "device_performance": "not_run",
+  "source_rules_schema_changed": false,
+  "pdf_validation": "422 pages; 417 body pages preserved; original page links and bookmarks retained; changed pages visually checked"
+}

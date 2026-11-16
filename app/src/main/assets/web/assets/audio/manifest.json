@@ -83,5 +83,35 @@
     "file": "sfx/SFX_UI_CLICK_v01.wav",
     "sha256": "35428525b0a86dc1b237a11af6023f1a4ff250b85083d1aca2f36f3e98ae477f",
     "status": "synthesized_draft_v0.2"
+  },
+  {
+    "file": "sfx/SFX_STEP_SNOW_v01.wav",
+    "sha256": "94237f8625e0b28f4a162a45a01b8fdfa2896521025b82d4ab216deec6883bad",
+    "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "sfx/SFX_STEP_SNOW_v02.wav",
+    "sha256": "5ae8a1643813317749b8d3e8112a94cfa7915906425e92164c5a7fedbbaeb612",
+    "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "sfx/SFX_STEP_SNOW_v03.wav",
+    "sha256": "3712f847db430727c32f9470b9a35523f1ff87af4a1489cfeadafc1002474150",
+    "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v01.wav",
+    "sha256": "4fc3a5d8fd7c9ea07a406b5d7658bbc4a91256f9a417d08589a51d388217f80d",
+    "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v02.wav",
+    "sha256": "e6fbac4b39fe3785c2a1a3e053c107695a254149e9226c3bd48cc0aaf2c378ce",
+    "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v03.wav",
+    "sha256": "e9e8892bf9f3ecf81c72fc04595de78bede18fc1183ea953d6442994750a90a8",
+    "status": "derived_original_local_mix_0.6.6"
   }
 ]

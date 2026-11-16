@@ -1,0 +1,3 @@
+const {createCanvas,loadImage}=require('@napi-rs/canvas'),fs=require('node:fs'),path=require('node:path');
+const dir=path.resolve(__dirname,'../app/src/main/assets/web/assets/forest/neolbi');
+(async()=>{const im=await loadImage(dir+'/hat.png');for(const part of ['front','back']){const c=createCanvas(im.width,im.height),x=c.getContext('2d');x.drawImage(im,0,0);x.globalCompositeOperation=part==='front'?'destination-in':'destination-out';x.beginPath();x.moveTo(0,690);x.lineTo(170,620);x.bezierCurveTo(250,450,470,275,750,222);x.bezierCurveTo(950,180,1150,270,1280,460);x.lineTo(1280,750);x.lineTo(0,750);x.closePath();x.fill();fs.writeFileSync(dir+'/'+part+'.png',c.toBuffer('image/png'));}})();

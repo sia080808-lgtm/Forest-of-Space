@@ -1,0 +1,63 @@
+{
+  "pages": 422,
+  "short_pages": 34,
+  "replaced": [
+    1,
+    5,
+    115,
+    130,
+    339
+  ],
+  "preserved_body_pages": 417,
+  "bookmarks_and_links_valid": true,
+  "issues": [],
+  "layout": [
+    {
+      "title": "여백의 숲 | 통합 명세 v2.20",
+      "font": 11.5,
+      "bottom": 408.9000000000001
+    },
+    {
+      "title": "SRS 개정 요구사항 | v2.20",
+      "font": 11.5,
+      "bottom": 408.9000000000001
+    },
+    {
+      "title": "S06.14 오브젝트별 수치·조건 표시",
+      "font": 11.5,
+      "bottom": 265.82499999999993
+    },
+    {
+      "title": "S08.10 구현 추적 | v2.19 → v2.20",
+      "font": 11.5,
+      "bottom": 247.99999999999991
+    },
+    {
+      "title": "D06.15 객체별 카드·게이지 구성",
+      "font": 11.5,
+      "bottom": 247.99999999999991
+    },
+    {
+      "title": "여백의 숲 · 오브젝트 규칙 v2.20",
+      "font": 11.5,
+      "bottom": 391.07500000000005
+    },
+    {
+      "title": "S06.14 오브젝트별 수치·조건 표시",
+      "font": 11.5,
+      "bottom": 265.82499999999993
+    },
+    {
+      "title": "S08.10 구현 추적 | v2.19 → v2.20",
+      "font": 11.5,
+      "bottom": 247.99999999999991
+    },
+    {
+      "title": "D06.15 객체별 카드·게이지 구성",
+      "font": 11.5,
+      "bottom": 247.99999999999991
+    }
+  ],
+  "device_review": "not_run",
+  "browser_review": "environment blocked"
+}

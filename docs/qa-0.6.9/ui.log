@@ -1,0 +1,7 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> forest-of-space@0.6.9 test:ui
+> node tools/ui-smoke.mjs
+
+PASS: v2.18 recruitment UI, dedicated encounter, pause, settlement, planned roster, all 42 isolated previews
+PASS: boot, card release, biology preservation, write rollback, zoom bounds/reset, pan state isolation, pinch ownership, 350ms pickup, second-finger cancel, held drop coordinates, audio sliders, folded layout cancel, inspector isolation/frame/occlusion/overview restoration, pause/resume, isolated stage2 review

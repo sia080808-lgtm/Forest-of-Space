@@ -1,0 +1,9 @@
+const fs=require('fs'),assert=require('assert/strict'),{createCanvas,loadImage}=require('@napi-rs/canvas');
+const out='/workspace/scratch/8dd22e074e8f/hood-clean';
+(async()=>{const names=['01-rear-leaf','02-legs','03-body','04-eyes','05-front-leaf'],expected=[1,2,1,2,1],results=[],images=[];
+for(let i=0;i<5;i++){const im=await loadImage(out+'/'+names[i]+'.png');images.push(im);const c=createCanvas(im.width,im.height),x=c.getContext('2d');x.drawImage(im,0,0);const d=x.getImageData(0,0,c.width,c.height).data,W=c.width,H=c.height,seen=new Uint8Array(W*H),components=[];
+for(let n=0;n<W*H;n++){if(seen[n]||d[n*4+3]<128)continue;const q=[n];seen[n]=1;for(let k=0;k<q.length;k++){const p=q[k],xx=p%W,yy=Math.floor(p/W);for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=xx+dx,ny=yy+dy,j=ny*W+nx;if(nx>=0&&nx<W&&ny>=0&&ny<H&&!seen[j]&&d[j*4+3]>=128){seen[j]=1;q.push(j);}}}components.push(q.length);}assert.equal(components.length,expected[i],names[i]+' stray islands');results.push({layer:names[i],components:components.length,pixels:components});}
+const c=createCanvas(255,208),x=c.getContext('2d');x.drawImage(images[2],0,0,255,208);const body=x.getImageData(0,0,255,208).data;
+function front(q){x.clearRect(0,0,255,208);x.save();x.translate(90,85);x.rotate(q*21*Math.PI/180);x.translate(-90,-85);x.drawImage(images[4],0,0,255,208);x.restore();return x.getImageData(0,0,255,208).data;}
+const base=front(0),exposure=[];for(const q of [0,.25,.5,.75,1]){const now=front(q);let n=0;for(let y=0;y<94;y++)for(let xx=0;xx<255;xx++){const k=(y*255+xx)*4;if(body[k+3]>240&&base[k+3]>240&&now[k+3]<128)n++;}exposure.push({pose:q,newlyExposedCrownPixels:n});assert.equal(n,0,'crown exposed at '+q);}
+fs.writeFileSync(out+'/layer-check.json',JSON.stringify({results,exposure,maxDropDegrees:21},null,2));console.log('PASS five layer component counts; no new crown exposure at all five sampled poses');})();

@@ -1,0 +1,40 @@
+﻿clip,동작,SRS,검토 주기(초),연결 상태,GIF,스프라이트
+idle,기본 · 느린 숨,RIG-F01,4,기존 상태 렌더 연결,gif/idle.gif,sprites/idle.png
+slow,천천히 걷기,LOC-04,4,기존 상태 렌더 연결,gif/slow.gif,sprites/slow.png
+walk,걷기,LOC-04,4,기존 상태 렌더 연결,gif/walk.gif,sprites/walk.png
+hurry,서두르기,LOC-04,4,기존 상태 렌더 연결,gif/hurry.gif,sprites/hurry.png
+run,달리기,LOC-04,4,기존 상태 렌더 연결,gif/run.gif,sprites/run.png
+stop,발 정리 · 멈춤,LOC-04,2,기존 상태 렌더 연결,gif/stop.gif,sprites/stop.png
+duck,잎 아래 숙이기,LOC-04,4,기존 상태 렌더 연결,gif/duck.gif,sprites/duck.png
+step,턱 넘기,LOC-04,4,기존 상태 렌더 연결,gif/step.gif,sprites/step.png
+avoid,피해 걷기,LOC-04,4,기존 상태 렌더 연결,gif/avoid.gif,sprites/avoid.png
+held,들림 · 버둥,MOVE-01,4,기존 상태 렌더 연결,gif/held.gif,sprites/held.png
+land,착지 · 후드 정리,MOVE-07,2,기존 상태 렌더 연결,gif/land.gif,sprites/land.png
+rest,잠자기 · 후드 내림,RIG-11,6,기존 상태 렌더 연결,gif/rest.gif,sprites/rest.png
+wake,깨어나 챙 들기,RIG-11,3,표현 클립 준비,gif/wake.gif,sprites/wake.png
+groom,자기 잎 정돈,A02,8,기존 상태 렌더 연결,gif/groom.gif,sprites/groom.png
+drink,물 마시기,S-INT-01,4,기존 상태 렌더 연결,gif/drink.gif,sprites/drink.png
+splash,발로 물장구,S-INT-01,4,기존 상태 렌더 연결,gif/splash.gif,sprites/splash.png
+moss,이끼 속 포옥,S-INT-02,5,기존 상태 렌더 연결,gif/moss.gif,sprites/moss.png
+litter,앞잎으로 낙엽 살피기,A03,4,기존 상태 렌더 연결,gif/litter.gif,sprites/litter.png
+carry,잎으로 낙엽 받쳐 운반,A11,4,동작 에셋 준비 · 부모 행동 연결 대기,gif/carry.gif,sprites/carry.png
+escort,나란히 동행,A07,4,동작 에셋 준비 · 부모 행동 연결 대기,gif/escort.gif,sprites/escort.png
+receive,잎에 물방울 받기,A04,5,기존 상태 렌더 연결,gif/receive.gif,sprites/receive.png
+rainlook,빗방울 살피기,A01,5,동작 에셋 준비 · 부모 행동 연결 대기,gif/rainlook.gif,sprites/rainlook.png
+shade,한 자리 그늘,A09/A12/K02/K05,6,기존 상태 렌더 연결,gif/shade.gif,sprites/shade.png
+umbrella,우산 · 끝 낙수,A09,6,기존 상태 렌더 연결,gif/umbrella.gif,sprites/umbrella.png
+fold,접고 대피 준비,A13,3,기존 상태 렌더 연결,gif/fold.gif,sprites/fold.png
+look,실제 흔적 살피기,A10/A15,4,동작 에셋 준비 · 부모 행동 연결 대기,gif/look.gif,sprites/look.png
+greet,후드로 인사,A14/M04,3,동작 에셋 준비 · 부모 행동 연결 대기,gif/greet.gif,sprites/greet.png
+nightrest,밤의 조용한 쉼,A16,6,동작 에셋 준비 · 부모 행동 연결 대기,gif/nightrest.gif,sprites/nightrest.png
+passleaf,잎으로 낙엽 건네기,A06,4,동작 에셋 준비 · 부모 행동 연결 대기,gif/passleaf.gif,sprites/passleaf.png
+hoodpeek,후드 아래 빼꼼,PERS-05,5,표현 클립 준비,gif/hoodpeek.gif,sprites/hoodpeek.png
+hoodfit,앉기 전 고쳐 쓰기,PERS-05,4,표현 클립 준비,gif/hoodfit.gif,sprites/hoodfit.png
+hoodnod,자리 잡은 친구에게 끄덕,PERS-05,3,표현 클립 준비,gif/hoodnod.gif,sprites/hoodnod.png
+hooddoze,꾸벅 · 챙 다시 들기,RIG-11,6,표현 클립 준비,gif/hooddoze.gif,sprites/hooddoze.png
+PE01,함께 기웃,A10,4,동작 에셋 준비 · 부모 행동 연결 대기,gif/PE01.gif,sprites/PE01.png
+PE02,한 박자 따라,A05,10,동작 에셋 준비 · 부모 행동 연결 대기,gif/PE02.gif,sprites/PE02.png
+PE03,빈자리 살피고 끄덕,A08/M02,6,동작 에셋 준비 · 부모 행동 연결 대기,gif/PE03.gif,sprites/PE03.png
+PE04,고마운 후드 인사,A04/K02,2,기존 상태 렌더 연결,gif/PE04.gif,sprites/PE04.png
+PE05,처진 챙 바로잡기,A02,8,기존 상태 렌더 연결,gif/PE05.gif,sprites/PE05.png
+PE06,알아보고 챙 들기,M04,3,동작 에셋 준비 · 부모 행동 연결 대기,gif/PE06.gif,sprites/PE06.png

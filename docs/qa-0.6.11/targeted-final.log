@@ -1,0 +1,37 @@
+✔ splash transfers at most 6/min from the real spring, retaining mood and energy costs (15.451179ms)
+✔ splash stops hydration at65 but keeps playing; above65 never loses or receives water (2.090793ms)
+✔ splash awards no remote water while approaching, dry, too shallow, or unsafe (2.712551ms)
+✔ simultaneous splash requests fairly share the actual source without duplication (3.411707ms)
+✔ splash interruption at20 percent stops the next transfer and continued drinking still reaches65 (1.239968ms)
+✔ actual fixed steps raise water during splash, and offline does not keep drinking (197.142209ms)
+✔ rain intensity increases count, length, width and contrast, with zero rain truly absent (1.909561ms)
+✔ rain follows ten-second weather transitions and reduced motion retains contrast (0.455975ms)
+✔ rain renderer is deterministic, preserves game state, and uses static reduced rain (4.560059ms)
+✔ viewport rain stroke sizes stay the same across screen widths; spring card explains real consumption (3.208672ms)
+✔ reaching the splash target emits completion only once per play session (1.085077ms)
+✔ sleep preserves body proportions (21.24446ms)
+✔ damp soil without standing water draws no oval pools (4.74669ms)
+✔ sleep recovery gives no remote water or drink contact; actual spring drinking emits one (226.79314ms)
+✔ species dispatch uses original species art, with no virtual arms on Elephan or Jureong (3020.123729ms)
+✔ shelter foreground does not paint outside, approaching or waiting characters (7.789027ms)
+✔ 0.3.1 migration retains coordinates, resources, rewards, names, clocks and random streams (1183.680665ms)
+✔ relocation preserves biology and pending hydration cycle; write failure is atomic (348.714521ms)
+✔ placement validates the footprint and limits correction to one adult diameter (28.857409ms)
+✔ blocked paths go around the water, and finish at the shallow drinking entrance (18.547079ms)
+✔ held plants stay at their reserved origin, use biology time but gain no resting water or energy (2.825997ms)
+✔ new movement speed depends on need and root hysteresis, never growth size (0.604922ms)
+✔ visible drink contacts spend actual supply and disappear when there is no transfer (29.993771ms)
+✔ connected runoff has one owner and moving terrain never fills its water (82.553422ms)
+✔ sound files exist, source hashes match and music uses only full mixes (14.489818ms)
+✔ sound contacts deduplicate repeated frames, cap six one-shots and cancel an emitter (0.685004ms)
+✔ muted and missing-buffer events are consumed rather than played late (0.17379ms)
+✔ invalid audio settings are rejected without affecting saved biology (83.836544ms)
+✔ surface film wets in rain and dries gradually without creating usable water (263.579542ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3597.745394

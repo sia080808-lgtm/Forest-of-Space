@@ -1,0 +1,11 @@
+{
+  "apk": "Forest-of-Space-0.6.0-review.apk",
+  "size": 18076684,
+  "sha256": "18a06cc7109ae75e93cb4a64165c174b6d5dee3bb0d04974527d8bb504563053",
+  "sameSigningCertificateAs": "0.5.6",
+  "certificate": "Signer #1 certificate SHA-256 digest: f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d",
+  "bundledWebFiles": 50,
+  "exactSourceMatch": true,
+  "physicalAndroidTest": false,
+  "artApproval": "pending"
+}

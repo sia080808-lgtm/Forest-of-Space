@@ -1,0 +1,21 @@
+{
+  "scenes": [
+    {
+      "scene": "EC01",
+      "ticks": 160,
+      "discovered": true
+    },
+    {
+      "scene": "EC02",
+      "ticks": 40,
+      "discovered": true
+    },
+    {
+      "scene": "EC03",
+      "ticks": 23,
+      "discovered": true
+    }
+  ],
+  "roster": true,
+  "storageWrites": 0
+}

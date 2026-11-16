@@ -1,0 +1,19 @@
+{
+  "status": "document-validated; new gameplay not implemented or tested",
+  "pages": 352,
+  "new_sections": 12,
+  "untouched_old_pages_verified": 332,
+  "all_bookmarks_valid": true,
+  "internal_links_valid": true,
+  "runtime_and_tests_unchanged": true,
+  "examples": {
+    "wet_120_seconds": 2.0,
+    "dry_60_seconds": 4.0,
+    "wind75_70_seconds": 2.125,
+    "shielded_wind65": 39.0,
+    "rain60_total": 7.199999999999999,
+    "rain60_redirected": 3.5999999999999996,
+    "rain60_root_request": 0.6
+  },
+  "issues": []
+}

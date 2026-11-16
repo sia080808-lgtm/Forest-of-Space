@@ -1,0 +1,16 @@
+✔ all local startup assets exist, with no remote runtime dependency (4.629704ms)
+✔ Android shell remains offline, preserves package identity, and increments version (0.77507ms)
+✔ every bundled font has its distribution license (1.066909ms)
+✔ sleep preserves body proportions (11.437822ms)
+✔ damp soil without standing water draws no oval pools (2.978999ms)
+✔ sleep recovery transfers water without emitting a drink contact; spring drinking emits one (61.644125ms)
+✔ species dispatch keeps Neolbi armless and existing species on the intact common rig (15.821978ms)
+✔ shelter foreground does not paint outside, approaching or waiting characters (1.827318ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 264.760245

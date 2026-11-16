@@ -1,0 +1,606 @@
+{
+  "schema": 1,
+  "app": "ForestOfSpace",
+  "version": "0.6.6",
+  "rules": "SRS-2.18-environment",
+  "createdAt": 0,
+  "savedAt": 0,
+  "deviceId": "02bd7f5f-ba93-4839-ba9d-8046ed3561ba",
+  "mode": "game",
+  "started": true,
+  "worldTick": 3154,
+  "layoutRevision": 0,
+  "rng": {
+    "weather": 542791197,
+    "behavior": 685976143,
+    "neighbor": 3678741490,
+    "recruitment": 1372119771
+  },
+  "weather": {
+    "kind": "rain",
+    "remaining": 116,
+    "streak": 1,
+    "intensity": 35,
+    "wind": 20,
+    "strongSeconds": 0,
+    "transition": 0,
+    "lastRainEnd": 2495,
+    "rainEpoch": 6,
+    "lastRainEpoch": 5,
+    "wind_dir": 3.141592653589793
+  },
+  "climate": {
+    "T": 55,
+    "H": 90,
+    "L": 15
+  },
+  "patches": [
+    {
+      "id": "rock",
+      "name": "햇살 바위",
+      "cap": 2,
+      "pool": 12,
+      "infiltration": 4,
+      "drain": 6,
+      "exposure": 1,
+      "x": 0.73,
+      "y": 0.32,
+      "S": 0,
+      "W": 0,
+      "O": 0,
+      "U": 3,
+      "rainTotal": 93.46499999999703,
+      "film": 1,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    },
+    {
+      "id": "moss",
+      "name": "이끼 자리",
+      "cap": 40,
+      "pool": 10,
+      "infiltration": 12,
+      "drain": 1,
+      "exposure": 0.8,
+      "x": 0.64,
+      "y": 0.52,
+      "S": 40,
+      "W": 10,
+      "O": 0,
+      "U": 3,
+      "rainTotal": 74.77199999999836,
+      "film": 1,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    },
+    {
+      "id": "shade",
+      "name": "잎 그늘",
+      "cap": 20,
+      "pool": 12,
+      "infiltration": 8,
+      "drain": 2,
+      "exposure": 0.6,
+      "x": 0.78,
+      "y": 0.73,
+      "S": 0.016666666666666666,
+      "W": 0,
+      "O": 0,
+      "U": 3,
+      "rainTotal": 56.07900000000089,
+      "film": 0.7853999999999992,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    },
+    {
+      "id": "crevice",
+      "name": "바위 틈",
+      "cap": 10,
+      "pool": 20,
+      "infiltration": 5,
+      "drain": 1,
+      "exposure": 0.5,
+      "x": 0.37,
+      "y": 0.48,
+      "S": 0.6782999999999992,
+      "W": 0,
+      "O": 0,
+      "U": 3,
+      "rainTotal": 46.73249999999852,
+      "film": 0.6545000000000005,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    },
+    {
+      "id": "shelter",
+      "name": "기본 쉼터",
+      "cap": 10,
+      "pool": 6,
+      "infiltration": 6,
+      "drain": 3,
+      "exposure": 0.1,
+      "x": 0.23,
+      "y": 0.22,
+      "S": 0,
+      "W": 0,
+      "O": 0,
+      "U": 20,
+      "rainTotal": 9.346499999999795,
+      "film": 0.13089999999999993,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    },
+    {
+      "id": "litter",
+      "name": "낙엽 자리",
+      "cap": 30,
+      "pool": 10,
+      "infiltration": 8,
+      "drain": 1.5,
+      "exposure": 0.8,
+      "x": 0.54,
+      "y": 0.83,
+      "S": 30,
+      "W": 7.7120166666665515,
+      "O": 3,
+      "U": 3,
+      "rainTotal": 74.77199999999836,
+      "film": 1,
+      "snowWater": 0,
+      "roofSnow": 0,
+      "lastRainTick": 3154,
+      "rainEpoch": 6
+    }
+  ],
+  "spring": {
+    "x": 0.2,
+    "y": 0.72,
+    "water": 60,
+    "inflow": 0
+  },
+  "individuals": [
+    {
+      "id": "ridley-3172026",
+      "species": "ridley",
+      "name": "리들리",
+      "B": 62.97208333333309,
+      "Q": 0,
+      "V": 0,
+      "energy": 74.83333333333334,
+      "mood": 83.80000000001098,
+      "nutrition": 69.31333333333427,
+      "damage": 0,
+      "burden": 0,
+      "wetSeconds": 0,
+      "x": 0.3461027653545278,
+      "y": 0.38110555125519985,
+      "xp": 8,
+      "growthSeconds": 166,
+      "mounted": false,
+      "active": true,
+      "action": "rest",
+      "actionSeconds": 23,
+      "target": "shelter",
+      "drinkCycle": false,
+      "first": {
+        "drink": true
+      },
+      "personality": {
+        "version": 1,
+        "a": 1,
+        "c": 1,
+        "e": 0
+      },
+      "gustExposure": 0,
+      "braceSeconds": 0,
+      "windCalmSeconds": 20,
+      "wet85Seconds": 0,
+      "wetFilm": 0.4115999999999995,
+      "wetRecovery": false,
+      "leafRecovery": false,
+      "sources": {
+        "rain": 0,
+        "other": 0,
+        "unknown": 0
+      },
+      "visualStage": 1,
+      "shelter": {
+        "phase": "moving",
+        "facilityId": "shelter-0",
+        "x": 0.18888888888888888,
+        "y": 0.25354166666666667,
+        "units": 3,
+        "since": 3149,
+        "expires": 3164,
+        "revision": 0,
+        "stalled": 2,
+        "replans": 1
+      },
+      "snowWater": 0,
+      "recoveredSeconds": 0,
+      "canopy": false,
+      "harvestTick": 0,
+      "motion": {
+        "kind": "idle",
+        "path": [
+          {
+            "x": 0.3461027653545278,
+            "y": 0.38110555125519985
+          }
+        ],
+        "distance": 0,
+        "water": 0,
+        "tick": 3154,
+        "duration": 0,
+        "arrived": false
+      },
+      "weatherExposure": {
+        "wind": 20,
+        "rain": 0.35,
+        "damage": 0,
+        "protectedBy": null
+      },
+      "wetSlow": false,
+      "shapeFailures": 0,
+      "socialUntil": 2531,
+      "shelterRequest": {
+        "id": 21,
+        "start": 3036,
+        "waited": 119,
+        "absent": 0
+      }
+    },
+    {
+      "id": "elephan-3172026",
+      "species": "neolbi",
+      "name": "엘레판",
+      "B": 63.00541666666638,
+      "Q": 0,
+      "V": 0,
+      "energy": 74.4166666666667,
+      "mood": 90.11666666668268,
+      "nutrition": 68.92666666667435,
+      "damage": 0,
+      "burden": 0,
+      "wetSeconds": 0,
+      "x": 0.29521937670386883,
+      "y": 0.4170571952982183,
+      "xp": 10,
+      "growthSeconds": 267,
+      "mounted": false,
+      "active": true,
+      "action": "rest",
+      "actionSeconds": 39,
+      "target": "shelter",
+      "drinkCycle": false,
+      "first": {
+        "drink": true
+      },
+      "personality": {
+        "version": 1,
+        "a": 1,
+        "c": 1,
+        "e": -1
+      },
+      "gustExposure": 0,
+      "braceSeconds": 0,
+      "windCalmSeconds": 20,
+      "wet85Seconds": 0,
+      "wetFilm": 0.4115999999999995,
+      "wetRecovery": false,
+      "leafRecovery": false,
+      "sources": {
+        "rain": 0,
+        "other": 0,
+        "unknown": 0
+      },
+      "visualStage": 1,
+      "shelter": {
+        "phase": "moving",
+        "facilityId": "shelter-0",
+        "x": 0.3111111111111111,
+        "y": 0.23270833333333332,
+        "units": 5,
+        "since": 3150,
+        "expires": 3164,
+        "revision": 0,
+        "stalled": 1,
+        "replans": 1
+      },
+      "snowWater": 0,
+      "recoveredSeconds": 0,
+      "canopy": false,
+      "canopyProgress": 0,
+      "harvestTick": 0,
+      "motion": {
+        "kind": "idle",
+        "path": [
+          {
+            "x": 0.29521937670386883,
+            "y": 0.4170571952982183
+          }
+        ],
+        "distance": 0,
+        "water": 0,
+        "tick": 3154,
+        "duration": 0,
+        "arrived": false
+      },
+      "weatherExposure": {
+        "wind": 20,
+        "rain": 0.35,
+        "damage": 0,
+        "protectedBy": null
+      },
+      "wetSlow": false,
+      "next_personality_tick": 3070,
+      "shapeFailures": 0,
+      "socialUntil": 2531,
+      "shelterRequest": {
+        "id": 20,
+        "start": 2976,
+        "waited": 179,
+        "absent": 0
+      }
+    }
+  ],
+  "settings": {
+    "audio": {
+      "master": 0.65,
+      "music": 0.35,
+      "environment": 0.45,
+      "effects": 0.55
+    },
+    "reducedMotion": false,
+    "showName": false,
+    "showLevel": false,
+    "showState": true,
+    "showSpeech": true,
+    "theme": "auto"
+  },
+  "ledger": {
+    "rain": 355.16699999999025,
+    "spring": 125.87916666667888,
+    "evaporation": 80.95209499999628,
+    "outflow": 233.95292166668952,
+    "physiology": 89.20666666667253,
+    "snow": 0,
+    "condensation": 29.449999999999253
+  },
+  "events": [
+    {
+      "id": "2467-4",
+      "type": "protect",
+      "text": "엘레판이 잎 아래 자리를 내어줬어요.",
+      "tick": 2467,
+      "layout": 0,
+      "individual": "elephan-3172026",
+      "session": "social-3"
+    },
+    {
+      "id": "2495-3",
+      "type": "weather",
+      "text": "안개 날씨로 천천히 바뀌어요.",
+      "tick": 2495,
+      "layout": 0
+    },
+    {
+      "id": "2621-4",
+      "type": "weather",
+      "text": "맑음 날씨로 천천히 바뀌어요.",
+      "tick": 2621,
+      "layout": 0
+    },
+    {
+      "id": "2745-5",
+      "type": "weather",
+      "text": "맑음 날씨로 천천히 바뀌어요.",
+      "tick": 2745,
+      "layout": 0
+    },
+    {
+      "id": "2902-5",
+      "type": "weather",
+      "text": "흐림 날씨로 천천히 바뀌어요.",
+      "tick": 2902,
+      "layout": 0
+    },
+    {
+      "id": "3056-5",
+      "type": "weather",
+      "text": "비 날씨로 천천히 바뀌어요.",
+      "tick": 3056,
+      "layout": 0
+    }
+  ],
+  "discoveries": {
+    "first-drink": {
+      "tick": 206,
+      "text": "샘터에서 처음 물을 마셨어요.",
+      "layout": 0
+    }
+  },
+  "neighbor": {
+    "observed": 0,
+    "validSeconds": 28,
+    "visitSeconds": 0,
+    "absentSeconds": 0,
+    "cooldown": 0,
+    "visits": 0,
+    "stage": "none"
+  },
+  "offline": null,
+  "legacy": null,
+  "social": {
+    "version": 1,
+    "serial": 3,
+    "sessions": [],
+    "cooldowns": {},
+    "observations": {}
+  },
+  "shelters": {
+    "version": 1,
+    "nextId": 1,
+    "unlocked": true,
+    "stored": [],
+    "facilities": [
+      {
+        "id": "shelter-0",
+        "level": 1,
+        "x": 0.23,
+        "y": 0.29,
+        "base": true,
+        "revision": 0
+      }
+    ],
+    "plannedRoster": [],
+    "nextRequest": 22
+  },
+  "recruitment": {
+    "version": 1,
+    "serial": 1,
+    "target": null,
+    "visitor": {
+      "id": "visit-1-duri",
+      "species": "duri",
+      "pet": {
+        "id": "visit-1-duri",
+        "species": "duri",
+        "name": "두리",
+        "B": 55,
+        "Q": 0,
+        "V": 0,
+        "snowWater": 0,
+        "energy": 75,
+        "mood": 75,
+        "nutrition": 70,
+        "damage": 0,
+        "burden": 0,
+        "wetSeconds": 0,
+        "x": 0.5,
+        "y": 0.65,
+        "xp": 0,
+        "growthSeconds": 0,
+        "mounted": false,
+        "active": false,
+        "action": "wander",
+        "actionSeconds": 0,
+        "target": null,
+        "drinkCycle": false,
+        "first": {},
+        "personality": {
+          "version": 1,
+          "a": -1,
+          "c": 0,
+          "e": 1
+        },
+        "sources": {
+          "rain": 0,
+          "other": 0,
+          "unknown": 0
+        },
+        "visualStage": 0,
+        "shelter": {
+          "phase": "outside",
+          "since": 180
+        },
+        "gustExposure": 0,
+        "braceSeconds": 0,
+        "windCalmSeconds": 0,
+        "wet85Seconds": 0,
+        "wetFilm": 0,
+        "wetRecovery": false,
+        "leafRecovery": false
+      },
+      "seconds": 0,
+      "open": false,
+      "ready": false,
+      "water": 20,
+      "leaves": 3,
+      "phase": "adapt",
+      "x": 0.5,
+      "y": 0.77,
+      "companion": null
+    },
+    "progress": {
+      "ridley": {
+        "valid": 0,
+        "failures": 0,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      },
+      "bonbon": {
+        "valid": 0,
+        "failures": 1,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      },
+      "neolbi": {
+        "valid": 0,
+        "failures": 0,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      },
+      "bosong": {
+        "valid": 0,
+        "failures": 1,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      },
+      "jureong": {
+        "valid": 0,
+        "failures": 1,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      },
+      "duri": {
+        "valid": 0,
+        "failures": 0,
+        "comfortable": 0,
+        "actions": {},
+        "rest": 0
+      }
+    },
+    "settled": [],
+    "pending": []
+  },
+  "environment": {
+    "version": 1,
+    "climate": "C01",
+    "lastStormEnd": -600,
+    "seasonStart": 0,
+    "visualFrom": {
+      "brightness": 0.94,
+      "saturation": 0.9,
+      "color": [
+        174,
+        189,
+        187
+      ],
+      "alpha": 0.08
+    },
+    "precipFrom": {
+      "rain": 0,
+      "snow": 0,
+      "fog": 0
+    },
+    "windFrom": 20,
+    "windTarget": 20,
+    "tutorialDone": true
+  }
+}

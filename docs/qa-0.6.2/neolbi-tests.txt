@@ -1,0 +1,13 @@
+✔ welcome is explicit, once only, dormant, and survives reload without duplicating resources (676.199465ms)
+✔ shade and rain use the forward canopy instead of a radius around the body (0.668879ms)
+✔ leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band (0.629075ms)
+✔ moving Neolbi folds first and then travels (0.868552ms)
+✔ administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched (0.82988ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 825.009606

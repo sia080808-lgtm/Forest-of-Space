@@ -1,0 +1,11 @@
+여백의 숲 v2.19 기획 전달본
+
+현재 APK: 0.6.8 (수정하지 않음)
+현행 명세: ../Forest_SRS_Design_Audio_v2.19.pdf
+개정 별책: ../Forest_Object_Rules_v2.19.pdf
+편집 원문: Revision-v2.19.json 및 content.py
+초기 설정: ObjectRules-v2.19.json (앱 미연결)
+수용 기준: Acceptance-v2.19.csv (게임 검증 미실행)
+문서 검증: Document-Validation-v2.19.json
+
+기존 SRS v2.18 본문·승인 이미지를 보존하며 자원/회복 규칙만 개정했다. build.py는 작성 환경의 경로를 사용한다. 다른 환경에서는 R/G/D 경로를 바꾸고 PyMuPDF/reportlab/Pillow 및 기존 v2.18 PDF·GowunDodum-Regular.ttf를 제공한다.

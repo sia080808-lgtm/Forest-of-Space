@@ -1,0 +1,28 @@
+✔ 218 recruitment: habitat, safe route and missing water are visible gates (48.582825ms)
+✔ 218 recruitment: exact failure guarantee persists and occupied slot suspends rolls (75.276883ms)
+✔ 218 encounter: walking and prop arrival precede completion; pauses main time (2.193565ms)
+✔ 218 settlement: failed save and double press never duplicate a visitor (95.583369ms)
+✔ 218 encounter: all six species complete their distinct actions with no exported resources (1.784704ms)
+✔ 218 expansion: adult projection, confirmed roster limit and permanent rights (1.44521ms)
+✔ 218 queue: request identity and waited seconds survive expired reservations and reload (93.770411ms)
+✔ 218 safety: recovery and announced storm forbid forced exit (0.669834ms)
+✔ 218 exit: a partly overlapping outline still occupies space (9.741715ms)
+✔ 218 weather: cool climates enable snow; dry/wet weights preserve local rules (0.479171ms)
+✔ 218 storm: deterministic 20/60/30 phases and serialized continuation (62.6704ms)
+✔ 218 snow and fog: conserved 10,000 ticks, no direct root input, bounded stores (1136.475158ms)
+✔ 218 cloud no water; fog threshold is conjunctive; melt stops at 30 (0.580507ms)
+✔ 218 climate: 30 second notice, queued during storm and existing resources preserved (0.603959ms)
+✔ 218 common grade: all 42 combinations bounded and pure; time blend continuous (2.112409ms)
+✔ 218 migration: old individual IDs, resources and unlock preserved without invented visits (82.155515ms)
+✔ 218 all habitat data: each species has a real positive case and a missing requirement blocks it (1.036086ms)
+✔ 218 settlement: 50 owned and five active do not destroy the prepared visitor (2.135446ms)
+✔ 218 queue: healthy occupants yield in order for a large waiter, budget returns only outside (219.043329ms)
+✔ 218 physical snow stays on the moving head and melts once into the receiving ground (27.335572ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2026.543328

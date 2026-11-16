@@ -1,0 +1,35 @@
+{
+  "spec": "2.21",
+  "apk": "0.6.11",
+  "splash": {
+    "transferPerMinute": 6,
+    "bodyTarget": 65,
+    "minimumSpringRatio": 0.2,
+    "minimumEnergy": 30,
+    "maximumBurdenExclusive": 40,
+    "maximumEffectiveWindExclusive": 60,
+    "moodPerMinute": 2,
+    "energyCostPerMinute": 1,
+    "source": "spring.water",
+    "destination": "individual.B",
+    "allocation": "same-source proportional grant",
+    "whileMoving": false,
+    "offline": false
+  },
+  "rain": {
+    "space": "viewport CSS pixels before common world grade",
+    "count": "round(100 * effectiveRain * (reducedMotion ? 0.3 : 1))",
+    "length": "9 + 13r",
+    "width": ".8 + .8r",
+    "alpha": ".38 + .24r",
+    "speed": "220 + 160r",
+    "depth": [
+      0.78,
+      1
+    ],
+    "transitionSeconds": 10,
+    "reduced": "static, retain size and alpha",
+    "totalParticleLimit": 120,
+    "simulationRngConsumed": false
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "source": "0.6.6 deterministic deadlock fixture",
+  "result": "both actually inside in 12 simulation seconds",
+  "frames": [
+    {
+      "seconds": 0,
+      "ledger": {
+        "used": 0,
+        "reserved": 8,
+        "free": 0,
+        "total": 8
+      },
+      "friends": [
+        {
+          "name": "리들리",
+          "phase": "moving",
+          "inside": false,
+          "x": 0.3461027653545278,
+          "y": 0.38110555125519985,
+          "energy": 74.83333333333334,
+          "label": "쉼터로 가고 있어요"
+        },
+        {
+          "name": "엘레판",
+          "phase": "moving",
+          "inside": false,
+          "x": 0.29521937670386883,
+          "y": 0.4170571952982183,
+          "energy": 74.4166666666667,
+          "label": "쉼터로 가고 있어요"
+        }
+      ]
+    },
+    {
+      "seconds": 4,
+      "ledger": {
+        "used": 0,
+        "reserved": 8,
+        "free": 0,
+        "total": 8
+      },
+      "friends": [
+        {
+          "name": "리들리",
+          "phase": "entering",
+          "inside": false,
+          "x": 0.18972486672363004,
+          "y": 0.3690052473476061,
+          "energy": 74.76666666666668,
+          "label": "쉼터 안으로 들어가고 있어요"
+        },
+        {
+          "name": "엘레판",
+          "phase": "moving",
+          "inside": false,
+          "x": 0.30331424491987397,
+          "y": 0.3925744757182083,
+          "energy": 74.40000000000003,
+          "label": "쉼터로 가고 있어요"
+        }
+      ]
+    },
+    {
+      "seconds": 8,
+      "ledger": {
+        "used": 0,
+        "reserved": 8,
+        "free": 0,
+        "total": 8
+      },
+      "friends": [
+        {
+          "name": "리들리",
+          "phase": "entering",
+          "inside": false,
+          "x": 0.18900085550648457,
+          "y": 0.2690062711658209,
+          "energy": 74.70000000000002,
+          "label": "쉼터 안으로 들어가고 있어요"
+        },
+        {
+          "name": "엘레판",
+          "phase": "entering",
+          "inside": false,
+          "x": 0.3111111111111111,
+          "y": 0.29399305555555555,
+          "energy": 74.33333333333337,
+          "label": "쉼터 안으로 들어가고 있어요"
+        }
+      ]
+    },
+    {
+      "seconds": 12,
+      "ledger": {
+        "used": 8,
+        "reserved": 0,
+        "free": 0,
+        "total": 8
+      },
+      "friends": [
+        {
+          "name": "리들리",
+          "phase": "restingInside",
+          "inside": true,
+          "x": 0.18888888888888888,
+          "y": 0.25354166666666667,
+          "energy": 74.88333333333334,
+          "label": "포근한 쉼터 안에서 쉬고 있어요"
+        },
+        {
+          "name": "엘레판",
+          "phase": "restingInside",
+          "inside": true,
+          "x": 0.3111111111111111,
+          "y": 0.23270833333333332,
+          "energy": 74.35000000000004,
+          "label": "포근한 쉼터 안에서 쉬고 있어요"
+        }
+      ]
+    }
+  ],
+  "renderPure": true
+}

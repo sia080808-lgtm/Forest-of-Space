@@ -1,0 +1,18 @@
+✔ all 21 front-leaf frames keep the forehead attachment pixel-identical (519.765549ms)
+✔ extended brim bridge has a single continuous surface per column (174.82861ms)
+✔ renderer never overlays an extra closed front on the animated front (1.126786ms)
+✔ front extension keeps the entire inner hood static (419.930434ms)
+✔ inner and outer surfaces use exactly the same pose-frame rectangle, with no fixed patch (3.322022ms)
+✔ foreground hood exactly matches the local hood transform through grooming, sleep and wriggle (936.541045ms)
+✔ sleep preserves body proportions (10.130503ms)
+✔ damp soil without standing water draws no oval pools (5.661402ms)
+✔ sleep recovery transfers water without emitting a drink contact; spring drinking emits one (5.351907ms)
+✔ species dispatch keeps Neolbi armless and existing species on the intact common rig (21.27482ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1773.013761

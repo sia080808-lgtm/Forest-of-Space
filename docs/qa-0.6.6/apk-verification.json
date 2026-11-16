@@ -1,0 +1,14 @@
+{
+  "version": "0.6.6",
+  "versionCode": 23,
+  "package": "com.ridleydesk.mobile",
+  "sha256": "4b007a3f07beadd735ba5163300cac66d210d2db4e38e2e4c53bd15255fd5a2a",
+  "assets_match": true,
+  "asset_files_verified": 104,
+  "same_signing_certificate_as_0_6_5": true,
+  "certificate_sha256": "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d",
+  "device_install": "not_run",
+  "unique_automated_tests": 157,
+  "weather_time_renders": 42,
+  "ui_smoke": "passed"
+}

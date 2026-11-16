@@ -1,0 +1,57 @@
+{
+  "revision": "2.13",
+  "approved_on": "2026-11-16",
+  "species": "CH-SPC-03",
+  "size_relative_ridley": 1.5,
+  "layers_back_to_front": [
+    "rear-leaf",
+    "legs",
+    "body",
+    "eyes",
+    "front-leaf"
+  ],
+  "hood": {
+    "front_pivot": [
+      90,
+      85
+    ],
+    "front_max_degrees": 21,
+    "rear_pivot": [
+      140,
+      73
+    ],
+    "rear_max_degrees": 10
+  },
+  "logical_canvas": [
+    255,
+    208
+  ],
+  "arms": 0,
+  "guest_capacity": 1,
+  "status": "visual-approved; runtime integration and device acceptance pending",
+  "files": {
+    "neolbi-canopy-review.cjs": "9be1197ae5b05c05d626ed9aac2716d190d9961df506ea6f5a81611d0ff40a37",
+    "01-rear-leaf.png": "384aa2565de19431b43ab8dcc6c3a2613c32f647aa31630b09689c2ed8e8594b",
+    "index.html": "b4e981c9c98bd4278b5caa7d93659cd681dc7348b79e3362445ad2b2001b0334",
+    "assembled.png": "9cc5916f507f51159f50ef4d8bf39baea76651b27dc03dfa1d0c6097ae9c8e2a",
+    "AGENTS.md": "30c144987a7b43f2489a26aa77c9b7d9abb9c8562d51c2f3728baed33432d949",
+    "neolbi-clean-layers.cjs": "76835764f65b430a5d8fb65b587c2d4fdb8e58a979b91e0586e275d1c08d65a4",
+    "Neolbi-Dual-Leaf-Ingame.mp4": "ac23b6e0a165021b251b97002d8345e94e0ebc077923c4d39fc6cac0b9e14806",
+    "neolbi-canopy-motion.cjs": "cbba047616aa5c2b985377eb6ced3e27ff42553b315dce759be85b7b338c39ff",
+    "05-front-leaf.png": "e56ce69b580d47cc99f8081a9e80d903b3dff2d9ffdc9ef0c71a32d99e5843d9",
+    "03-body.png": "3aaee4354e31ce0afc750c12e4561dd7cb3dfd6d6f4ede97d00b2f236a8d3bbe",
+    "Neolbi-Canopy-shade.png": "adba42b4376a33a2c611be10cacda069b628c5711bd58a27644a3a4594943aad",
+    "approved-manifest.json": "069386c34863481df0c047da3d977f7cedbc51a52e618d41bd66388079a89fe6",
+    "Neolbi-Canopy-Motion.mp4": "d1284a5e762528a5de5ca5016861cfbf57cf26938fae86fe05a15bcc29226085",
+    "Neolbi_Final_Spec_v2.13.md": "2da1ebe9bd206a70267c948af8632d18459d55fcb2b48af59c486a5f7231a452",
+    "Neolbi-Canopy-base.png": "7d599213ca013e2cfa376f9f3116581cb66e6bdda61901b5b9950aa213fa8517",
+    "Neolbi-Canopy-Motion.gif": "c73be6cb116b1e916d358511bdafec982ec9e856693ed06e47f3e9da34eb03e5",
+    "04-eyes.png": "7131956f4ea0c0563797b8d628068c120f6b1503457a0030ebce26bf0f693a27",
+    "Forest_SRS_Design_Audio_v2.13.pdf": "3ede7d0cbf5eb6caf6d0990c77c0db80927d632ba43d3c2ea2146729e2b75115",
+    "02-legs.png": "ded5773dd34d5b2f64b9a937c19a715d92f83440e9091b691b5197a09b87ebe4",
+    "neolbi-dual-leaf-review.cjs": "0828310cd592c7d8cef63980af159107cd420035df45bb48c9f8a33788d973ba",
+    "Neolbi-Dual-Leaf-Ingame.gif": "266d75695386736a5c23fc825ecebffc7b1c75c2ec3ea2b9833ccd5026b65ed0",
+    "Neolbi-Exact-Five-Layers.png": "cd9b8ab489a961d9e16238f6b30a06ae8c5f7a66dbf4ecaaaa59ff181f625db2",
+    "Neolbi-Canopy-rain.png": "397f288be82a408e6562183b2b280d16803a6a5b57ac8689e6657aed938560e5"
+  }
+}

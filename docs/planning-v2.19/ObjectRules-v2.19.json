@@ -1,0 +1,129 @@
+{
+  "specVersion": "2.19",
+  "runtimeImplemented": true,
+  "tickSeconds": 1,
+  "gameDaySeconds": 1200,
+  "water": {
+    "automaticSpringPerMinute": 0,
+    "fogCondensationPerMinute": 0,
+    "rainPerAreaMinuteAt100": 12,
+    "springCatchmentArea": 3,
+    "dryLimitSeconds": {
+      "C01": 600,
+      "C02": 600,
+      "C03": 900,
+      "C04": 900
+    },
+    "fallbackRain": {
+      "intensity": 60,
+      "durationSeconds": 120,
+      "wind": 20
+    }
+  },
+  "moss": {
+    "waterCapacity": [
+      5,
+      7,
+      9
+    ],
+    "spaceCapacity": [
+      2,
+      3,
+      4
+    ],
+    "energyPerMinute": 2,
+    "moodPerMinute": 1,
+    "energyTarget": 75,
+    "moodTarget": 80,
+    "waterAbsorbPerMinute": 0.5,
+    "waterBodyStop": 45,
+    "rootStop": 12,
+    "minimumMoisturePercent": 20,
+    "standingWaterCapacity": 0,
+    "recoveryWhenDry": true,
+    "stackPlayAndRest": false
+  },
+  "spring": {
+    "capacity": [
+      60,
+      90,
+      120
+    ],
+    "drinkPerMinute": 10,
+    "bodyStart": 35,
+    "bodyStop": 65,
+    "splashMoodPerMinute": 2,
+    "splashEnergyCostPerMinute": 1,
+    "minimumSplashFillRatio": 0.2
+  },
+  "litter": {
+    "capacity": [
+      100,
+      150,
+      200
+    ],
+    "dailyArrivalMax": [
+      20,
+      30,
+      40
+    ],
+    "decomposeBasePerMinute": 0.5,
+    "playMultiplier": 3,
+    "playBoostSecondsAfterEnd": 120,
+    "playMinimumL": 0.5,
+    "playMoodPerMinute": 3,
+    "playEnergyCostPerMinute": 1,
+    "nutritionAbsorbPerMinute": 1,
+    "nutritionStart": 40,
+    "nutritionStop": 70,
+    "initialL": 70,
+    "initialU": 30,
+    "windMultipliers": [
+      [
+        0,
+        1
+      ],
+      [
+        45,
+        1.5
+      ],
+      [
+        60,
+        2
+      ]
+    ],
+    "conversionLtoU": 1
+  },
+  "restEnergyPerMinute": {
+    "rock": 1,
+    "moss": 2,
+    "shade": 1.5,
+    "crevice": 1,
+    "shelter": 4
+  },
+  "shelter": {
+    "remoteWaterPerMinute": 0,
+    "generatedNutrientsPerMinute": 0,
+    "passiveMoodPerMinute": 0,
+    "capacity": [
+      2,
+      4,
+      6
+    ]
+  },
+  "offline": {
+    "limitHours": 8,
+    "energyPerMinute": 4,
+    "energyTarget": 75,
+    "resourcesFrozen": true,
+    "bodyRootNutritionMoodDamageBurdenFrozen": true,
+    "healthyGrowthRetained": true
+  },
+  "upgrades": {
+    "stage2UseSeconds": 180,
+    "stage3AdditionalUseSeconds": 360,
+    "requiresPressureEvidenceSeconds": 10,
+    "cost": 0,
+    "fillOnUpgrade": false
+  }
+}

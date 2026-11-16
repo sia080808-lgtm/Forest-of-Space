@@ -1,0 +1,38 @@
+[
+  {
+    "file": "sfx/SFX_STEP_SNOW_v01.wav",
+    "duration": 0.2727291666666667,
+    "peak_db": -21.15042759772489,
+    "source": "SFX_STEP_SOIL_v01.wav"
+  },
+  {
+    "file": "sfx/SFX_STEP_SNOW_v02.wav",
+    "duration": 0.24,
+    "peak_db": -21.257009752978753,
+    "source": "SFX_STEP_SOIL_v01.wav"
+  },
+  {
+    "file": "sfx/SFX_STEP_SNOW_v03.wav",
+    "duration": 0.2201875,
+    "peak_db": -21.19110543976206,
+    "source": "SFX_STEP_SOIL_v01.wav"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v01.wav",
+    "duration": 1.3068333333333333,
+    "peak_db": -21.424664687175877,
+    "source": "SFX_LEAF_BRUSH_v01.wav"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v02.wav",
+    "duration": 1.15,
+    "peak_db": -21.93615772140104,
+    "source": "SFX_LEAF_BRUSH_v01.wav"
+  },
+  {
+    "file": "sfx/SFX_SHAKE_SNOW_v03.wav",
+    "duration": 1.0550625,
+    "peak_db": -22.29319546662401,
+    "source": "SFX_LEAF_BRUSH_v01.wav"
+  }
+]

@@ -1,0 +1,16 @@
+✔ all 21 front-leaf frames keep the forehead attachment pixel-identical (50.059632ms)
+✔ unfolded leaf has a single continuous surface per column (22.791627ms)
+✔ renderer never overlays an extra closed front on the animated front (0.933091ms)
+✔ welcome is explicit, once only, dormant, and survives reload without duplicating resources (457.26738ms)
+✔ shade and rain use the forward canopy instead of a radius around the body (0.492685ms)
+✔ leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band (0.508538ms)
+✔ moving Neolbi folds first and then travels (0.686397ms)
+✔ administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched (0.691936ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 551.556658

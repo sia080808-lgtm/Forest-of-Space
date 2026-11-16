@@ -1,0 +1,3 @@
+const fs=require('node:fs'),path=require('node:path'),{createCanvas,loadImage}=require('@napi-rs/canvas');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),R=require(web+'/rig.js');
+(async()=>{const assets={};for(const[k,v]of Object.entries(R.files))assets[k]=await loadImage(web+'/'+v);const canvas=createCanvas(720,600),c=canvas.getContext('2d');c.fillStyle='#f7f4ec';c.fillRect(0,0,720,600);c.translate(360,500);c.scale(.40,.40);c.translate(-627,-1065.9);R.draw(c,assets,{species:'neolbi',kind:'idle',phase:2,canopy:0});fs.writeFileSync(path.resolve(__dirname,'../docs/qa-0.6.2/runtime/neolbi-round-base.png'),canvas.toBuffer('image/png'));})();

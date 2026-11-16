@@ -1,0 +1,11 @@
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),assert=require('node:assert/strict'),{createCanvas,loadImage,GlobalFonts}=require('@napi-rs/canvas');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.4/runtime');fs.mkdirSync(out,{recursive:true});
+const F=require(web+'/engine.js'),I=require(web+'/inspector.js'),C=require(web+'/camera.js'),V=require(web+'/surfaces.js');
+(async()=>{GlobalFonts.registerFromPath(web+'/fonts/PretendardVariable.woff2','Pretendard');const assets={};for(const n of ['garden','ridley','terrain','basin'])assets[n]=await loadImage(web+'/assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png');
+assets.shadePlant=await loadImage(web+'/assets/forest/shade-plant.png');assets.shadeGround=await loadImage(web+'/assets/forest/shade-ground.png');
+for(const[k,v]of Object.entries(require(web+'/rig.js').files))assets[k]=await loadImage(web+'/'+v);
+const Q=require(web+'/stage2-fixtures.js');let state=Q.make('WX01');const i={state,time:0},canvas=createCanvas(720,1152);canvas.getBoundingClientRect=()=>({width:720,height:1152,left:0,top:0});const context={ForestNeolbi:require(web+'/neolbi.js'),Forest:F,ForestRig:require(web+'/rig.js'),ForestCamera:C,ForestSurfaces:V,ResizeObserver:class{observe(){}},devicePixelRatio:1,document:{querySelector:()=>null,createElement:()=>createCanvas(512,512)},requestAnimationFrame:()=>{}};vm.createContext(context);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene;',context);const scene=new context.Scene(canvas,()=>i.state);scene.assets=assets;scene.prepareLitter();scene.ready=true;scene.inspector=null;scene.dt=.1;scene.camera.z=3;scene.camera.cx=.49;scene.camera.cy=.41;scene.camera.clamp();
+
+
+for(const kind of ['SH01','SH02','SH03','SH04','SH05']){state=Q.make(kind);i.state=state;scene.camera.z=1;scene.camera.cx=.5;scene.camera.cy=.5;scene.camera.clamp();scene.inspector=null;scene.visual={};for(let n=0;n<=40;n++){if(n)F.step(state);F.valid(state);scene.phase=n+1;if([0,8,16,40].includes(n)){scene.draw();fs.writeFileSync(out+'/'+kind+'-'+n+'.png',canvas.toBuffer('image/png'));}}console.log(kind,state.individuals.map(p=>({id:p.id,x:p.x,y:p.y,phase:p.shelter.phase,units:p.shelter.units,energy:p.energy})));}
+})();

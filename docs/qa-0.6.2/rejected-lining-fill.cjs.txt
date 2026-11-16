@@ -1,0 +1,40 @@
+// One continuous front leaf. Register the two art surfaces by their column
+// envelopes, then morph a SINGLE envelope. Never cross-fade two silhouettes.
+const {createCanvas,loadImage}=require('@napi-rs/canvas'),fs=require('node:fs'),path=require('node:path');
+const dir=path.resolve(__dirname,'../app/src/main/assets/web/assets/forest/neolbi');
+function smooth(v){v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);}
+function surface(im,crop,w){const c=createCanvas(w,272),x=c.getContext('2d');x.drawImage(im,...crop,0,0,w,272);const data=x.getImageData(0,0,w,272).data,bounds=[];for(let xx=0;xx<w;xx++){let top=272,bottom=-1;for(let y=0;y<272;y++)if(data[(y*w+xx)*4+3]>80){top=Math.min(top,y);bottom=y;}bounds.push({top,bottom});}return {data,w,bounds};}
+function sample(s,x,y,k){x=Math.max(0,Math.min(s.w-1.001,x));y=Math.max(0,Math.min(270.999,y));const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;return s.data[(iy*s.w+ix)*4+k]*(1-fx)*(1-fy)+s.data[(iy*s.w+ix+1)*4+k]*fx*(1-fy)+s.data[((iy+1)*s.w+ix)*4+k]*(1-fx)*fy+s.data[((iy+1)*s.w+ix+1)*4+k]*fx*fy;}
+function envelope(s,x){x=Math.max(0,Math.min(s.w-1,x));const a=s.bounds[Math.floor(x)],b=s.bounds[Math.min(s.w-1,Math.floor(x)+1)],f=x%1;return {top:a.top+(b.top-a.top)*f,bottom:a.bottom+(b.bottom-a.bottom)*f};}
+function edgeColor(s,x){const rgb=[0,0,0];let count=0;for(let dx=-3;dx<=3;dx++){const xx=Math.max(0,Math.min(s.w-1,Math.round(x)+dx)),b=s.bounds[xx];for(let y=Math.floor(b.bottom)-1;y>=b.top;y--){const n=(y*s.w+xx)*4;if(s.data[n+3]>=250){for(let k=0;k<3;k++)rgb[k]+=s.data[n+k];count++;break;}}}return count?rgb.map(v=>v/count):[150,148,94];}
+(async()=>{
+const closed=await loadImage(dir+'/hood-closed-v3.png'),open=await loadImage(dir+'/extended-front-v2.png');const tmp=createCanvas(open.width,open.height),tx=tmp.getContext('2d');tx.drawImage(open,0,0);const d=tx.getImageData(0,0,open.width,open.height).data;let l=open.width,t=open.height,r=0,b=0;for(let y=0;y<open.height;y++)for(let x=0;x<open.width;x++)if(d[(y*open.width+x)*4+3]>128){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);}
+const cc=createCanvas(closed.width,closed.height),cx0=cc.getContext('2d');cx0.drawImage(closed,0,0);const cd=cx0.getImageData(0,0,closed.width,closed.height).data;let cl=closed.width,ct=closed.height,cr=0,cb=0;for(let y=0;y<closed.height;y++)for(let x=0;x<closed.width;x++)if(cd[(y*closed.width+x)*4+3]>128){cl=Math.min(cl,x);cr=Math.max(cr,x);ct=Math.min(ct,y);cb=Math.max(cb,y);}
+const C=surface(closed,[cl,ct,cr-cl+1,cb-ct+1],460),O=surface(open,[l,t,r-l+1,b-t+1],820),W=768,H=384,atlas=createCanvas(W*7,H*3),ac=atlas.getContext('2d');
+// Build the closed inner cavity in the SAME art coordinate space as the outer leaf.
+const liner=createCanvas(460,272),lx=liner.getContext('2d');lx.save();lx.scale(10,10);lx.translate(23,35.5);lx.beginPath();lx.moveTo(-16,-24);lx.bezierCurveTo(-8,-31,11,-30,18,-25);lx.bezierCurveTo(22,-22,24,-17,22,-12);lx.bezierCurveTo(21,-9,18,-7.8,15,-8);lx.bezierCurveTo(2,-7,-13,-8,-17,-12);lx.bezierCurveTo(-19,-16,-18,-21,-16,-24);lx.closePath();lx.clip();lx.drawImage(closed,1391,605,64,64,-18,-29,42,23);lx.restore();
+const L=surface(liner,[0,0,460,272],460),liningAtlas=createCanvas(W*7,H*3),lac=liningAtlas.getContext('2d');
+for(let frame=0;frame<21;frame++){
+const q=frame/20,c=createCanvas(W,H),ctx=c.getContext('2d'),out=ctx.createImageData(W,H),inner=ctx.createImageData(W,H),edge=23+36*q;
+for(let x=0;x<W;x++){
+const wx=-23+(x+.5)*106/W;if(wx>edge)continue;
+const u=wx<=8?0:(wx-8)/(edge-8),cx=wx<=8?(wx+23)*10:(31+15*u)*10,ox=(31+51*u)*10,mix=q*smooth(u/.3),cb=envelope(C,cx),ob=envelope(O,ox),top=cb.top+(ob.top-cb.top)*mix,bottom=cb.bottom+(ob.bottom-cb.bottom)*mix;
+if(bottom<top)continue;
+const ec=edgeColor(C,cx),eo=edgeColor(O,ox);
+const lb=envelope(L,cx),hasL=lb.bottom>=lb.top,extra=hasL?Math.max(0,lb.bottom-cb.bottom):0,innerBottom=bottom+extra*(1-mix)*(bottom-top)/Math.max(1,cb.bottom-cb.top);
+for(let y=0;y<H;y++){
+ const py=(-58.5+(y+.5)*58.5/H+35.5)*10;if(py<top-.5||py>innerBottom+.5)continue;
+ const v=(py-top)/Math.max(1,innerBottom-top),ly=lb.top+v*(lb.bottom-lb.top),oy=ob.top+v*(ob.bottom-ob.top),n=(y*W+x)*4;
+ const depth=Math.max(0,(py-bottom)/Math.max(1,innerBottom-bottom));
+ for(let k=0;k<3;k++){const grain=hasL?(sample(L,cx,ly,k)-[150,148,94][k])*.12:0;inner.data[n+k]=(ec[k]*(1-mix)+eo[k]*mix+grain)*(1-.08*depth);}
+ inner.data[n+3]=255*((hasL?1:0)*(1-mix)+mix)*Math.min(1,Math.max(0,innerBottom+.5-py));
+}
+for(let y=0;y<H;y++){
+const py=(-58.5+(y+.5)*58.5/H+35.5)*10;if(py<top-.5||py>bottom+.5)continue;
+const v=(py-top)/Math.max(1,bottom-top),cy=cb.top+v*(cb.bottom-cb.top),oy=ob.top+v*(ob.bottom-ob.top),n=(y*W+x)*4;
+for(let k=0;k<4;k++)out.data[n+k]=sample(C,cx,cy,k)*(1-mix)+sample(O,ox,oy,k)*mix;
+}}
+ctx.putImageData(out,0,0);ac.drawImage(c,frame%7*W,Math.floor(frame/7)*H);ctx.putImageData(inner,0,0);lac.drawImage(c,frame%7*W,Math.floor(frame/7)*H);
+}
+fs.writeFileSync(dir+'/canopy.png',atlas.toBuffer('image/png'));fs.writeFileSync(dir+'/lining.png',liningAtlas.toBuffer('image/png'));
+})();

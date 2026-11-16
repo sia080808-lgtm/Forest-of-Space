@@ -1,0 +1,10 @@
+{
+  "version": "0.6.8",
+  "versionCode": 25,
+  "assets_match": true,
+  "same_certificate": true,
+  "sha256": "90bc22139197c23145b1d4622e96f09b0d3138cc41dabacd68d8f240a175a8a2",
+  "targeted_tests": 25,
+  "ui": "passed",
+  "device_install": "not_run"
+}
