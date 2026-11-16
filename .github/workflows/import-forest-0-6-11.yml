@@ -1,0 +1,51 @@
+# One-shot import: later pushes cannot satisfy the fixed predecessor guard.
+# The three temporary import files are removed after this verified transfer.
+name: Import approved Forest 0.6.11 snapshot once
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/import-forest-0-6-11.yml
+      - tools/import_forest_0_6_11.py
+      - tools/import_forest_0_6_11_manifest.json
+permissions: {}
+
+concurrency:
+  group: forest-0-6-11-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    if: >-
+      github.event_name == 'push' &&
+      github.repository == 'sia080808-lgtm/Forest-of-Space' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.before == '9d94b7969ea9449a23fc0179f454d92b62d6d6c2'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+          persist-credentials: true
+      - name: Download the approved source archive from this private repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/octet-stream' \
+            repos/sia080808-lgtm/Forest-of-Space/releases/assets/756559066 \
+            > "$RUNNER_TEMP/forest-0.6.11-source.zip"
+      - name: Verify every source file and fast-forward main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config core.autocrlf false
+          python3 tools/import_forest_0_6_11.py \
+            --archive "$RUNNER_TEMP/forest-0.6.11-source.zip" \
+            --manifest tools/import_forest_0_6_11_manifest.json \
+            --apply-root "$GITHUB_WORKSPACE" \
+            --expected-head "$GITHUB_SHA"
