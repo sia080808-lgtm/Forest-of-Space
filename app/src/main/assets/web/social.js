@@ -7,7 +7,10 @@ const supported=['ridley','bonbon','neolbi','bosong','jureong','duri'],R=.13;
 function init(s){W.init(s);s.social??={version:1,serial:0,sessions:[],cooldowns:{},observations:{}};for(const p of s.individuals)p.sources??={rain:0,other:0,unknown:p.V};return s;}
 function credit(p,n,source){const amount=Math.max(0,Math.min(n,40-p.V));p.sources[source]+=amount;p.V+=amount;return amount;}
 function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const k of ['rain','other','unknown']){parts[k]=p.V>0?p.sources[k]*amount/p.V:0;p.sources[k]=Math.max(0,p.sources[k]-parts[k]);}p.V=Math.max(0,p.V-amount);return {amount,parts};}
-function rain(s,patch,budget,held){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.id!==held&&p.species==='bonbon'&&Space.distance(p,patch)<.16&&p.V<40).sort((a,b)=>a.id.localeCompare(b.id));let remaining=budget*.8;const grants=new Map(ps.map(p=>[p,0]));for(let loop=0;loop<ps.length+1&&remaining>1e-10;loop++){const eligible=ps.filter(p=>(p.harvestTick||0)<.1-1e-10&&p.V<40-1e-10);if(!eligible.length)break;const share=remaining/eligible.length;for(const p of eligible){const n=credit(p,Math.min(share,.1-(p.harvestTick||0)),'rain');grants.set(p,grants.get(p)+n);p.harvestTick=(p.harvestTick||0)+n;remaining-=n;}}return budget-(budget*.8-remaining);}
+// Legacy water collection by bonbon has been retired; rain remains entirely in the ground water ledger.
+function rain(s,patch,budget,held){return budget;}
+// Ellisii shelters small visitors only when a real compatible microhabitat exists.
+function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;return moisture>=40&&moisture<=75&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
 function shades(s){return s.individuals.filter(p=>p.species==='neolbi'&&W.live(s,p));}
 function shadeAt(p,q){return Neolbi.covers(p,q);}
@@ -26,12 +29,12 @@ function prepare(s,held){init(s);const participants=new Set();for(const p of s.i
   if(canopy){const h=ps[0];okay=okay&&ps.every(W.healthy)&&s.weather.wind<70&&(s.weather.wind<60||a.phase==='rest'&&h.braceSeconds<10);if(okay&&s.weather.wind>=60)h.braceSeconds=Math.min(10,h.braceSeconds+1);}
   else okay=okay&&s.weather.wind<60;
   if(!okay){stop(s,a,'unsafe');continue;}
-  if(a.type==='A04'){const[d,r]=ps;if(!safe(d,s)||(a.phase!=='response'&&(d.V<=10||r.B>=65||s.worldTick-a.started>30))){stop(s,a,'finished');continue;}}
+  if(a.type==='A04'){stop(s,a,'retired');continue;}
   else if(!canopy&&ps.some(p=>!safe(p,s))){stop(s,a,'unsafe');continue;}
   ps.forEach(p=>participants.add(p.id));if(a.type==='A12')ps.slice(0,2).forEach(p=>p.canopy=true);if(canopy){ps[0].canopy=true;if(a.phase==='rest')ps[1].protectedBy=ps[0].id;}
  }
  const free=s.individuals.filter(p=>(!s.objects||!p.objectTask||p.objectTask.free)&&p.id!==held&&!p.shelter?.facilityId&&available(s,p));
- for(const d of free.filter(p=>p.species==='bonbon'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){if(!available(s,d))continue;const r=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&(!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&p.active&&!p.mounted&&p.B<35&&p.burden<40&&available(s,p)).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id))[0];if(r&&Space.route(s,d,r)){const a=start(s,'A04',[d,r]);if(a)a.ids.forEach(id=>participants.add(id));}}
+ // Ellisii replaces the water donor; old A04 sessions are retired and no new ones begin.
  const ns=free.filter(p=>p.species==='neolbi'&&safe(p,s)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
  if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=free.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
  if(['rain','snow'].includes(s.weather.kind)||s.climate.L>=70||s.weather.wind>=50){for(const h of ns.filter(p=>available(s,p)&&!p.canopyClosing)){
@@ -99,5 +102,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,40))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {init,credit,debit,rain,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });
