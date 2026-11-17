@@ -1,0 +1,24 @@
+{
+ "renderer": "scene.js + @napi-rs/canvas (not Android WebView)",
+ "report": {
+  "ridley": {
+   "reachedTopTick": 14,
+   "energyAfter120": 31.5,
+   "leftRockTick": 0
+  },
+  "neolbi": {
+   "reachedTopTick": 14,
+   "energyAfter120": 31.5,
+   "leftRockTick": 0
+  },
+  "creviceRoutes": {
+   "routes": 600,
+   "throughStoneCore": 0
+  },
+  "rockRoutes": {
+   "routes": 573,
+   "throughStoneCore": 0
+  },
+  "renderPure": true
+ }
+}
