@@ -32,8 +32,8 @@
 
 ### 미완료 / 후속 확인
 
-- 사용자 요청: 선택 링의 발광·시인성을 높이고 캐릭터 발 아래에 놓이도록 깊이/합성 순서 수정. 이번 설정에서는 구현·검증하지 않는다.
-- 이전 대화에 CI 의존성 `buffer-image-size@0.6.6` 다운로드 실패가 보고되었다. 후속 실행 전 실제 Actions 결과를 재확인한다.
+- 선택 링 발광·발 아래 깊이: `SEL-RING-20261117`에서 구현(브랜치 `claude/festive-curie-mjk5mw`). APK 버전 증가·빌드·실기기 확인은 미완료.
+- CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. 실제 GitHub Actions 재실행 결과는 미확인.
 
 ## 현재 작업 / 다음 순서
 
@@ -68,3 +68,13 @@
 - 검증: git fetch/rev-parse로 원격 상태 확인, 공유 문서 4종 읽기. 제품 테스트·실기기·배포는 수행하지 않음.
 - 참고: 이 세션의 GitHub 플러그인 MCP 한 곳은 프록시 403으로 연결 실패했으나 git fetch/push 경로는 별도.
 - 다음: ChatGPT 세션이 이 기록을 재조회해 양방향 확인 완료로 표시. 대기 목록(선택 링 발광·발 아래 깊이, CI `buffer-image-size` 실패 확인)은 별도 요청 시 진행.
+
+### SEL-RING-20261117 — 선택 링 발광·발 아래 배치
+
+- 담당: Claude Code. 요청: 사용자 "진행"(대기 목록의 선택 링 작업). 기준 커밋 `fcc95f06818b5d5bcf86f57fd3382edd68e83e40`, 브랜치 `claude/festive-curie-mjk5mw`.
+- `app/src/main/assets/web/scene.js`: 조명 합성 뒤 화면 맨 위에 그리던 링(1.5px 단색)을 제거. `selectionRing()`을 월드 패스에서 선택 캐릭터 몸통 직전에 그려 발 아래에 놓이고 몸에 가려지며 공통 월드 조명을 받음. 금빛 방사형 채움+3겹 광채+밝은 중심선+옅은 어두운 외곽선. 크기는 `petSize` 비례(엘레판1.5배). 밤 밝기 하한0.58 보정(최대1.6배). 동작 줄이기 시 맥동 정지. 드래그 중(carry)에는 표시 안 함. 상태·난수·저장 변경 없음.
+- `package-lock.json`: 레지스트리에서 사라진 `buffer-image-size@0.6.6` → `0.6.4`(happy-dom 21.0.4 요구 `^0.6.4`). `npm ci` 성공.
+- `tools/selection-ring-review.cjs` + `docs/qa-selection-ring/`(낮/밤·리들리/엘레판·비선택 비교·보드·verification.json).
+- 검증(로컬 Linux, Node): `npm test` 206/206 통과, `npm run test:ui` PASS, 검수 스크립트에서 렌더 전후 state 동일·동작 줄이기 정적 프레임 동일. 실제 렌더는 scene.js + @napi-rs/canvas이며 Android WebView·실기기·터치·성능은 미검수.
+- 미완료: APK 버전(0.6.12/versionCode29)·릴리스 문서·SRS 연결·APK 빌드, GitHub Actions 재실행 확인, 쉼터 내부 등 가림 상황의 추가 화면 검수.
+- 다음: 사용자 실화면 확인 후 버전 증가·APK 빌드 여부 결정.
