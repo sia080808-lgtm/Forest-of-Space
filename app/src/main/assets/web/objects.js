@@ -211,7 +211,7 @@ function receive(s,p,requests){
  }else if(t.kind==='nutrition'){
   add(z,'U',Math.min(1/60,70-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=70-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
- if(t.object==='spring'&&p.species==='bonbon'&&p.B>=35&&p.V<40)add(s.spring,'water',Math.min(4/60,40-p.V),n=>dep('social').credit(p,n,'other'));
+ // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
  if(t.free||t.kind==='splash'){t.remaining--;if(t.remaining<=0)t.complete=true;}
  const meta=s.objects.upgrades[t.object];if(meta&&meta.lastUsedTick!==s.worldTick){meta.useSeconds++;meta.stageUseSeconds++;meta.lastUsedTick=s.worldTick;}
  return ['moss','rest'].includes(t.kind);
