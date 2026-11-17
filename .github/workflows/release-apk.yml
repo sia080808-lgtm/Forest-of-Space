@@ -1,0 +1,224 @@
+name: Build and release Forest APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/build.gradle
+      - app/src/main/AndroidManifest.xml
+      - .github/workflows/release-apk.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the version as a GitHub prerelease (leave off for a test build)'
+        required: true
+        type: boolean
+        default: false
+
+# Only approved main-branch code may access the android-release environment.
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: forest-android-release
+  cancel-in-progress: false
+
+jobs:
+  android-release:
+    if: github.ref == 'refs/heads/main' && github.repository == 'sia080808-lgtm/Forest-of-Space'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    environment: android-release
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout approved main commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Read and cross-check version metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -nE "s/.*versionName[[:space:]]+'([^']+)'.*/\1/p" app/build.gradle | head -n1)"
+          CODE="$(sed -nE 's/.*versionCode[[:space:]]+([0-9]+).*/\1/p' app/build.gradle | head -n1)"
+          MANIFEST_VERSION="$(sed -nE 's/.*android:versionName="([^"]+)".*/\1/p' app/src/main/AndroidManifest.xml | head -n1)"
+          MANIFEST_CODE="$(sed -nE 's/.*android:versionCode="([0-9]+)".*/\1/p' app/src/main/AndroidManifest.xml | head -n1)"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid versionName'; exit 1; }
+          [[ "$CODE" =~ ^[0-9]+$ ]] || { echo 'Invalid versionCode'; exit 1; }
+          [[ "$VERSION" == "$MANIFEST_VERSION" && "$CODE" == "$MANIFEST_CODE" ]] || {
+            echo 'Gradle and AndroidManifest versions differ'; exit 1;
+          }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk=Forest-of-Space-$VERSION.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm CodeQL succeeded for this main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 80); do
+            STATUS="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&per_page=60" \
+              --jq '.workflow_runs | map(select(.name == "CodeQL" and .event == "push")) | .[0] | if . == null then "missing" else (.status + ":" + (.conclusion // "")) end')"
+            case "$STATUS" in
+              completed:success) echo 'CodeQL: success'; exit 0 ;;
+              completed:*) echo "CodeQL not successful: $STATUS"; exit 1 ;;
+              *) echo "Waiting for main CodeQL ($STATUS), attempt $attempt/80"; sleep 15 ;;
+            esac
+          done
+          echo 'CodeQL did not complete within 20 minutes'; exit 1
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Run simulation and UI regression tests
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npm run test:ui
+          node --test tests/forest/*.test.cjs
+
+      - name: Install Android SDK build tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 35 and build tools 35
+        run: |
+          set -euo pipefail
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle 8.11.1 with D8
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Compile Android release with official Android Gradle Plugin
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace :app:assembleRelease
+          test -s app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Restore keystore and sign the APK
+        id: sign
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          CODE: ${{ steps.meta.outputs.code }}
+          APK_NAME: ${{ steps.meta.outputs.apk }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$KEYSTORE_BASE64" && test -n "$KEYSTORE_PASSWORD" || {
+            echo 'Missing android-release environment secrets'; exit 1;
+          }
+          KEYSTORE="$RUNNER_TEMP/forest-release.jks"
+          PASSFILE="$RUNNER_TEMP/forest-keystore.password"
+          trap 'rm -f "$KEYSTORE" "$PASSFILE" "$RUNNER_TEMP/forest-aligned.apk"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          # Ignore accidental CR/LF from copying a password text file.
+          printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n' > "$PASSFILE"
+          test -s "$KEYSTORE" && test -s "$PASSFILE"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          mkdir -p dist
+          "$BUILD_TOOLS/zipalign" -f -p 4 \
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/forest-aligned.apk"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$KEYSTORE" \
+            --ks-key-alias ridleydesk-personal \
+            --ks-pass "file:$PASSFILE" \
+            --out "dist/$APK_NAME" \
+            "$RUNNER_TEMP/forest-aligned.apk"
+          "$BUILD_TOOLS/zipalign" -c -p 4 "dist/$APK_NAME"
+          CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs --verbose "dist/$APK_NAME" | \
+            sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | \
+            tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          EXPECTED_CERT='f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d'
+          test "$CERT" = "$EXPECTED_CERT" || {
+            echo 'Signing certificate does not match v0.6.11'; exit 1;
+          }
+          BADGING="$("$BUILD_TOOLS/aapt" dump badging "dist/$APK_NAME")"
+          printf '%s\n' "$BADGING" | grep -F "package: name='com.ridleydesk.mobile'" > /dev/null
+          printf '%s\n' "$BADGING" | grep -F "versionCode='$CODE'" > /dev/null
+          printf '%s\n' "$BADGING" | grep -F "versionName='$VERSION'" > /dev/null
+          printf '%s\n' "$BADGING" | grep -F "sdkVersion:'29'" > /dev/null
+          printf '%s\n' "$BADGING" | grep -F "targetSdkVersion:'35'" > /dev/null
+          unzip -p "dist/$APK_NAME" classes.dex > "$RUNNER_TEMP/forest-classes.dex"
+          if strings "$RUNNER_TEMP/forest-classes.dex" | grep -F 'java/lang/invoke/LambdaMetafactory' > /dev/null; then
+            echo 'Unexpected LambdaMetafactory reference in classes.dex'; exit 1;
+          fi
+          rm -f "$RUNNER_TEMP/forest-classes.dex"
+          (cd dist && sha256sum "$APK_NAME" > "$APK_NAME.sha256")
+          echo "Verified original certificate, SDK, version, zip alignment and DEX: $APK_NAME"
+
+      - name: Retain signed APK for manual installation checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: forest-signed-${{ steps.meta.outputs.version }}
+          path: |
+            dist/${{ steps.meta.outputs.apk }}
+            dist/${{ steps.meta.outputs.apk }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Check whether this version is already published
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists; preserving its assets"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Automatic on a version bump merged to main, manual only if publish=true.
+      - name: Create prerelease and upload verified APK
+        if: >-
+          steps.release.outputs.exists == 'false' &&
+          (github.event_name == 'push' || inputs.publish == true)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          APK_NAME: ${{ steps.meta.outputs.apk }}
+        run: |
+          set -euo pipefail
+          # Refuse to reuse a tag that points to another commit.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null 2>&1; then
+            echo "Tag $TAG already exists without a release; refusing to retarget it"
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          Forest-of-Space $TAG Android prerelease.
+
+          - Built from main commit $GITHUB_SHA with Android Gradle Plugin 8.9.2 and D8.
+          - Simulation / UI tests and the main-commit CodeQL workflow passed.
+          - Signed with the original certificate used by v0.6.11; APK verified.
+          - Device installation, update migration and performance must still be checked on a real phone.
+          - Update in place; do not uninstall the previous app if you want to retain local data.
+          EOF
+          gh release create "$TAG" "dist/$APK_NAME" "dist/$APK_NAME.sha256" \
+            --target "$GITHUB_SHA" \
+            --title "Forest of Space $TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --prerelease \
+            --latest=false
+          echo "Uploaded release: $TAG"
