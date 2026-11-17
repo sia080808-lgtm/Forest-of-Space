@@ -32,12 +32,12 @@
 
 ### 미완료 / 후속 확인
 
-- 선택 링 발광·발 아래 깊이: APK0.6.12/SRS v2.22로 main 병합 완료. 서명 APK 빌드·실기기 확인은 미완료.
+- 선택 링 발광·발 아래 깊이: APK0.6.12/SRS v2.22로 main 병합 완료. 기존 키 서명 APK 빌드 완료(`APK-0.6.12-20261117`). GitHub Releases 업로드·실기기 확인은 미완료.
 - CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. PR #7의 GitHub Actions `simulation` 통과로 확인.
 
 ## 현재 작업 / 다음 순서
 
-- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료. 남은 일: 키 보관 환경의 서명 APK 빌드, 실기기 확인. 상세는 작업 이력의 해당 항목.
+- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료, 기존 키 서명 APK 빌드 완료. 남은 일: GitHub Releases v0.6.12 업로드, 실기기 업데이트 설치 확인. 상세는 작업 이력의 해당 항목.
 
 - 이전 작업 ID: `COLLAB-VERIFY-20261117`
 - 요청: ChatGPT와 Claude가 같은 GitHub 코드와 인수인계 기록을 읽고 이어서 작업하도록 설정.
@@ -119,3 +119,14 @@
 - CI(head 기준): `simulation` success, CodeQL `Analyze` javascript-typescript/python/java-kotlin success, `CodeQL` success. 사용자가 저장소를 공개로 전환한 뒤 코드 스캐닝 등록이 작동. CodeQL 신규 경고2건(미사용 import)은 같은 PR에서 수정. 기록: `docs/SECURITY_REVIEW.md`.
 - 공개 전환 전 점검: Git 파일·전체 이력에 키/인증서/`.env` 없음.
 - 미완료: 서명 APK0.6.12 빌드(키 보관 환경), Android 실기기 확인.
+
+### APK-0.6.12-20261117 — 기존 키 서명 APK 빌드
+
+- 담당: Claude Code. 요청: 사용자가 첨부한 서명 키 백업으로 최신 main 기준 v0.6.12 APK 빌드·인증서 검증·Releases 업로드.
+- 기준: main `8136734b9ade6fe7a70972930213dc5d7bec9012`. 결과 `Forest-of-Space-0.6.12.apk` 38,487,784 bytes, SHA-256 `c11bebfb98256621e476bc8959ff6314626580121d19655b06fee6bb1b52f47c`.
+- 서명: alias `ridleydesk-personal`, APK Signature Scheme v3. 인증서 SHA-256 `f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d` — Releases v0.6.11 APK에서 직접 읽은 값과 일치. `apksigner verify`·`zipalign -c -p 4` 통과. 패키지 `com.ridleydesk.mobile`, versionCode29/0.6.12, min29/target35.
+- v0.6.11 APK와 비교: 엔트리 116개 동일, 에셋 바이트 동일. 차이는 `assets/web/scene.js`·`engine.js`·`AndroidManifest.xml`·재생성된 `classes.dex`·`resources.arsc`.
+- 빌드 도구: dl.google.com 차단으로 공식 build-tools35/d8 대신 Ubuntu `aapt2`(framework-res API33/34)·`dalvik-exchange`(dx)·`zipalign`·`apksigner`, Maven Central ECJ 3.46.100·Robolectric android-all 15를 사용. compileSdk 표기33. `tools/build_apk.py`는 수정하지 않음.
+- 비밀 관리: 키·비밀번호는 저장소 밖 임시 폴더에서만 사용, 비밀번호는 파일로만 전달. 사용 후 압축 해제본과 업로드 ZIP 사본을 shred 삭제. 저장소·커밋·PR·Actions·APK에 포함하지 않음.
+- 미완료: GitHub Releases v0.6.12 업로드(이 세션에 릴리스 생성 API 없음 — APK는 사용자에게 파일로 전달), Android 실기기 설치·v0.6.11 위 업데이트·저장 유지·화면/성능 미검증.
+- 다음: Releases에 APK 업로드 후 서버 SHA-256 대조, 실기기에서 업데이트 설치 확인.
