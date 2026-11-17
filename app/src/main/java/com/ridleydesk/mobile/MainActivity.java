@@ -35,6 +35,9 @@ public final class MainActivity extends Activity {
     private String pendingExport;
     private boolean loaded, foreground;
     private long lastCheckpointArchive = 0;
+    // No lambdas: the APK must run even when built with a dexer that does not desugar invokedynamic (0.6.12 crash).
+    private static final java.io.FilenameFilter JSON_FILES = new java.io.FilenameFilter() { @Override public boolean accept(File d, String name) { return name.endsWith(".json"); } };
+    private static final java.util.Comparator<File> NEWEST_FIRST = new java.util.Comparator<File>() { @Override public int compare(File x, File y) { return Long.compare(y.lastModified(), x.lastModified()); } };
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -69,16 +72,18 @@ public final class MainActivity extends Activity {
         FrameLayout root = new FrameLayout(this);
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
-        root.setOnApplyWindowInsetsListener((v, insets) -> {
-            // Android 15 draws edge-to-edge: keep all app controls clear of system bars/keyboard.
-            v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-            return insets.consumeSystemWindowInsets();
+        root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            @Override public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+                // Android 15 draws edge-to-edge: keep all app controls clear of system bars/keyboard.
+                v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+                return insets.consumeSystemWindowInsets();
+            }
         });
         web.loadUrl(ORIGIN);
         if (saved != null) pendingExport = saved.getString("pendingExport");
     }
     private WebResourceResponse empty() { return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream(new byte[0])); }
-    private void js(String code) { runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); }); }
+    private void js(final String code) { runOnUiThread(new Runnable() { @Override public void run() { if (web != null) web.evaluateJavascript(code, null); } }); }
     private void message(String text) { js("window.RidleyApp && RidleyApp.notice(" + JSONObject.quote(text) + ")"); }
 
     public final class LocalBridge {
@@ -113,9 +118,9 @@ public final class MainActivity extends Activity {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
                 if (bytes.length > MAX_BYTES || new JSONObject(json).optInt("schema") != 1) return false;
                 out = backup.startWrite(); out.write(bytes); backup.finishWrite(out);
-                File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+                File[] files = dir.listFiles(JSON_FILES);
                 if (files != null) {
-                    java.util.Arrays.sort(files, (x,y) -> Long.compare(y.lastModified(), x.lastModified()));
+                    java.util.Arrays.sort(files, NEWEST_FIRST);
                     for (int i=10; i<files.length; i++) files[i].delete();
                 }
                 return true;
@@ -123,33 +128,33 @@ public final class MainActivity extends Activity {
         }
         @JavascriptInterface public synchronized String readArchive() {
             File dir = new File(getFilesDir(), "forest-backups");
-            File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+            File[] files = dir.listFiles(JSON_FILES);
             if (files == null) return "";
-            java.util.Arrays.sort(files, (x,y) -> Long.compare(y.lastModified(), x.lastModified()));
+            java.util.Arrays.sort(files, NEWEST_FIRST);
             for (File f : files) try { return new String(new AtomicFile(f).readFully(), StandardCharsets.UTF_8); } catch (Exception ignored) { }
             return "";
         }
         @JavascriptInterface public void exportBackup(String json) {
             if (json.length() > MAX_BYTES) { message("백업 크기가 너무 큽니다."); return; }
             pendingExport = json;
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE);
                 i.putExtra(Intent.EXTRA_TITLE, "Forest-of-Space-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(new java.util.Date()) + ".json");
                 try { startActivityForResult(i, EXPORT); } catch (Exception e) { message("파일 저장 앱을 열 수 없습니다."); }
-            });
+            } });
         }
         @JavascriptInterface public void importBackup() {
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
                 try { startActivityForResult(i, IMPORT); } catch (Exception e) { message("파일 선택 앱을 열 수 없습니다."); }
-            });
+            } });
         }
-        @JavascriptInterface public void theme(boolean dark) {
-            runOnUiThread(() -> {
+        @JavascriptInterface public void theme(final boolean dark) {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 getWindow().setStatusBarColor(Color.parseColor(dark ? "#232A27" : "#F7F4EC"));
                 getWindow().setNavigationBarColor(Color.parseColor(dark ? "#232A27" : "#F7F4EC"));
                 getWindow().getDecorView().setSystemUiVisibility(dark ? 0 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-            });
+            } });
         }
     }
     @Override protected void onActivityResult(int request, int result, Intent data) {
@@ -176,11 +181,11 @@ public final class MainActivity extends Activity {
         } catch (Exception e) { message("파일을 처리하지 못했어요. 원래 기록은 유지됩니다."); }
     }
     @Override public void onBackPressed() {
-        web.evaluateJavascript("window.RidleyApp ? RidleyApp.back() : false", value -> { if (!"true".equals(value)) moveTaskToBack(true); });
+        web.evaluateJavascript("window.RidleyApp ? RidleyApp.back() : false", new android.webkit.ValueCallback<String>() { @Override public void onReceiveValue(String value) { if (!"true".equals(value)) moveTaskToBack(true); } });
     }
     @Override protected void onPause() {
         foreground = false;
-        if (loaded) web.evaluateJavascript("RidleyApp.nativePause()", value -> { if (!foreground && web != null) web.onPause(); });
+        if (loaded) web.evaluateJavascript("RidleyApp.nativePause()", new android.webkit.ValueCallback<String>() { @Override public void onReceiveValue(String value) { if (!foreground && web != null) web.onPause(); } });
         else web.onPause();
         super.onPause();
     }

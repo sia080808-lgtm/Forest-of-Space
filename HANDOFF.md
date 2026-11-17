@@ -11,7 +11,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/저장소 접근 | 로그인 및 Git 경로로 이 저장소의 원격 main 읽기 확인 |
 | 공통 기록 대조 | 완료 — 아래 확인 스냅샷의 전체 커밋과 HANDOFF.md 해시 일치 |
-| 진행 중 제품 작업 | 없음 — `REL-0.6.12-20261117`은 PR #7로 main 병합 완료(`97709d6ec06b1dd50c10e8a9e379712728035a37`) |
+| 진행 중 제품 작업 | `HOTFIX-0.6.13-20261117` (Claude Code) — 0.6.12 실행 직후 종료 수정 |
 
 ## 점검한 제품 기준선
 
@@ -37,7 +37,8 @@
 
 ## 현재 작업 / 다음 순서
 
-- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료, 기존 키 서명 APK 빌드 완료. 남은 일: GitHub Releases v0.6.12 업로드, 실기기 업데이트 설치 확인. 상세는 작업 이력의 해당 항목.
+- 최신 작업: `HOTFIX-0.6.13-20261117` — 0.6.12 APK 실행 직후 종료(대체 dx 빌드의 람다 미변환) 수정, 0.6.13/versionCode30. 서명은 기존 키 필요. 0.6.12 APK는 배포 중지 권장.
+- 이전 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료, 기존 키 서명 APK 빌드 완료. 남은 일: GitHub Releases v0.6.12 업로드, 실기기 업데이트 설치 확인. 상세는 작업 이력의 해당 항목.
 
 - 이전 작업 ID: `COLLAB-VERIFY-20261117`
 - 요청: ChatGPT와 Claude가 같은 GitHub 코드와 인수인계 기록을 읽고 이어서 작업하도록 설정.
@@ -130,3 +131,11 @@
 - 비밀 관리: 키·비밀번호는 저장소 밖 임시 폴더에서만 사용, 비밀번호는 파일로만 전달. 사용 후 압축 해제본과 업로드 ZIP 사본을 shred 삭제. 저장소·커밋·PR·Actions·APK에 포함하지 않음.
 - 미완료: GitHub Releases v0.6.12 업로드(이 세션에 릴리스 생성 API 없음 — APK는 사용자에게 파일로 전달), Android 실기기 설치·v0.6.11 위 업데이트·저장 유지·화면/성능 미검증.
 - 다음: Releases에 APK 업로드 후 서버 SHA-256 대조, 실기기에서 업데이트 설치 확인.
+
+### HOTFIX-0.6.13-20261117 — 0.6.12 실행 직후 종료 수정
+
+- 담당: Claude Code. 요청: 사용자 "v0.6.12 앱이 계속 꺼짐, 원인 분석 및 해결".
+- 원인: `APK-0.6.12-20261117` 빌드에 쓴 Ubuntu dx가 람다를 디슈가링하지 않아 `classes.dex`에 `LambdaMetafactory` invokedynamic이 남음(0.6.11 d8 빌드는 `ExternalSyntheticLambda`). `MainActivity.onCreate`의 창 여백 람다가 시작 직후 실행 → ART 부트스트랩 실패로 종료. 기기 로그 미확인, dex 비교로 판정. 빌드 담당(Claude)의 도구 선택 오류.
+- 수정: `MainActivity.java` 람다/메서드 참조10곳 → 익명 클래스(동작 동일). 버전0.6.13/versionCode30. `tests/forest/android-shell-dex.test.cjs`, `tools/build_apk_alt.sh`(dex에 LambdaMetafactory 있으면 실패) 추가. 문서 README/AGENTS/IMPLEMENTATION_STATUS/`docs/Forest-0.6.13-Release.md`/`docs/release.json`.
+- 검증: `npm test` 210/210, `npm run test:ui` PASS. `tools/build_apk_alt.sh`로 서명 전 정렬 APK 빌드: dex `java/lang/invoke` 0, 익명 클래스 확인, versionCode30. 실기기 미검증.
+- 미완료: 기존 키로 서명(키는 이전 작업 후 삭제 — 사용자 재제공 필요), Releases 업로드, 실기기 실행/업데이트 확인. Releases에 0.6.12 APK를 올렸다면 내리거나 결함 표시 필요.
