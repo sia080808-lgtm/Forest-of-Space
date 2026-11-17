@@ -1,15 +1,15 @@
 {
-  "version": "0.6.15",
-  "versionCode": 32,
+  "version": "0.6.16",
+  "versionCode": 33,
   "spec": "2.22+ellisii-v2.23-draft",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
-  "apk_note": "Pending signed build (official CI with D8 or tools/build_apk_alt.sh) with the original key",
-  "full_suite_passed": 210,
+  "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
+  "full_suite_passed": 212,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "native Canvas: two friends resting on the sun-rock top; routes through stone core 0 (crevice 114->0/600, rock 154->0/573)",
+  "render": "Ellisii portrait (Chromium) grey square removed; path-finding perf 58->26 ms/tick (5 wanderers, Node)",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,10 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.14",
-    "versionCode": 31,
-    "spec": "2.22+ellisii-v2.23-draft",
-    "apk_built": false,
-    "apk_note": "Pending official GitHub Actions build with Android Gradle Plugin/D8 and original keystore; not locally signed"
+    "version": "0.6.15",
+    "versionCode": 32
   }
 }

@@ -20,18 +20,19 @@ function socket(s,id,individual){const p=id==='spring'?s.spring:s.patches.find(p
  const active=s.individuals.filter(p=>p.active).sort((a,b)=>a.id.localeCompare(b.id));if(!individual||active.length<2)return q;const i=active.findIndex(p=>p.id===individual),offset=[0,-1,1,-2,2][Math.max(0,i)];
  const candidate={x:q.x+offset*GU*.92,y:q.y+(Math.abs(offset)>1?.035:0)};return walkable(s,candidate)?candidate:q;
 }
-function walkable(s,p,id,skip){
+function walkable(s,p,id,skip,obs){
  if(Shelter.blocked(s,p,id))return false;
  if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<.08||p.x>.92||p.y<.15||p.y>.91)return false;
  const top=onRock(s,p);
- return !obstacles(s).some(z=>skip&&skip.has(z.id)||z.id==='rock'&&top?false:z.id==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:inside(z,p));
+ return !(obs||obstacles(s)).some(z=>skip&&skip.has(z.id)||z.id==='rock'&&top?false:z.id==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:inside(z,p));
 }
-function segment(s,a,b,id){
+function segment(s,a,b,id,obs=obstacles(s)){
  // Climbing on/off the sun rock ignores its body. A start already inside a stone (old save, drop) may walk out of it,
  // but once outside the segment must not enter it again.
- const all=obstacles(s).filter(z=>['rock','crevice','shade'].includes(z.id)),skip=new Set(onRock(s,a)||onRock(s,b)?['rock']:[]),escape=all.filter(z=>!skip.has(z.id)&&inside(z,a));escape.forEach(z=>skip.add(z.id));
+ // Obstacles are built once per segment (not per sample point): 0.6.15 rebuilt them for every sample.
+ const all=obs.filter(z=>['rock','crevice','shade'].includes(z.id)),skip=new Set(onRock(s,a)||onRock(s,b)?['rock']:[]),escape=all.filter(z=>!skip.has(z.id)&&inside(z,a));escape.forEach(z=>skip.add(z.id));
  const n=Math.ceil(distance(a,b)/.012),out=escape.map(()=>false);
- for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(!walkable(s,q,id,skip))return false;
+ for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(!walkable(s,q,id,skip,obs))return false;
   for(let k=0;k<escape.length;k++){const inz=inside(escape[k],q);if(inz&&out[k])return false;if(!inz)out[k]=true;}}
  return true;}
 function clearFriends(s,p,a,b){
@@ -49,16 +50,16 @@ function route(s,start,end,id,avoidFriends=false){
  LEGACY=true;try{return routeOnce(s,start,end,id,avoidFriends);}finally{LEGACY=false;}
 }
 function routeOnce(s,start,end,id,avoidFriends){
- const actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>segment(s,a,b,id)&&(!actor||clearFriends(s,actor,a,b));
- if(!end||!walkable(s,end,id))return null;if(clear(start,end))return [end];
+ const obs=obstacles(s),actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>segment(s,a,b,id,obs)&&(!actor||clearFriends(s,actor,a,b));
+ if(!end||!walkable(s,end,id,null,obs))return null;if(clear(start,end))return [end];
  const nodes=[{x:start.x,y:start.y},{x:end.x,y:end.y}];
  // Expanded corners around fixed footprints form a small deterministic visibility graph.
- for(const z of obstacles(s)){
+ for(const z of obs){
   const rx=z.rx+.018,ry=z.ry+.018;
-  for(const [dx,dy]of [[-rx,-ry],[rx,-ry],[-rx,ry],[rx,ry],[0,-ry],[0,ry],[-rx,0],[rx,0]]){const p={x:z.x+dx,y:z.y+dy};if(walkable(s,p,id))nodes.push(p);}
+  for(const [dx,dy]of [[-rx,-ry],[rx,-ry],[-rx,ry],[rx,ry],[0,-ry],[0,ry],[-rx,0],[rx,0]]){const p={x:z.x+dx,y:z.y+dy};if(walkable(s,p,id,null,obs))nodes.push(p);}
  }
- for(const f of s.shelters?.facilities||[]){const t=Shelter.transform(f);for(const [x,y]of [[15,10],[210+t.extra,10],[15,190],[210+t.extra,190]]){const q={x:(t.x+x)/360,y:(t.y+y)/576};if(walkable(s,q,id))nodes.push(q);}}
- if(actor)for(const z of s.individuals.filter(p=>p.active&&p.id!==id).sort((a,b)=>a.id.localeCompare(b.id))){const r=.4*(diameter(actor)+diameter(z))+.014;for(let k=0;k<12;k++){const angle=k*Math.PI/6,q={x:z.x+Math.cos(angle)*r,y:z.y+Math.sin(angle)*r/ASPECT};if(walkable(s,q,id))nodes.push(q);}}
+ for(const f of s.shelters?.facilities||[]){const t=Shelter.transform(f);for(const [x,y]of [[15,10],[210+t.extra,10],[15,190],[210+t.extra,190]]){const q={x:(t.x+x)/360,y:(t.y+y)/576};if(walkable(s,q,id,null,obs))nodes.push(q);}}
+ if(actor)for(const z of s.individuals.filter(p=>p.active&&p.id!==id).sort((a,b)=>a.id.localeCompare(b.id))){const r=.4*(diameter(actor)+diameter(z))+.014;for(let k=0;k<12;k++){const angle=k*Math.PI/6,q={x:z.x+Math.cos(angle)*r,y:z.y+Math.sin(angle)*r/ASPECT};if(walkable(s,q,id,null,obs))nodes.push(q);}}
  const cost=nodes.map(()=>Infinity),prev=[],done=new Set();cost[0]=0;
  while(done.size<nodes.length){let i=-1;for(let j=0;j<nodes.length;j++)if(!done.has(j)&&(i<0||cost[j]<cost[i]))i=j;if(i<0||!Number.isFinite(cost[i]))break;if(i===1){const path=[];for(let k=1;k!==0;k=prev[k])path.unshift(nodes[k]);return path;}done.add(i);
   for(let j=1;j<nodes.length;j++)if(!done.has(j)&&clear(nodes[i],nodes[j])){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]){cost[j]=c;prev[j]=i;}}
