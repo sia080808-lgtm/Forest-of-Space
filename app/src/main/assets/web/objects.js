@@ -63,7 +63,7 @@ function region(s,id,kind='rest'){
  if(id==='litter')return {x:z.x,y:z.y-.035,rx:.10*g,ry:.034*g};
  if(id==='spring')return kind==='edgeDrink'?{x:z.x+.105*g,y:z.y+.038*g,rx:.04*g,ry:.027*g}:{x:z.x,y:z.y+.017*g,rx:.067*g,ry:.027*g};
  if(id==='shade')return {x:z.x-.055,y:z.y+.05,rx:.075,ry:.032};
- if(id==='rock')return {x:z.x,y:z.y+.074,rx:.09,ry:.026};
+ if(id==='rock')return dep('spatial').rockTop(s);
  return {x:z.x,y:z.y+.070,rx:.067,ry:.026};
 }
 function fits(s,p,id,q,kind){

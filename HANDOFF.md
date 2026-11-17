@@ -24,7 +24,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/저장소 접근 | 로그인 및 Git 경로로 이 저장소의 원격 main 읽기 확인 |
 | 공통 기록 대조 | 완료 — 아래 확인 스냅샷의 전체 커밋과 HANDOFF.md 해시 일치 |
-| 진행 중 제품 작업 | `HOTFIX-0.6.13-20261117` (Claude Code) — 0.6.12 실행 직후 종료 수정 |
+| 진행 중 제품 작업 | `STONE-0.6.15-20261117` (Claude Code) — 햇살 바위 위 휴식·바위/바위틈 관통 수정 |
 
 ## 점검한 제품 기준선
 
@@ -50,6 +50,7 @@
 
 ## 현재 작업 / 다음 순서
 
+- 최신 작업: `STONE-0.6.15-20261117` — 0.6.14(엘리시) 위에 햇살 바위 위 휴식·바위/바위틈 관통 수정, 0.6.15/versionCode32. 서명 APK·실기기 미완료.
 - 최신 작업: `HOTFIX-0.6.13-20261117` — 0.6.12 APK 실행 직후 종료(대체 dx 빌드의 람다 미변환) 수정, 0.6.13/versionCode30. 서명은 기존 키 필요. 0.6.12 APK는 배포 중지 권장.
 - 이전 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료, 기존 키 서명 APK 빌드 완료. 남은 일: GitHub Releases v0.6.12 업로드, 실기기 업데이트 설치 확인. 상세는 작업 이력의 해당 항목.
 
@@ -153,3 +154,13 @@
 - 검증: `npm test` 210/210, `npm run test:ui` PASS. `tools/build_apk_alt.sh`로 서명 전 정렬 APK 빌드: dex `java/lang/invoke` 0, 익명 클래스 확인, versionCode30. 실기기 미검증.
 - 서명: 사용자가 키 백업을 재제공. `tools/build_apk_alt.sh`로 d9c6123 기준 빌드·서명. `Forest-of-Space-0.6.13.apk` 38,487,784 bytes, SHA-256 `2906c9cccb84d613864bed2586ed6888e2d82d782ff7ac492d4d4b96be0dad45`, 인증서 SHA-256 `f807cfca…7e3d`(0.6.11과 동일), v3, `apksigner verify`·`zipalign -c` 통과, dex `java/lang/invoke` 0. 키 사본 shred 삭제.
 - 미완료: Releases v0.6.13 수동 업로드(사용자), 실기기 실행/업데이트/저장 유지 확인. Releases에 0.6.12 APK를 올렸다면 내리거나 결함 표시 필요.
+
+### STONE-0.6.15-20261117 — 햇살 바위 위 휴식·바위/바위틈 관통 수정
+
+- 담당: Claude Code. 요청: 사용자 "햇살바위에서 쉴 때 바위 위가 아니라 근처에서 쉼", "바위틈 근처를 지날 때 관통".
+- 기준: main `b7cd475`(ChatGPT 0.6.14 엘리시) 위. 버전 0.6.15/versionCode32(ChatGPT가 0.6.14를 먼저 사용).
+- 원인: 돌 그림은 기준점 위(y −0.066~0), 충돌 타원은 기준점 ±0.042 → 그림 윗부분 통과·빈 바닥 차단. 햇살 바위 휴식 영역은 바위 아래 바닥(y+0.074).
+- 수정: `spatial.js` STONE 발자국(그림 기준)·`rockTop`/`onRock`·바위 윗면 오르내림 예외·돌 안 시작점 탈출(재진입 금지)·정확 경로 실패 시 0.6.14까지의 발자국으로 재탐색(저장 배치·쉼터 입구 검증 호환). `objects.js` 햇살 바위 region → 바위 윗면. `scene.js` 바위 위 친구는 바위 가림 재그리기 제외.
+- 테스트: `tests/forest/stone-footprint.test.cjs`(5) 추가. 기존 2건 조정 — `shelter-alternate-entry`(차단 배치 바위 y .36→.376, 새 발자국 기준 같은 의도), `update218` 큐(대기 엘레판 `nextObjectChoice`로 문 앞 대기 명시. 기존·수정 코드 모두 통과. 원래는 자유행동 RNG/거리 우연에 의존).
+- 검증: `npm test` 210/210, `npm run test:ui` PASS, `tools/stone-review.cjs` → `docs/qa-0.6.15/runtime`(돌 핵심부 통과 경로 0, 바위 위 휴식 렌더, 상태 불변). 실기기·WebView 미검증. SRS PDF 미갱신(규칙 수치 불변, 영역 위치만 변경) — 필요 시 v2.23에 반영.
+- 미완료: 서명 APK(공식 CI 또는 `tools/build_apk_alt.sh` + 원래 키), 실기기 확인, PR 병합.
