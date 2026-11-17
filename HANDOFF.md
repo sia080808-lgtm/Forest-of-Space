@@ -192,6 +192,6 @@
 ### ELLISII-0.6.18-20261117 — 엘리시를 승인 원화 그대로
 
 - 담당: Claude Code. 요청: 사용자 "캐릭터 이거랑 똑같이 만들어 주면 안 됨?"(원화 스크린샷 제공). 이전 SVG 초안(`91270e4`)은 이번 커밋으로 대체.
-- 원화(사용자 업로드 스크린샷)를 배경 제거·윤곽 분리해 `ellisii-fronds.png`/`ellisii-body.png`로 저장(원화 파일 자체는 저장소에 넣지 않음). `species-rig.js` `ellisiiActor`(팔·다리 스프라이트 없음, 생식엽 흔들림, 감은 눈 덮기). 옛 잎 SVG 3장·SVG 초상화 삭제, 초상화는 리그에서 구운 PNG.
-- 테스트: `ellisii-legacy`·`render.test` 갱신. `npm test` 218/218, UI PASS. 렌더 `docs/qa-0.6.18/runtime`.
+- 원화(사용자 업로드 스크린샷)를 배경 제거·윤곽 분리해 `ellisii-fronds.png`/`ellisii-body.png`로 저장(원화 파일 자체는 저장소에 넣지 않음). `species-rig.js` `ellisiiActor`(팔 없음; 생식엽·몸통·영양엽·발 2개 레이어; 걷기 시 발 교대·영양엽 들썩임, 집기 시 발 대롱·잎 팔랑, 감은 눈 덮기). 사용자 추가 요청 "발이랑 영양엽 움직이게" 반영. 옛 잎 SVG 3장·SVG 초상화 삭제, 초상화는 리그에서 구운 PNG.
+- 테스트: `ellisii-legacy`(발/영양엽 움직임·동작 줄이기 포함)·`render.test` 갱신. `npm test` 219/219, UI PASS. 렌더·영상 `docs/qa-0.6.18/runtime`.
 - 한계: 엘리시에 눈 쌓임 오버레이 미적용, Android 실기기 미검증. 버전 0.6.18/versionCode35.
