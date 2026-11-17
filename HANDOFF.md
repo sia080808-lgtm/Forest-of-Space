@@ -138,4 +138,5 @@
 - 원인: `APK-0.6.12-20261117` 빌드에 쓴 Ubuntu dx가 람다를 디슈가링하지 않아 `classes.dex`에 `LambdaMetafactory` invokedynamic이 남음(0.6.11 d8 빌드는 `ExternalSyntheticLambda`). `MainActivity.onCreate`의 창 여백 람다가 시작 직후 실행 → ART 부트스트랩 실패로 종료. 기기 로그 미확인, dex 비교로 판정. 빌드 담당(Claude)의 도구 선택 오류.
 - 수정: `MainActivity.java` 람다/메서드 참조10곳 → 익명 클래스(동작 동일). 버전0.6.13/versionCode30. `tests/forest/android-shell-dex.test.cjs`, `tools/build_apk_alt.sh`(dex에 LambdaMetafactory 있으면 실패) 추가. 문서 README/AGENTS/IMPLEMENTATION_STATUS/`docs/Forest-0.6.13-Release.md`/`docs/release.json`.
 - 검증: `npm test` 210/210, `npm run test:ui` PASS. `tools/build_apk_alt.sh`로 서명 전 정렬 APK 빌드: dex `java/lang/invoke` 0, 익명 클래스 확인, versionCode30. 실기기 미검증.
-- 미완료: 기존 키로 서명(키는 이전 작업 후 삭제 — 사용자 재제공 필요), Releases 업로드, 실기기 실행/업데이트 확인. Releases에 0.6.12 APK를 올렸다면 내리거나 결함 표시 필요.
+- 서명: 사용자가 키 백업을 재제공. `tools/build_apk_alt.sh`로 d9c6123 기준 빌드·서명. `Forest-of-Space-0.6.13.apk` 38,487,784 bytes, SHA-256 `2906c9cccb84d613864bed2586ed6888e2d82d782ff7ac492d4d4b96be0dad45`, 인증서 SHA-256 `f807cfca…7e3d`(0.6.11과 동일), v3, `apksigner verify`·`zipalign -c` 통과, dex `java/lang/invoke` 0. 키 사본 shred 삭제.
+- 미완료: Releases v0.6.13 수동 업로드(사용자), 실기기 실행/업데이트/저장 유지 확인. Releases에 0.6.12 APK를 올렸다면 내리거나 결함 표시 필요.
