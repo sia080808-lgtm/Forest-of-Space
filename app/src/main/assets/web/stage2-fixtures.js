@@ -10,6 +10,9 @@ function make(kind,preload=false){const s=F.create(0,404);s.started=true;s.setti
  }else if(kind==='EC01'){
   F.layout(s,{shade:{x:.43,y:.35},rock:{x:.80,y:.18}});s.patches.find(p=>p.id==='moss').S=2;s.patches.find(p=>p.id==='rock').S=0;
   Object.assign(s.weather,{kind:'rain',remaining:140,streak:2,intensity:35,wind:20});Object.assign(s.climate,{L:30,H:90,T:55});
+ }else if(kind==='ELL01'){
+  s.individuals.push(pet(s,'ellisii-a','bonbon',.46,.48));s.neighbor.visits=1;s.neighbor.validSeconds=118;
+  Object.assign(s.weather,{kind:'sun',remaining:220,intensity:0,wind:20});Object.assign(s.climate,{H:65,L:70,T:55});
  }else if(kind==='EC02'){
   Object.assign(p,{B:30,x:.52,y:.57});s.individuals.push(pet(s,'bonbon-a','bonbon',.64,.52));
   Object.assign(s.weather,{kind:'rain',remaining:220,intensity:60,wind:20});
