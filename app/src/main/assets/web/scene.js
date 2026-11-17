@@ -52,9 +52,9 @@ class ForestScene {
  // Selection ring: drawn in the world pass before the body so it sits under the feet and shares world lighting.
  selectionRing(p,pos,phase){const c=this.ctx,s=this.state(),k=this.petSize(p)/48,x=pos.x*this.w,y=pos.y*this.h+1.5*k,rx=21*k,ry=6.6*k,light=Forest.Environment.lighting?.(s)?.brightness||1,boost=Math.min(1.6,1/Math.max(.58,light)),pulse=s.settings.reducedMotion?.5:.5+.5*Math.sin(phase*2.4),a=v=>Math.min(1,v*boost);
   c.save();
-  c.lineCap='round';const lw=Math.max(1,k*.8);c.strokeStyle=`rgba(64,52,20,${a(.26)})`;c.lineWidth=1.1*lw;c.beginPath();c.ellipse(x,y,rx+4.2*lw,ry+3*lw,0,0,Math.PI*2);c.stroke();
-  for(const [wd,al] of [[10,.16],[6.5,.26],[3.8,.5]]){c.strokeStyle=`rgba(255,206,84,${a(al*(.8+.4*pulse))})`;c.lineWidth=wd*lw;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.stroke();}
-  c.strokeStyle=`rgba(255,253,236,${a(1)})`;c.lineWidth=1.9*lw;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.stroke();c.restore();}
+  c.lineCap='round';const lw=Math.max(1,k*.8);c.strokeStyle=`rgba(64,52,20,${a(.26)})`;c.lineWidth=.4*lw;c.beginPath();c.ellipse(x,y,rx+1.4*lw,ry+1*lw,0,0,Math.PI*2);c.stroke();
+  for(const [wd,al] of [[3.3,.2],[2.2,.32],[1.3,.6]]){c.strokeStyle=`rgba(255,206,84,${a(al*(.8+.4*pulse))})`;c.lineWidth=wd*lw;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.stroke();}
+  c.strokeStyle=`rgba(255,253,236,${a(1)})`;c.lineWidth=.65*lw;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.stroke();c.restore();}
  pet(p,pos,kind,phase,night,held=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
   if(!held)ForestSurfaces.wash(c,x,y,9*growth,2*growth,'68,61,42',.20,1);

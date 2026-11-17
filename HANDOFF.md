@@ -72,7 +72,7 @@
 ### SEL-RING-20261117 — 선택 링 발광·발 아래 배치
 
 - 담당: Claude Code. 요청: 사용자 "진행"(대기 목록의 선택 링 작업). 기준 커밋 `fcc95f06818b5d5bcf86f57fd3382edd68e83e40`, 브랜치 `claude/festive-curie-mjk5mw`.
-- `app/src/main/assets/web/scene.js`: 조명 합성 뒤 화면 맨 위에 그리던 링(1.5px 단색)을 제거. `selectionRing()`을 월드 패스에서 선택 캐릭터 몸통 직전에 그려 발 아래에 놓이고 몸에 가려지며 공통 월드 조명을 받음. (사용자 요청으로 면 채움 제거) 3겹 금빛 광채+밝은 중심선+옅은 어두운 외곽선. 크기는 `petSize` 비례(엘레판1.5배). 밤 밝기 하한0.58 보정(최대1.6배). 동작 줄이기 시 맥동 정지. 드래그 중(carry)에는 표시 안 함. 상태·난수·저장 변경 없음.
+- `app/src/main/assets/web/scene.js`: 조명 합성 뒤 화면 맨 위에 그리던 링(1.5px 단색)을 제거. `selectionRing()`을 월드 패스에서 선택 캐릭터 몸통 직전에 그려 발 아래에 놓이고 몸에 가려지며 공통 월드 조명을 받음. (사용자 요청으로 면 채움 제거, 선 굵기 1/3) 3겹 금빛 광채+밝은 중심선+옅은 어두운 외곽선. 크기는 `petSize` 비례(엘레판1.5배). 밤 밝기 하한0.58 보정(최대1.6배). 동작 줄이기 시 맥동 정지. 드래그 중(carry)에는 표시 안 함. 상태·난수·저장 변경 없음.
 - `package-lock.json`: 레지스트리에서 사라진 `buffer-image-size@0.6.6` → `0.6.4`(happy-dom 21.0.4 요구 `^0.6.4`). `npm ci` 성공.
 - `tools/selection-ring-review.cjs` + `docs/qa-selection-ring/`(낮/밤·리들리/엘레판·비선택 비교·보드·verification.json).
 - 검증(로컬 Linux, Node): `npm test` 206/206 통과, `npm run test:ui` PASS, 검수 스크립트에서 렌더 전후 state 동일·동작 줄이기 정적 프레임 동일. 실제 렌더는 scene.js + @napi-rs/canvas이며 Android WebView·실기기·터치·성능은 미검수.
