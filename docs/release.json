@@ -1,12 +1,12 @@
 {
-  "version": "0.6.12",
-  "versionCode": 29,
+  "version": "0.6.13",
+  "versionCode": 30,
   "spec": "2.22",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": true,
-  "apk_note": "signed with the original update key (alias ridleydesk-personal, v3 scheme); built from main 8136734 with Ubuntu aapt2/dx/zipalign/apksigner + Maven Central ECJ and android-all 15 because dl.google.com was blocked; compileSdk metadata 33, target 35/min 29",
-  "full_suite_passed": 209,
+  "apk_note": "hotfix for 0.6.12 launch crash; built with tools/build_apk_alt.sh from d9c6123 (dex has no java/lang/invoke); signed with original key (v3)",
+  "full_suite_passed": 210,
   "failures_final": 0,
   "ui": "Happy DOM flow passed (3 PASS groups)",
   "render": "native Canvas actual scene: noon/night, ridley/elephan selected, unselected comparison; pure renderer; reduced-motion static",
@@ -28,11 +28,17 @@
     "scale": "petSize/48",
     "nightGlow": "post-lighting near half only"
   },
-  "sha256": "c11bebfb98256621e476bc8959ff6314626580121d19655b06fee6bb1b52f47c",
+  "sha256": "2906c9cccb84d613864bed2586ed6888e2d82d782ff7ac492d4d4b96be0dad45",
   "size": 38487784,
   "certificate_sha256": "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d",
   "same_certificate": true,
   "apksigner_verify": "pass",
   "zipalign": "pass",
-  "github_release": "not_uploaded_by_claude (no release API in session)"
+  "github_release": "manual upload by user (v0.6.13)",
+  "previous_release": {
+    "version": "0.6.12",
+    "versionCode": 29,
+    "sha256": "c11bebfb98256621e476bc8959ff6314626580121d19655b06fee6bb1b52f47c",
+    "certificate_sha256": "f807cfca20e7af73b37ebd6deaabbf1b8c96975828baa4b5906b493280587e3d"
+  }
 }
