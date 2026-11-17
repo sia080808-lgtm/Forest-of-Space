@@ -1,0 +1,1268 @@
+
+> forest-of-space@0.6.12 test
+> node --test tests/forest/*.test.cjs
+
+TAP version 13
+# Subtest: camera uniformly fills narrow, short and reference viewports without white strips
+ok 1 - camera uniformly fills narrow, short and reference viewports without white strips
+  ---
+  duration_ms: 1.008794
+  type: 'test'
+  ...
+# Subtest: screen/world transforms round trip across zoom and pan
+ok 2 - screen/world transforms round trip across zoom and pan
+  ---
+  duration_ms: 0.273051
+  type: 'test'
+  ...
+# Subtest: pinch preserves the world point beneath its moving midpoint away from bounds
+ok 3 - pinch preserves the world point beneath its moving midpoint away from bounds
+  ---
+  duration_ms: 0.115968
+  type: 'test'
+  ...
+# Subtest: pan clamps all edges and centers a smaller axis
+ok 4 - pan clamps all edges and centers a smaller axis
+  ---
+  duration_ms: 0.151013
+  type: 'test'
+  ...
+# Subtest: resize preserves apparent scale when valid and snapshot survives reload
+ok 5 - resize preserves apparent scale when valid and snapshot survives reload
+  ---
+  duration_ms: 1.064995
+  type: 'test'
+  ...
+# Subtest: stored cameras are bounded and invalid values fall back safely
+ok 6 - stored cameras are bounded and invalid values fall back safely
+  ---
+  duration_ms: 0.133604
+  type: 'test'
+  ...
+# Subtest: editor panel opening and folding never resize the map or its objects
+ok 7 - editor panel opening and folding never resize the map or its objects
+  ---
+  duration_ms: 0.126371
+  type: 'test'
+  ...
+# Subtest: at minimum zoom lower world edge can be dragged above the editor panel
+ok 8 - at minimum zoom lower world edge can be dragged above the editor panel
+  ---
+  duration_ms: 0.192815
+  type: 'test'
+  ...
+# Subtest: transform remains reversible when editing while pinching and moving
+ok 9 - transform remains reversible when editing while pinching and moving
+  ---
+  duration_ms: 0.312907
+  type: 'test'
+  ...
+# Subtest: leaving overview twice never jumps back to a stale camera
+ok 10 - leaving overview twice never jumps back to a stale camera
+  ---
+  duration_ms: 0.983397
+  type: 'test'
+  ...
+# Subtest: saving overview preserves the normal view for the next launch
+ok 11 - saving overview preserves the normal view for the next launch
+  ---
+  duration_ms: 0.173476
+  type: 'test'
+  ...
+# Subtest: fresh state validates and the tutorial has safe independent B/Q
+ok 12 - fresh state validates and the tutorial has safe independent B/Q
+  ---
+  duration_ms: 102.254323
+  type: 'test'
+  ...
+# Subtest: 12-hour world conserves every water unit and remains bounded
+ok 13 - 12-hour world conserves every water unit and remains bounded
+  ---
+  duration_ms: 79555.238079
+  type: 'test'
+  ...
+# Subtest: same seed and input replay identically
+ok 14 - same seed and input replay identically
+  ---
+  duration_ms: 9360.541411
+  type: 'test'
+  ...
+# Subtest: render visibility never changes weather RNG or physiology
+ok 15 - render visibility never changes weather RNG or physiology
+  ---
+  duration_ms: 9162.570173
+  type: 'test'
+  ...
+# Subtest: autonomous hydration completes and awards the first bonus once
+ok 16 - autonomous hydration completes and awards the first bonus once
+  ---
+  duration_ms: 2453.009065
+  type: 'test'
+  ...
+# Subtest: landscape pauses all ecological clocks and growth
+ok 17 - landscape pauses all ecological clocks and growth
+  ---
+  duration_ms: 1.04182
+  type: 'test'
+  ...
+# Subtest: layout changes retain patch resources and plant state, with no reward
+ok 18 - layout changes retain patch resources and plant state, with no reward
+  ---
+  duration_ms: 418.416976
+  type: 'test'
+  ...
+# Subtest: overlaps, spring blockage, invalid coordinates, shelter movement are rejected atomically
+ok 19 - overlaps, spring blockage, invalid coordinates, shelter movement are rejected atomically
+  ---
+  duration_ms: 1.191346
+  type: 'test'
+  ...
+# Subtest: save failure cancels an important transaction
+ok 20 - save failure cancels an important transaction
+  ---
+  duration_ms: 101.435492
+  type: 'test'
+  ...
+# Subtest: offline recovery conserves water and preserves main world, weather, terrain and position
+ok 21 - offline recovery conserves water and preserves main world, weather, terrain and position
+  ---
+  duration_ms: 1.743478
+  type: 'test'
+  ...
+# Subtest: offline recovery grows only after reaching the health threshold (CARE-04)
+ok 22 - offline recovery grows only after reaching the health threshold (CARE-04)
+  ---
+  duration_ms: 0.609754
+  type: 'test'
+  ...
+# Subtest: 8-hour cap, backwards clock and repeated resume never duplicate XP
+ok 23 - 8-hour cap, backwards clock and repeated resume never duplicate XP
+  ---
+  duration_ms: 8.378242
+  type: 'test'
+  ...
+# Subtest: duplicate pause does not reset the offline anchor
+ok 24 - duplicate pause does not reset the offline anchor
+  ---
+  duration_ms: 0.191321
+  type: 'test'
+  ...
+# Subtest: offline 1-second replay and a saved partial interval agree
+ok 25 - offline 1-second replay and a saved partial interval agree
+  ---
+  duration_ms: 49.015157
+  type: 'test'
+  ...
+# Subtest: mounted plant recovers but does not gain XP
+ok 26 - mounted plant recovers but does not gain XP
+  ---
+  duration_ms: 75.028092
+  type: 'test'
+  ...
+# Subtest: legacy migration preserves the complete old payload without inventing old XP
+ok 27 - legacy migration preserves the complete old payload without inventing old XP
+  ---
+  duration_ms: 56.340052
+  type: 'test'
+  ...
+# Subtest: restoring malformed backups is rejected, not normalized into silent data loss
+ok 28 - restoring malformed backups is rejected, not normalized into silent data loss
+  ---
+  duration_ms: 274.010461
+  type: 'test'
+  ...
+# Subtest: personality is stable through checkpoint and rename
+ok 29 - personality is stable through checkpoint and rename
+  ---
+  duration_ms: 1268.302973
+  type: 'test'
+  ...
+# Subtest: three consecutive same-weather selections are impossible
+ok 30 - three consecutive same-weather selections are impossible
+  ---
+  duration_ms: 16539.542562
+  type: 'test'
+  ...
+# Subtest: light follows canopy position without changing atmosphere humidity
+ok 31 - light follows canopy position without changing atmosphere humidity
+  ---
+  duration_ms: 24.952123
+  type: 'test'
+  ...
+# Subtest: neighbor first visit requires 120 actual valid ticks and unseen visits grant no discovery
+ok 32 - neighbor first visit requires 120 actual valid ticks and unseen visits grant no discovery
+  ---
+  duration_ms: 200.02957
+  type: 'test'
+  ...
+# Subtest: the first 3 minutes guarantee safe weak tutorial rain for every seed
+ok 33 - the first 3 minutes guarantee safe weak tutorial rain for every seed
+  ---
+  duration_ms: 11812.025405
+  type: 'test'
+  ...
+# Subtest: five active plants share one offline source without multiplying inflow
+ok 34 - five active plants share one offline source without multiplying inflow
+  ---
+  duration_ms: 2.831735
+  type: 'test'
+  ...
+# Subtest: old default name migrates without changing progress; custom names survive
+ok 35 - old default name migrates without changing progress; custom names survive
+  ---
+  duration_ms: 136.910936
+  type: 'test'
+  ...
+# Subtest: inspection weather motions and frame stepping never change original resources, RNG or progress
+ok 36 - inspection weather motions and frame stepping never change original resources, RNG or progress
+  ---
+  duration_ms: 22.126215
+  type: 'test'
+  ...
+# Subtest: stem is blocked, paths and resting socket avoid it, with no side effects
+ok 37 - stem is blocked, paths and resting socket avoid it, with no side effects
+  ---
+  duration_ms: 40.718556
+  type: 'test'
+  ...
+# Subtest: moving spring conserves water and records; rejects overlap and rolls back failed save
+ok 38 - moving spring conserves water and records; rejects overlap and rolls back failed save
+  ---
+  duration_ms: 221.61558
+  type: 'test'
+  ...
+# Subtest: new obstacles recover legacy overlap with only position and version adjusted
+ok 39 - new obstacles recover legacy overlap with only position and version adjusted
+  ---
+  duration_ms: 62.819492
+  type: 'test'
+  ...
+# Subtest: overview contains all bounds including future sizes, restores view and transforms correctly
+ok 40 - overview contains all bounds including future sizes, restores view and transforms correctly
+  ---
+  duration_ms: 0.644058
+  type: 'test'
+  ...
+# Subtest: rain varies lengths speeds density and per-cycle positions without consuming simulation RNG
+ok 41 - rain varies lengths speeds density and per-cycle positions without consuming simulation RNG
+  ---
+  duration_ms: 0.848329
+  type: 'test'
+  ...
+# Subtest: sleep has closed eyes rather than the open-eye face, and survives reduced motion
+ok 42 - sleep has closed eyes rather than the open-eye face, and survives reduced motion
+  ---
+  duration_ms: 523.588962
+  type: 'test'
+  ...
+# Subtest: all six expressions are visually distinct without changing opaque torso coverage
+ok 43 - all six expressions are visually distinct without changing opaque torso coverage
+  ---
+  duration_ms: 2131.386109
+  type: 'test'
+  ...
+# Subtest: explicit day/night visual setting chooses matching music and forest ambience
+ok 44 - explicit day/night visual setting chooses matching music and forest ambience
+  ---
+  duration_ms: 2.216682
+  type: 'test'
+  ...
+# Subtest: rest at shelter for 60 seconds recovers without drink sound contacts or RNG from rendering
+ok 45 - rest at shelter for 60 seconds recovers without drink sound contacts or RNG from rendering
+  ---
+  duration_ms: 390.920741
+  type: 'test'
+  ...
+# Subtest: strong wind takes priority over being held and starts a safe route
+ok 46 - strong wind takes priority over being held and starts a safe route
+  ---
+  duration_ms: 7.802963
+  type: 'test'
+  ...
+# Subtest: all 21 front-leaf frames keep the forehead attachment pixel-identical
+ok 47 - all 21 front-leaf frames keep the forehead attachment pixel-identical
+  ---
+  duration_ms: 54.634721
+  type: 'test'
+  ...
+# Subtest: extended brim bridge has a single continuous surface per column
+ok 48 - extended brim bridge has a single continuous surface per column
+  ---
+  duration_ms: 35.069258
+  type: 'test'
+  ...
+# Subtest: renderer never overlays an extra closed front on the animated front
+ok 49 - renderer never overlays an extra closed front on the animated front
+  ---
+  duration_ms: 0.810114
+  type: 'test'
+  ...
+# Subtest: final rear leaf, deep legs, intact body and hood render in approved depth order
+ok 50 - final rear leaf, deep legs, intact body and hood render in approved depth order
+  ---
+  duration_ms: 0.351013
+  type: 'test'
+  ...
+# Subtest: all cavity frames remain solid surfaces without torso-shaped cuts
+ok 51 - all cavity frames remain solid surfaces without torso-shaped cuts
+  ---
+  duration_ms: 71.101856
+  type: 'test'
+  ...
+# Subtest: final rig has no separate cavity patch
+ok 52 - final rig has no separate cavity patch
+  ---
+  duration_ms: 0.639341
+  type: 'test'
+  ...
+# Subtest: foreground hood exactly matches the local hood transform through grooming, sleep and wriggle
+ok 53 - foreground hood exactly matches the local hood transform through grooming, sleep and wriggle
+  ---
+  duration_ms: 251.226361
+  type: 'test'
+  ...
+# Subtest: hood clips clamp crown-safe angles for all 27 profiles and reduced motion
+ok 54 - hood clips clamp crown-safe angles for all 27 profiles and reduced motion
+  ---
+  duration_ms: 42.318882
+  type: 'test'
+  ...
+# Subtest: personality never changes gait speed, canopy geometry or world resources
+ok 55 - personality never changes gait speed, canopy geometry or world resources
+  ---
+  duration_ms: 2.279803
+  type: 'test'
+  ...
+# Subtest: special variant requires correct parent, actual transfer/trace/seats/reunion
+ok 56 - special variant requires correct parent, actual transfer/trace/seats/reunion
+  ---
+  duration_ms: 0.191634
+  type: 'test'
+  ...
+# Subtest: 300 tick cooldown is consumed once, not reverted on interrupt; no bonus resources
+ok 57 - 300 tick cooldown is consumed once, not reverted on interrupt; no bonus resources
+  ---
+  duration_ms: 4.072839
+  type: 'test'
+  ...
+# Subtest: hidden preview, danger and offline cannot consume a special gesture cooldown
+ok 58 - hidden preview, danger and offline cannot consume a special gesture cooldown
+  ---
+  duration_ms: 0.502022
+  type: 'test'
+  ...
+# Subtest: reload cancels uncompleted gesture but keeps consumed cooldown
+ok 59 - reload cancels uncompleted gesture but keeps consumed cooldown
+  ---
+  duration_ms: 85.562275
+  type: 'test'
+  ...
+# Subtest: Neolbi uses a 1.5 scale at every growth tier, including body collision size
+ok 60 - Neolbi uses a 1.5 scale at every growth tier, including body collision size
+  ---
+  duration_ms: 0.780461
+  type: 'test'
+  ...
+# Subtest: placement rejects a gap that fits ordinary friends but not the enlarged Neolbi
+ok 61 - placement rejects a gap that fits ordinary friends but not the enlarged Neolbi
+  ---
+  duration_ms: 4.779859
+  type: 'test'
+  ...
+# Subtest: welcome is explicit, once only, dormant, and survives reload without duplicating resources
+ok 62 - welcome is explicit, once only, dormant, and survives reload without duplicating resources
+  ---
+  duration_ms: 1024.150194
+  type: 'test'
+  ...
+# Subtest: shade and rain use the forward canopy instead of a radius around the body
+ok 63 - shade and rain use the forward canopy instead of a radius around the body
+  ---
+  duration_ms: 0.923212
+  type: 'test'
+  ...
+# Subtest: leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band
+ok 64 - leaf boundary blocks crossing; free underside has a route and placement rejects the leaf band
+  ---
+  duration_ms: 0.60671
+  type: 'test'
+  ...
+# Subtest: moving Neolbi folds first and then travels
+ok 65 - moving Neolbi folds first and then travels
+  ---
+  duration_ms: 0.963847
+  type: 'test'
+  ...
+# Subtest: administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched
+ok 66 - administrator chooses Neolbi, previews canopy and sleep, and leaves source state untouched
+  ---
+  duration_ms: 15.932527
+  type: 'test'
+  ...
+# Subtest: litter separates playable raw leaves, compost, carried quantity and shared free capacity
+ok 67 - litter separates playable raw leaves, compost, carried quantity and shared free capacity
+  ---
+  duration_ms: 4.43249
+  type: 'test'
+  ...
+# Subtest: capacity and small positive quantities use actual state, not a hard coded 60
+ok 68 - capacity and small positive quantities use actual state, not a hard coded 60
+  ---
+  duration_ms: 0.617747
+  type: 'test'
+  ...
+# Subtest: moss has gradual recovery even when water is zero, reservations are not actual use
+ok 69 - moss has gradual recovery even when water is zero, reservations are not actual use
+  ---
+  duration_ms: 0.680236
+  type: 'test'
+  ...
+# Subtest: shelter counts quarter spaces separately from occupants and respects Elephan size
+ok 70 - shelter counts quarter spaces separately from occupants and respects Elephan size
+  ---
+  duration_ms: 15.732607
+  type: 'test'
+  ...
+# Subtest: shade, rock and crevice expose their own effects and directional wind, not common filler
+ok 71 - shade, rock and crevice expose their own effects and directional wind, not common filler
+  ---
+  duration_ms: 0.694849
+  type: 'test'
+  ...
+# Subtest: litter status follows the same decomposition calculation and shared budget as the engine
+ok 72 - litter status follows the same decomposition calculation and shared budget as the engine
+  ---
+  duration_ms: 0.354554
+  type: 'test'
+  ...
+# Subtest: rendering all seven cards does not alter RNG, resources or task state; names are escaped
+ok 73 - rendering all seven cards does not alter RNG, resources or task state; names are escaped
+  ---
+  duration_ms: 1.036935
+  type: 'test'
+  ...
+# Subtest: AC219-01/02 empty spring receives only actual precipitation, exact catchment input
+ok 74 - AC219-01/02 empty spring receives only actual precipitation, exact catchment input
+  ---
+  duration_ms: 14.872153
+  type: 'test'
+  ...
+# Subtest: AC219-03 snow melts from existing stock, no new external input
+ok 75 - AC219-03 snow melts from existing stock, no new external input
+  ---
+  duration_ms: 0.452452
+  type: 'test'
+  ...
+# Subtest: AC219-04 dry active timer queues real rain; offline never advances it
+ok 76 - AC219-04 dry active timer queues real rain; offline never advances it
+  ---
+  duration_ms: 189.780491
+  type: 'test'
+  ...
+# Subtest: AC219-05/06 dry moss has exact gradual effects without entry bonus or duplication
+ok 77 - AC219-05/06 dry moss has exact gradual effects without entry bonus or duplication
+  ---
+  duration_ms: 3.847653
+  type: 'test'
+  ...
+# Subtest: AC219-07 shared moss water budget is at most .5 per minute per user
+ok 78 - AC219-07 shared moss water budget is at most .5 per minute per user
+  ---
+  duration_ms: 1.600082
+  type: 'test'
+  ...
+# Subtest: AC219-08 moss never lowers a value above its recovery ceiling
+ok 79 - AC219-08 moss never lowers a value above its recovery ceiling
+  ---
+  duration_ms: 0.452199
+  type: 'test'
+  ...
+# Subtest: AC219-09 dangerous conditions interrupt moss on next step, dry stock does not
+ok 80 - AC219-09 dangerous conditions interrupt moss on next step, dry stock does not
+  ---
+  duration_ms: 25.43591
+  type: 'test'
+  ...
+# Subtest: AC219-10/12 decomposition conserves raw plus compost, boost capped at three
+ok 81 - AC219-10/12 decomposition conserves raw plus compost, boost capped at three
+  ---
+  duration_ms: 1.642972
+  type: 'test'
+  ...
+# Subtest: AC219-11/17 absorption consumes compost exactly, not energy
+ok 82 - AC219-11/17 absorption consumes compost exactly, not energy
+  ---
+  duration_ms: 6.379927
+  type: 'test'
+  ...
+# Subtest: AC219-13/18 raw and compost are separate actions
+ok 83 - AC219-13/18 raw and compost are separate actions
+  ---
+  duration_ms: 1.054607
+  type: 'test'
+  ...
+# Subtest: AC219-14/15 input respects daily quota, shared capacity and no catch-up
+ok 84 - AC219-14/15 input respects daily quota, shared capacity and no catch-up
+  ---
+  duration_ms: 11.448752
+  type: 'test'
+  ...
+# Subtest: AC219-16 pickup, restore, release conserve stock without duplication
+ok 85 - AC219-16 pickup, restore, release conserve stock without duplication
+  ---
+  duration_ms: 75.012501
+  type: 'test'
+  ...
+# Subtest: AC219-19 real shelter grants energy only, no remote supplies or mood
+ok 86 - AC219-19 real shelter grants energy only, no remote supplies or mood
+  ---
+  duration_ms: 0.881871
+  type: 'test'
+  ...
+# Subtest: AC219-21 nutrition deficit selects real compost rather than shelter
+ok 87 - AC219-21 nutrition deficit selects real compost rather than shelter
+  ---
+  duration_ms: 9.892535
+  type: 'test'
+  ...
+# Subtest: AC219-22 dry moss remains eligible for both energy and mood
+ok 88 - AC219-22 dry moss remains eligible for both energy and mood
+  ---
+  duration_ms: 2.045157
+  type: 'test'
+  ...
+# Subtest: AC219-26 upgrade requires real use plus pressure, preserves stocks, no free fill
+ok 89 - AC219-26 upgrade requires real use plus pressure, preserves stocks, no free fill
+  ---
+  duration_ms: 99.528368
+  type: 'test'
+  ...
+# Subtest: AC219-25 proportional grants never overdraw shared stock
+ok 90 - AC219-25 proportional grants never overdraw shared stock
+  ---
+  duration_ms: 0.209352
+  type: 'test'
+  ...
+# Subtest: AC219-29 offline freezes water, resources, nutrition, mood and damage
+ok 91 - AC219-29 offline freezes water, resources, nutrition, mood and damage
+  ---
+  duration_ms: 1.147333
+  type: 'test'
+  ...
+# Subtest: AC219-28 legacy stock migration moves excess water once without reinitializing progress
+ok 92 - AC219-28 legacy stock migration moves excess water once without reinitializing progress
+  ---
+  duration_ms: 128.347563
+  type: 'test'
+  ...
+# Subtest: save write failure rolls back leaf pickup atomically
+ok 93 - save write failure rolls back leaf pickup atomically
+  ---
+  duration_ms: 49.689503
+  type: 'test'
+  ...
+# Subtest: AC219-27 current day quota stays unchanged on upgrade; next day uses new cap
+ok 94 - AC219-27 current day quota stays unchanged on upgrade; next day uses new cap
+  ---
+  duration_ms: 16.918733
+  type: 'test'
+  ...
+# Subtest: current and future corrupt resource metadata is rejected, never normalized
+ok 95 - current and future corrupt resource metadata is rejected, never normalized
+  ---
+  duration_ms: 55.799822
+  type: 'test'
+  ...
+# Subtest: all local startup assets exist, with no remote runtime dependency
+ok 96 - all local startup assets exist, with no remote runtime dependency
+  ---
+  duration_ms: 2.53965
+  type: 'test'
+  ...
+# Subtest: Android shell remains offline, preserves package identity, and increments version
+ok 97 - Android shell remains offline, preserves package identity, and increments version
+  ---
+  duration_ms: 0.441857
+  type: 'test'
+  ...
+# Subtest: every bundled font has its distribution license
+ok 98 - every bundled font has its distribution license
+  ---
+  duration_ms: 0.187585
+  type: 'test'
+  ...
+# Subtest: splash transfers at most 6/min from the real spring, retaining mood and energy costs
+ok 99 - splash transfers at most 6/min from the real spring, retaining mood and energy costs
+  ---
+  duration_ms: 5.379727
+  type: 'test'
+  ...
+# Subtest: splash stops hydration at65 but keeps playing; above65 never loses or receives water
+ok 100 - splash stops hydration at65 but keeps playing; above65 never loses or receives water
+  ---
+  duration_ms: 0.779002
+  type: 'test'
+  ...
+# Subtest: splash awards no remote water while approaching, dry, too shallow, or unsafe
+ok 101 - splash awards no remote water while approaching, dry, too shallow, or unsafe
+  ---
+  duration_ms: 1.509069
+  type: 'test'
+  ...
+# Subtest: simultaneous splash requests fairly share the actual source without duplication
+ok 102 - simultaneous splash requests fairly share the actual source without duplication
+  ---
+  duration_ms: 0.422255
+  type: 'test'
+  ...
+# Subtest: splash interruption at20 percent stops the next transfer and continued drinking still reaches65
+ok 103 - splash interruption at20 percent stops the next transfer and continued drinking still reaches65
+  ---
+  duration_ms: 0.379521
+  type: 'test'
+  ...
+# Subtest: actual fixed steps raise water during splash, and offline does not keep drinking
+ok 104 - actual fixed steps raise water during splash, and offline does not keep drinking
+  ---
+  duration_ms: 89.958034
+  type: 'test'
+  ...
+# Subtest: rain intensity increases count, length, width and contrast, with zero rain truly absent
+ok 105 - rain intensity increases count, length, width and contrast, with zero rain truly absent
+  ---
+  duration_ms: 0.897604
+  type: 'test'
+  ...
+# Subtest: rain follows ten-second weather transitions and reduced motion retains contrast
+ok 106 - rain follows ten-second weather transitions and reduced motion retains contrast
+  ---
+  duration_ms: 0.205015
+  type: 'test'
+  ...
+# Subtest: rain renderer is deterministic, preserves game state, and uses static reduced rain
+ok 107 - rain renderer is deterministic, preserves game state, and uses static reduced rain
+  ---
+  duration_ms: 1.344337
+  type: 'test'
+  ...
+# Subtest: viewport rain stroke sizes stay the same across screen widths; spring card explains real consumption
+ok 108 - viewport rain stroke sizes stay the same across screen widths; spring card explains real consumption
+  ---
+  duration_ms: 1.47261
+  type: 'test'
+  ...
+# Subtest: reaching the splash target emits completion only once per play session
+ok 109 - reaching the splash target emits completion only once per play session
+  ---
+  duration_ms: 0.438949
+  type: 'test'
+  ...
+# Subtest: sleep preserves body proportions
+ok 110 - sleep preserves body proportions
+  ---
+  duration_ms: 10.43704
+  type: 'test'
+  ...
+# Subtest: damp soil without standing water draws no oval pools
+ok 111 - damp soil without standing water draws no oval pools
+  ---
+  duration_ms: 3.766007
+  type: 'test'
+  ...
+# Subtest: sleep recovery gives no remote water or drink contact; actual spring drinking emits one
+ok 112 - sleep recovery gives no remote water or drink contact; actual spring drinking emits one
+  ---
+  duration_ms: 120.66846
+  type: 'test'
+  ...
+# Subtest: species dispatch uses original species art, with no virtual arms on Elephan or Jureong
+ok 113 - species dispatch uses original species art, with no virtual arms on Elephan or Jureong
+  ---
+  duration_ms: 935.520912
+  type: 'test'
+  ...
+# Subtest: shelter foreground does not paint outside, approaching or waiting characters
+ok 114 - shelter foreground does not paint outside, approaching or waiting characters
+  ---
+  duration_ms: 1.89198
+  type: 'test'
+  ...
+# Subtest: intact body remains opaque through all limb positions and both directions
+ok 115 - intact body remains opaque through all limb positions and both directions
+  ---
+  duration_ms: 1957.831094
+  type: 'test'
+  ...
+# Subtest: all motions draw one body and exactly two hands without cutting the torso
+ok 116 - all motions draw one body and exactly two hands without cutting the torso
+  ---
+  duration_ms: 152.323184
+  type: 'test'
+  ...
+# Subtest: reduced motion is static and render does not alter its inputs
+ok 117 - reduced motion is static and render does not alter its inputs
+  ---
+  duration_ms: 145.096293
+  type: 'test'
+  ...
+# Subtest: SEL222-01 selection ring is drawn in the world pass immediately before the selected body
+ok 118 - SEL222-01 selection ring is drawn in the world pass immediately before the selected body
+  ---
+  duration_ms: 0.77009
+  type: 'test'
+  ...
+# Subtest: SEL222-02 ring is stroke-only, scales with body size, and render does not mutate state
+ok 119 - SEL222-02 ring is stroke-only, scales with body size, and render does not mutate state
+  ---
+  duration_ms: 9.114169
+  type: 'test'
+  ...
+# Subtest: SEL222-03 night adds near-half glow after lighting; daylight adds none; reduced motion is static
+ok 120 - SEL222-03 night adds near-half glow after lighting; daylight adds none; reduced motion is static
+  ---
+  duration_ms: 1.483201
+  type: 'test'
+  ...
+# Subtest: valid moved terrain blocks first seat entrance but reachable alternate admits adult Ridley
+ok 121 - valid moved terrain blocks first seat entrance but reachable alternate admits adult Ridley
+  ---
+  duration_ms: 761.552172
+  type: 'test'
+  ...
+# Subtest: 066 reproduction: empty shelter recovers both friends from the serialized entrance deadlock
+ok 122 - 066 reproduction: empty shelter recovers both friends from the serialized entrance deadlock
+  ---
+  duration_ms: 945.601604
+  type: 'test'
+  ...
+# Subtest: 066 entrance route avoids the other character continuously, with no collision bypass
+ok 123 - 066 entrance route avoids the other character continuously, with no collision bypass
+  ---
+  duration_ms: 118.938302
+  type: 'test'
+  ...
+# Subtest: 066 deadlock save resumes with identity, resources and original positions preserved
+ok 124 - 066 deadlock save resumes with identity, resources and original positions preserved
+  ---
+  duration_ms: 284.658225
+  type: 'test'
+  ...
+# Subtest: 066 repeated shelter departures and arrivals do not leave a vacant shelter deadlocked
+ok 125 - 066 repeated shelter departures and arrivals do not leave a vacant shelter deadlocked
+  ---
+  duration_ms: 6174.938164
+  type: 'test'
+  ...
+# Subtest: 066 actual capacity remains enforced: an adult Elephan cannot share basic shelter with adult Ridley
+ok 126 - 066 actual capacity remains enforced: an adult Elephan cannot share basic shelter with adult Ridley
+  ---
+  duration_ms: 648.15564
+  type: 'test'
+  ...
+# Subtest: 066 no phantom waiting label after rest need ends
+ok 127 - 066 no phantom waiting label after rest need ends
+  ---
+  duration_ms: 2.391832
+  type: 'test'
+  ...
+# Subtest: 066 blocked entrance explains the path problem and retains the same queue request
+ok 128 - 066 blocked entrance explains the path problem and retains the same queue request
+  ---
+  duration_ms: 342.599063
+  type: 'test'
+  ...
+# Subtest: 066 too-close saved friends may separate, but cannot walk through each other
+ok 129 - 066 too-close saved friends may separate, but cannot walk through each other
+  ---
+  duration_ms: 38.01396
+  type: 'test'
+  ...
+# Subtest: SH-AC01 outside goal, threshold and moving frames never claim internal recovery
+ok 130 - SH-AC01 outside goal, threshold and moving frames never claim internal recovery
+  ---
+  duration_ms: 320.371164
+  type: 'test'
+  ...
+# Subtest: SH-AC02 every age of both shipped rigs fits inside with no size reduction
+ok 131 - SH-AC02 every age of both shipped rigs fits inside with no size reduction
+  ---
+  duration_ms: 6659.926541
+  type: 'test'
+  ...
+# Subtest: SH-AC03 quarter units and physical geometry both constrain admission
+ok 132 - SH-AC03 quarter units and physical geometry both constrain admission
+  ---
+  duration_ms: 161.127376
+  type: 'test'
+  ...
+# Subtest: SH-AC04 deterministic simultaneous reservations cannot overbook
+ok 133 - SH-AC04 deterministic simultaneous reservations cannot overbook
+  ---
+  duration_ms: 6735.345889
+  type: 'test'
+  ...
+# Subtest: SH-AC05 full shelter waits outside and supplies no phantom protection
+ok 134 - SH-AC05 full shelter waits outside and supplies no phantom protection
+  ---
+  duration_ms: 977.533512
+  type: 'test'
+  ...
+# Subtest: SH-AC06 growth defers oversized visual transition until actual exit
+ok 135 - SH-AC06 growth defers oversized visual transition until actual exit
+  ---
+  duration_ms: 179.101643
+  type: 'test'
+  ...
+# Subtest: SH-AC06 held space is reserved once, cancel restores, direct placement admits after settlement
+ok 136 - SH-AC06 held space is reserved once, cancel restores, direct placement admits after settlement
+  ---
+  duration_ms: 1027.321604
+  type: 'test'
+  ...
+# Subtest: SH-AC07 geometry has actual capacity for adult families
+ok 137 - SH-AC07 geometry has actual capacity for adult families
+  ---
+  duration_ms: 443.446238
+  type: 'test'
+  ...
+# Subtest: SH-AC07 expansion validates terrain/path and atomic write preserves original
+ok 138 - SH-AC07 expansion validates terrain/path and atomic write preserves original
+  ---
+  duration_ms: 196.988514
+  type: 'test'
+  ...
+# Subtest: SH-AC08 world supply and water accounting never multiply with facility count
+ok 139 - SH-AC08 world supply and water accounting never multiply with facility count
+  ---
+  duration_ms: 253.479887
+  type: 'test'
+  ...
+# Subtest: SH-AC09 old external-rest migration retains name, biology and location, no fake admission
+ok 140 - SH-AC09 old external-rest migration retains name, biology and location, no fake admission
+  ---
+  duration_ms: 118.276443
+  type: 'test'
+  ...
+# Subtest: SH-AC10 offline safety retains real outside position and mounted takes no facility space
+ok 141 - SH-AC10 offline safety retains real outside position and mounted takes no facility space
+  ---
+  duration_ms: 63.844943
+  type: 'test'
+  ...
+# Subtest: SH-AC11 exit retains occupied budget until the complete silhouette is outside
+ok 142 - SH-AC11 exit retains occupied budget until the complete silhouette is outside
+  ---
+  duration_ms: 799.845117
+  type: 'test'
+  ...
+# Subtest: stored water consumes every source proportionally and capacity never creates extra input
+ok 143 - stored water consumes every source proportionally and capacity never creates extra input
+  ---
+  duration_ms: 108.443593
+  type: 'test'
+  ...
+# Subtest: rain collectors share the remaining actual input fairly, including a nearly full collector
+ok 144 - rain collectors share the remaining actual input fairly, including a nearly full collector
+  ---
+  duration_ms: 40.053306
+  type: 'test'
+  ...
+# Subtest: A04 transfers at most ten units once, preserves reserve and records EC02 only for actual rain
+ok 145 - A04 transfers at most ten units once, preserves reserve and records EC02 only for actual rain
+  ---
+  duration_ms: 58.304867
+  type: 'test'
+  ...
+# Subtest: spring/unknown water, full recipient and invisible transfer cannot grant EC02
+ok 146 - spring/unknown water, full recipient and invisible transfer cannot grant EC02
+  ---
+  duration_ms: 173.459146
+  type: 'test'
+  ...
+# Subtest: duplicate same-tick execution cannot advance phases or settle the same delivery twice
+ok 147 - duplicate same-tick execution cannot advance phases or settle the same delivery twice
+  ---
+  duration_ms: 37.569132
+  type: 'test'
+  ...
+# Subtest: interrupt/reload preserves delivered water, cancels remaining work and retains cooldown
+ok 148 - interrupt/reload preserves delivered water, cancels remaining work and retains cooldown
+  ---
+  duration_ms: 122.547106
+  type: 'test'
+  ...
+# Subtest: risk and pickup cancel water sharing on the next step without debit or refund
+ok 149 - risk and pickup cancel water sharing on the next step without debit or refund
+  ---
+  duration_ms: 156.572763
+  type: 'test'
+  ...
+# Subtest: EC03 needs expanded union and a third actual resting participant for twenty visible seconds
+ok 150 - EC03 needs expanded union and a third actual resting participant for twenty visible seconds
+  ---
+  duration_ms: 230.231826
+  type: 'test'
+  ...
+# Subtest: hidden interval or layout change breaks EC03 observation rather than joining unrelated time
+ok 151 - hidden interval or layout change breaks EC03 observation rather than joining unrelated time
+  ---
+  duration_ms: 301.242768
+  type: 'test'
+  ...
+# Subtest: five active limit includes duplicates and mounted pets; standby physiology remains unchanged
+ok 152 - five active limit includes duplicates and mounted pets; standby physiology remains unchanged
+  ---
+  duration_ms: 2360.049396
+  type: 'test'
+  ...
+# Subtest: legacy storage is unknown, malformed current source/session state is rejected
+ok 153 - legacy storage is unknown, malformed current source/session state is rejected
+  ---
+  duration_ms: 311.147212
+  type: 'test'
+  ...
+# Subtest: real rain simulation conserves water through collection, social behavior and pause/resume
+ok 154 - real rain simulation conserves water through collection, social behavior and pause/resume
+  ---
+  duration_ms: 35270.544107
+  type: 'test'
+  ...
+# Subtest: EC01 requires actual rain in both patches, a resting visitor and twenty uninterrupted visible seconds
+ok 155 - EC01 requires actual rain in both patches, a resting visitor and twenty uninterrupted visible seconds
+  ---
+  duration_ms: 495.872157
+  type: 'test'
+  ...
+# Subtest: prepared EC02 fixture uses real rain history and normal simulation completes the discovery
+ok 156 - prepared EC02 fixture uses real rain history and normal simulation completes the discovery
+  ---
+  duration_ms: 165.505765
+  type: 'test'
+  ...
+# Subtest: water, stream, shadows and wet soil rendering never mutate simulation state
+ok 157 - water, stream, shadows and wet soil rendering never mutate simulation state
+  ---
+  duration_ms: 21.861202
+  type: 'test'
+  ...
+# Subtest: zero water without inflow is entirely dry
+ok 158 - zero water without inflow is entirely dry
+  ---
+  duration_ms: 2.583916
+  type: 'test'
+  ...
+# Subtest: only actual inflow draws a stream above the basin
+ok 159 - only actual inflow draws a stream above the basin
+  ---
+  duration_ms: 7.865558
+  type: 'test'
+  ...
+# Subtest: reduced motion is frame-invariant for rain and inflow
+ok 160 - reduced motion is frame-invariant for rain and inflow
+  ---
+  duration_ms: 1.855879
+  type: 'test'
+  ...
+# Subtest: normal water and inflow move gently over time
+ok 161 - normal water and inflow move gently over time
+  ---
+  duration_ms: 2.649105
+  type: 'test'
+  ...
+# Subtest: rain and drinking ripples remain inside the water mask
+ok 162 - rain and drinking ripples remain inside the water mask
+  ---
+  duration_ms: 4.250085
+  type: 'test'
+  ...
+# Subtest: moist soil with W=0 cannot create a pool
+ok 163 - moist soil with W=0 cannot create a pool
+  ---
+  duration_ms: 1.1024
+  type: 'test'
+  ...
+# Subtest: half-full water is lower and smaller than full, with both inside the rim
+ok 164 - half-full water is lower and smaller than full, with both inside the rim
+  ---
+  duration_ms: 9.114501
+  type: 'test'
+  ...
+# Subtest: 0.3.1 migration retains coordinates, resources, rewards, names, clocks and random streams
+ok 165 - 0.3.1 migration retains coordinates, resources, rewards, names, clocks and random streams
+  ---
+  duration_ms: 1136.365017
+  type: 'test'
+  ...
+# Subtest: relocation preserves biology and pending hydration cycle; write failure is atomic
+ok 166 - relocation preserves biology and pending hydration cycle; write failure is atomic
+  ---
+  duration_ms: 320.436422
+  type: 'test'
+  ...
+# Subtest: placement validates the footprint and limits correction to one adult diameter
+ok 167 - placement validates the footprint and limits correction to one adult diameter
+  ---
+  duration_ms: 24.799101
+  type: 'test'
+  ...
+# Subtest: blocked paths go around the water, and finish at the shallow drinking entrance
+ok 168 - blocked paths go around the water, and finish at the shallow drinking entrance
+  ---
+  duration_ms: 17.620069
+  type: 'test'
+  ...
+# Subtest: held plants stay at their reserved origin, use biology time but gain no resting water or energy
+ok 169 - held plants stay at their reserved origin, use biology time but gain no resting water or energy
+  ---
+  duration_ms: 3.076551
+  type: 'test'
+  ...
+# Subtest: new movement speed depends on need and root hysteresis, never growth size
+ok 170 - new movement speed depends on need and root hysteresis, never growth size
+  ---
+  duration_ms: 0.402475
+  type: 'test'
+  ...
+# Subtest: visible drink contacts spend actual supply and disappear when there is no transfer
+ok 171 - visible drink contacts spend actual supply and disappear when there is no transfer
+  ---
+  duration_ms: 14.94772
+  type: 'test'
+  ...
+# Subtest: connected runoff has one owner and moving terrain never fills its water
+ok 172 - connected runoff has one owner and moving terrain never fills its water
+  ---
+  duration_ms: 66.597533
+  type: 'test'
+  ...
+# Subtest: sound files exist, source hashes match and music uses only full mixes
+ok 173 - sound files exist, source hashes match and music uses only full mixes
+  ---
+  duration_ms: 9.047153
+  type: 'test'
+  ...
+# Subtest: sound contacts deduplicate repeated frames, cap six one-shots and cancel an emitter
+ok 174 - sound contacts deduplicate repeated frames, cap six one-shots and cancel an emitter
+  ---
+  duration_ms: 0.622212
+  type: 'test'
+  ...
+# Subtest: muted and missing-buffer events are consumed rather than played late
+ok 175 - muted and missing-buffer events are consumed rather than played late
+  ---
+  duration_ms: 0.355629
+  type: 'test'
+  ...
+# Subtest: invalid audio settings are rejected without affecting saved biology
+ok 176 - invalid audio settings are rejected without affecting saved biology
+  ---
+  duration_ms: 82.97806
+  type: 'test'
+  ...
+# Subtest: surface film wets in rain and dries gradually without creating usable water
+ok 177 - surface film wets in rain and dries gradually without creating usable water
+  ---
+  duration_ms: 163.195895
+  type: 'test'
+  ...
+# Subtest: 218 recruitment: habitat, safe route and missing water are visible gates
+ok 178 - 218 recruitment: habitat, safe route and missing water are visible gates
+  ---
+  duration_ms: 95.13427
+  type: 'test'
+  ...
+# Subtest: 218 recruitment: exact failure guarantee persists and occupied slot suspends rolls
+ok 179 - 218 recruitment: exact failure guarantee persists and occupied slot suspends rolls
+  ---
+  duration_ms: 70.69782
+  type: 'test'
+  ...
+# Subtest: 218 encounter: walking and prop arrival precede completion; pauses main time
+ok 180 - 218 encounter: walking and prop arrival precede completion; pauses main time
+  ---
+  duration_ms: 1.550655
+  type: 'test'
+  ...
+# Subtest: 218 settlement: failed save and double press never duplicate a visitor
+ok 181 - 218 settlement: failed save and double press never duplicate a visitor
+  ---
+  duration_ms: 103.383862
+  type: 'test'
+  ...
+# Subtest: 218 encounter: all six species complete their distinct actions with no exported resources
+ok 182 - 218 encounter: all six species complete their distinct actions with no exported resources
+  ---
+  duration_ms: 1.359549
+  type: 'test'
+  ...
+# Subtest: 218 expansion: adult projection, confirmed roster limit and permanent rights
+ok 183 - 218 expansion: adult projection, confirmed roster limit and permanent rights
+  ---
+  duration_ms: 0.836259
+  type: 'test'
+  ...
+# Subtest: 218 queue: request identity and waited seconds survive expired reservations and reload
+ok 184 - 218 queue: request identity and waited seconds survive expired reservations and reload
+  ---
+  duration_ms: 122.525073
+  type: 'test'
+  ...
+# Subtest: 218 safety: recovery and announced storm forbid forced exit
+ok 185 - 218 safety: recovery and announced storm forbid forced exit
+  ---
+  duration_ms: 0.665098
+  type: 'test'
+  ...
+# Subtest: 218 exit: a partly overlapping outline still occupies space
+ok 186 - 218 exit: a partly overlapping outline still occupies space
+  ---
+  duration_ms: 25.365753
+  type: 'test'
+  ...
+# Subtest: 218 weather: cool climates enable snow; dry/wet weights preserve local rules
+ok 187 - 218 weather: cool climates enable snow; dry/wet weights preserve local rules
+  ---
+  duration_ms: 0.550091
+  type: 'test'
+  ...
+# Subtest: 218 storm: deterministic 20/60/30 phases and serialized continuation
+ok 188 - 218 storm: deterministic 20/60/30 phases and serialized continuation
+  ---
+  duration_ms: 88.041221
+  type: 'test'
+  ...
+# Subtest: 218 snow and fog: conserved 10,000 ticks, no direct root input, bounded stores
+ok 189 - 218 snow and fog: conserved 10,000 ticks, no direct root input, bounded stores
+  ---
+  duration_ms: 1304.081743
+  type: 'test'
+  ...
+# Subtest: 219 cloud and fog give no water; melt stops at 30
+ok 190 - 219 cloud and fog give no water; melt stops at 30
+  ---
+  duration_ms: 0.438152
+  type: 'test'
+  ...
+# Subtest: 218 climate: 30 second notice, queued during storm and existing resources preserved
+ok 191 - 218 climate: 30 second notice, queued during storm and existing resources preserved
+  ---
+  duration_ms: 0.558933
+  type: 'test'
+  ...
+# Subtest: 218 common grade: all 42 combinations bounded and pure; time blend continuous
+ok 192 - 218 common grade: all 42 combinations bounded and pure; time blend continuous
+  ---
+  duration_ms: 2.306987
+  type: 'test'
+  ...
+# Subtest: 218 migration: old individual IDs, resources and unlock preserved without invented visits
+ok 193 - 218 migration: old individual IDs, resources and unlock preserved without invented visits
+  ---
+  duration_ms: 82.438491
+  type: 'test'
+  ...
+# Subtest: 218 all habitat data: each species has a real positive case and a missing requirement blocks it
+ok 194 - 218 all habitat data: each species has a real positive case and a missing requirement blocks it
+  ---
+  duration_ms: 0.630786
+  type: 'test'
+  ...
+# Subtest: 218 settlement: 50 owned and five active do not destroy the prepared visitor
+ok 195 - 218 settlement: 50 owned and five active do not destroy the prepared visitor
+  ---
+  duration_ms: 1.647566
+  type: 'test'
+  ...
+# Subtest: 218 queue: healthy occupants yield in order for a large waiter, budget returns only outside
+ok 196 - 218 queue: healthy occupants yield in order for a large waiter, budget returns only outside
+  ---
+  duration_ms: 753.745761
+  type: 'test'
+  ...
+# Subtest: 218 physical snow stays on the moving head and melts once into the receiving ground
+ok 197 - 218 physical snow stays on the moving head and melts once into the receiving ground
+  ---
+  duration_ms: 30.065224
+  type: 'test'
+  ...
+# Subtest: WX-AC02 exact root boundaries, sixty-second grace and residual burden
+ok 198 - WX-AC02 exact root boundaries, sixty-second grace and residual burden
+  ---
+  duration_ms: 8.621699
+  type: 'test'
+  ...
+# Subtest: WX-AC03 recovery is latched through boundary changes and ends only after drying
+ok 199 - WX-AC03 recovery is latched through boundary changes and ends only after drying
+  ---
+  duration_ms: 0.384735
+  type: 'test'
+  ...
+# Subtest: WX-AC05 wind has ten-second grace and exact rate, safe rest has no new injury
+ok 200 - WX-AC05 wind has ten-second grace and exact rate, safe rest has no new injury
+  ---
+  duration_ms: 0.875519
+  type: 'test'
+  ...
+# Subtest: WX-AC07 actual canopy has one reserved guest and uses approved geometry at every age
+ok 201 - WX-AC07 actual canopy has one reserved guest and uses approved geometry at every age
+  ---
+  duration_ms: 765.500172
+  type: 'test'
+  ...
+# Subtest: WX-AC08 bracing reduces directional wind, never stacks, exits at seventy
+ok 202 - WX-AC08 bracing reduces directional wind, never stacks, exits at seventy
+  ---
+  duration_ms: 113.55024
+  type: 'test'
+  ...
+# Subtest: WX-AC08 bracing cannot reset on a brief lull and cannot start a new session in high wind
+ok 203 - WX-AC08 bracing cannot reset on a brief lull and cannot start a new session in high wind
+  ---
+  duration_ms: 204.622201
+  type: 'test'
+  ...
+# Subtest: WX-AC01 protection partitions actual rainfall and never creates water
+ok 204 - WX-AC01 protection partitions actual rainfall and never creates water
+  ---
+  duration_ms: 19180.076141
+  type: 'test'
+  ...
+# Subtest: WX-AC03 wet roots under an umbrella still require drainage, not instant cure
+ok 205 - WX-AC03 wet roots under an umbrella still require drainage, not instant cure
+  ---
+  duration_ms: 98.725843
+  type: 'test'
+  ...
+# Subtest: WX-AC06 save migration preserves physiology, nickname and cooldowns, cancels reservations
+ok 206 - WX-AC06 save migration preserves physiology, nickname and cooldowns, cancels reservations
+  ---
+  duration_ms: 205.946866
+  type: 'test'
+  ...
+# Subtest: WX-AC06 closing app applies only safe elapsed-time recovery and rejected writes are atomic
+ok 207 - WX-AC06 closing app applies only safe elapsed-time recovery and rejected writes are atomic
+  ---
+  duration_ms: 163.80953
+  type: 'test'
+  ...
+# Subtest: WX-AC09 cancellation and unoccupied space leave no protection
+ok 208 - WX-AC09 cancellation and unoccupied space leave no protection
+  ---
+  duration_ms: 57.559597
+  type: 'test'
+  ...
+# Subtest: WX-AC10 canopy keeps its logical state at animation loop boundaries
+ok 209 - WX-AC10 canopy keeps its logical state at animation loop boundaries
+  ---
+  duration_ms: 0.526275
+  type: 'test'
+  ...
+1..209
+# tests 209
+# suites 0
+# pass 209
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 131699.040498

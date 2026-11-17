@@ -11,7 +11,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/저장소 접근 | 로그인 및 Git 경로로 이 저장소의 원격 main 읽기 확인 |
 | 공통 기록 대조 | 완료 — 아래 확인 스냅샷의 전체 커밋과 HANDOFF.md 해시 일치 |
-| 진행 중 제품 작업 | 연결 점검은 문서 작업이며, 제품 작업은 최신 작업 브랜치/별도 세션에서 확인 |
+| 진행 중 제품 작업 | `REL-0.6.12-20261117` (Claude Code, 브랜치 `claude/festive-curie-mjk5mw` → PR로 main 병합, 사용자 승인) |
 
 ## 점검한 제품 기준선
 
@@ -32,12 +32,14 @@
 
 ### 미완료 / 후속 확인
 
-- 사용자 요청: 선택 링의 발광·시인성을 높이고 캐릭터 발 아래에 놓이도록 깊이/합성 순서 수정. 이번 설정에서는 구현·검증하지 않는다.
-- 이전 대화에 CI 의존성 `buffer-image-size@0.6.6` 다운로드 실패가 보고되었다. 후속 실행 전 실제 Actions 결과를 재확인한다.
+- 선택 링 발광·발 아래 깊이: 구현 및 APK0.6.12/SRS v2.22 반영(`REL-0.6.12-20261117`). 서명 APK 빌드·실기기 확인·main 병합은 미완료.
+- CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. 실제 GitHub Actions 재실행 결과는 미확인.
 
 ## 현재 작업 / 다음 순서
 
-- 작업 ID: `COLLAB-VERIFY-20261117`
+- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. 사용자 승인으로 PR을 통해 main 병합. 남은 일: 키 보관 환경의 서명 APK 빌드, 실기기 확인, GitHub Actions 결과 확인. 상세는 작업 이력의 해당 항목.
+
+- 이전 작업 ID: `COLLAB-VERIFY-20261117`
 - 요청: ChatGPT와 Claude가 같은 GitHub 코드와 인수인계 기록을 읽고 이어서 작업하도록 설정.
 - 이번 변경: 공통 지침과 Claude import 구성 후 실제 공유 문서 읽기를 확인하고 결과를 기록. 기존 제품 코드와 과거 검증 기록은 보존.
 - 이번 검증 범위: Claude의 실제 원격 main 조회, 공통 파일 읽기, 전체 커밋과 HANDOFF.md 원문 해시 대조. 제품 기능 테스트·실기기·운영 배포는 수행하지 않음.
@@ -59,6 +61,10 @@
 - 이 커밋과 해시는 본 확인 기록을 추가하기 전 스냅샷이다. 기록 추가 후 새 커밋/파일 해시가 생성되므로 다음 작업에서는 최신 원격을 다시 읽는다.
 - 범위: Claude Git 경로의 실제 읽기를 확인했다. Claude의 별도 GitHub MCP 서버 한 곳은 proxy 403으로 실패해 이번 점검에 사용하지 않았다. 해당 MCP 경로나 Claude push 권한까지 검증한 결과는 아니다.
 - 읽기 확인 세션에서는 파일 수정·commit·push·PR·제품 검사·배포를 수행하지 않았다. 이 확인 기록은 ChatGPT가 별도로 저장한다.
+- 별도 Claude 세션(`claude/festive-curie-mjk5mw`)의 같은 날 확인 기록:
+  - Claude 확인 시각: 2026-11-17 (Asia/Seoul), Claude Code 원격 세션
+  - Claude가 읽은 저장소 / 브랜치 / 전체 커밋: `sia080808-lgtm/Forest-of-Space` / 작업 브랜치 `claude/festive-curie-mjk5mw` / `011e83d08e3c0ce778efc419737630b9c2918d9d` (확인 시점 `origin/main`과 동일)
+  - Claude가 읽은 공유 파일: `CLAUDE.md`, `AGENTS.md`, `AI_COLLABORATION.md`, `HANDOFF.md` (CLAUDE.md import로 로드). `package.json` 버전 0.6.11 확인
 
 ## 작업 이력
 
@@ -70,6 +76,34 @@
 - 배포: 없음. 앱 버전 증가 없음.
 - 남은 일: Claude 인증 및 실제 공유 문서 읽기 확인.
 
+### COLLAB-CHECK-CLAUDE-20261117 — Claude 연결 확인
+
+- 담당: Claude Code. 요청: 작업공간 연결 확인. 제품 코드 수정 없음.
+- 기준 커밋: `011e83d08e3c0ce778efc419737630b9c2918d9d` (main). 브랜치 `claude/festive-curie-mjk5mw`에 이 기록만 추가.
+- 검증: git fetch/rev-parse로 원격 상태 확인, 공유 문서 4종 읽기. 제품 테스트·실기기·배포는 수행하지 않음.
+- 참고: 이 세션의 GitHub 플러그인 MCP 한 곳은 프록시 403으로 연결 실패했으나 git fetch/push 경로는 별도.
+- 다음: ChatGPT 세션이 이 기록을 재조회해 양방향 확인 완료로 표시. 대기 목록(선택 링 발광·발 아래 깊이, CI `buffer-image-size` 실패 확인)은 별도 요청 시 진행.
+
+### SEL-RING-20261117 — 선택 링 발광·발 아래 배치
+
+- 담당: Claude Code. 요청: 사용자 "진행"(대기 목록의 선택 링 작업). 기준 커밋 `fcc95f06818b5d5bcf86f57fd3382edd68e83e40`, 브랜치 `claude/festive-curie-mjk5mw`.
+- `app/src/main/assets/web/scene.js`: 조명 합성 뒤 화면 맨 위에 그리던 링(1.5px 단색)을 제거. `selectionRing()`을 월드 패스에서 선택 캐릭터 몸통 직전에 그려 발 아래에 놓이고 몸에 가려지며 공통 월드 조명을 받음. (사용자 요청으로 면 채움 제거, 선 굵기 1/3) 3겹 금빛 광채+밝은 중심선+옅은 어두운 외곽선. 크기는 `petSize` 비례(엘레판1.5배). 밤 밝기 하한0.58 보정(최대1.6배). 동작 줄이기 시 맥동 정지. 드래그 중(carry)에는 표시 안 함. 상태·난수·저장 변경 없음.
+- `package-lock.json`: 레지스트리에서 사라진 `buffer-image-size@0.6.6` → `0.6.4`(happy-dom 21.0.4 요구 `^0.6.4`). `npm ci` 성공.
+- `tools/selection-ring-review.cjs` + `docs/qa-selection-ring/`(낮/밤·리들리/엘레판·비선택 비교·보드·verification.json).
+- 검증(로컬 Linux, Node): `npm test` 206/206 통과, `npm run test:ui` PASS, 검수 스크립트에서 렌더 전후 state 동일·동작 줄이기 정적 프레임 동일. 실제 렌더는 scene.js + @napi-rs/canvas이며 Android WebView·실기기·터치·성능은 미검수.
+- 미완료: APK 버전(0.6.12/versionCode29)·릴리스 문서·SRS 연결·APK 빌드, GitHub Actions 재실행 확인, 쉼터 내부 등 가림 상황의 추가 화면 검수.
+- 다음: 사용자 실화면 확인 후 버전 증가·APK 빌드 여부 결정.
+
+### REL-0.6.12-20261117 — APK0.6.12 · SRS v2.22 선택 링
+
+- 담당: Claude Code. 요청: 사용자 "버전 올리고 진행, SRS도 해당 내용 업데이트". 중간 요청: 면 제거, 선 굵기1/3, 밤에는 더 빛나게.
+- 브랜치 `claude/festive-curie-mjk5mw` (main 미병합, PR 없음).
+- 코드: `scene.js` 면 채움 제거·선 굵기1/3, `ringGlow()`로 조명 뒤 밤 앞쪽 반원 발광 추가. 버전 0.6.12/versionCode29(`build.gradle`·`AndroidManifest.xml`·`engine.js` VERSION·`package.json`·`tests/forest/package.test.cjs`). 저장 스키마·RULES 불변.
+- 테스트: `tests/forest/selection-ring222.test.cjs`(3) 추가. `npm test` 209/209, `npm run test:ui` PASS, `tools/selection-ring-review.cjs` → `docs/qa-0.6.12/runtime`. 로그 `docs/qa-0.6.12/*.log`.
+- SRS: `docs/Forest_SRS_Design_Audio_v2.22.pdf`(v2.21 기반, 1·5·130·280·332·344쪽 교체, 나머지416쪽 본문 동일·링크/북마크 검증), 원본 `docs/planning-v2.22/`(content.py·build.py·Revision/Acceptance/Validation·교체 페이지 PNG). 오브젝트 규칙 별책은 변경 없어 v2.21 유지.
+- 문서: `docs/Forest-0.6.12-Release.md`, `docs/release.json`, README/AGENTS/IMPLEMENTATION_STATUS 상단 항목.
+- 미완료/차단: 서명 APK 빌드 안 함 — 이 환경에 Android SDK와 기존 업데이트 키가 없음(키는 Git 금지). 키 보관 환경에서 `tools/build_apk.py`로 빌드 후 SHA256·인증서 일치 기록 필요. Android 실기기·WebView·터치·야간 가독성·성능 미검수. GitHub Actions 재실행 미확인. main 병합/PR 미정.
+- 다음: (1) 키 보관 환경에서 APK0.6.12 빌드·서명 검증, (2) 실기기 확인, (3) 사용자 결정 시 PR/main 병합.
 ### COLLAB-VERIFY-20261117 — 실제 공유 문서 읽기 확인
 
 - 담당: Claude 읽기 확인, ChatGPT 원문 대조 및 확인 기록 저장.

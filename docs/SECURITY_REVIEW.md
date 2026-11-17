@@ -1,5 +1,13 @@
 # 검사 기록 · 2026-11-15 KST
 
+## CodeQL 재실행 · 2026-11-17 KST (저장소 공개 전환 후)
+
+- 사용자가 저장소를 공개로 전환한 뒤 PR [#7](https://github.com/sia080808-lgtm/Forest-of-Space/pull/7)의 실패한 CodeQL 작업을 재실행했다: https://github.com/sia080808-lgtm/Forest-of-Space/actions/runs/44032888677 (attempt 2, 커밋 `276db4e5c6bbaa161e7ffd91e4122fd8d391d4f0`).
+- `Analyze (javascript-typescript)`·`Analyze (python)`: success, 결과 등록됨. 이전의 `Code scanning is not enabled` 구성 오류는 해소.
+- PR 신규 경고 2건(note): `docs/planning-v2.22/build.py`의 미사용 import(`shutil`·`hashlib`, `Table`·`TableStyle`). 같은 PR에서 제거.
+- `Analyze (java-kotlin)`: 기록 시점 분석 중. 최종 결과는 PR 체크와 Security 탭을 따른다. 이 기록만으로 전체 취약점 0건을 주장하지 않는다.
+- 공개 전환 전 확인: Git 현재 파일과 전체 이력에 서명 키(.jks/.keystore/.p12/.pem/.key)·`.env` 파일 없음.
+
 ## 완료한 검사
 
 - Android manifest: 인터넷/위치/파일 전체 접근/오버레이 권한 없음.
@@ -12,7 +20,7 @@
 
 위 항목은 구현 검토 및 테스트 범위이며 보안 취약점이 전혀 없음을 보증하지 않습니다.
 
-## CodeQL: 실행됨, 결과 등록 차단 — 통과 아님
+## CodeQL: 실행됨, 결과 등록 차단 — 통과 아님 (2026-11-15 기록, 아래 2026-11-17 재실행으로 등록 해소)
 
 2026-11-15 KST 실제 GitHub Actions 실행:
 - 소스 커밋: `ba15da807e57946210962a303e5ce54390b92d59`.

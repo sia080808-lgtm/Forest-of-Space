@@ -1,0 +1,9 @@
+{
+  "spec": "2.22",
+  "runtime": "0.6.12",
+  "tests": "209/209 (tests.log)",
+  "ui": "PASS (ui.log)",
+  "render": "runtime/ + render.log, native Canvas, not Android WebView",
+  "srs": "srs-build.log",
+  "device": "not_run"
+}

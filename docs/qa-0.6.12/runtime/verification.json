@@ -1,0 +1,32 @@
+{
+ "renderer": "scene.js + @napi-rs/canvas (not Android WebView)",
+ "report": [
+  {
+   "name": "ring-noon-ridley",
+   "time": "noon",
+   "selected": "ridley-88",
+   "renderPure": true
+  },
+  {
+   "name": "ring-noon-elephan",
+   "time": "noon",
+   "selected": "neolbi-welcome-23908f00-3771-4292-949d-16cf200cb184",
+   "renderPure": true
+  },
+  {
+   "name": "ring-night-ridley",
+   "time": "night",
+   "selected": "ridley-88",
+   "renderPure": true
+  },
+  {
+   "name": "ring-night-none",
+   "time": "night",
+   "selected": null,
+   "renderPure": true
+  },
+  {
+   "reducedMotionStatic": true
+  }
+ ]
+}
