@@ -107,7 +107,7 @@ function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)r
  return t.reason==='energy'?!n.energy:t.reason==='mood'?!n.mood:false;
 }
 function points(s,p,id,kind){
- if(id==='shelter'){if(p.restCooldown>s.worldTick)return [];const Sh=dep('shelter');if(Sh.inside(s,p))return [{x:p.x,y:p.y}];return s.shelters.facilities.filter(f=>Sh.ledger(s,f,p.id).free>=Sh.units(p)).flatMap(f=>{const q=Sh.seat(s,f,p,q=>!!dep('spatial').route(s,p,Sh.entry(f,q),p.id));return q?[Sh.entry(f,q)]:[];});}
+ if(id==='shelter'){if(p.restCooldown>s.worldTick)return [];const Sh=dep('shelter');if(Sh.inside(s,p))return [{x:p.x,y:p.y}];return s.shelters.facilities.filter(f=>Sh.room(s,f,p)).flatMap(f=>{const q=Sh.seat(s,f,p,q=>!!dep('spatial').route(s,p,Sh.entry(f,q),p.id));return q?[Sh.entry(f,q)]:[];});}
  const r=region(s,id,kind),g=scale(s,id),large=dep('shelter').units(p)>4;
  const offsets=kind==='edgeDrink'?[[0,0]]:large?[[0,0],[-.015,0],[.015,0]]:[[0,0],[-.035,0],[.035,0],[-.065,0],[.065,0],[0,.014],[0,-.014]];
  return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
