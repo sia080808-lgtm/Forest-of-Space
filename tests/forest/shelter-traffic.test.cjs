@@ -48,11 +48,11 @@ test('066 repeated shelter departures and arrivals do not leave a vacant shelter
  }
  F.valid(s);
 });
-test('066 actual capacity remains enforced: an adult Elephan cannot share basic shelter with adult Ridley',()=>{
+test('SH24 base shelter: adult Elephan (8) and adult Ridley (4) share 12 units; capacity is still enforced',()=>{
  const s=stalled();for(const p of s.individuals){p.energy=30;p.xp=115;p.visualStage=3;Sh.release(p,s.worldTick);}
- F.advance(s,45);assert.equal(s.individuals.filter(p=>Sh.inside(s,p)).length,1);
- const waiting=s.individuals.find(p=>!Sh.inside(s,p));assert.ok(!Sh.inside(s,waiting));assert.ok(waiting.objectTask?.object!=='shelter'||waiting.objectWait||waiting.shelter.waitReason==='capacity');
- assert.ok(Sh.ledger(s,s.shelters.facilities[0]).free>=0);
+ F.advance(s,45);assert.equal(s.individuals.filter(p=>Sh.inside(s,p)).length,2);
+ const f=s.shelters.facilities[0],v=Sh.ledger(s,f);assert.equal(v.total,12);assert.equal(v.free,0);
+ const extra={...F.clone(s.individuals.find(p=>p.species!=='neolbi')),id:'extra-adult',x:.55,y:.66};Sh.release(extra,s.worldTick);assert.equal(Sh.seat(s,f,extra),null,'Elephan + two adults (16 units) is refused');
 });
 test('066 no phantom waiting label after rest need ends',()=>{
  const s=F.create(0,67),p=s.individuals[0];Object.assign(p,{B:60,energy:80,action:'groom',target:null});

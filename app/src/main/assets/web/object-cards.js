@@ -13,7 +13,7 @@ function model(s,id){if(id==='shelter')id='shelter-0';const f=Sh.facility(s,id),
   m.description='몸과 잎까지 안에 들어와 쉬는 자리예요.';m.status='쉬는 친구 '+actual+'명 · 전체 '+number(v.total/4)+'공간';
   m.metrics=[metric('used','사용 중',number(v.used/4)+'공간','퇴실 중인 공간 포함'),metric('free','빈 공간',number(v.free/4)+'공간'),metric('reserved','예약 중',number(v.reserved/4)+'공간'),metric('recovery','이용 시 체력','+4 / 분','체력 75까지')];
   m.gauge={label:'쉼터 공간',max:v.total/4,parts:[{label:'사용',value:v.used/4,tone:'moss'},{label:'예약',value:v.reserved/4,tone:'raw'}],free:v.free/4};
-  m.rows=[['성체 리들리','1공간'],['성체 엘레판','2공간'],['성체가 되면 필요한 공간',number(Sh.projectedNeed(s)/4)+'공간'],['빗방울 차단','90%'],['바람 줄임','80%']];
+  m.rows=[['함께 쉬는 친구',v.seats+'명까지'],['성체 리들리','1공간'],['성체 엘레판','2공간'],['성체가 되면 필요한 공간',number(Sh.projectedNeed(s)/4)+'공간'],['빗방울 차단','90%'],['바람 줄임','80%']];
   m.effects=['수면과 날씨 대피로 체력을 회복해요. 물·영양은 다른 자리에서 보충해요.','빈 공간이 있어도 몸과 잎이 맞고 입구가 열려 있어야 들어갈 수 있어요.'];
   if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!s.shelters.unlocked});if(!f.base)m.actions.push({action:'facility-move',label:'옮기기'},{action:'facility-store',label:'보관하기'});
  }else if(id==='litter'){

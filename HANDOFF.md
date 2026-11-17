@@ -24,7 +24,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/저장소 접근 | 로그인 및 Git 경로로 이 저장소의 원격 main 읽기 확인 |
 | 공통 기록 대조 | 완료 — 아래 확인 스냅샷의 전체 커밋과 HANDOFF.md 해시 일치 |
-| 진행 중 제품 작업 | `PATCH-0.6.16-20261117` (Claude Code) — 이슈 #15 패치 1·2 |
+| 진행 중 제품 작업 | `SHELTER3-0.6.17-20261117` (Claude Code) — 이슈 #15 패치 3 |
 
 ## 점검한 제품 기준선
 
@@ -50,6 +50,7 @@
 
 ## 현재 작업 / 다음 순서
 
+- 최신 작업: `SHELTER3-0.6.17-20261117` — 기본 쉼터 3명(12포인트+인원 상한), 엘레판 좌석 배정. 다음: 패치 4(엘리시 리깅·에셋, 팔 유지 결정), 5(낙엽 섹터·바닥 L 게이트), 6(생물).
 - 최신 작업: `PATCH-0.6.16-20261117` — 이슈 #15 검토의 패치 1(엘리시 V 잔재·초상화)·2(0.6.15 길찾기 성능 회귀). 패치 3~6(쉼터 3명, 엘리시 리깅, 낙엽 섹터, 생물)은 사용자 결정 3건 후 진행.
 - 최신 작업: `STONE-0.6.15-20261117` — 0.6.14(엘리시) 위에 햇살 바위 위 휴식·바위/바위틈 관통 수정, 0.6.15/versionCode32. 서명 APK·실기기 미완료.
 - 최신 작업: `HOTFIX-0.6.13-20261117` — 0.6.12 APK 실행 직후 종료(대체 dx 빌드의 람다 미변환) 수정, 0.6.13/versionCode30. 서명은 기존 키 필요. 0.6.12 APK는 배포 중지 권장.
@@ -178,3 +179,11 @@
 - `spatial.js`: 장애물 목록을 경로/구간당 1회 생성(walkable `obs` 인자). `objects.js`: 엘리시 샘물→V 분기 삭제. `ellisii-portrait.svg`: feComposite로 필터 클립. 테스트 `ellisii-legacy.test.cjs`(2). 버전 0.6.16/versionCode33.
 - 검증: `npm test` 212/212, `npm run test:ui` PASS, 성능 Node 60틱(쉼터 3명 42→19ms, 자유 5명 58→26ms), 돌 검수 동일, 초상화 Chromium 렌더. 실기기 미검증.
 - 다음: PR 병합 시 release-apk.yml이 0.6.16 서명 APK 프리릴리스 생성. 결정 3건 반영 완료 → 다음은 패치 3(쉼터 3명) 승인 후 진행.
+
+### SHELTER3-0.6.17-20261117 — 기본 쉼터 3명
+
+- 담당: Claude Code. 요청: 사용자 승인("ㄱㄱ") 후 이슈 #15 패치 3.
+- `shelter.js`: capacity 12/16/24, seats 3/4/5, `room()`(포인트+인원 동시), ledger에 friends/seats, 대기 사유 capacity/crowd, 확장 해금에 인원 조건, 엘레판 기본 쉼터 중앙 우선 정렬 제거. `objects.js` 쉼터 후보 필터를 `room()`으로. `object-cards.js` '함께 쉬는 친구 N명까지'. `stage2-fixtures.js` SH02(가득 찬 쉼터)에 리들리 1명 추가.
+- 테스트: `shelter-three.test.cjs`(5, 수정 전 전부 실패). 기존 6건 갱신(object-cards, shelter-traffic 066→SH24, shelter SH-AC03/06 ledger 형태, update218 확장 해금, ui-smoke '전체 3공간'). `npm test` 217/217, UI PASS.
+- 문서: `docs/Forest-Shelter-SRS-v2.24-SH24.md`(통합 PDF 반영 위치 명시), 릴리스 노트, 렌더 `docs/qa-0.6.17/runtime`. 버전 0.6.17/versionCode34.
+- 미검증: Android 실기기.
