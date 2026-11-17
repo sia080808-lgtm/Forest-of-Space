@@ -195,3 +195,13 @@
 - 원화(사용자 업로드 스크린샷)를 배경 제거·윤곽 분리해 `ellisii-fronds.png`/`ellisii-body.png`로 저장(원화 파일 자체는 저장소에 넣지 않음). `species-rig.js` `ellisiiActor`(팔 없음; 생식엽·몸통·영양엽·발 2개 레이어; 걷기 시 발 교대·영양엽 들썩임, 집기 시 발 대롱·잎 팔랑, 감은 눈 덮기). 사용자 추가 요청 "발이랑 영양엽 움직이게" 반영. 옛 잎 SVG 3장·SVG 초상화 삭제, 초상화는 리그에서 구운 PNG.
 - 테스트: `ellisii-legacy`(발/영양엽 움직임·동작 줄이기 포함)·`render.test` 갱신. `npm test` 219/219, UI PASS. 렌더·영상 `docs/qa-0.6.18/runtime`.
 - 한계: 엘리시에 눈 쌓임 오버레이 미적용, Android 실기기 미검증. 버전 0.6.18/versionCode35.
+- 병합·릴리스: PR #18(https://github.com/sia080808-lgtm/Forest-of-Space/pull/18) main 병합 `1d1c1450d03da2da9cd9c48618238aec37d825e7`(사용자 승인 "괜찮네 ㄱㄱ"; head `20cc78e` 기준 simulation·CodeQL 성공). release-apk.yml이 프리릴리스 v0.6.18 생성. `Forest-of-Space-0.6.18.apk` 38,799,870 bytes, SHA-256 `8c5b97fa399a50a0fc5133cfe3614fb9ca638a3b957a00088aa2157281c1522c` — 내려받은 파일·`.sha256` 자산·GitHub digest 일치. `apksigner verify` 인증서 SHA-256 `f807cfca…7e3d`(기존과 동일), `com.ridleydesk.mobile` versionCode35/0.6.18, 엘리시 PNG 에셋 포함.
+- 남은 일: 들어 올림 시 영양엽 왼쪽 가장자리의 가는 어두운 선(잎 추출 가장자리 픽셀) 정리, 엘리시 눈 쌓임 오버레이, Android 실기기 설치·업데이트 확인. 다음 패치: 5(낙엽 섹터·바닥 L 게이트), 6(생물) — 사용자 승인 후.
+
+### ELLISII-EDGE-0.6.19-20261117 — 엘리시 잎 가장자리 선 제거, 눈 쌓임
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(0.6.18 남은 일 진행). 기준 main `1d1c145`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: 영양엽이 들릴 때 (1) 잎 밑에 숨어 있던 몸통 테두리가 가는 어두운 선으로, (2) 원화 크림색 배경이 남은 반투명 가장자리가 흰 테두리로 보임.
+- 수정: `tools/defringe-ellisii.py`(크림색 가장자리 제거·작은 조각 제거·가장자리 재채색, 몸통 위쪽 테두리 10px를 영양엽 안쪽으로; 잎 끝 아래 y≥410은 유지) 실행 결과로 레이어 5장 갱신, 초상화 재굽기. `species-rig.js` 엘리시 생식엽·영양엽에 `ForestEffects.snow` 적용. 버전 0.6.19/versionCode36.
+- 검증: `npm test` 220/220(새 검사는 수정 전 레이어에서 실패), `npm run test:ui` PASS, 렌더 `docs/qa-0.6.19/runtime`. 실기기 미검증.
+- 다음: 패치 5(낙엽 섹터·바닥 L 게이트·기존 L70 이전), 패치 6(생물).

@@ -1,15 +1,15 @@
 {
-  "version": "0.6.18",
-  "versionCode": 35,
+  "version": "0.6.19",
+  "versionCode": 36,
   "spec": "2.22+ellisii-v2.23-draft",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 219,
+  "full_suite_passed": 220,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "Ellisii drawn from the approved target art (fronds + body layers, no arms); docs/qa-0.6.18/runtime",
+  "render": "Ellisii layer edge halo removed, body rim tucked under nest leaf, snow on fronds/leaf; docs/qa-0.6.19/runtime",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,7 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.17",
-    "versionCode": 34
+    "version": "0.6.18",
+    "versionCode": 35
   }
 }
