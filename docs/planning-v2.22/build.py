@@ -1,11 +1,11 @@
 from pathlib import Path
 from html import escape
-import io,json,csv,shutil,hashlib
+import io,json,csv
 import fitz
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph,Table,TableStyle
+from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.colors import HexColor
 import sys;sys.path.insert(0,str(Path(__file__).parent));from content import REPLACE,ACS,K
