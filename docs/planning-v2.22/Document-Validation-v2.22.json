@@ -1,0 +1,48 @@
+{
+  "pages": 422,
+  "replaced": [
+    1,
+    5,
+    130,
+    280,
+    332,
+    344
+  ],
+  "preserved_body_pages": 416,
+  "bookmarks_and_links_valid": true,
+  "issues": [],
+  "layout": [
+    {
+      "title": "여백의 숲 | 통합 명세 v2.22",
+      "font": 11.5,
+      "bottom": 391.07500000000005
+    },
+    {
+      "title": "SRS 개정 요구사항 | v2.22",
+      "font": 11.5,
+      "bottom": 373.25
+    },
+    {
+      "title": "S08.10 구현 추적 | v2.22",
+      "font": 11.5,
+      "bottom": 247.99999999999991
+    },
+    {
+      "title": "D05.20 전체 날씨의 화면 변화",
+      "font": 11.5,
+      "bottom": 247.52500000000012
+    },
+    {
+      "title": "D06.08 GUI 구성요소개별정의1",
+      "font": 11.5,
+      "bottom": 211.40000000000006
+    },
+    {
+      "title": "D07.05 제작 레코드와 가림",
+      "font": 11.5,
+      "bottom": 319.30000000000007
+    }
+  ],
+  "device_review": "not_run",
+  "visual_review": "native Canvas; Android WebView not reviewed"
+}

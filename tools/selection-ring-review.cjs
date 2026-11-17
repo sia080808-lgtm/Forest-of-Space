@@ -1,7 +1,7 @@
 // Selection ring review: actual scene.js render via native Canvas (not Android WebView).
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),assert=require('node:assert/strict');
 const {createCanvas,loadImage,GlobalFonts}=require('@napi-rs/canvas');
-const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-selection-ring');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.12/runtime');
 const F=require(web+'/engine'),Rig=require(web+'/rig'),V=require(web+'/surfaces'),Effects=require(web+'/world-effects');
 (async()=>{
  fs.mkdirSync(out,{recursive:true});GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');const assets={};

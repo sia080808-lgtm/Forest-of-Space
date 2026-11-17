@@ -11,7 +11,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/GitHub 인증 | Claude Code 원격 세션에서 저장소 clone·fetch 확인 (2026-11-17) |
 | 양방향 읽기 확인 | Claude 읽기 확인 완료 — 다음 ChatGPT 세션의 재조회 대기 |
-| 진행 중 제품 작업 | 이번 연결 설정에서는 없음 |
+| 진행 중 제품 작업 | `REL-0.6.12-20261117` (Claude Code, 브랜치 `claude/festive-curie-mjk5mw`, main 미병합) |
 
 ## 점검한 제품 기준선
 
@@ -32,7 +32,7 @@
 
 ### 미완료 / 후속 확인
 
-- 선택 링 발광·발 아래 깊이: `SEL-RING-20261117`에서 구현(브랜치 `claude/festive-curie-mjk5mw`). APK 버전 증가·빌드·실기기 확인은 미완료.
+- 선택 링 발광·발 아래 깊이: 구현 및 APK0.6.12/SRS v2.22 반영(`REL-0.6.12-20261117`). 서명 APK 빌드·실기기 확인·main 병합은 미완료.
 - CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. 실제 GitHub Actions 재실행 결과는 미확인.
 
 ## 현재 작업 / 다음 순서
@@ -78,3 +78,14 @@
 - 검증(로컬 Linux, Node): `npm test` 206/206 통과, `npm run test:ui` PASS, 검수 스크립트에서 렌더 전후 state 동일·동작 줄이기 정적 프레임 동일. 실제 렌더는 scene.js + @napi-rs/canvas이며 Android WebView·실기기·터치·성능은 미검수.
 - 미완료: APK 버전(0.6.12/versionCode29)·릴리스 문서·SRS 연결·APK 빌드, GitHub Actions 재실행 확인, 쉼터 내부 등 가림 상황의 추가 화면 검수.
 - 다음: 사용자 실화면 확인 후 버전 증가·APK 빌드 여부 결정.
+
+### REL-0.6.12-20261117 — APK0.6.12 · SRS v2.22 선택 링
+
+- 담당: Claude Code. 요청: 사용자 "버전 올리고 진행, SRS도 해당 내용 업데이트". 중간 요청: 면 제거, 선 굵기1/3, 밤에는 더 빛나게.
+- 브랜치 `claude/festive-curie-mjk5mw` (main 미병합, PR 없음).
+- 코드: `scene.js` 면 채움 제거·선 굵기1/3, `ringGlow()`로 조명 뒤 밤 앞쪽 반원 발광 추가. 버전 0.6.12/versionCode29(`build.gradle`·`AndroidManifest.xml`·`engine.js` VERSION·`package.json`·`tests/forest/package.test.cjs`). 저장 스키마·RULES 불변.
+- 테스트: `tests/forest/selection-ring222.test.cjs`(3) 추가. `npm test` 209/209, `npm run test:ui` PASS, `tools/selection-ring-review.cjs` → `docs/qa-0.6.12/runtime`. 로그 `docs/qa-0.6.12/*.log`.
+- SRS: `docs/Forest_SRS_Design_Audio_v2.22.pdf`(v2.21 기반, 1·5·130·280·332·344쪽 교체, 나머지416쪽 본문 동일·링크/북마크 검증), 원본 `docs/planning-v2.22/`(content.py·build.py·Revision/Acceptance/Validation·교체 페이지 PNG). 오브젝트 규칙 별책은 변경 없어 v2.21 유지.
+- 문서: `docs/Forest-0.6.12-Release.md`, `docs/release.json`, README/AGENTS/IMPLEMENTATION_STATUS 상단 항목.
+- 미완료/차단: 서명 APK 빌드 안 함 — 이 환경에 Android SDK와 기존 업데이트 키가 없음(키는 Git 금지). 키 보관 환경에서 `tools/build_apk.py`로 빌드 후 SHA256·인증서 일치 기록 필요. Android 실기기·WebView·터치·야간 가독성·성능 미검수. GitHub Actions 재실행 미확인. main 병합/PR 미정.
+- 다음: (1) 키 보관 환경에서 APK0.6.12 빌드·서명 검증, (2) 실기기 확인, (3) 사용자 결정 시 PR/main 병합.
