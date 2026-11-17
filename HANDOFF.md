@@ -9,8 +9,8 @@
 | 공유 저장소 | `sia080808-lgtm/Forest-of-Space` (비공개) |
 | 공유 파일 | `AGENTS.md`, `CLAUDE.md`, `AI_COLLABORATION.md`, `HANDOFF.md` |
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
-| Claude 계정/GitHub 인증 | 확인 대기 — 문서 추가만으로 인증 완료가 되지 않음 |
-| 양방향 읽기 확인 | 대기 — Claude가 실제로 읽은 브랜치·커밋·파일 경로 필요 |
+| Claude 계정/GitHub 인증 | Claude Code 원격 세션에서 저장소 clone·fetch 확인 (2026-11-17) |
+| 양방향 읽기 확인 | Claude 읽기 확인 완료 — 다음 ChatGPT 세션의 재조회 대기 |
 | 진행 중 제품 작업 | 이번 연결 설정에서는 없음 |
 
 ## 점검한 제품 기준선
@@ -46,9 +46,9 @@
 
 ## 연결 점검 기록
 
-- Claude 확인 시각: 대기
-- Claude가 읽은 저장소 / 브랜치 / 전체 커밋: 대기
-- Claude가 읽은 공유 파일: 대기
+- Claude 확인 시각: 2026-11-17 (Asia/Seoul), Claude Code 원격 세션
+- Claude가 읽은 저장소 / 브랜치 / 전체 커밋: `sia080808-lgtm/Forest-of-Space` / 작업 브랜치 `claude/festive-curie-mjk5mw` / `011e83d08e3c0ce778efc419737630b9c2918d9d` (확인 시점 `origin/main`과 동일)
+- Claude가 읽은 공유 파일: `CLAUDE.md`, `AGENTS.md`, `AI_COLLABORATION.md`, `HANDOFF.md` (CLAUDE.md import로 로드). `package.json` 버전 0.6.11 확인
 - 다음 ChatGPT 세션의 같은 기록 재조회: 대기
 
 ## 작업 이력
@@ -60,3 +60,11 @@
 - 테스트: 문서 및 연결 구성 확인에 한정; 제품 회귀를 이번에 재실행했다고 주장하지 않음.
 - 배포: 없음. 앱 버전 증가 없음.
 - 남은 일: Claude 인증 및 실제 공유 문서 읽기 확인.
+
+### COLLAB-CHECK-CLAUDE-20261117 — Claude 연결 확인
+
+- 담당: Claude Code. 요청: 작업공간 연결 확인. 제품 코드 수정 없음.
+- 기준 커밋: `011e83d08e3c0ce778efc419737630b9c2918d9d` (main). 브랜치 `claude/festive-curie-mjk5mw`에 이 기록만 추가.
+- 검증: git fetch/rev-parse로 원격 상태 확인, 공유 문서 4종 읽기. 제품 테스트·실기기·배포는 수행하지 않음.
+- 참고: 이 세션의 GitHub 플러그인 MCP 한 곳은 프록시 403으로 연결 실패했으나 git fetch/push 경로는 별도.
+- 다음: ChatGPT 세션이 이 기록을 재조회해 양방향 확인 완료로 표시. 대기 목록(선택 링 발광·발 아래 깊이, CI `buffer-image-size` 실패 확인)은 별도 요청 시 진행.
