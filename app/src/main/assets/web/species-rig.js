@@ -51,19 +51,20 @@ function leafLayer(c,d,t,p){if(d===data.bosong){img(c,d,d.leaf,...d.fol);return;
 // back fertile fronds (gentle sway) + one body layer (body, draped nest leaf, eyes, tiny feet). No arms, as in the target.
 const ELLI={rect:[-10.23,-33,24.63,33],pivot:{x:3.33,y:-21.35},leafPivot:{x:3.59,y:-21.35},feet:[{x:-4.28},{x:3.49}],eyes:[[3.84,-13.54],[6.61,-14.9]],eyeR:[1.15,1.8],patch:[238,450,50,70]};
 function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'idle',walk=['walk','run','slow'].includes(m),run=m==='run',step=t*d.tempo*(run?12:8),beat=Math.sin(step),rest=p.rest??(['sleep','rest','moss'].includes(m)?1:0),bob=walk?-Math.abs(beat)*.5:m==='held'?Math.sin(t*7)*.22:Math.sin(t*1.4)*.09,r=ELLI.rect,still=p.reduced;
- const layer=n=>A['ellisii'+n],draw=(im)=>{if(im)c.drawImage(im,...r);};
+ // Snow settles on the exposed upper edges of the fronds and the nest leaf (same mask as other species' leaves).
+ const layer=n=>A['ellisii'+n],draw=(im,snowy)=>{if(!im)return;c.drawImage(im,...r);if(snowy&&A.snow>0){const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;E.snow(c,im,A.snow,...r);}};
  c.save();c.translate(x,y);c.scale(g,g);c.translate(0,-(p.lift||0));
  // Feet stay on the ground while walking: each foot lifts in turn and steps forward a little; when held they dangle.
  const footPose=i=>{if(m==='held')return {dx:0,dy:0,rot:Math.sin(t*9+i*Math.PI)*.35};if(walk&&!still){const ph=Math.sin(step+i*Math.PI);return {dx:ph*.35,dy:-Math.max(0,ph)*(run?1.1:.8),rot:0};}return {dx:0,dy:0,rot:0};};
  const bodyY=bob+rest*.7,tilt=(p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:walk?beat*.03:0);
  for(const [i,n] of [[0,'FootLeft'],[1,'FootRight']]){const f=footPose(i),fx=ELLI.feet[i].x;c.save();c.translate(fx+f.dx,(m==='held'?bodyY:0)+f.dy-1.2);c.rotate(f.rot);c.translate(-fx,1.2);draw(layer(n));c.restore();}
  c.translate(0,bodyY);c.rotate(tilt);const squash=walk?1-Math.abs(beat)*.025:rest?.985:1;c.scale(1/Math.sqrt(squash),squash);
- if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'));c.restore();}
+ if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'),true);c.restore();}
  const body=layer('Body');draw(body);
  // Closed eyes: cover each eye with plain body texture from the same layer, then draw a soft lid line. No mouth or cheeks.
  if(body&&(m==='sleep'||m==='rest'||m==='moss'))for(const [ex,ey] of ELLI.eyes){c.save();c.beginPath();c.ellipse(ex,ey,ELLI.eyeR[0]+.25,ELLI.eyeR[1]+.25,0,0,7);c.clip();const q=ELLI.patch;c.drawImage(body,q[0],q[1],q[2],q[3],ex-1.8,ey-2.5,3.6,5);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.7,ey+.3);c.quadraticCurveTo(ex,ey+.9,ex+.7,ey+.3);c.stroke();}
  // Nest leaf hinges at its top-right attachment: it bounces with each step, flutters when held and settles when resting.
- if(layer('Leaf')){const lift=still?(rest?-.01:0):walk?Math.abs(beat)*(run?.05:.035):m==='held'?Math.sin(t*6)*.06:rest?-.012+Math.sin(t*1.1)*.006:Math.sin(t*1.2)*.012;c.save();c.translate(ELLI.leafPivot.x,ELLI.leafPivot.y);c.rotate(lift);c.translate(-ELLI.leafPivot.x,-ELLI.leafPivot.y);draw(layer('Leaf'));c.restore();}
+ if(layer('Leaf')){const lift=still?(rest?-.01:0):walk?Math.abs(beat)*(run?.05:.035):m==='held'?Math.sin(t*6)*.06:rest?-.012+Math.sin(t*1.1)*.006:Math.sin(t*1.2)*.012;c.save();c.translate(ELLI.leafPivot.x,ELLI.leafPivot.y);c.rotate(lift);c.translate(-ELLI.leafPivot.x,-ELLI.leafPivot.y);draw(layer('Leaf'),true);c.restore();}
  c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bodyY-(p.lift||0))*g}),tip=toWorld({x:r[0]+3,y:-8});return{hands:[],tip,face:{x,y:y-16*g*.55},width:20.5*g,height:33*g};}
 function actor(c,k,x,y,t,p={}){if(k==='bonbon')return ellisiiActor(c,x,y,t,p);if(!data[k])return duriActor(c,k,x,y,t,p);const d=data[k],g=p.growth??.65,m=p.mode||'idle',walk=['walk','run','slow'].includes(m),beat=Math.sin(t*d.tempo*(m==='run'?12:8)),rest=p.rest??(['sleep','rest','moss'].includes(m)?1:0),bob=walk?-Math.abs(beat)*.65:m==='held'?Math.sin(t*7)*.22:Math.sin(t*1.4)*.09;
 c.save();c.translate(x,y);c.scale(g,g);c.translate(0,bob+rest*.7-(p.lift||0));c.rotate((p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:0));if(d.hat)hatLayer(c,d,t,p,true);

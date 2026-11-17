@@ -12,3 +12,10 @@ test('Ellisii feet step in turn while walking and the nest leaf moves; reduced m
  const frame=(kind,phase,reduced=false)=>{log.length=0;state=[[0,0,0]];SR.draw(ctx,assets,{species:'bonbon',kind,phase,reduced});return Object.fromEntries(log.map(e=>[e.n,e.t]));};
  const a1=frame('walk',.3),a2=frame('walk',.3+Math.PI/(.72*8));a.notDeepEqual(a1.footL,a2.footL);a.notDeepEqual(a1.footR,a2.footR);a.notEqual(a1.leaf[2],0);
  const r1=frame('idle',.3,true),r2=frame('idle',2.3,true);a.equal(r1.leaf[2],r2.leaf[2]);a.deepEqual(r1.footL,r2.footL);});
+test('Ellisii layers carry no pale background halo at their cut edges, and snow settles on the fronds and nest leaf',async()=>{const {createCanvas,loadImage}=require('@napi-rs/canvas'),web=path.join(__dirname,'../../app/src/main/assets/web'),SR=require(path.join(web,'species-rig.js'));const assets={};for(const [k,v] of Object.entries(SR.files))assets[k]=await loadImage(path.join(web,v));
+ for(const k of ['ellisiiBody','ellisiiLeaf','ellisiiFronds']){const im=assets[k],cv=createCanvas(im.width,im.height),c=cv.getContext('2d');c.drawImage(im,0,0);const d=c.getImageData(0,0,im.width,im.height).data;let pale=0;
+  // A visible pixel next to transparency that is near the cream background colour is a leftover halo.
+  for(let y=1;y<im.height-1;y++)for(let x=1;x<im.width-1;x++){const i=(y*im.width+x)*4;if(d[i+3]<40)continue;const edge=d[i-1]<8||d[i+7]<8||d[i-im.width*4+3]<8||d[i+im.width*4+3]<8;if(edge&&(d[i]+d[i+1]+d[i+2])/3>215)pale++;}
+  a.ok(pale<40,k+' pale edge pixels '+pale);}
+ const white=snow=>{const cv=createCanvas(1254,1254),c=cv.getContext('2d');SR.draw(c,assets,{species:'bonbon',kind:'idle',phase:.7,reduced:true,expression:'neutral',snow});const d=c.getImageData(0,0,1254,1254).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i+3]>200&&d[i]>225&&d[i+1]>228&&d[i+2]>215)n++;return n;};
+ a.ok(white(1)>white(0)+200);});
