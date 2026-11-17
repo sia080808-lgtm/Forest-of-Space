@@ -11,7 +11,7 @@
 | ChatGPT GitHub 연결 | 저장소 읽기 및 push 권한 확인 |
 | Claude 계정/저장소 접근 | 로그인 및 Git 경로로 이 저장소의 원격 main 읽기 확인 |
 | 공통 기록 대조 | 완료 — 아래 확인 스냅샷의 전체 커밋과 HANDOFF.md 해시 일치 |
-| 진행 중 제품 작업 | `REL-0.6.12-20261117` (Claude Code, 브랜치 `claude/festive-curie-mjk5mw` → PR로 main 병합, 사용자 승인) |
+| 진행 중 제품 작업 | 없음 — `REL-0.6.12-20261117`은 PR #7로 main 병합 완료(`97709d6ec06b1dd50c10e8a9e379712728035a37`) |
 
 ## 점검한 제품 기준선
 
@@ -32,12 +32,12 @@
 
 ### 미완료 / 후속 확인
 
-- 선택 링 발광·발 아래 깊이: 구현 및 APK0.6.12/SRS v2.22 반영(`REL-0.6.12-20261117`). 서명 APK 빌드·실기기 확인·main 병합은 미완료.
-- CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. 실제 GitHub Actions 재실행 결과는 미확인.
+- 선택 링 발광·발 아래 깊이: APK0.6.12/SRS v2.22로 main 병합 완료. 서명 APK 빌드·실기기 확인은 미완료.
+- CI 의존성 `buffer-image-size@0.6.6`: npm 레지스트리에서 삭제(404, 현재 최신 0.6.4) 확인. `SEL-RING-20261117`에서 lock을 0.6.4로 고침. PR #7의 GitHub Actions `simulation` 통과로 확인.
 
 ## 현재 작업 / 다음 순서
 
-- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. 사용자 승인으로 PR을 통해 main 병합. 남은 일: 키 보관 환경의 서명 APK 빌드, 실기기 확인, GitHub Actions 결과 확인. 상세는 작업 이력의 해당 항목.
+- 최신 작업: `REL-0.6.12-20261117` (Claude Code) — 선택 링 발광·발 아래, APK0.6.12/versionCode29, SRS v2.22. PR #7로 main 병합 완료. 남은 일: 키 보관 환경의 서명 APK 빌드, 실기기 확인. 상세는 작업 이력의 해당 항목.
 
 - 이전 작업 ID: `COLLAB-VERIFY-20261117`
 - 요청: ChatGPT와 Claude가 같은 GitHub 코드와 인수인계 기록을 읽고 이어서 작업하도록 설정.
@@ -111,3 +111,11 @@
 - 변경: 연결 상태 및 재개 절차 갱신. 이전 COLLAB-SETUP 기록의 남은 일은 당시 상태이며 인증/실제 읽기 확인은 이번 기록으로 완료했다.
 - 제품 코드·앱 버전 변경 없음. 제품 회귀·실기기 검사·배포는 수행하지 않았다.
 - 후속: 다음 작업에서 최신 원격과 작업 브랜치를 확인하고 승인된 제품 작업을 이어간다.
+
+### MERGE-0.6.12-20261117 — PR #7 main 병합
+
+- 담당: Claude Code. 사용자 승인("올리고 메인 병합 승인").
+- PR: https://github.com/sia080808-lgtm/Forest-of-Space/pull/7 — head `9e18a682a52590b1949d2f9ad765c75ada219eae`, merge 커밋 `97709d6ec06b1dd50c10e8a9e379712728035a37`.
+- CI(head 기준): `simulation` success, CodeQL `Analyze` javascript-typescript/python/java-kotlin success, `CodeQL` success. 사용자가 저장소를 공개로 전환한 뒤 코드 스캐닝 등록이 작동. CodeQL 신규 경고2건(미사용 import)은 같은 PR에서 수정. 기록: `docs/SECURITY_REVIEW.md`.
+- 공개 전환 전 점검: Git 파일·전체 이력에 키/인증서/`.env` 없음.
+- 미완료: 서명 APK0.6.12 빌드(키 보관 환경), Android 실기기 확인.
