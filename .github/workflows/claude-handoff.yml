@@ -1,0 +1,178 @@
+name: Claude handoff
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+# Serialize retries of one issue. A repository-wide group can silently replace
+# older pending issues, so independent tasks use separate branches and groups.
+concurrency:
+  group: claude-handoff-${{ github.repository }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  worker:
+    if: >-
+      vars.CLAUDE_HANDOFF_ENABLED == 'true' &&
+      vars.CLAUDE_HANDOFF_ACTOR != '' &&
+      github.actor == vars.CLAUDE_HANDOFF_ACTOR &&
+      startsWith(github.event.issue.title, '[Claude task]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      has_changes: ${{ steps.collect.outputs.has_changes }}
+    env:
+      HANDOFF_ENABLED: ${{ vars.CLAUDE_HANDOFF_ENABLED }}
+      HANDOFF_ACTOR: ${{ vars.CLAUDE_HANDOFF_ACTOR }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out trusted controls at the issue event commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preserve trusted controls outside the task checkout
+        run: |
+          mkdir -p "$RUNNER_TEMP/claude-handoff-control"
+          cp .github/claude-handoff/bridge.cjs .github/claude-handoff/project.json "$RUNNER_TEMP/claude-handoff-control/"
+      - name: Validate actor, issue snapshot, source version, and authentication
+        id: preflight
+        env:
+          CLAUDE_AUTH_CONFIGURED: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: node "$RUNNER_TEMP/claude-handoff-control/bridge.cjs" preflight
+      - name: Check out the exact task source commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.preflight.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify the pinned working directory
+        run: node "$RUNNER_TEMP/claude-handoff-control/bridge.cjs" verify
+      - name: Implement local code changes with Claude
+        id: claude
+        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # verified v1
+        with:
+          github_token: ${{ github.token }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: ${{ steps.preflight.outputs.allowed_bots }}
+          prompt: ${{ steps.preflight.outputs.prompt }}
+          track_progress: 'false'
+          use_commit_signing: 'false'
+          classify_inline_comments: 'false'
+          include_fix_links: 'false'
+          show_full_output: 'false'
+          settings: '{"disableAllHooks":true}'
+          claude_args: >-
+            --max-turns 30
+            --permission-mode acceptEdits
+            --setting-sources user
+            --strict-mcp-config
+            --mcp-config '{"mcpServers":{}}'
+            --tools "Read,Edit,Write,Glob,Grep,Bash"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash"
+            --disallowedTools "mcp__*"
+      - name: Require a successful Claude execution
+        env:
+          CLAUDE_CONCLUSION: ${{ steps.claude.outputs.conclusion }}
+        run: |
+          if [ "$CLAUDE_CONCLUSION" != "success" ]; then
+            echo "Claude did not complete successfully; no patch will be published."
+            exit 1
+          fi
+      - name: Collect and validate the complete patch
+        id: collect
+        run: node "$RUNNER_TEMP/claude-handoff-control/bridge.cjs" collect
+      - name: Upload bounded patch payload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: claude-handoff-payload-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.collect.outputs.payload_dir }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
+      - name: Upload separate validation report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: claude-handoff-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.collect.outputs.report_dir }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publisher:
+    needs: worker
+    if: >-
+      always() && needs.worker.result != 'skipped' &&
+      vars.CLAUDE_HANDOFF_ENABLED == 'true' &&
+      vars.CLAUDE_HANDOFF_ACTOR != '' &&
+      github.actor == vars.CLAUDE_HANDOFF_ACTOR &&
+      startsWith(github.event.issue.title, '[Claude task]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      HANDOFF_ENABLED: ${{ vars.CLAUDE_HANDOFF_ENABLED }}
+      HANDOFF_ACTOR: ${{ vars.CLAUDE_HANDOFF_ACTOR }}
+      HANDOFF_ROLE: publish
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Load clean trusted controls
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preserve clean publisher controls
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/claude-handoff-control"
+          cp .github/claude-handoff/bridge.cjs .github/claude-handoff/project.json "$RUNNER_TEMP/claude-handoff-control/"
+      - name: Revalidate the unchanged task and source baseline
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        id: preflight
+        run: node "$RUNNER_TEMP/claude-handoff-control/bridge.cjs" preflight
+      - name: Check out the pinned publisher baseline
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.preflight.outputs.base_sha }}
+          persist-credentials: false
+      - name: Download this run's patch payload
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: claude-handoff-payload-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/claude-handoff-download/payload
+      - name: Download this run's report
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: claude-handoff-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/claude-handoff-download/report
+      - name: Create a new task branch and draft PR
+        if: needs.worker.result == 'success' && needs.worker.outputs.has_changes == 'true'
+        id: publish
+        run: node "$RUNNER_TEMP/claude-handoff-control/bridge.cjs" publish
+      - name: Report a stopped handoff
+        if: always() && steps.publish.outcome != 'success'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const issue = context.payload.issue;
+            if (!issue || issue.user.login !== process.env.HANDOFF_ACTOR) return;
+            const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: issue.number,
+              body: `Claude handoff stopped before a completed draft PR report. Review the run for the exact failed check: ${url}\n\nNo merge or deployment was requested. A task branch may exist if PR creation failed after its creation.`,
+            });

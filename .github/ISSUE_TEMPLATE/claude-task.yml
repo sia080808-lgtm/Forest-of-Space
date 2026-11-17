@@ -1,0 +1,52 @@
+name: Claude task
+description: "여백의 숲 기획·에셋을 Claude Code 구현 작업으로 전달합니다."
+title: "[Claude task] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        이 양식은 활성화 변수·작성자·최신 기준 SHA 검사를 통과한 경우에만 실행됩니다.
+        현재 코드에서 확인한 전체 SHA를 입력하세요. 비밀번호·OAuth 토큰·운영 데이터는 첨부하지 마세요.
+  - type: textarea
+    id: task_metadata
+    attributes:
+      label: Task metadata
+      description: 최신 기준 브랜치 HEAD를 조회하여 SHA 자리표시를 바꾸세요. 오래된 SHA는 거절합니다.
+      value: |
+        ```json
+        {
+          "schema": 1,
+          "project": "forest",
+          "repository": "sia080808-lgtm/Forest-of-Space",
+          "base_branch": "main",
+          "base_sha": "REPLACE_WITH_CURRENT_BASE_HEAD_40_HEX_SHA",
+          "task_id": "FOREST-REPLACE-WITH-UNIQUE-ID"
+        }
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Request
+      description: 요청·변경 범위·관련 SRS/디자인 경로와 판단 이유를 적으세요.
+      placeholder: 이번 작업에서 구현할 기능과 영향을 받는 화면/동작을 구체적으로 작성하세요.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: 관찰 가능한 완료 조건과 필요한 검증을 적으세요.
+      placeholder: 정상 동작, 경계 조건, 보존할 기존 동작과 확인 방법을 작성하세요.
+    validations:
+      required: true
+  - type: textarea
+    id: assets
+    attributes:
+      label: Assets
+      description: 없음 또는 실제 공유한 이미지 원본의 저장소·전체 커밋·경로·SHA-256·가로×세로·형식·투명 배경 여부를 적으세요.
+      placeholder: 채팅 시안만으로 전달 완료가 아닙니다. 적용 위치·앵커·레이어·허용 변형도 적으세요.
+    validations:
+      required: false
+

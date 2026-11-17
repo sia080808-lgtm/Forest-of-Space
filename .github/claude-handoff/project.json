@@ -1,0 +1,18 @@
+{
+  "id": "forest",
+  "repository": "sia080808-lgtm/Forest-of-Space",
+  "instructions": "AGENTS.md, CLAUDE.md, AI_COLLABORATION.md, HANDOFF.md를 먼저 읽고 이 작업의 저장소, 기준 브랜치와 전체 커밋을 확인한다.\n사용자가 명시한 요청과 완료 기준만 구현하고 선택 링 등 인수인계의 대기 작업을 현재 요청으로 취급하지 않는다.\ndocs/IMPLEMENTATION_STATUS.md와 현재 코드의 버전, 해당 SRS·디자인·음향 원문 및 승인 에셋을 확인한다. 과거 문서의 버전을 현재 버전으로 추정하지 않는다.\n1초 고정 단계의 상태 엔진과 렌더링 분리를 유지한다. 렌더링에서 난수·물·자원·저장을 바꾸지 않는다.\n물·성장·발견·배치·기존 저장 호환성과 저장 실패 롤백, 실제 쉼터 입실/공간 계약 및 종별 몸통·팔다리·잎 레이어 규칙을 보존한다.\nAndroid 패키지와 원래 업데이트 서명을 유지한다. 키·비밀번호·실사용자 저장을 읽거나 Git/이슈/로그에 넣지 않는다.\n관련 tests/forest 및 UI 검사를 실행하고 DOM/native Canvas 검사와 실제 Android/WebView·터치·성능·청음 검수를 구분한다.\n소스 코드·문서 변경 결과를 남기고 실제 빌드 환경이나 서명이 없으면 APK 빌드 완료라고 보고하지 않는다. 이번 자동화 준비만으로 앱·SRS 버전을 올리거나 기존 미완료 작업을 시작하지 않는다.\nHANDOFF.md에 요청, 기준 커밋, 변경 파일/이유, 실행한 검사와 미검증 범위, 미완료 항목을 기록한다. 원격 반영과 운영 배포는 검증 결과와 구분한다.",
+  "test_commands": [
+    "npm test",
+    "npm run test:ui"
+  ],
+  "notes": [
+    "준비 시점 제품 스냅샷은 APK 0.6.11 / SRS 2.21 / versionCode 28이며, 실제 실행 때 최신 원격과 코드를 다시 확인한다.",
+    "Node 의존성은 package-lock.json을 기준으로 설치한다. 기존 workflow는 Node 22 및 npm ci --ignore-scripts를 사용한다. 과거 의존성 다운로드 실패는 현재 Actions 결과로 재확인한다.",
+    "Android APK에는 SDK/build-tools, ECJ, 원래 서명 키 등 별도 환경이 필요하다. DOM/native Canvas 검사만으로 실기기 결과를 주장하지 않는다.",
+    "선택 링 발광·깊이 순서 개선은 기존 대기 항목이며 이 설정 준비에서 구현하지 않는다.",
+    "개인 비공개 저장소의 CodeQL 실행 제한은 docs/SECURITY_REVIEW.md를 따른다. workflow 존재나 다른 테스트 통과가 CodeQL 성공을 뜻하지 않는다.",
+    "제출 원본 이미지의 저장소/커밋/경로/해시/크기와 적용 규칙을 확인한다. 접근 불가 파일 또는 미전달 시안으로 제품 에셋을 임의 대체하지 않는다."
+  ]
+}
+
