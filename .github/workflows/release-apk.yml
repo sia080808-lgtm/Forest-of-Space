@@ -93,13 +93,20 @@ jobs:
           npm run test:ui
           node --test tests/forest/*.test.cjs
 
-      - name: Install Android SDK build tools
-        uses: android-actions/setup-android@v3
+      # Use the Android SDK already installed on the GitHub Ubuntu runner.
+      # setup-android@v3 tries to install the removed 'tools' SDK package and fails.
+      - name: Use preinstalled Android SDK command-line tools
+        run: |
+          set -euo pipefail
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKM"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$SDKM" --version
 
       - name: Install Android API 35 and build tools 35
         run: |
           set -euo pipefail
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-35' 'build-tools;35.0.0'
 
       - name: Set up Gradle 8.11.1 with D8
         uses: gradle/actions/setup-gradle@v4
