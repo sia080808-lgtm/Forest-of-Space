@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory(typeof module==='object'?require('./spatial.js'):root.ForestSpace);if(typeof module==='object')module.exports=api;else root.ForestSocial=api;})(globalThis,function(Space){
 'use strict';
+const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;return w+(c>=0&&c<11172&&c%28?a:b);};
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Motion=typeof module==='object'?require('./neolbi-motion.js'):globalThis.ForestNeolbiMotion;
 const W=typeof module==='object'?require('./weather-care.js'):globalThis.ForestWeatherCare;
@@ -58,7 +59,7 @@ function seat(s,r){const a=s.social.sessions.find(a=>(a.type==='CANOPY'&&a.ids[1
 function canopyTick(s,a,ps,visible,event){const[h,r]=ps;if(!ps.every(W.healthy)||s.weather.wind>=70||s.weather.wind>=60&&h.braceSeconds>=10){stop(s,a,'unsafe');return;}a.elapsed++;h.canopy=true;h.motion.kind=s.weather.kind==='rain'?'umbrella':'shade';r.motion.kind='idle';h.socialRole=r.socialRole='CANOPY';
  if(a.phase==='signal'){a.phase='approach';return;}
  if(!a.seat||!Neolbi.canFit(h,a.seat,r)){stop(s,a,'unsafe');return;}
- if(a.phase==='approach'){if(approachStep(s,r,a.seat,a)){a.phase='rest';a.elapsed=0;event(s,'protect',h.name+'이 잎 아래 자리를 내어줬어요.',{individual:h.id,session:a.id});}return;}
+ if(a.phase==='approach'){if(approachStep(s,r,a.seat,a)){a.phase='rest';a.elapsed=0;event(s,'protect',josa(h.name,'이','가')+' 잎 아래 자리를 내어줬어요.',{individual:h.id,session:a.id});}return;}
  if(a.phase==='exit'){const g=Neolbi.geometry(h),q={x:r.x,y:Math.min(.90,g.cy+g.ry+.04)};if(move(s,r,q)||++a.exitSeconds>=3)stop(s,a,'complete');return;}
  if(!Neolbi.canFit(h,r,r)){stop(s,a,'unsafe');return;}
  r.motion.kind='rest';r.protectedBy=h.id;if(r.energy<75)r.energy=Math.min(75,r.energy+1.5/60);a.steps=Math.min(20,a.steps+1);

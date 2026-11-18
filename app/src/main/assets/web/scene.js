@@ -34,10 +34,16 @@ class ForestScene {
   if((p.snowWater||0)>.01){this.snowTiles??={};if(!this.snowTiles[p.id]){const tile=ForestEffects.canvas(sw,sh);tile.getContext('2d').drawImage(im,(ix%3)*sw,Math.floor(ix/3)*sh,sw,sh,0,0,sw,sh);this.snowTiles[p.id]=tile;}ForestEffects.snow(c,this.snowTiles[p.id],p.snowWater/(12*p.exposure),x-size/2,y-size*.75,size,size);}
  }
  drawLitter(p,size,wet,quantity,compost){const c=this.ctx,s=this.state(),cap=Forest.Objects.capacity(s,'litter');quantity??=Math.min(5,p.O/cap*5);compost??=p.U>.01?Math.min(1,.35+p.U/40):0;
-  if(compost>0){c.save();c.globalAlpha=.28*compost;for(let i=0;i<43;i++){const a=i*2.399,rad=Math.sqrt((i+.5)/43);c.fillStyle=i%2?'#77644b':'#998161';c.beginPath();c.ellipse(Math.cos(a)*rad*size*.32,-size*.24+Math.sin(a)*rad*size*.075,size*.015,size*.007,a,0,Math.PI*2);c.fill();}c.restore();}
+  if(compost>0){this.compostStain(0,-size*.24,size*.34,size*.085,compost,7);
+   // A few rotted, darkened leaf fragments show this is where leaves broke down (only when no raw leaves remain).
+   if(quantity<.5){const shapes=this.leafShapes;for(let k=0;k<3;k++){const a=k*2.1+.4,pts=shapes[(k*2+1)%shapes.length],cx=pts.reduce((v,q)=>v+q[0],0)/pts.length,cy=pts.reduce((v,q)=>v+q[1],0)/pts.length,ls=size*.95;c.save();c.globalAlpha=.85*Math.min(1,compost+.3);c.translate(Math.cos(a)*size*.16,-size*.24+Math.sin(a)*size*.035);c.scale(1,.55);c.rotate(a*1.7);c.scale(ls/512,ls/512);c.translate(-cx,-cy);c.beginPath();pts.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();c.filter='saturate(.8) brightness(.97)';c.drawImage(this.assets.terrain,0,0);c.restore();}}}
   const leaves=this.leafShapes;
   leaves.forEach((pts,i)=>{const alpha=Math.max(0,Math.min(1,quantity-i));if(!alpha)return;c.save();c.scale(size/512,size/512);c.translate(-768,-896);c.globalAlpha=alpha;const shape=()=>{c.beginPath();pts.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();};c.save();c.translate(0,3);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.23)';c.fill();c.restore();shape();c.clip();c.filter=`brightness(${1-.18*wet}) saturate(${1+.12*wet})`;c.drawImage(this.assets.terrain,0,0);c.restore();});
  }
+ // Compost soaked into the ground: a soft, uneven brown stain (no dots), stronger with more compost.
+ compostStain(x,y,rx,ry,amount,seed){const c=this.ctx,a=Math.max(0,Math.min(1,amount));if(a<=0)return;c.save();
+  for(let k=0;k<4;k++){const ox=Math.cos(seed+k*1.9)*rx*.28,oy=Math.sin(seed*1.3+k*2.4)*ry*.3,r=rx*(.55+.18*((k+seed)%3)/2),g=c.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,r);g.addColorStop(0,`rgba(146,112,70,${.24*a})`);g.addColorStop(.6,`rgba(158,132,94,${.1*a})`);g.addColorStop(1,'rgba(160,134,96,0)');c.fillStyle=g;c.beginPath();c.ellipse(x+ox,y+oy,r,r*ry/rx,0,0,Math.PI*2);c.fill();}
+  c.restore();}
  get leafShapes(){return ForestScene.LEAVES??=[[[594,713],[626,710],[669,704],[706,711],[738,731],[764,742],[755,763],[708,780],[662,774],[632,757],[610,731]],[[746,695],[778,677],[806,678],[835,688],[852,703],[867,704],[848,725],[811,742],[786,739],[765,725]],[[782,773],[826,750],[864,732],[900,734],[934,744],[955,738],[947,754],[919,780],[882,803],[845,806],[817,794]],[[565,820],[598,792],[631,790],[657,788],[679,782],[669,808],[653,828],[621,838],[591,834]],[[692,799],[730,786],[766,785],[796,803],[825,823],[840,829],[815,846],[775,863],[745,858],[717,841]]];}
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves + compost) on the ground.
  drawFallenLeaf(x,y,rot,size,idx,alpha=1){const c=this.ctx,shapes=this.leafShapes,pts=shapes[idx%shapes.length],cx=pts.reduce((v,q)=>v+q[0],0)/pts.length,cy=pts.reduce((v,q)=>v+q[1],0)/pts.length;
@@ -47,7 +53,7 @@ class ForestScene {
  drawFallen(){const s=this.state(),L=s.objects?.litter;if(!L)return;const c=this.ctx,w=this.w,h=this.h,size=.23*w*.62;
   for(const l of L.leaves)this.drawFallenLeaf(l.x*w,l.y*h,l.rot,size,l.id);
   for(const p of L.piles){const x=p.x*w,y=p.y*h,seed=+p.id.slice(5)||1,n=Math.ceil(p.O-1e-6),R=w*(.03+.02*Math.min(1,(p.O+p.U)/12));
-   if(p.U>.01){c.save();c.globalAlpha=.22+.4*Math.min(1,p.U/8);for(let i=0;i<26;i++){const a=i*2.399+seed,rad=Math.sqrt((i+.5)/26);c.fillStyle=i%2?'#77644b':'#998161';c.beginPath();c.ellipse(x+Math.cos(a)*rad*R*1.5,y+Math.sin(a)*rad*R*.5,w*.0042,w*.002,a,0,Math.PI*2);c.fill();}c.restore();}
+   if(p.U>.01)this.compostStain(x,y+R*.1,R*1.6,R*.6,.45+.55*Math.min(1,p.U/8),seed);
    for(let k=n-1;k>=0;k--){const a=k*2.399+seed*1.7,rad=Math.sqrt((k+.5)/Math.max(n,1))*R,alpha=Math.min(1,p.O-k);this.drawFallenLeaf(x+Math.cos(a)*rad,y+Math.sin(a)*rad*.45-(n-k)/Math.max(n,1)*R*.5,a*1.3,size*(1.1+.12*((k*7+seed)%3)/2),k+seed,Math.max(.25,alpha));}}
  }
  canopy(p){const c=this.ctx,size=.34*this.w,x=p.x*this.w,y=p.y*this.h,s=this.state(),t=s.settings.reducedMotion?0:this.phase;
