@@ -58,6 +58,14 @@ class ForestScene {
   this.drawCreatures();
  }
  // v2.24 6a small neighbours (state is only read here): ant nest + workers, a carrier with its real leaf, springtails on a pile.
+ // spider mites and 잎지기 on a friend's leaves: a few tiny mites in the upper leaf area (count follows real density), fine
+ // silk at higher density, 잎지기 crawling between them. Render only; positions are a fixed pattern per friend.
+ leafNeighbours(p,pos,phase){const s=this.state(),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null,on=Forest.Creatures?.onLeaf?.(s,p.id);if(!Art||!on||(!on.mite&&!on.keeper))return;
+  const c=this.ctx,k=this.petSize(p)/48,cx=pos.x*this.w,cy=pos.y*this.h,still=s.settings.reducedMotion,t=still?0:phase,seed=[...p.id].reduce((a,ch)=>a*31+ch.charCodeAt(0)>>>0,7);
+  const LEAF=[[-6,-24],[0,-27],[5,-25],[-7,-18],[-1,-21],[5,-19],[-3,-15],[2,-14]],spot=i=>{const b=LEAF[(i+seed)%LEAF.length],j=((seed>>(i*3))%5-2)*.6;return {x:cx+(b[0]+j)*k,y:cy+(b[1]+j*.5)*k};};
+  if(on.mite){const n=Math.max(1,Math.min(6,Math.ceil(on.mite.density/16))),pts=[];for(let i=0;i<n;i++){const q=spot(i),dx=still?0:Math.sin(t*.7+i*2.1)*1.2*k;pts.push({x:q.x+dx,y:q.y});}
+   if(on.mite.density>=30)for(let i=1;i<pts.length;i++)if(Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y)<9*k)Art.silk(c,[pts[i-1],pts[i]],Math.min(.45,.15+on.mite.density/250));pts.forEach((q,i)=>Art.leafMite(c,this.assets,{x:q.x,y:q.y,size:3.2*k,kind:'spider',dir:i%2?1:-1,phase:t+i,still}));}
+  if(on.keeper){for(let i=0;i<(on.mite&&on.mite.density>=20?2:1);i++){const a=t*.5+i*Math.PI,x=cx+(-1+Math.cos(a)*6)*k,y=cy+(-20+Math.sin(a)*4)*k;Art.leafMite(c,this.assets,{x,y,size:4*k,kind:'keeper',dir:-Math.sin(a)>=0?1:-1,phase:t+i*.5,still});}}}
  drawCreatures(){const s=this.state(),C=s.objects?.creatures,Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;if(!C||!Art||!C.groups.length)return;
   const c=this.ctx,w=this.w,h=this.h,A=this.assets,t=s.settings.reducedMotion?0:this.phase,frac=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   for(const g of C.groups){
@@ -150,7 +158,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
 
    this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}
    if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry)for(const z of patches.filter(z=>['rock','crevice','shade'].includes(z.id)&&z.y>pos.y&&Math.abs(z.x-pos.x)<.22&&!(z.id==='rock'&&this.onRock(pos))))this.terrain(z);
    const b=document.querySelector('[data-pet="'+p.id+'"]');if(b){const point=this.camera.screen(pos),size=this.petSize(p)*this.camera.scale;b.style.left=point.x+'px';b.style.top=point.y+'px';b.style.width=Math.max(48,size*.8)+'px';b.style.height=Math.max(48,size*.9)+'px';b.hidden=carry||point.x<0||point.x>this.vw||point.y<0||point.y>this.vh;}
    if(!carry&&s.mode==='game'&&motion?.tick===s.worldTick&&s.worldTick>(this.silentTick??-1)){const id=p.id+':'+s.worldTick;
