@@ -71,6 +71,10 @@ function region(s,id,kind='rest'){
  // before, the spot was below the plant and mostly inside its own obstacle, so friends rested far out by the side.
  if(id==='shade')return {x:z.x+.035,y:z.y+.02,rx:.075,ry:.018};
  if(id==='rock')return dep('spatial').rockTop(s);
+ // 0.6.35: rest right in front of the crevice stones (their footprint ends about .004 below the anchor, plus the friend's
+ // body padding). Before, the spot was .07 below the anchor, well away from the stones, so a friend resting "at the
+ // crevice" could be standing on whatever was placed below it (a user's layout had the moss patch there).
+ if(id==='crevice')return {x:z.x+.003,y:z.y+.03,rx:.07,ry:.015};
  return {x:z.x,y:z.y+.070,rx:.067,ry:.026};
 }
 function fits(s,p,id,q,kind){

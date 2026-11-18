@@ -27,3 +27,10 @@ test('0.6.30 shelter: a friend that gives up a stalled exit while already outsid
  s.individuals.push({...F.clone(base),id:'large-waiter',species:'neolbi',x:.55,y:.65,shelter:{phase:'outside',since:900},shelterRequest:{id:1,start:900,waited:100,absent:0},nextObjectChoice:1060});
  Sh.prepare(s,null,F.Space);Sh.prepare(s,null,F.Space);for(let n=0;n<200;n++){F.step(s);for(const p of s.individuals)if(p.shelter?.phase==='restingInside')a.ok(Sh.intersects(f,p),p.id+' resting inside must be in the shelter');}
 });
+
+test('0.6.35 crevice: a tired friend of every species rests right in front of the crevice stones, not far below them (a grown 슈퍼범 does not fit the crevice, as before)',()=>{
+ for(const species of ['ridley','bonbon','neolbi','bosong','jureong']){const s=game(),p=s.individuals[0],z=s.patches.find(q=>q.id==='crevice');Object.assign(p,{species,energy:30});s.weather.kind='cloud';
+  const o=O.option(s,p,'crevice','rest','energy');a.ok(o&&!o.fail,species+' '+JSON.stringify(o));
+  a.ok(o.y-z.y>0&&o.y-z.y<.05&&Math.abs(o.x-z.x)<.08,species+' '+JSON.stringify({dx:o.x-z.x,dy:o.y-z.y}));
+  a.equal(S.walkable(s,{x:o.x,y:o.y},p.id),true,species+' spot is outside the padded stones');}
+});
