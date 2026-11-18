@@ -26,7 +26,7 @@ class ForestScene {
   const wet=Math.max((p.film||0)*.65,Math.max(0,Math.min(1,(Forest.moisture(p)-20)/60))),phase=s.settings.reducedMotion?0:this.phase;
   ForestSurfaces.ground(c,p,x,y,size,wet);
   ForestSurfaces.puddle(c,p,x,y-size*.025,size,phase,s.settings.reducedMotion,s.weather.kind==='rain');
-  if(p.id==='shade')return;
+  if(p.id==='shade'){if(this.assets.shadePlant)this.canopy(p,'base');return;}
   c.save();c.translate(x,y);if(p.id==='shade'){c.beginPath();c.rect(-size/2,-size*.11,size,size*.36);c.clip();}
   if(p.id==='litter'&&s.objects){this.drawLitter(p,size,wet);c.restore();return;}
   if(p.id==='litter'&&this.litterShadow){c.save();c.filter='blur(.28px)';c.drawImage(this.litterShadow,-size/2,-size*.75+size*.009,size,size);c.restore();}
@@ -97,12 +97,18 @@ class ForestScene {
      else{const v=(u-split)/Math.max(1e-6,1-split),x=(q.fromX+(q.to.x-q.fromX)*v)*w,y=(q.fromY+(q.to.y-q.fromY)*v)*h;Art.antSprite(c,A,{x,y,size:w*.03,dir:q.to.x>=q.fromX?1:-1,phase:t,carry:true,still:s.settings.reducedMotion});}}}
    else{const p=(s.objects.litter.piles||[]).find(z=>z.id===g.pile);if(!p)continue;for(let k=0;k<4;k++){const a=k*1.6+((+g.id.slice(3))||0),r=w*(.022+.008*(k%2));Art.springtailSprite(c,A,{x:p.x*w+Math.cos(a)*r,y:p.y*h+Math.sin(a)*r*.4,size:w*.016,phase:t,seed:k+1,still:s.settings.reducedMotion});}}}
  }
- canopy(p){const c=this.ctx,size=.34*this.w,x=p.x*this.w,y=p.y*this.h,s=this.state(),t=s.settings.reducedMotion?0:this.phase;
+ // 0.6.33: the leaf-shade plant is drawn in two parts. The stems and the grass tuft around their base ('base', below
+ // the leaves' undersides: image row 262 left of the stems, 300 to the right) stand on the ground and take part in the normal depth order like the stones; the leaves ('leaves', above
+ // it) are overhead and are drawn after every friend, so friends walk under the leaves but in front of / behind the tuft.
+ canopy(p,part='leaves'){const c=this.ctx,size=.34*this.w,x=p.x*this.w,y=p.y*this.h,s=this.state(),t=s.settings.reducedMotion?0:this.phase;
+ const leaves=()=>{c.moveTo(-64,-64);c.lineTo(640,-64);c.lineTo(640,300);c.lineTo(236,300);c.lineTo(228,262);c.lineTo(-64,262);c.closePath();};
  const a=Math.sin(t*2.25)*(s.weather.wind>=60?13:s.weather.wind>=40?7:2)*Math.PI/180;
- c.save();c.translate(x-size/2,y-size*.75);c.scale(size/512,size/512);c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.drawImage(this.assets.shadePlant,0,0);ForestEffects.snow(c,this.assets.shadePlant,(p.roofSnow||0)/(12*p.exposure),0,0);
+ c.save();c.translate(x-size/2,y-size*.75);c.scale(size/512,size/512);
+ if(part==='base'){c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();c.rect(-64,-64,704,704);leaves();c.clip('evenodd');c.drawImage(this.assets.shadePlant,0,0);c.restore();c.drawImage(this.assets.shadeGround,0,0);c.restore();return;}
+ c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();leaves();c.clip();c.drawImage(this.assets.shadePlant,0,0);ForestEffects.snow(c,this.assets.shadePlant,(p.roofSnow||0)/(12*p.exposure),0,0);
  const wet=Math.max(0,Math.min(1,p.film||0)),rain=s.weather.kind==='rain';
  if(wet>.01){for(const [i,q]of [[42,303],[430,340]].entries()){const cycle=(t*.9+i*.4)%1;c.fillStyle='rgba(143,185,184,'+wet+')';c.beginPath();c.ellipse(q[0],q[1]+3,1.5+cycle*2,2+cycle*3,0,0,Math.PI*2);c.fill();if(rain&&cycle>.7){c.strokeStyle='#a9c9c3';c.lineWidth=1.5;c.beginPath();c.moveTo(q[0],q[1]+5);c.lineTo(q[0],q[1]+8+(cycle-.7)*60);c.stroke();}}}
- c.restore();c.drawImage(this.assets.shadeGround,0,0);c.restore();
+ c.restore();c.restore();
  }
  springFlow(){const real=this.state(),s={...real,spring:{...real.spring,...this.preview.spring}},x=s.spring.x*this.w,y=s.spring.y*this.h;const g=this.objectExpansionPreview?.id==='spring'?this.objectExpansionPreview.scale:Forest.Objects.scale(s,'spring');this.springAt(this.ctx,s,x,y,g,this.phase);}
  // The spring as it looks in the world: the stone basin cut from the garden art, then the water surface. Also used by
