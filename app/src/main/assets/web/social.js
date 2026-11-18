@@ -61,7 +61,7 @@ function approachStep(s,p,q,a){
  return arrived;
 }
 function receivePoint(s,d,r){const candidates=[];for(let k=0;k<12;k++){const a=k*Math.PI/6,q={x:r.x+Math.cos(a)*.075,y:r.y+Math.sin(a)*.075/Space.ASPECT};if(Space.walkable(s,q)&&Space.route(s,d,q)&&!s.individuals.some(p=>p.active&&p.id!==d.id&&Space.distance(p,q)<.4*(Space.diameter(p)+Space.diameter(d))))candidates.push(q);}return candidates.sort((a,b)=>Space.distance(d,a)-Space.distance(d,b))[0]||null;}
-function restPoint(s,ns,r){const points=[];for(const h of ns){const g=Neolbi.geometry(h);for(const [dx,dy]of [[0,0],[0,.35],[-.15,.35],[.15,.35],[0,.65]])points.push({x:g.cx+dx*g.rx,y:g.cy+dy*g.ry});}
+function restPoint(s,ns,r){const points=[];for(const h of ns){const g=Neolbi.geometry(h);for(const [dx,dy]of [[-.4,-.9],[-.4,-.7],[-.2,-.5],[-.4,-.3],[0,0],[0,.35],[-.15,.35],[.15,.35],[0,.65]])/* 0.6.30: deepest seats under the open leaf first (closer to 엘레판, under the leaf rather than in front of its tip) */points.push({x:g.cx+dx*g.rx,y:g.cy+dy*g.ry});}
  return points.find(q=>ns.some(h=>Neolbi.canFit(h,q,r))&&Space.walkable(s,q)&&!s.individuals.some(p=>p.active&&p.id!==r.id&&Space.distance(p,q)<.4*(Space.diameter(p)+Space.diameter(r)))&&Space.route(s,r,q));}
 function seat(s,r){const a=s.social.sessions.find(a=>(a.type==='CANOPY'&&a.ids[1]===r.id||a.type==='A12'&&a.ids[2]===r.id));return a?.seat||null;}
 function canopyTick(s,a,ps,visible,event){const[h,r]=ps;if(!ps.every(W.healthy)||s.weather.wind>=70||s.weather.wind>=60&&h.braceSeconds>=10){stop(s,a,'unsafe');return;}a.elapsed++;h.canopy=true;h.motion.kind=s.weather.kind==='rain'?'umbrella':'shade';r.motion.kind='idle';h.socialRole=r.socialRole='CANOPY';
