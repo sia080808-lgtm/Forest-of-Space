@@ -2,6 +2,7 @@
 'use strict';
 const Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const trait=p=>(typeof module==='object'?require('./traits.js'):globalThis.ForestTraits).of(p.species);
 const fields={gustExposure:0,braceSeconds:0,windCalmSeconds:0,wet85Seconds:0,wetFilm:0,wetRecovery:false,leafRecovery:false};
 function init(s){s.weather.wind_dir??=0;for(const p of s.individuals)for(const[k,v]of Object.entries(fields))p[k]??=v;return s;}
 function healthy(p){return p&&p.active&&!p.mounted&&p.B>=35&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&p.damage<30&&!p.wetRecovery&&!p.leafRecovery;}
@@ -16,12 +17,12 @@ function rainFraction(s,patch){const hosts=s.individuals.filter(h=>h.species==='
 function counters(s,p,a){const before=p.gustExposure;p.gustExposure=a>=60?Math.min(10,before+1):a<50?Math.max(0,before-2):before;p.windCalmSeconds=s.weather.wind<50?Math.min(20,p.windCalmSeconds+1):0;if(p.windCalmSeconds>=20)p.braceSeconds=0;return before;}
 function physiology(s,p,{safeCare=false}={}){const r=p.Q*5,wet=p.wetSeconds||0;
  p.wetSeconds=r>=80?wet+1:0;p.wet85Seconds=r>=85?p.wet85Seconds+1:0;
- if(r<60)p.burden=clamp(p.burden-4/60);else if(!safeCare&&r>=80&&wet>=60)p.burden=clamp(p.burden+2/60);
+ if(r<60)p.burden=clamp(p.burden-4/60);else if(!safeCare&&r>=80&&wet>=60)p.burden=clamp(p.burden+2/60*trait(p).wet);
  if(p.burden>=40||p.wet85Seconds>=30)p.wetRecovery=true;
  if(p.wetRecovery&&p.burden<30&&r<60)p.wetRecovery=false;
  if(p.damage>=30)p.leafRecovery=true;if(p.leafRecovery&&p.damage<20)p.leafRecovery=false;
  const a=wind(s,p),before=counters(s,p,a);let damage=0;
- if(!safeCare&&s.worldTick>600&&a>=60&&before>=10){damage=Math.min(4,1+3*(a-60)/40)/60;p.damage=clamp(p.damage+damage);}
+ if(!safeCare&&s.worldTick>600&&a>=60&&before>=10){damage=Math.min(4,1+3*(a-60)/40)/60*trait(p).wind*trait(p).leaf;p.damage=clamp(p.damage+damage);}
  const rain=((typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment).precipitation(s,'rain')>0)?s.weather.intensity/100*(1-rainCover(s,p)):0;
  p.wetFilm=clamp(p.wetFilm+(rain>0?.012*rain:-.003),0,1);
  p.weatherExposure={wind:a,rain,damage,protectedBy:host(s,p)?.id||null};

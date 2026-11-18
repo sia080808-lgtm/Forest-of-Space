@@ -482,3 +482,11 @@
 - 담당: Claude Code. 요청: 사용자 "엘리시의 경우 대가리에 누가 놀러옴?" → "ㅇㅇ 그리고 각 케릭터의 모티프 박쥐란의 특성에 맞게 … 특성표를 만들자". 브랜치 `claude/festive-curie-mjk5mw`(main `3267551` 이후).
 - 문서: `docs/Forest-Species-Traits-SRS-v2.28-DRAFT.md`·`.pdf`(3쪽). 실제 박쥐란 7종 특징 근거, 배율 표(잎응애·솜깍지 붙음/늘어남, 물 흡수·보관·강한 햇빛, 잎 손상, 과습, 바람, 추위·비 기분, 맑은 날 체력), 카드 문구, 연결 위치, AC 계획.
 - 코드 변경 없음. 사용자 확인(배율 값, 날씨 기분 새 규칙 여부, 카드 표시 위치) 뒤 구현.
+
+### TRAITS-0.6.36-20261118 — 친구별 종 특성 구현 (SRS v2.28)
+
+- 담당: Claude Code. 요청: 특성표 초안 → 사용자 "엘레판은 탱커 역할인데 너무 약골"(탱커로 수정) → "ㄱㄱ". 기준 main `3267551`(0.6.35 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: 새 `traits.js`(배율표·문구, 저장 안 함), `creatures.js`(잎응애·솜깍지 출현 확률, 잎응애 증가, `harm` 잎 부담; `candidates`·`harm` 내보냄), `engine.js`(물 소모·강한 햇빛·흡수, 추위·비 기분, 맑은 날 체력, 엘레판 탱커 기분), `weather-care.js`(과습·바람), `forest-app.js`·`forest.css`(타고난 특성 칸·도감 대화 상자), `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`(스크립트). 버전 0.6.36 / versionCode 53. SRS 초안 → `docs/Forest-Species-Traits-SRS-v2.28.md`·`.pdf`(ST-07 측정 추가).
+- 검증: `npm test` 286/286(`traits.test.cjs` 7, `weather-care` 2건 기대값을 리들리 배율로), `npm run test:ui` PASS. `tools/traits-review.cjs` 전후 비교(`docs/qa-0.6.36`). 실기기 미검증.
+- 남은 일: 친구 여럿·거친 날씨 장기 측정, 날씨 기분 크기 체감 조정.
+

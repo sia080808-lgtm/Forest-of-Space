@@ -10,7 +10,8 @@ const Env=typeof module==='object'?require('./environment.js'):globalThis.Forest
 const Rec=typeof module==='object'?require('./recruitment.js'):globalThis.ForestRecruitment;
 const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
-const VERSION='0.6.35', RULES='SRS-2.19-objects', SCHEMA=1;
+const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
+const VERSION='0.6.36', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -78,11 +79,16 @@ function step(s,{visible=true,held=null}={}){
  const active=rotate(s.individuals.filter(p=>p.active),s.worldTick),requests=[];
  for(const p of active){
   p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
-  const bodyUse=Math.min(p.B,((p.species==='bosong'?.6:.8)+(!Sh.inside(s,p)&&!p.mounted&&light(s,p)>=70?.4:0))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
-  const absorb=Math.min(p.Q,2/60,Math.max(0,65-p.B));p.Q-=absorb;p.B+=absorb;
+  // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
+  const tr=Traits.of(p.species),bodyUse=Math.min(p.B,(.8*tr.keep+(!Sh.inside(s,p)&&!p.mounted&&light(s,p)>=70?.4*tr.sun:0))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
+  const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,65-p.B));p.Q-=absorb;p.B+=absorb;
   const ground=Obj.groundAt(s,p),safeDry=Sh.inside(s,p)||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
   const weatherDamage=W.physiology(s,p,{safeCare:p.mounted});
+  // SRS v2.28 species traits: weather mood (cold or snow / rain on the friend), and 엘레판's tank bonus while its open
+  // leaf shelters a friend. Not under a shelter roof or on the mount, where the weather does not reach the friend.
+  if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&(s.climate.T<35||s.weather.kind==='snow'))p.mood=clamp(p.mood+tr.cold/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);
+   if(p.species==='neolbi'&&p.mood<Traits.TANK_MOOD_MAX&&s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids[0]===p.id&&a.phase==='rest'))p.mood=Math.min(Traits.TANK_MOOD_MAX,p.mood+Traits.TANK_MOOD/60);}
   if((p.wetRecovery||p.leafRecovery||p.burden>=40||p.damage>=30)&&participants.has(p.id)){Social.cancel(s,p.id);participants.delete(p.id);}
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-.2/60);continue;}
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-.2/60);continue;}
@@ -96,6 +102,8 @@ function step(s,{visible=true,held=null}={}){
   // Nutrition is metabolism, never a remotely supplied shelter service.
   p.nutrition=clamp(p.nutrition-.2/60);
   const resting=Obj.receive(s,p,requests);
+  // SRS v2.28: sun-loving species gather energy on a clear bright day while they are not walking (up to 75)
+  if(tr.sunEnergy&&!Sh.inside(s,p)&&s.weather.kind==='sun'&&light(s,p)>=60&&!(p.motion.distance>0)&&p.energy<75)p.energy=Math.min(75,p.energy+tr.sunEnergy/60);
   Obj.rootRequests(s,p,requests);
   if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage)p.damage=clamp(p.damage-1/60);
   if(!p.objectTask&&p.action==='groom'){p.motion.kind='groom';p.actionSeconds=Math.max(0,p.actionSeconds-1);}

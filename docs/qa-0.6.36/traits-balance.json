@@ -1,0 +1,62 @@
+{
+ "ridley": {
+  "B": 56.7,
+  "mood": 79.9,
+  "energy": 73.8,
+  "damage": 0,
+  "burden": 0,
+  "mite": 0.143,
+  "mealy": 0.165,
+  "low": 0
+ },
+ "bonbon": {
+  "B": 58.2,
+  "mood": 77.4,
+  "energy": 73.8,
+  "damage": 0,
+  "burden": 0,
+  "mite": 0.11,
+  "mealy": 0.216,
+  "low": 0
+ },
+ "neolbi": {
+  "B": 58.1,
+  "mood": 75.1,
+  "energy": 74.2,
+  "damage": 0,
+  "burden": 0,
+  "mite": 0.14,
+  "mealy": 0.19,
+  "low": 0
+ },
+ "bosong": {
+  "B": 59.7,
+  "mood": 73.9,
+  "energy": 74.2,
+  "damage": 0,
+  "burden": 0,
+  "mite": 0.063,
+  "mealy": 0.234,
+  "low": 0
+ },
+ "jureong": {
+  "B": 55.2,
+  "mood": 82.2,
+  "energy": 73.8,
+  "damage": 0.2,
+  "burden": 0,
+  "mite": 0.142,
+  "mealy": 0.214,
+  "low": 0
+ },
+ "superbum": {
+  "B": 58.8,
+  "mood": 80.1,
+  "energy": 73.9,
+  "damage": 0,
+  "burden": 0,
+  "mite": 0.165,
+  "mealy": 0.202,
+  "low": 0
+ }
+}
