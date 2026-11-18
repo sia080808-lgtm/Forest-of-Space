@@ -463,3 +463,4 @@
 - 새 문서: `docs/Forest-SmallNeighbours-SRS-v2.27.md`/`.pdf`(v2.25 대체), `docs/Forest-World-Motion-SRS-v2.27.md`/`.pdf`. PDF는 `tools/build-srs-pdf.cjs`로 만들고 쪽 그림을 확인했다.
 - 감로 재측정: `tools/honeydew-review.cjs`(0.6.34 코드) C01 3/8·C02 3/8·C04 5/8 개미 지킴(합계 11/24).
 - 코드·버전 변경 없음. 제품 테스트는 새로 돌리지 않았다(문서만, 직전 0.6.34 결과 276/276).
+- 병합: PR #35(https://github.com/sia080808-lgtm/Forest-of-Space/pull/35) main 병합 `101f2b8f4d9e56354c260488a759f26c1abc0a37`(사용자 "ㄱㄱ"; head `93650d8` 기준 simulation·CodeQL 성공). 문서만이라 앱 버전·APK는 0.6.34 그대로.
