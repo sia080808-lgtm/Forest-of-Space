@@ -46,7 +46,14 @@ function duriActor(c,k,x,y,t,pose={}){
 }
 function img(c,d,r,x,y,w,h){c.drawImage(d.im,...r,x,y,w,h);if(r===d.leaf&&d.snow>0){const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;if(!d.snowLeaf){d.snowLeaf=createCanvas(r[2],r[3]);d.snowLeaf.getContext('2d').drawImage(d.im,...r,0,0,r[2],r[3]);}E.snow(c,d.snowLeaf,d.snow,x,y,w,h);}}
 function hatLayer(c,d,t,p,inside){const held=p.mode==='held',amp=held?.055:.012,phase=0,angle=(p.leafAngle||0)+Math.sin(t*5+phase)*amp;c.save();c.translate(0,-d.h*.83);c.rotate(angle);c.translate(0,d.h*.83);if(inside)c.drawImage(d.hat,243,876,865,338,-14,-22.5,29,12);else c.drawImage(d.hat,85,40,1090,645,-23,-35.5,46,27.2);c.restore();}
-function leafLayer(c,d,t,p){if(d===data.bosong){img(c,d,d.leaf,...d.fol);return;}if(d.hat){hatLayer(c,d,t,p,false);return;}const f=d.fol,held=p.mode==='held',safe=d===data.bosong?.018:.045,ang=(p.leafAngle||0)+Math.sin(t*(held?5:d.tempo*1.5))*(held?safe:.012);c.save();c.translate(0,-d.h*.78);c.rotate(ang);c.translate(0,d.h*.78);img(c,d,d.leaf,...f);c.restore();}
+function leafLayer(c,d,t,p){if(d===data.bosong){img(c,d,d.leaf,...d.fol);return;}if(d.hat){hatLayer(c,d,t,p,false);return;}
+ // 0.6.34: 코로나 grooms by nodding its many drooping fronds: the leaf is drawn in vertical strips, the outer ends bob quickly,
+ // left and right side in turn, while the crown over the head stays put.
+ if(d===data.jureong&&p.mode==='groom'&&!p.reduced){const f=d.fol,r=d.leaf,N=72,w=f[2]/N,sw=r[2]/N,env=Math.min(1,(t%6)/.4)*Math.min(1,Math.max(0,(5.6-t%6)/.4));
+  for(let i=0;i<N;i++){const u=(i+.5)/N*2-1,side=u<0?0:Math.PI,k=Math.pow(Math.abs(u),1.6),dy=env*k*3.4*Math.max(0,Math.sin(t*10+side)),rot=0;
+   c.save();c.translate(f[0]+i*w+w/2,f[1]);c.rotate(rot);c.drawImage(d.im,r[0]+i*sw,r[1],Math.min(sw*1.25,r[2]-i*sw),r[3],-w/2,dy,w*Math.min(1.25,(r[2]-i*sw)/sw),f[3]);c.restore();}
+  return;}
+ const f=d.fol,held=p.mode==='held',safe=d===data.bosong?.018:.045,ang=(p.leafAngle||0)+Math.sin(t*(held?5:d.tempo*1.5))*(held?safe:.012);c.save();c.translate(0,-d.h*.78);c.rotate(ang);c.translate(0,d.h*.78);img(c,d,d.leaf,...f);c.restore();}
 // Ellisii (legacy key 'bonbon') is drawn from layers cut out of the user-approved target art (01_APPROVED_Ellisii_TARGET):
 // back fertile fronds (gentle sway) + one body layer (body, draped nest leaf, eyes, tiny feet). No arms, as in the target.
 const ELLI={rect:[-10.23,-33,24.63,33],pivot:{x:3.33,y:-21.35},leafPivot:{x:3.59,y:-21.35},feet:[{x:-4.28},{x:3.49}],eyes:[[3.84,-13.54],[6.61,-14.9]],eyeR:[1.15,1.8],patch:[238,450,50,70]};
@@ -59,7 +66,10 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
  const bodyY=bob+rest*.7,tilt=(p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:walk?beat*.03:0);
  for(const [i,n] of [[0,'FootLeft'],[1,'FootRight']]){const f=footPose(i),fx=ELLI.feet[i].x;c.save();c.translate(fx+f.dx,(m==='held'?bodyY:0)+f.dy-1.2);c.rotate(f.rot);c.translate(-fx,1.2);draw(layer(n));c.restore();}
  c.translate(0,bodyY);c.rotate(tilt);const squash=walk?1-Math.abs(beat)*.025:rest?.985:1;c.scale(1/Math.sqrt(squash),squash);
- if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'),true);c.restore();}
+ if(layer('Fronds')&&m==='groom'&&!still){for(const [i,poly,pv] of [[0,[[-12,-34],[11.16,-34],[3.25,-18],[-12,-18]],[3.66,-20.7]],[1,[[11.16,-34],[16,-34],[16,-18],[3.25,-18]],[5.49,-20.1]]]){
+   // 0.6.34: grooming, 엘리시 nods its two fertile fronds quickly, one after the other
+   const a=(i?1:-1)*.22*Math.max(0,Math.sin(t*10+i*Math.PI));c.save();c.beginPath();poly.forEach(([px,py],j)=>j?c.lineTo(px,py):c.moveTo(px,py));c.closePath();c.clip();c.translate(pv[0],pv[1]);c.rotate(a);c.translate(-pv[0],-pv[1]);draw(layer('Fronds'),true);c.restore();}}
+ else if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'),true);c.restore();}
  const body=layer('Body');draw(body);
  // Closed eyes: cover each eye with plain body texture from the same layer, then draw a soft lid line. No mouth or cheeks.
  if(body&&(m==='sleep'||m==='rest'||m==='moss'))for(const [ex,ey] of ELLI.eyes){c.save();c.beginPath();c.ellipse(ex,ey,ELLI.eyeR[0]+.25,ELLI.eyeR[1]+.25,0,0,7);c.clip();const q=ELLI.patch;c.drawImage(body,q[0],q[1],q[2],q[3],ex-1.8,ey-2.5,3.6,5);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.7,ey+.3);c.quadraticCurveTo(ex,ey+.9,ex+.7,ey+.3);c.stroke();}

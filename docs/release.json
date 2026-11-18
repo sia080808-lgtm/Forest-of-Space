@@ -6,7 +6,7 @@
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 275,
+  "full_suite_passed": 276,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
   "render": "엘레판 groom nod, 베이치 arms-up leaf toss; docs/qa-0.6.33/runtime/groom-litter.mp4",

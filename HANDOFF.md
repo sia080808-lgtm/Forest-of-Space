@@ -452,4 +452,5 @@
 - 0.6.33 병합: PR #33(https://github.com/sia080808-lgtm/Forest-of-Space/pull/33) main `24c92e899907eb9f346529cb153f487b1a02db69`(사용자 "낙엽놀이 및 머리정돈 ㄱㄱ", 낙엽은 땅에서 모아 던지도록 수정 후; head `6fbbbd2` 기준 simulation·CodeQL 성공).
 - 0.6.33 APK 검증: 프리릴리스 v0.6.33 `Forest-of-Space-0.6.33.apk` 40,627,419 bytes, SHA-256 `ca8ab6a24ee14ed5feab9413e9665a22f590f13df2eb09cddb6759821ab1b351` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode50/0.6.33, APK 안 engine.js VERSION 0.6.33·점박이 옮겨 가기(`LADY.HOP`) 포함 확인.
 - 변경: `neolbi-motion.js` groom 후드 10rad/s 까닥임, 리들리·베이치 손으로 머리 정돈(`rig.js` OWN_GROOM, `species-rig.js` 베이치 오른손 머리 옆·정돈 중 오른팔 앞 그리기), `species-rig.js` litter 모드 팔(`litterUp`), `rig.js` 베이치도 litter 모드. 버전 0.6.34 / versionCode 51.
-- 검증: `npm test` 275/275, `npm run test:ui` PASS, 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`. 실기기 미검증.
+- 추가: 엘리시 두 갈래 생식엽·코로나 머리 잎 까닥임(`species-rig.js`), 잎응애(밀도 5 이상) 붙은 친구 공통 떨기(`rig.js` ITCH 7초, `scene.js` itch 전달).
+- 검증: `npm test` 276/276, `npm run test:ui` PASS, 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`. 실기기 미검증.

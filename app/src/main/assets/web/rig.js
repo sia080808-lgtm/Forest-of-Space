@@ -48,7 +48,7 @@ function playBody(t){const u=mod(t,PLAY);if(u<.8){const e=ease(u/.8);return {dy:
 function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);}
 function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
-// friends groom by shaking their leaves like a wet dog (리들리's hands are too small to reach its head): crouch, a quick shiver that fades, then a satisfied tilt
+// shiver (0.6.34: the common motion of a friend with spider mites on its leaves; 0.6.33 used it for grooming): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
  const k=u-1.35;return {rot:.035*Math.sin(Math.min(1,k/2.4)*Math.PI*2)*(1-Math.min(1,k/2.65)),dx:0,sq:1};}
 const LEAF=[['#c99a4c','#8d5a2b'],['#d8b25a','#9a6e2c'],['#b7863f','#7c4e24'],['#cfa55b','#94622e'],['#a97b39','#6d4520']];
@@ -71,7 +71,8 @@ function leafToss(c,t,height){const u=mod(t,PLAY),N=5,size=Math.max(62,height*.1
 function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(u-.4)/1.2;c.save();c.translate(FEET[0],FEET[1]-height*.6);c.fillStyle='rgba(150,124,92,'+(.55*(1-k))+')';
  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.4,r=height*(.32+.35*k);c.beginPath();c.arc(Math.cos(a)*r,Math.sin(a)*r*.6+height*.25*k*k,height*.012,0,7);c.fill();}c.restore();}
 // 0.6.34: friends with arms (리들리·베이치) keep their hand-on-head grooming; 엘레판·슈퍼범 their own leaf moves
-const OWN_GROOM=['neolbi','superbum','ridley','bosong'];
+const ITCH=7,NO_ITCH=['held','rest','sleep','nightrest','moss','land'];
+const OWN_GROOM=['neolbi','superbum','ridley','bosong','bonbon','jureong'];
 function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridley',t=opt.phase||0,h=H[sp]||1000;
  if(kind==='litter'){
   if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
@@ -79,6 +80,9 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
   drawCore(c,assets,{...opt,kind:['ridley','superbum','bosong'].includes(sp)?'litter':'idle',litterUp:litterUp(t),expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
  if(kind==='groom'&&!OWN_GROOM.includes(sp)&&!opt.reduced){const m=shake(t);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle'});c.restore();specks(c,t,h);return;}
+ // 0.6.34: a friend whose leaves carry spider mites (the leaf-damaging pest) shivers now and then, every species alike:
+ // every ITCH seconds a short crouch-and-shiver plays over whatever it is doing (not while held, resting or asleep).
+ if(opt.itch&&!opt.reduced&&!NO_ITCH.includes(kind)){const u=mod(t+(opt.seed||0)*1.7,ITCH);if(u<1.35){const m=shake(u);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();specks(c,u,h);return;}}
  return drawCore(c,assets,opt);}
-return Object.freeze({files,definition,pose,draw,PLAY,GROOM});
+return Object.freeze({files,definition,pose,draw,PLAY,GROOM,ITCH});
 });
