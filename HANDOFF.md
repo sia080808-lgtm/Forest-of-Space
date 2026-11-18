@@ -258,3 +258,9 @@
 - 남은 일: SRS PDF 본문(첫 10분 흐름의 두리)을 엘리시로 개정하는 문서 작업.
 - 병합: PR #23(https://github.com/sia080808-lgtm/Forest-of-Space/pull/23) main 병합 `4109e81b89a22bfa905691540a1d8b94b23b5fc6`(사용자 "ㄱㄱ"; head `c2a6f58` 기준 simulation·CodeQL 성공).
 - SRS 개정안: `docs/Forest-Recruit-SRS-v2.25-ELL1.md`(두리 은퇴·첫 손님 엘리시·엘리시 서식 조건, v2.22 PDF 8·9·14·15·88·98·111·124쪽 대체 서술). PDF 재조판은 안 함. 작업 브랜치에만 있음(다음 PR에 포함).
+
+### CREATURES-SPRINGTAIL-20261118 — 톡토기 그림 (SRS 화풍)
+
+- 담당: Claude Code. 요청: 사용자 "니가 SRS 기준으로 톡토기 만들어줘".
+- `tools/draw-springtail.cjs`(SRS D04.20 작은 이웃 시트 화풍: 따뜻한 갈색 윤곽, 수채 음영 마디 몸통, 마디 더듬이·다리 6개, 흰 반사점 눈, 도약기 접힘/펴짐) → `assets/forest/creatures/springtail-rest.png`·`springtail-jump.png`. `creature-art.js` `springtailSprite`(쉬다가 톡 튀어 오르기, 착지 후 방향 전환). 시안 `docs/qa-creatures-draft`(디자인 시트·월드 영상·SRS 개미와 나란히 비교). 게임 미연결.
+- 다음: 사용자 확인 후 6a 구현(개미·톡토기 출현·운반·분해 보정).

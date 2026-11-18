@@ -48,7 +48,14 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
-const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png'};
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png'};
+// Springtail sprite in the SRS sheet style (tools/draw-springtail.cjs, 420x260, faces +x). Rests, then hops in a short
+// arc with the furcula flicked out; lands and turns. Render phase only.
+function springtailSprite(c,assets,{x=0,y=0,size=6,phase=0,seed=0,still=false}={}){
+ const rest=assets.springtailRest,jump=assets.springtailJump;if(!rest)return springtail(c,{x,y,size,phase,seed,still});
+ const cycle=1.6+(seed%5)*.17,local=(phase+seed*.37)%cycle,t=still?0:local/cycle,hop=t<.22?Math.sin(t/.22*Math.PI):0,turn=still?0:Math.floor((phase+seed*.37)/cycle),dir=((seed+turn)%2)?1:-1;
+ const k=size/300;c.save();c.translate(x+dir*hop*size*.3,y);c.save();c.scale(1,.42);shadow(c,size*.4*(1-hop*.35),size*.2*(1-hop*.35),.14);c.restore();
+ c.translate(0,-hop*size*.8);c.rotate(dir*(hop>.05?-.18:0));c.scale(dir*k,k);c.translate(-215,-215);c.drawImage(hop>.05?jump:rest,0,0);c.restore();}
 function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=false}={}){
  const body=assets.antBody,leaf=assets.antLeaf;if(!body)return ant(c,{x,y,size,heading:dir>0?0:Math.PI,phase,carry,still});
  const t=still?0:phase,step=Math.abs(Math.sin(t*14)),k=size/300;c.save();c.translate(x,y);
@@ -58,5 +65,5 @@ function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=fal
  if(carry&&leaf){c.save();c.translate(122,100);c.rotate(still?0:Math.sin(t*7)*.06);c.translate(-122,-100);c.drawImage(leaf,0,0);c.restore();}
  c.restore();
 }
-return {ant,antSprite,springtail,nest,ANT_FILES};
+return {ant,antSprite,springtail,springtailSprite,nest,ANT_FILES};
 });
