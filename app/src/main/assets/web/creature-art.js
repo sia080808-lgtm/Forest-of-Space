@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestCreatureArt=api;})(globalThis,function(){
 'use strict';
+const RIG=typeof module==='object'?require('./creature-rig.js'):(globalThis.ForestCreatureRig||{});
 // v2.24 small creatures (draft art, render only): carrier ants and springtails. Drawn in local units where 1 = body
 // length; callers scale to world size. Motion uses the render phase only — never RNG or state.
 const INK='rgba(52,40,30,',ANT='#55402f',ANT_HI='#8a6c52';
@@ -48,7 +49,22 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
-const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png'};
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png',ladybird:'assets/forest/creatures/ladybird.png',soilMite:'assets/forest/creatures/soil-mite.png',rootGnat:'assets/forest/creatures/root-gnat.png',rootGnatLarva:'assets/forest/creatures/root-gnat-larva.png',mealybug:'assets/forest/creatures/mealybug.png',mealybugSac:'assets/forest/creatures/mealybug-eggsac.png'};
+// rigged sprites: body layer + moving parts (tools/rig-neighbours.py). Key -> sprite name.
+const RIGNAME={spiderMite:'spidermite',predatoryMite:'predatory-mite',ladybird:'ladybird',soilMite:'soil-mite',rootGnat:'root-gnat',mealybug:'mealybug'};
+for(const [k,n] of Object.entries(RIGNAME)){ANT_FILES[k+'Body']='assets/forest/creatures/'+n+'-body.png';ANT_FILES[k+'Parts']='assets/forest/creatures/'+n+'-parts.png';}
+// Draw a rigged sprite in its own pixel space: legs under the body (two alternating groups, a stepping swing), then the
+// body, then antennae (slow sway) and wings (fast beat around the root). mode 'fly' = legs hang and swing gently.
+// Render phase only (no state, no RNG). Returns false when the rig images are missing (caller draws the whole sprite).
+const GAIT={spiderMite:{amp:.2,speed:9},predatoryMite:{amp:.22,speed:10},ladybird:{amp:.28,speed:9},soilMite:{amp:.18,speed:6},rootGnat:{amp:.08,speed:3},mealybug:{amp:.22,speed:3}};
+function drawRig(c,assets,key,t,still,mode){const R=RIG[RIGNAME[key]],body=assets[key+'Body'],parts=assets[key+'Parts'];if(!R||!body||!parts)return false;
+ const g=GAIT[key]||{amp:.2,speed:8},piece=(p,a)=>{c.save();c.translate(p.px,p.py);c.rotate(a);c.translate(-p.px,-p.py);c.drawImage(parts,p.sx,p.sy,p.w,p.h,p.x,p.y,p.w,p.h);c.restore();};
+ R.parts.forEach((p,i)=>{if(p.type!=='leg')return;const a=still?0:mode==='fly'?Math.sin(t*g.speed+i*.9)*g.amp:Math.sin(t*g.speed+(p.group?Math.PI:0)+i*.35)*g.amp;piece(p,a);});
+ c.drawImage(body,0,0);
+ R.parts.forEach((p,i)=>{if(p.type==='antenna')piece(p,still?0:Math.sin(t*3+i*1.3)*.12);else if(p.type==='wing')piece(p,still?0:Math.sin(t*38+i*.6)*.38);});
+ return true;}
+// root-fly larva wriggle: the sprite drawn in thin vertical strips with a travelling wave (head end on the left steadier)
+function wriggle(c,im,t,still){if(still){c.drawImage(im,0,0);return;}const sw=4;for(let x=0;x<im.width;x+=sw){const k=Math.min(1,x/im.width*1.6),dy=Math.sin(t*5-x/18)*3.2*k;c.drawImage(im,x,0,Math.min(sw,im.width-x),im.height,x,dy,Math.min(sw,im.width-x)+.5,im.height);}}
 // Springtail sprite in the SRS sheet style (tools/draw-springtail.cjs, 420x260, faces +x). Rests, then hops in a short
 // arc with the furcula flicked out; lands and turns. Render phase only.
 function springtailSprite(c,assets,{x=0,y=0,size=6,phase=0,seed=0,still=false}={}){
@@ -71,8 +87,16 @@ function nestSprite(c,assets,{x=0,y=0,size=14}={}){const im=assets.antNest;if(!i
 // tools/recolor-spidermite.py). 237x161 sprites facing left; size = body length in world px. They crawl in short steps.
 function leafMite(c,assets,{x=0,y=0,size=4,kind='spider',dir=1,phase=0,still=false}={}){const im=kind==='spider'?assets.spiderMite:assets.predatoryMite;
  if(!im){c.save();c.fillStyle=kind==='spider'?'rgba(214,206,150,.95)':'rgba(222,128,88,.95)';c.beginPath();c.ellipse(x,y,size*.5,size*.36,0,0,Math.PI*2);c.fill();c.restore();return;}
- const k=size/150,bob=still?0:Math.sin(phase*9)*size*.04;c.save();c.translate(x,y+bob);c.scale(-dir*k,k);c.translate(-125,-80);c.drawImage(im,0,0);c.restore();}
+ const k=size/150,bob=still?0:Math.sin(phase*9)*size*.04;c.save();c.translate(x,y+bob);c.scale(-dir*k,k);c.translate(-125,-80);if(!drawRig(c,assets,kind==='spider'?'spiderMite':'predatoryMite',phase,still))c.drawImage(im,0,0);c.restore();}
 // Fine silk threads where many spider mites live (only drawn at higher density; SRS NB-08 '얇은 실').
 function silk(c,pts,alpha=.35){if(pts.length<2)return;c.save();c.strokeStyle=`rgba(255,255,250,${alpha})`;c.lineWidth=.35;c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];c.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-.4,b.x,b.y);}c.stroke();c.restore();}
-return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,ANT_FILES};
+// Other SRS sheet neighbours (D04.20~24: 03 점박이, 04 흙지기, 07 뿌리날파리 성충·유충, 09 솜깍지·알주머니), cut with
+// tools/cut-srs-neighbour.py. All face left in the sheet. size = body length in world px; anchor = feet / lowest point.
+const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:251,foot:.97},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:236,foot:.95},mealybugSac:{w:105,foot:.9}};
+function neighbour(c,assets,key,{x=0,y=0,size=6,dir=1,phase=0,still=false,lift=0,alpha=1}={}){const im=assets[key],m=SHEET[key];if(!im||!m)return;const k=size/m.w,bob=still?0:Math.sin(phase*9)*size*.03;
+ c.save();if(alpha<1)c.globalAlpha*=alpha;c.translate(x,y+bob-lift);c.scale(-dir*k,k);c.translate(-im.width/2,-im.height*m.foot);
+ if(key==='rootGnatLarva')wriggle(c,im,phase,still);else if(!drawRig(c,assets,key,phase,still,key==='rootGnat'?'fly':'walk'))c.drawImage(im,0,0);c.restore();}
+// honeydew: a few glossy drops where many mealybugs feed (only drawn when honeydew is real)
+function honeydew(c,x,y,size,amount){const n=Math.min(4,Math.ceil(amount/25));c.save();for(let i=0;i<n;i++){const dx=(i-1.5)*size*.5,dy=(i%2)*size*.25;const g=c.createRadialGradient(x+dx-size*.06,y+dy-size*.06,0,x+dx,y+dy,size*.18);g.addColorStop(0,'rgba(255,248,214,.85)');g.addColorStop(1,'rgba(196,140,52,.3)');c.fillStyle=g;c.beginPath();c.arc(x+dx,y+dy,size*.16,0,Math.PI*2);c.fill();}c.restore();}
+return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,neighbour,honeydew,drawRig,wriggle,SHEET,ANT_FILES,RIG};
 });

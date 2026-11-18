@@ -292,3 +292,34 @@
 - 검증: `npm test` 246/246(`leaf-mites.test.cjs` 8), `npm run test:ui` PASS, `tools/leaf-mites-review.cjs` → `docs/qa-0.6.26/runtime`(C01 7일 4/8 잎응애·잎지기 0, C02 2/8, C04 8/8·잎지기 3/8, 최대 잎 부담 17.5). 실기기 미검증.
 - 초안 대비: 마른 잎 시간 누적(연속 120초 대신), 잎응애 정지 구간 35~55, 잎지기는 공통 600초 간격과 별도. 미구현: 잎 해충 전이(ECO-13), 알·미성숙 단계 표시.
 - 다음: PR 병합 후 v0.6.26 APK 확인. 6c(뿌리날파리·흙지기·솜깍지·점박이).
+- 병합·릴리스: PR #26(https://github.com/sia080808-lgtm/Forest-of-Space/pull/26) main 병합 `c23c050f3bb85ed3fdbed21b2c645e60f5551d59`(사용자 "ㄱㄱ"; head `2d523c7` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.26 `Forest-of-Space-0.6.26.apk` 39,251,310 bytes, SHA-256 `070340388ab90f380e75f287454b24084f72d4e57dabb93fd68cafc088c24e90` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode43/0.6.26, `spidermite.png`·`predatory-mite.png` 포함.
+
+### SOIL-MEALY-0.6.27-20261118 — 생태계 v2.24 패치 6c: 뿌리날파리·흙지기·솜깍지·점박이
+
+- 담당: Claude Code. 요청: 사용자 "6c도 진행". 기준 main `c23c050`(0.6.26 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- `creatures.js`:
+  - 뿌리날파리 P01: 젖은 낙엽 자리·더미, 알·유충·성충 단계, 최대 2곳.
+  - 흙지기: 물 빠진 촉촉한 흙, 유충→알 포식, 남은 U 섭취는 흙 원장으로.
+  - 솜깍지 P03: 잎 사이 자리, 감로, 알주머니.
+  - 개미 감로 지키기(X04)와 점박이(성충 120초 살핌 → 유충 포식, 지켜질 때 0.5배).
+  - 공통: 해충 부담 합계 2/분 `harm()`, 해충 2종 제한, 도움 이웃·해충 출현 간격 분리, 검증 확장.
+- 화면·카드·에셋: `scene.js` 흙·잎 위 그리기, `creature-art.js` `neighbour`·`honeydew`, `forest-app.js`·`object-cards.js` 상태 문구. SRS 시트에서 잘라낸 에셋 6개(`tools/cut-srs-neighbour.py`). 버전 0.6.27/versionCode44.
+- 검증:
+  - `npm test` 254/254(`soil-and-mealy.test.cjs` 8, `creatures.test.cjs` 출현 검사 갱신), `npm run test:ui` PASS.
+  - `tools/soil-mealy-review.cjs` → `docs/qa-0.6.27/runtime`(기후별 출현 표, 보존식 0, 감로·개미 지키기는 3일 동안 자연 발생 없음).
+  - 12게임시간 장기 실행에서 무리 9개 초과 버그를 찾아 고침(가족별 출현이 같은 틱에 2개 추가되던 문제).
+  - 실기기 미검증.
+- 초안 대비:
+  - 뿌리날파리 자리를 친구 근권 R 대신 젖은 낙엽으로(Q가 거의 0).
+  - 흙지기 촉촉함 상한 65 제거.
+  - 솜깍지 증가 조건 분리(붙는 자리 / 늘어나는 조건).
+  - 성충 수명 600초.
+- 미구현: ECO-13 전이, 알 원화, 점박이 유충 원화, 쏙쏙이.
+- 다음: PR 병합 후 v0.6.27 APK 확인.
+- 다리·날개 분리(사용자 "곤충들 별 움직이는 시안 왜 안보여줘" → 영상 → "다리랑 날개랑 따로 움직이게 해줘" → "ㄱㄱ"): `tools/rig-neighbours.py`가 SRS 시트 그림 6종을 몸통 + 부위 아틀라스(다리·날개·더듬이, 부위마다 따로 칸·회전축)로 나누고 `creature-rig.js`를 만든다. `creature-art.js` `drawRig`: 다리는 두 무리가 번갈아 딛고, 뿌리날파리 날개는 빠르게 날갯짓, 더듬이 흔들림. 유충은 `wriggle`(띠 물결). 솜깍지 왁스 돌기는 몸통에 둔다(SRS D04.24). 진드기류는 더듬이 없음(앞다리로 분류). 처음 시안에서 이웃 다리 조각이 같이 돌던 문제는 아틀라스 칸 분리로 고침. 영상 `docs/qa-0.6.27/runtime/neighbours-motion-closeup.mp4`(크게)·`neighbours-motion.mp4`(게임 화면), 위상 비교 `rig-phases.png`. `npm test` 254/254, UI PASS.
+- 누끼 다시 따기(사용자 "얜 왜 다리가 짤렸냐", "솜깍지 누끼 제대로 안 따져 있고", "뿌리파리 다리 밑 누끼", "입도 짤림", "원본이 버젓이 이렇게 있는데 왜 그렇게 하냐"):
+  - 처음에는 흙 높이에서 가로로 잘라 흙지기 턱·다리 끝이 잘렸고, 이를 다시 그려 메우려 했다(잘못된 방향, 도구 삭제).
+  - 흙지기·솜깍지는 OpenCV GrabCut으로 원본을 다시 땄다(`tools/cut-soilmite-grabcut.py`, `tools/cut-mealybug-grabcut.py`). 흙은 줄이 아니라 색(LAB 노란기)으로만 구분한다. 몸·다리·턱은 원본 픽셀 그대로이고 다시 그린 부분은 없다.
+  - 솜깍지 등 왁스 돌기는 종이와 색이 같아 색·경계로 구분되지 않았다. 몸 윗선을 따라 약 12px마다 돌기 모양 마스크를 두고 원본 픽셀을 쓴다. 앞다리는 흙 제거 단계가 다리 가장자리를 지워 떨어져 나가던 문제를 고쳤다.
+  - 뿌리파리 발밑 흙 점·가슴 홈, 유충 밑 흙 띠는 `tools/clean-root-gnat.py`로 정리했다.
+  - 원본 대 결과 비교 `docs/qa-0.6.27/runtime/cutout-fixes.png`. `npm test` 254/254, UI PASS.

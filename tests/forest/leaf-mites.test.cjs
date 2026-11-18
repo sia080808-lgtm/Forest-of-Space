@@ -40,8 +40,8 @@ test('ECO-07/08/12 잎지기 needs real prey (>=8) and leaf humidity 45~80 for 1
  const s=game(3),p=s.individuals[0];for(let t=0;t<400;t++)tick(s,{T:55,H:25,kind:'sun'});a.equal(keeper(s,p.id),null,'no predator without prey');
  addMite(s,p.id,60);for(let t=0;t<400;t++){tick(s,{T:70,H:20,kind:'sun'});mite(s,p.id).density=60;}a.equal(keeper(s,p.id),null,'too dry for 잎지기');
  let at=null;for(let t=0;t<300&&!at;t++){tick(s,{T:55,H:50});if(keeper(s,p.id))at=t+1;}a.ok(at>=120&&at<=300,'arrived after '+at);
- const before=mite(s,p.id).density;for(let t=0;t<60;t++)tick(s,{T:55,H:50});const eaten=before-mite(s,p.id).density;a.ok(eaten<=8+1e-6&&eaten>=8-1e-6,'ate '+eaten);
- for(let t=0;t<600;t++)tick(s,{T:55,H:50});a.ok(!mite(s,p.id)||mite(s,p.id).density>=0);a.ok(s.objects.creatures.log.eaten<=60+1e-6);
+ const kg=keeper(s,p.id),before=mite(s,p.id).density;for(let t=0;t<60;t++)tick(s,{T:55,H:50});const eaten=before-mite(s,p.id).density;a.ok(eaten<=8+1e-6&&eaten>=8-1e-6,'ate '+eaten);
+ for(let t=0;t<600;t++)tick(s,{T:55,H:50});a.ok(!mite(s,p.id)||mite(s,p.id).density>=0);a.ok(kg.eaten<=60+1e-6,'잎지기 ate only the prey that was there');
 });
 
 test('AC-11 잎지기 with no prey left eats nothing more and leaves after 120 s',()=>{
