@@ -9,7 +9,7 @@ const Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelt
 const Env=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;
 const Rec=typeof module==='object'?require('./recruitment.js'):globalThis.ForestRecruitment;
 const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
-const VERSION='0.6.22', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.6.23', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
