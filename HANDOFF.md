@@ -377,3 +377,4 @@
 - 남은 일:
   - 다 자란 슈퍼범은 기본 쉼터에 들어가지 못한다(넓힌 쉼터 필요, 그 전에는 제자리 쉼). 사용자 결정 대기.
   - Android 실기기 성능 미확인(옆잎을 띠로 휘게 그려 친구 한 명당 drawImage 약 80회).
+- 병합·릴리스: PR #29(https://github.com/sia080808-lgtm/Forest-of-Space/pull/29) main 병합 `28f4173f4ae068695d3d64e8831fc3816a690f31`(사용자 "ㄱㄱ"; head `a21618a` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.29 `Forest-of-Space-0.6.29.apk` 40,623,323 bytes, SHA-256 `67ecfdeb524206527f03f201b0e2ac5ddcc4433e547df46852b98ee35f5fc108` — 내려받은 파일·`.sha256`·GitHub digest 일치, 인증서 `f807cfca…7e3d`, versionCode46/0.6.29, 슈퍼범 에셋 14개 포함.
