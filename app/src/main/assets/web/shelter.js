@@ -6,7 +6,7 @@ const PHASES=['outside','seeking','moving','entering','restingInside','exiting',
 const stage=p=>p.visualStage??(p.xp>=115?3:p.xp>=40?2:p.xp>=8?1:0);
 const desiredStage=p=>p.xp>=115?3:p.xp>=40?2:p.xp>=8?1:0;
 const growth=p=>[.65,.78,.9,1][stage(p)];
-const units=p=>(p.species==='neolbi'?[4,5,6,8]:[2,3,4,4])[stage(p)];
+const units=p=>(p.species==='superbum'?[5,6,8,10]:p.species==='neolbi'?[4,5,6,8]:[2,3,4,4])[stage(p)];
 // SRS v2.24 SH24: the base shelter holds three grown regular friends (12 units) and at most 3 friends; levels 2/3 keep 16/24 units with 4/5 friends.
 const capacity=f=>[12,16,24][f.level-1],seats=f=>[3,4,5][f.level-1];
 const shape=[[149,447],[143,396],[171,345],[218,307],[276,292],[326,300],[372,328],[400,364],[410,398],[354,411],[280,432],[205,452]];
@@ -40,7 +40,7 @@ function wants(s,p){if(s.objects)return p.active&&!p.mounted&&!(p.restCooldown>s
 function release(p,tick){p.shelter={phase:'outside',since:tick};p.visualStage=desiredStage(p);}
 function reserve(s,p,Space){const options=s.shelters.facilities.map(f=>({f,q:seat(s,f,p,q=>!!Space.route(s,p,entry(f,q),p.id))})).filter(o=>o.q).sort((a,b)=>Space.distance(p,entry(a.f,a.q))-Space.distance(p,entry(b.f,b.q))||a.f.id.localeCompare(b.f.id));for(const {f,q}of options){const e=entry(f,q);if(!Space.route(s,p,e,p.id))continue;p.shelter={phase:fits(f,p)?'entering':'moving',facilityId:f.id,...q,units:units(p),since:p.shelter?.since??s.worldTick,expires:s.worldTick+Math.min(30,Math.ceil((Space.distance(p,e)+Space.distance(e,q))/Space.gait(p,s).speed)+5),revision:f.revision,stalled:0};return true;}
  p.shelter.waitReason=s.shelters.facilities.some(f=>seat(s,f,p))?'path':s.shelters.facilities.every(f=>ledger(s,f,p.id).free<units(p))?'capacity':s.shelters.facilities.every(f=>!room(s,f,p))?'crowd':s.shelters.facilities.every(f=>!candidates(f,p).length)?'shape':'traffic';return false;}
-function projectedNeed(s){const live=s.individuals.filter(p=>p.active&&!p.mounted),planned=s.shelters.plannedRoster.map(id=>s.individuals.find(p=>p.id===id)||s.recruitment?.visitor?.pet).filter(Boolean).slice(0,5);return Math.max(live.reduce((n,p)=>n+units(p),0),...([live,planned].map(a=>a.reduce((n,p)=>n+(p.species==='neolbi'?8:4),0))));}
+function projectedNeed(s){const live=s.individuals.filter(p=>p.active&&!p.mounted),planned=s.shelters.plannedRoster.map(id=>s.individuals.find(p=>p.id===id)||s.recruitment?.visitor?.pet).filter(Boolean).slice(0,5);return Math.max(live.reduce((n,p)=>n+units(p),0),...([live,planned].map(a=>a.reduce((n,p)=>n+(p.species==='superbum'?10:p.species==='neolbi'?8:4),0))));}
 function setPlanned(s,ids){if(!Array.isArray(ids)||ids.length>5||new Set(ids).size!==ids.length||ids.some(id=>!s.individuals.some(p=>p.id===id)&&!(s.recruitment?.visitor?.ready&&s.recruitment.visitor.pet.id===id)))throw Error('함께 지낼 친구를 최대 5명까지 골라주세요.');s.shelters.plannedRoster=ids.slice();if(projectedNeed(s)>s.shelters.facilities.reduce((n,f)=>n+capacity(f),0))s.shelters.unlocked=true;}
 function intersects(f,p,q=p){const poly=polygon(f),out=outline(p,q);if(out.some(a=>inPoly(a,poly))||poly.some(a=>inPoly(a,out)))return true;for(let i=0;i<out.length;i++){const a=out[i],b=out[(i+1)%out.length],n=Math.ceil(Math.hypot((a.x-b.x)*360,(a.y-b.y)*576));for(let j=0;j<=n;j++)if(inPoly({x:a.x+(b.x-a.x)*j/Math.max(1,n),y:a.y+(b.y-a.y)*j/Math.max(1,n)},poly))return true;}return false;}
 function recovered(p){return p.B>=35&&p.energy>=75&&p.nutrition>=40&&p.burden<40&&p.damage<10&&!p.wetRecovery&&!p.leafRecovery;}

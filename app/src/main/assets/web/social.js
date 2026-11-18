@@ -4,12 +4,16 @@ const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;ret
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Motion=typeof module==='object'?require('./neolbi-motion.js'):globalThis.ForestNeolbiMotion;
 const W=typeof module==='object'?require('./weather-care.js'):globalThis.ForestWeatherCare;
-const supported=['ridley','bonbon','neolbi','bosong','jureong','duri'],R=.13;
+const supported=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'],R=.13;
 function init(s){W.init(s);s.social??={version:1,serial:0,sessions:[],cooldowns:{},observations:{}};for(const p of s.individuals)p.sources??={rain:0,other:0,unknown:p.V};return s;}
 function credit(p,n,source){const amount=Math.max(0,Math.min(n,40-p.V));p.sources[source]+=amount;p.V+=amount;return amount;}
 function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const k of ['rain','other','unknown']){parts[k]=p.V>0?p.sources[k]*amount/p.V:0;p.sources[k]=Math.max(0,p.sources[k]-parts[k]);}p.V=Math.max(0,p.V-amount);return {amount,parts};}
-// Legacy water collection by bonbon has been retired; rain remains entirely in the ground water ledger.
-function rain(s,patch,budget,held){return budget;}
+// 슈퍼범's nest frond catches part of the rain that is already falling on a nearby place (the patch's own rain budget),
+// so no water is created: what it keeps is subtracted from what that place would have received. Each 슈퍼범 keeps at
+// most .1 per second and NEST in total; Ellisii (legacy 'bonbon') no longer collects.
+const NEST=40;
+function rain(s,patch,budget,held){if(!(budget>0))return budget;const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.id!==held&&p.species==='superbum'&&!p.shelter?.facilityId&&Space.distance(p,patch)<.25&&p.V<NEST).sort((a,b)=>a.id.localeCompare(b.id));if(!ps.length)return budget;
+ let remaining=budget*.8;for(let loop=0;loop<ps.length+1&&remaining>1e-10;loop++){const eligible=ps.filter(p=>(p.harvestTick||0)<.1-1e-10&&p.V<NEST-1e-10);if(!eligible.length)break;const share=remaining/eligible.length;for(const p of eligible){const n=credit(p,Math.min(share,.1-(p.harvestTick||0)),'rain');p.harvestTick=(p.harvestTick||0)+n;remaining-=n;}}return budget-(budget*.8-remaining);}
 // Ellisii shelters small visitors only when a real compatible microhabitat exists.
 function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return moisture>=40&&E.precipitation(s,'rain')<.6&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
@@ -30,12 +34,14 @@ function prepare(s,held){init(s);const participants=new Set();for(const p of s.i
   if(canopy){const h=ps[0];okay=okay&&ps.every(W.healthy)&&s.weather.wind<70&&(s.weather.wind<60||a.phase==='rest'&&h.braceSeconds<10);if(okay&&s.weather.wind>=60)h.braceSeconds=Math.min(10,h.braceSeconds+1);}
   else okay=okay&&s.weather.wind<60;
   if(!okay){stop(s,a,'unsafe');continue;}
-  if(a.type==='A04'){stop(s,a,'retired');continue;}
+  if(a.type==='A04'){const[d,r]=ps;if(d.species!=='superbum'){stop(s,a,'retired');continue;}if(!safe(d,s)||(a.phase!=='response'&&(d.V<=10||r.B>=65||s.worldTick-a.started>30))){stop(s,a,'finished');continue;}}
   else if(!canopy&&ps.some(p=>!safe(p,s))){stop(s,a,'unsafe');continue;}
   ps.forEach(p=>participants.add(p.id));if(a.type==='A12')ps.slice(0,2).forEach(p=>p.canopy=true);if(canopy){ps[0].canopy=true;if(a.phase==='rest')ps[1].protectedBy=ps[0].id;}
  }
  const free=s.individuals.filter(p=>(!s.objects||!p.objectTask||p.objectTask.free)&&p.id!==held&&!p.shelter?.facilityId&&available(s,p));
- // Ellisii replaces the water donor; old A04 sessions are retired and no new ones begin.
+ // 물 나눔 (A04): 슈퍼범 with more than 10 in its nest brings water to the thirstiest friend (B<35) it can reach.
+ // Old sessions with an Ellisii donor stay retired.
+ for(const d of free.filter(p=>p.species==='superbum'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){if(!available(s,d))continue;const r=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&(!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&p.active&&!p.mounted&&p.B<35&&p.burden<40&&available(s,p)).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id))[0];if(r&&Space.route(s,d,r)){const a=start(s,'A04',[d,r]);if(a)a.ids.forEach(id=>participants.add(id));}}
  const ns=free.filter(p=>p.species==='neolbi'&&safe(p,s)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
  if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=free.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
  if(['rain','snow'].includes(s.weather.kind)||s.climate.L>=70||s.weather.wind>=50){for(const h of ns.filter(p=>available(s,p)&&!p.canopyClosing)){
@@ -70,7 +76,7 @@ function tick(s,{visible,record,event}){for(const a of [...s.social.sessions]){i
  if(a.type==='A04'){const[d,r]=ps;if(a.phase==='approach'){const q=receivePoint(s,d,r);if(!q||s.worldTick-a.started>30){stop(s,a,'no-path');continue;}if(approachStep(s,d,q,a)){a.phase='accept';a.elapsed=0;}continue;}
  if(a.phase==='accept'){a.phase='transfer';continue;}
  if(a.phase==='transfer'){if(Space.distance(d,r)>.12){stop(s,a,'separated');continue;}if(a.lastTick===s.worldTick)continue;a.lastTick=s.worldTick;const before={V:d.V,B:r.B,sources:{...d.sources}};const {amount,parts}=debit(d,Math.min(2,d.V-10,65-r.B,10-a.total));r.B+=amount;a.steps++;a.total+=amount;a.rain+=parts.rain;d.motion.kind='share';r.motion.kind='receive';d.motion.transfer=amount;r.motion.received=amount;d.motion.recipient=r.id;
- if(amount>0){event(s,'transfer',d.name+'이 '+r.name+'에게 물을 나눠줬어요.',{session:a.id,step:a.steps,donor:d.id,recipient:r.id,amount,sources:parts,before,after:{V:d.V,B:r.B,sources:{...d.sources}},parent:a.id});if(parts.rain>0&&visible)record(s,'EC02','봉봉이 비에서 모은 물을 친구에게 나눠줬어요.',true,{session:a.id,participants:a.ids,amount,rain:parts.rain});}
+ if(amount>0){event(s,'transfer',josa(d.name,'이','가')+' '+r.name+'에게 물을 나눠줬어요.',{session:a.id,step:a.steps,donor:d.id,recipient:r.id,amount,sources:parts,before,after:{V:d.V,B:r.B,sources:{...d.sources}},parent:a.id});if(parts.rain>0&&visible)record(s,'EC02',josa(d.name,'이','가')+' 비에서 모은 물을 친구에게 나눠줬어요.',true,{session:a.id,participants:a.ids,amount,rain:parts.rain});}
  if(a.steps>=5||a.total>=10||r.B>=65||d.V<=10){a.phase='response';a.elapsed=0;if(ps.some(p=>p.species==='neolbi'))Motion.start(s,'PE04',{parent:'A04',ids:a.ids,session:a.id,valid:true,visible,amount:a.total});}continue;}
  
  if(a.phase==='response'&&a.elapsed>=2)stop(s,a,'complete');
@@ -93,7 +99,7 @@ function validate(s){
   const phases=a.type==='CANOPY'?['signal','approach','rest','exit']:a.type==='A04'?['signal','approach','accept','transfer','response']:['signal','approach','rest'];
   if(!phases.includes(a.phase)||typeof a.id!=='string'||!/^social-\d+$/.test(a.id)||Number(a.id.slice(7))>v.serial||sessionIds.has(a.id)||a.key!==a.type+':'+[...a.ids].sort().join(':')||a.layout!==s.layoutRevision)fail();
   const ps=a.ids.map(id=>s.individuals.find(p=>p.id===id));
-  if(a.type==='A04'?ps[0].species!=='bonbon':a.type==='CANOPY'?ps[0].species!=='neolbi':ps.slice(0,2).some(p=>p.species!=='neolbi'))fail();if(a.seat&&(!finite(a.seat.x,0,1)||!finite(a.seat.y,0,1)))fail();
+  if(a.type==='A04'?!['bonbon','superbum'].includes(ps[0].species):a.type==='CANOPY'?ps[0].species!=='neolbi':ps.slice(0,2).some(p=>p.species!=='neolbi'))fail();if(a.seat&&(!finite(a.seat.x,0,1)||!finite(a.seat.y,0,1)))fail();
   for(const k of ['elapsed','started','steps','total','rain'])if(!finite(a[k]))fail();
   if(a.started>s.worldTick||!Number.isInteger(a.steps)||a.steps>(a.type==='A04'?5:20)||a.total>10||a.rain>a.total||!finite(a.lastTick,-1,s.worldTick)||(a.processedTick!==undefined&&!finite(a.processedTick,0,s.worldTick))||(a.observed!==undefined&&!finite(a.observed,0,20)))fail();
   a.ids.forEach(id=>used.add(id));sessionIds.add(a.id);
@@ -103,5 +109,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,40))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {NEST,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });

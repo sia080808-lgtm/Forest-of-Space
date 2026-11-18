@@ -4,7 +4,7 @@ const Shelter=typeof module==='object'?require('./shelter.js'):globalThis.Forest
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 // One adult body diameter, in a fixed world coordinate system, independent of DPI.
 const GU=.10*2/3, ASPECT=1.6, distance=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*ASPECT);
-const diameter=p=>GU*(p?.species==='neolbi'?Neolbi.SIZE:1);
+const diameter=p=>GU*(p?.species==='neolbi'?Neolbi.SIZE:p?.species==='superbum'?1.7:1);
 function obstacles(s){return [...s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0).map(Neolbi.barrier),{...s.spring,id:'spring',rx:.12*(1+((s.objects?.upgrades.spring.level||1)-1)*.15),ry:.065*(1+((s.objects?.upgrades.spring.level||1)-1)*.15)},...s.patches.filter(p=>['rock','crevice','shade'].includes(p.id)).map(p=>({...p,...STONE[p.id]?(LEGACY?{rx:.09,ry:.042}:{x:p.x+STONE[p.id].dx,y:p.y+STONE[p.id].dy,rx:STONE[p.id].rx,ry:STONE[p.id].ry}):{x:p.x-.01,y:p.y+.015,rx:.075,ry:.045}}))];}
 // Stone footprints follow the drawn art, which sits above the patch anchor (terrain cell drawn at -0.75..+0.25 of its size).
 // Routes try these first. If no route exists, the pre-0.6.15 footprint (centred on the anchor) is used so that saved
