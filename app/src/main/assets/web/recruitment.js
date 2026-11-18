@@ -40,7 +40,17 @@ function encounterStep(s){const r=s.recruitment,v=r.visitor;if(!v?.open)return f
  if(v.pet.burden<40)p.comfortable++;
  v.ready=({ridley:p.comfortable>=120&&p.actions.greet,bonbon:p.comfortable>=120&&p.actions.leafNook,neolbi:p.actions.sun&&p.actions.shade&&p.rest>=20,bosong:p.actions.water,jureong:p.actions.carry,duri:p.rest>=(v.companion?20:60)})[v.species]===true;
  if(v.seconds>=600&&!v.ready){r.visitor=null;}return true;}
+// What the open encounter is waiting for, in order, with live values (read-only; for the visit card).
+function steps(s){const r=s.recruitment,v=r?.visitor;if(!v)return null;const p=r.progress[v.species],a=p.actions||{},sec=n=>Math.min(n.max,Math.floor(n.v))+' / '+n.max+'초';
+ const list=[{label:'새 자리에 익숙해지기',done:v.seconds>=30,value:sec({v:v.seconds,max:30})}];
+ const add=(label,done,value='')=>list.push({label,done:!!done,value});
+ if(v.species==='ridley'){add('반갑게 인사하기 (버튼)',a.greet);add('편안하게 머물기',p.comfortable>=120,sec({v:p.comfortable,max:120}));}
+ if(v.species==='bonbon'){add('잎틈(이끼·바위틈) 살피기',a.leafNook);add('편안하게 머물기',p.comfortable>=120,sec({v:p.comfortable,max:120}));}
+ if(v.species==='neolbi'){add('햇빛 자리 살피기',a.sun);add('그늘 확인하기',a.shade);add('쉬기',p.rest>=20,sec({v:p.rest,max:20}));}
+ if(v.species==='bosong'){add('마실 물 찾기 (물 있는 곳 알려주면 빨라요)',a.water);}
+ if(v.species==='jureong'){add('낙엽 줍기',a.pick);add('낙엽 옮기기',a.carry);}
+ return {list,ready:v.ready,leaveIn:v.ready?null:Math.max(0,600-v.seconds),buttons:{greet:v.species==='ridley',guide:v.species==='bosong'}};}
 function settle(s,event){const r=s.recruitment,v=r.visitor;if(!v?.ready)throw Error('조금 더 서로 익숙해질 시간이 필요해요.');if(s.individuals.length>=50)throw Error('함께 지낼 친구 기록이 50명으로 가득해요. 준비된 친구는 기다릴 수 있어요.');if(r.settled.includes(v.id))throw Error('이미 함께 살고 있는 친구예요.');const p=JSON.parse(JSON.stringify(v.pet));s.individuals.push(p);r.settled.push(v.id);r.visitor=null;event?.(s,'welcome',josa(p.name,'이','가')+' 함께 살기로 했어요. 친구 목록에서 정원에 들여주세요.',{individual:p.id,arrivalWater:p.B});return p;}
 function validate(s){const r=s.recruitment;if(!r||r.version!==1||!Number.isSafeInteger(r.serial)||r.serial<0||!Array.isArray(r.settled)||new Set(r.settled).size!==r.settled.length||!Array.isArray(r.pending)||r.pending.some(x=>!ids.includes(x))||r.target!==null&&!ids.includes(r.target))throw Error('친구 방문 기록을 확인해 주세요.');for(const id of ids){const p=r.progress[id];if(!p||['valid','failures','comfortable','rest'].some(k=>!Number.isFinite(p[k])||p[k]<0)||!p.actions)throw Error('친구와 함께한 기록을 확인해 주세요.');}const v=r.visitor;if(v&&(!ids.includes(v.species)||typeof v.open!=='boolean'||typeof v.ready!=='boolean'||!Number.isFinite(v.seconds)||v.seconds<0||v.water<0||v.water>20||v.leaves<0||v.leaves>3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))throw Error('방문 중인 친구 기록을 확인해 주세요.');}
-return {retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
+return {steps,retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
 });

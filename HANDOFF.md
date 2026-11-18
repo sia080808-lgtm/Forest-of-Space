@@ -256,3 +256,22 @@
 - `recruitment.js`: `retired=['duri']`(후보 제외), 첫 방문 전에는 엘리시만 후보(1,200초 뒤 다른 친구 허용), 240초 첫 방문 규칙을 엘리시로, `init`에서 기다리는/대기열 두리 → 엘리시 방문, '먼저 기다리기' 두리 해제. 함께 사는 두리는 보존. `forest-app.js`: 영입 목록에서 제외, 도감은 보유 시에만. 버전 0.6.23/versionCode40.
 - 테스트: `recruit-info`에 제외 검사 추가(새 게임 첫 손님, 저장 이전, 보유 두리 보존, 이후 두리 방문 없음). `npm test` 231/231, `npm run test:ui` PASS. 실기기 미검증.
 - 남은 일: SRS PDF 본문(첫 10분 흐름의 두리)을 엘리시로 개정하는 문서 작업.
+- 병합: PR #23(https://github.com/sia080808-lgtm/Forest-of-Space/pull/23) main 병합 `4109e81b89a22bfa905691540a1d8b94b23b5fc6`(사용자 "ㄱㄱ"; head `c2a6f58` 기준 simulation·CodeQL 성공).
+- 릴리스: 프리릴리스 v0.6.23 `Forest-of-Space-0.6.23.apk` 38,968,130 bytes, SHA-256 `70dfc7c066b4f3be7625425d06ec4fe720f32fad2d3cbc0afa2119502a0efb3c` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode40/0.6.23.
+- SRS 개정안: `docs/Forest-Recruit-SRS-v2.25-ELL1.md`(두리 은퇴·첫 손님 엘리시·엘리시 서식 조건, v2.22 PDF 8·9·14·15·88·98·111·124쪽 대체 서술). PDF 재조판은 안 함. 작업 브랜치에만 있음(다음 PR에 포함).
+
+### CREATURES-SPRINGTAIL-20261118 — 톡토기 그림 (SRS 화풍)
+
+- 담당: Claude Code. 요청: 사용자 "니가 SRS 기준으로 톡토기 만들어줘".
+- `tools/draw-springtail.cjs`(SRS D04.20 작은 이웃 시트 화풍: 따뜻한 갈색 윤곽, 수채 음영 마디 몸통, 마디 더듬이·다리 6개, 흰 반사점 눈, 도약기 접힘/펴짐) → `assets/forest/creatures/springtail-rest.png`·`springtail-jump.png`. `creature-art.js` `springtailSprite`(쉬다가 톡 튀어 오르기, 착지 후 방향 전환). 시안 `docs/qa-creatures-draft`(디자인 시트·월드 영상·SRS 개미와 나란히 비교). 게임 미연결.
+- 다음: 사용자 확인 후 6a 구현(개미·톡토기 출현·운반·분해 보정).
+
+### VISIT-CARD-0.6.24-20261118 — 첫 만남 카드 진행 표시·손님별 장면, 개미굴 그림
+
+- 담당: Claude Code. 요청: 사용자 스크린샷 "맞이하는 카드의 캐릭터 창이 왜 이럼?", 조건·동작 질문 → 설명·개선안 후 "ㄱㄱ". 중간 의견 "개미굴 비스킷처럼 이질적".
+- `recruitment.js` `steps()`(읽기 전용 단계·값·남은 시간·필요 버튼). `forest-app.js` 카드에 단계 목록·떠나기 안내, 손님별 버튼만 표시, `drawVisit` 손님별 소품·종이 바탕·캐릭터 약 2배·접지 그림자, 제목 조사. 버전 0.6.24/versionCode41.
+- 생물 시안: `tools/draw-antnest.cjs` → `ant-nest.png`(흙 알갱이 둔덕·그늘진 입구·조약돌·새싹), `creature-art.js` `nestSprite`. 게임 미연결.
+- 확인: 엘리시 카드 '함께 살기'는 카드 연 지 149초에 활성화(시뮬레이션). 테스트 `npm test` 232/232, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.24/runtime/visit-cards.png`. 실기기 미검증.
+- 수정(사용자 "짐꾼 개미 왜 뒷통수가 파여 있냐"): SRS 시트에서 개미가 문 잎 줄기를 지울 때 머리 뒤쪽까지 지워져 홈이 생겼다. `ant-body.png`의 머리 타원 안 홈(103~124, 99~125)을 머리 안쪽 색으로 확산 채움+옅은 결+가장자리 음영으로 메움. 전후 비교 `docs/qa-creatures-draft/ant-head-fix.png`.
+- 수정(사용자 "개미굴 땅이랑 연장된 느낌의 작은 흙더미가 있고 그 봉오리에 개미 구멍이 있어야"): `tools/draw-antnest.cjs`를 땅에서 솟은 흙 돔(가장자리 번짐, 왼쪽 밝고 오른쪽 그늘)과 꼭대기 분화구·입구로 다시 그림. `nestSprite` 기준점은 흙더미 바닥 중심(180,150). 비교 `docs/qa-creatures-draft/nest-and-ant-fix.png`.
+- 수정 2(사용자 "흙더미 색은 여백의 숲 땅 색이랑 같고 명암만", "통수 여전히 파여 있잖아. 둥글게"): 개미굴 색을 바탕 종이(`garden-open.png` 약 #fceedf)와 같은 톤으로 바꾸고 밝음·그늘만 둠. 개미 머리는 윤곽 타원 맞춤(중심 85.8,118.1·반지름 38.2×31.1, 3차: 첫 맞춤이 좁아 y≈114 계단이 남아 다시 맞춤, 4배 표본 안티에일리어싱 테두리)으로 뒤통수 계단까지 둥글게 다시 칠하고 목 쪽 잔여 조각 제거. 개미굴 새싹은 오른쪽 하나만 남김(사용자 "오른쪽만 적용해").
