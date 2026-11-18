@@ -67,7 +67,9 @@ function region(s,id,kind='rest'){
  if(id==='litter')return {x:z.x,y:z.y-.035,rx:.10*g,ry:.034*g};
  if(isPile(id))return {x:z.x,y:z.y,rx:.06,ry:.026};
  if(id==='spring')return kind==='edgeDrink'?{x:z.x+.105*g,y:z.y+.038*g,rx:.04*g,ry:.027*g}:{x:z.x,y:z.y+.017*g,rx:.067*g,ry:.027*g};
- if(id==='shade')return {x:z.x-.055,y:z.y+.05,rx:.075,ry:.032};
+ // 0.6.30: rest under the leaves, just in front of the stem (the drawn leaves span about -.15..+.13 of the anchor);
+ // before, the spot was below the plant and mostly inside its own obstacle, so friends rested far out by the side.
+ if(id==='shade')return {x:z.x+.035,y:z.y+.02,rx:.075,ry:.018};
  if(id==='rock')return dep('spatial').rockTop(s);
  return {x:z.x,y:z.y+.070,rx:.067,ry:.026};
 }

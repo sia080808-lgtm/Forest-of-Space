@@ -66,7 +66,7 @@ function move(s,p,Space){const a=p.shelter,f=facility(s,a?.facilityId);if(!wants
  if(a.phase==='moving'&&m.arrived){a.phase='entering';a.stalled=0;}
  else if(a.phase==='entering'&&m.arrived&&fits(f,p)&&m.distance===0){a.phase='restingInside';a.entered=s.worldTick;delete p.shelterRequest;}
  else if(a.phase==='exiting'&&m.arrived&&!intersects(f,p)){if(a.yielding)p.restCooldown=s.worldTick+60;release(p,s.worldTick);if(!p.objectTask){p.action='wander';p.target=null;p.actionSeconds=20;}}
- if(a.phase==='exiting'&&a.stalled>=3){const q=safeExit(s,p,Space);if(q)a.exitPoint=q;if(a.stalled>=6){a.phase='restingInside';a.x=p.x;a.y=p.y;delete a.exitPoint;delete a.yielding;a.stalled=0;}}
+ if(a.phase==='exiting'&&a.stalled>=3){const q=safeExit(s,p,Space);if(q)a.exitPoint=q;if(a.stalled>=6){if(!intersects(f,p)){if(a.yielding)p.restCooldown=s.worldTick+60;release(p,s.worldTick);if(!p.objectTask){p.action='wander';p.target=null;p.actionSeconds=20;}}else{a.phase='restingInside';a.x=p.x;a.y=p.y;delete a.exitPoint;delete a.yielding;a.stalled=0;}}}
  if(a.stalled>=3&&!occupied(a)){a.replans=(a.replans||0)+1;a.stalled=0;if(a.replans>1){release(p,s.worldTick);p.shelter.phase='rerouting';}}
  }return {...m,arrived:inside(s,p),kind:inside(s,p)?'rest':m.kind};}
 function blocked(s,q,id){for(const f of s.shelters?.facilities||[]){const t=transform(f),x=q.x*360,y=q.y*576;const inRoom=inPoly(q,polygon(f)),a=s.individuals.find(p=>p.id===id)?.shelter;if(inRoom&&a?.facilityId!==f.id)return true;if(x>t.x+25&&x<t.x+200+t.extra&&y>t.y+20&&y<t.y+200*t.sy&&!inRoom)return true;}return false;}
