@@ -83,6 +83,8 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
  // 0.6.34: a friend whose leaves carry spider mites (the leaf-damaging pest) shivers now and then, every species alike:
  // every ITCH seconds a short crouch-and-shiver plays over whatever it is doing (not while held, resting or asleep).
  if(opt.itch&&!opt.reduced&&!NO_ITCH.includes(kind)){const u=mod(t+(opt.seed||0)*1.7,ITCH);if(u<1.35){const m=shake(u);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();specks(c,u,h);return;}}
+ // 0.6.34: while 베이치 scratches the back of its head (hand hidden behind it, fingertips at the crown) it leans its head into the hand
+ if(kind==='groom'&&sp==='bosong'&&!opt.reduced){const u=mod(t,8),q=ease(u/.9)*(1-ease((u-6.7)/1.3));c.save();c.translate(FEET[0],FEET[1]);c.rotate(.07*q);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();return;}
  return drawCore(c,assets,opt);}
 return Object.freeze({files,definition,pose,draw,PLAY,GROOM,ITCH});
 });
