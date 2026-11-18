@@ -16,6 +16,15 @@ function rain(s,patch,budget,held){return budget;}
 const NEST=40,CATCH=10;
 function collect(s,held,precipitation,area){for(const p of s.individuals){if(p.species!=='superbum'||!p.active||p.mounted||p.id===held||p.shelter?.facilityId||!(precipitation>0)||p.V>=NEST)continue;
  const n=credit(p,Math.min(.1,12/60*precipitation*area(p)*CATCH),'rain');p.harvestTick=(p.harvestTick||0)+n;s.ledger.rain+=n;}}
+// 0.6.36: the nest water does not stay forever (user: "슈퍼범 머리에 고인 물은 마르나?" -> "증발 + 스스로 마시기").
+// Evaporation: like an open water surface at the spring's rate, (0.2 + 0.6 L/100 + 0.4 wind/100)/60 per second, only while it is not raining or foggy and the friend is not under a shelter roof; booked to ledger.evaporation.
+// Own use: a thirsty 슈퍼범 (body water below 45) draws its own nest water into its body, up to 3/min, until body water 55;
+// the water only moves between V and B, so the total stays the same.
+const NEST_EVAP=1,NEST_SIP=.05,SIP_BELOW=45,SIP_TO=55;
+function nest(s,held,precipitation){const wet=precipitation>0||['rain','fog','snow'].includes(s.weather.kind);
+ for(const p of s.individuals){if(p.species!=='superbum'||!p.active||!(p.V>0))continue;
+  if(p.B<SIP_BELOW&&p.id!==held){const n=debit(p,Math.min(NEST_SIP,SIP_TO-p.B)).amount;p.B+=n;}
+  if(!wet&&!p.shelter?.facilityId&&p.V>0){const r=(.2+.6*(s.climate.L||0)/100+.4*(s.weather.wind||0)/100)/60*NEST_EVAP,n=debit(p,r).amount;s.ledger.evaporation+=n;}}}
 // Ellisii shelters small visitors only when a real compatible microhabitat exists.
 function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return moisture>=40&&E.precipitation(s,'rain')<.6&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
@@ -111,5 +120,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,40))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {NEST,collect,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {NEST,nest,NEST_EVAP,NEST_SIP,collect,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });

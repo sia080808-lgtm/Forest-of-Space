@@ -56,7 +56,7 @@ function step(s,{visible=true,held=null}={}){
  s.worldTick++;Env.step(s,rng,event);const w=s.weather;if(held&&(w.wind>=60||s.individuals.find(p=>p.id===held)?.B<20))held=null;
  Obj.resources(s);Creatures.step(s,event);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
- Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);
+ Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
   // Movable leaf canopy physically shields patches within its radius; intercepted water

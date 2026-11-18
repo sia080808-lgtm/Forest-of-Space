@@ -473,3 +473,5 @@
 - 수정: 쉬는 자리를 돌 바로 앞(+0.003, +0.03, 0.07×0.015)으로. 버전 0.6.35 / versionCode 52. SRS `docs/Forest-World-Motion-SRS-v2.27.md` W27-02에 행 추가.
 - 검증: `npm test` 277/277(`rest-spots` 바위틈 5종 검사), `npm run test:ui` PASS, 전후 비교 `docs/qa-0.6.35/runtime/crevice-rest.png`(`tools/crevice-review.cjs`). 다 자란 슈퍼범의 바위틈 용량 초과는 수정 전과 같음(확인). 실기기 미검증.
 - 추가(사용자 "바위 틈에 쉬는 연출 저게 맞음?" → 선택 "틈에 쏙 들어가기"): `scene.js` `nookPos`·`creviceFront`·`creviceGeom` — 도착해 쉬는 친구를 틈 입구로 0.6초에 걸쳐 옮겨 그리고 앞 작은 돌(타원)을 다시 그림. 렌더 전용. `rock-rider.test.cjs`에 검사 추가. `npm test` 278/278.
+- 추가 2: 작은 돌 다시 그리기를 실제 윤곽 다각형(`nookStone`)으로, 틈에 있는 친구는 작은 돌 영역·그 아래를 잘라 그림(`nookClip`) — 사용자 제보 "검정색 조각"(돌 아래 발 끝, 경계의 틈 그늘 줄).
+- 추가 3: 슈퍼범 둥지 물 증발(샘물과 같은 식, 비·안개·눈·쉼터 안 제외, `ledger.evaporation`)과 몸 물 45 미만일 때 스스로 마시기(분당 3, 55까지) — `social.js` `nest`, 사용자 선택 "증발 + 스스로 마시기". SRS `Forest-Superbum-SRS-v2.26.md` SB-04a. `npm test` 279/279, UI PASS. 엔진 측정 2시드·6게임일: 기본 기후에서는 비가 다시 채워 마른 그림까지는 내려가지 않음.

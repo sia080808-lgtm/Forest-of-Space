@@ -121,11 +121,16 @@ class ForestScene {
  }
  // Selection ring: drawn in the world pass before the body so it sits under the feet and shares world lighting.
  // 0.6.35 crevice nook: where a resting friend sits in the crevice art (terrain tile 3, 512 px drawn at size x size from
- // (-size/2, -.75 size)): the gap floor under the big stone is at about tile (246, 345); the small front stone is about the ellipse (368, 305) 98 x 55
+ // (-size/2, -.75 size)): the gap floor under the big stone is at about tile (246, 345); the small front stone is traced by nookStone()
  creviceGeom(){const s=this.state(),z=s.patches.find(q=>q.id==='crevice');if(!z)return null;const size=.25*this.w*Forest.Objects.scale(s,'crevice');return {z,size,x:z.x*this.w,y:z.y*this.h,px:(u,v)=>({x:z.x*this.w+(u-256)/512*size,y:z.y*this.h+(v-384)/512*size})};}
  nookPos(p){const t=p.objectTask;if(!(p.active&&!p.mounted&&t&&t.object==='crevice'&&t.kind==='rest'&&t.arrived&&Forest.Space.distance(p,t)<.002))return null;const g=this.creviceGeom();if(!g)return null;const q=g.px(246,345);return {x:q.x/this.w,y:q.y/this.h};}
- creviceFront(){const g=this.creviceGeom(),im=this.assets.terrain;if(!g||!im)return;const c=this.ctx,sw=im.width/3,sh=im.height/2,wet=Math.max((g.z.film||0)*.65,Math.max(0,Math.min(1,(Forest.moisture(g.z)-20)/60)));
-  const o=g.px(368,305),k=g.size/512;c.save();c.beginPath();c.ellipse(o.x,o.y,98*k,55*k,-.12,0,Math.PI*2);c.clip();c.filter=`brightness(${1-.18*wet}) saturate(${1+.12*wet})`;c.drawImage(im,0,sh,sw,sh,g.x-g.size/2,g.y-g.size*.75,g.size,g.size);c.restore();}
+ // the small front stone's outline in the crevice tile, measured from the art: its left edge is where the dark gap shading
+ // ends (tile x 304 at y 258 down to 277 at y 340), then over its top and round its right side to the bottom
+ nookStone(below){const g=this.creviceGeom();if(!g)return null;const left=[[304,258],[298,266],[295,272],[291,278],[289,284],[285,290],[283,296],[283,308],[280,314],[279,320],[278,332],[277,340],[280,350]],
+  rest=below?[[280,440],[472,440],[468,300]]:[[300,354],[452,352],[464,332],[468,310]];return [...left,...rest,[460,288],[440,268],[410,254],[370,247],[330,249]].map(([u,v])=>g.px(u,v));}
+ nookClip(){const c=this.ctx,pts=this.nookStone(true);c.save();if(!pts)return;c.beginPath();c.rect(-1e4,-1e4,3e4,3e4);pts.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.clip('evenodd');}
+ creviceFront(){const g=this.creviceGeom(),im=this.assets.terrain,pts=this.nookStone(false);if(!g||!im||!pts)return;const c=this.ctx,sw=im.width/3,sh=im.height/2,wet=Math.max((g.z.film||0)*.65,Math.max(0,Math.min(1,(Forest.moisture(g.z)-20)/60)));
+  c.save();c.beginPath();pts.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.clip();c.filter=`brightness(${1-.18*wet}) saturate(${1+.12*wet})`;c.drawImage(im,0,sh,sw,sh,g.x-g.size/2,g.y-g.size*.75,g.size,g.size);c.restore();}
  selectionRing(p,pos,phase){const c=this.ctx,s=this.state(),k=this.petSize(p)/48,x=pos.x*this.w,y=pos.y*this.h+1.5*k,rx=21*k,ry=6.6*k,light=Forest.Environment.lighting?.(s)?.brightness||1,boost=Math.min(1.6,1/Math.max(.58,light)),pulse=s.settings.reducedMotion?.5:.5+.5*Math.sin(phase*2.4),a=v=>Math.min(1,v*boost);this.ringPass={x,y,rx,ry,lw:Math.max(1,k*.8),pulse,light};
   c.save();
   c.lineCap='round';const lw=Math.max(1,k*.8);c.strokeStyle=`rgba(64,52,20,${a(.26)})`;c.lineWidth=.4*lw;c.beginPath();c.ellipse(x,y,rx+1.4*lw,ry+1*lw,0,0,Math.PI*2);c.stroke();
@@ -200,8 +205,11 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}
+   // 0.6.35: a friend tucked into the crevice is not drawn where the small front stone stands or below it (its feet and
+   // hand used to peek out as dark bits under the stone's lower edge)
+   if(!carry&&nook)this.nookClip();
    if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&nook)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
    // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)
