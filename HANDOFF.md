@@ -455,3 +455,4 @@
 - 추가: 엘리시 두 갈래 생식엽·코로나 머리 잎 까닥임(`species-rig.js`), 잎응애(밀도 5 이상) 붙은 친구 공통 떨기(`rig.js` ITCH 7초, `scene.js` itch 전달).
 - 추가 2: 베이치 팔 항상 몸 뒤·머리 뒤 긁적이기(손끝만 정수리 옆, 머리 기울임 .07)·팔 길이 제한 7.2, 엘리시 생식엽 누끼 다시 따기(`tools/refine-ellisii-fronds.py`, 500×659 좌우 레이어, `ELLI.frondRect`), 초상화 재굽기.
 - 검증: `npm test` 276/276, `npm run test:ui` PASS, 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`. 실기기 미검증.
+- 병합·릴리스: PR #34(https://github.com/sia080808-lgtm/Forest-of-Space/pull/34) main 병합 `222c0c05378d6f59b8a9eb4dc43c26f449231eb4`(사용자 "ㄱㄱ"; head `f47bd26` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.34 `Forest-of-Space-0.6.34.apk` 40,721,830 bytes, SHA-256 `73b58e977775a935ee1f4a20bdc6ec81156ca4e1bd29a13de5f514a0a0f70ca4` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode51/0.6.34, APK 안 engine.js VERSION 0.6.34·엘리시 좌우 생식엽 PNG 2개·잎응애 떨기(`NO_ITCH`) 포함 확인.
