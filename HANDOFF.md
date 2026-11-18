@@ -292,6 +292,7 @@
 - 검증: `npm test` 246/246(`leaf-mites.test.cjs` 8), `npm run test:ui` PASS, `tools/leaf-mites-review.cjs` → `docs/qa-0.6.26/runtime`(C01 7일 4/8 잎응애·잎지기 0, C02 2/8, C04 8/8·잎지기 3/8, 최대 잎 부담 17.5). 실기기 미검증.
 - 초안 대비: 마른 잎 시간 누적(연속 120초 대신), 잎응애 정지 구간 35~55, 잎지기는 공통 600초 간격과 별도. 미구현: 잎 해충 전이(ECO-13), 알·미성숙 단계 표시.
 - 다음: PR 병합 후 v0.6.26 APK 확인. 6c(뿌리날파리·흙지기·솜깍지·점박이).
+- 병합·릴리스: PR #26(https://github.com/sia080808-lgtm/Forest-of-Space/pull/26) main 병합 `c23c050f3bb85ed3fdbed21b2c645e60f5551d59`(사용자 "ㄱㄱ"; head `2d523c7` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.26 `Forest-of-Space-0.6.26.apk` 39,251,310 bytes, SHA-256 `070340388ab90f380e75f287454b24084f72d4e57dabb93fd68cafc088c24e90` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode43/0.6.26, `spidermite.png`·`predatory-mite.png` 포함.
 
 ### SOIL-MEALY-0.6.27-20261118 — 생태계 v2.24 패치 6c: 뿌리날파리·흙지기·솜깍지·점박이
 
