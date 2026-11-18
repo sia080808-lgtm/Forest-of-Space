@@ -420,3 +420,14 @@
 - 수정: `scene.js`에서 이번 화면의 바위 위 친구를 기억해 두고, 햇살 바위를 다시 그린 직후 그 친구들을 다시 그린다. 렌더 전용 변경. 버전 0.6.31 / versionCode 48.
 - 검증: `npm test` 273/273(`rock-rider.test.cjs` 추가, 수정 전 코드에서 실패), `npm run test:ui` PASS. 비교 이미지 `docs/qa-0.6.31/runtime`. Android 실기기 미검증.
 - 병합·릴리스: PR #31(https://github.com/sia080808-lgtm/Forest-of-Space/pull/31) main 병합 `c5ae66827cbd831f18e9e3976a8672ab868b6516`(사용자 "ㄱㄱ"; head `46dc9c4` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.31 `Forest-of-Space-0.6.31.apk` 40,623,323 bytes, SHA-256 `5ca34fb8b7f89dd57d48057d3ba627b94bf9a8f73557e34970fb3bb59adda652` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode48/0.6.31, APK 안 scene.js에 바위 위 친구 다시 그리기 포함 확인.
+
+### GUIDE-0.6.32-20261118 — 작은 이웃 도감 그림, 주렁→코로나
+
+- 담당: Claude Code. 기준 main `c5ae668`(0.6.31 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: "곤충이 나와도 도감이 채워지지 않음", "주렁 이름은 코로나로 변경".
+- 진단: `seen` 기록은 정상이었다(엔진·Chromium 앱 확인). '작은 이웃' 탭이 글뿐이라 만난 이웃과 못 만난 이웃의 차이가 작은 표시 하나뿐이었다.
+- 변경:
+  - `forest-app.js`·`forest.css`: 이웃마다 그림을 넣었다. 못 만난 이웃은 실루엣으로 보이고, 위에 만난 수를 보여 준다.
+  - `engine.js`·`recruitment.js`: 주렁을 코로나로 바꾸고, 저장된 이름을 불러올 때 옮긴다(별명은 유지).
+  - 버전 0.6.32 / versionCode 49.
+- 검증: `npm test` 274/274(`names-030` 코로나 추가), `npm run test:ui` PASS(작은 이웃 도감 검사 추가). 화면 `docs/qa-0.6.32/runtime`. Android 실기기 미검증.
