@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestRecruitment=api;})(globalThis,function(){
 'use strict';
 const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;return w+(c>=0&&c<11172&&c%28?a:b);};
-const ids=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'],names=['리들리','엘리시','엘레판','보송','주렁','두리','슈퍼범'];
+const ids=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'],names=['리들리','엘리시','엘레판','베이치','주렁','두리','슈퍼범'];
 const needs={ridley:'쉼터와 주울 낙엽 1개',bonbon:'촉촉하고 물이 고이지 않는 이끼와 바위 틈',neolbi:'가까이 이어진 밝은 자리와 넓은 그늘',bosong:'건조하고 고요한 자리, 마실 물',jureong:'주울 낙엽과 마른 정리 자리',duri:'통로가 열린 조용한 쉼터',superbum:'물이 3할 넘게 찬 샘터와 그곳으로 가는 길'};
 const goals={ridley:'편안하게 120초 머물고 인사하기',bonbon:'잎틈을 살핀 뒤 편안하게 120초 머물기',neolbi:'햇빛과 그늘을 살핀 뒤 20초 쉬기',bosong:'마실 물을 찾아보기',jureong:'낙엽 한 장을 주워 옮기기',duri:'친구와 20초 또는 혼자 60초 쉬기',superbum:'샘터를 살피고 하늘을 올려다본 뒤 20초 쉬기'};
 // 0.6.23: 두리 is retired from visits (no approved design). Ellisii takes its place as the first visitor. Friends who
