@@ -33,7 +33,7 @@ function step(s,rng,event){init(s);const w=s.weather,e=s.environment;if(w.transi
  if(e.climateBlend>0){const blend=1-(--e.climateBlend)/60;for(const k of ['T','H','L'])targets[k]=e.climateFrom[k]+(targets[k]-e.climateFrom[k])*blend;}for(const k of ['T','H','L'])s.climate[k]+=clamp(targets[k]-s.climate[k],-1,1);
 }
 // Disjoint ground-area budgets: intercepted snow stays on its cover, not counted twice.
-function area(p){return .04*(p.species==='neolbi'?2.25:p.species==='jureong'?2:1)*([.65,.78,.9,1][p.visualStage||0]**2);}
+function area(p){return .04*(p.species==='neolbi'?2.25:p.species==='superbum'?2.89:p.species==='jureong'?2:1)*([.65,.78,.9,1][p.visualStage||0]**2);}
 function nearest(s,p){return s.patches.reduce((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)<Math.hypot(b.x-p.x,b.y-p.y)?a:b);}
 function water(s,p,coverFraction){const W=typeof module==='object'?require('./weather-care.js'):globalThis.ForestWeatherCare,Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
  const snow=12/60*precipitation(s,'snow')*p.exposure,fog=0;s.ledger.snow+=snow;s.ledger.condensation+=fog;
