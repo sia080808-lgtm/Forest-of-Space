@@ -16,14 +16,16 @@ function model(s,id){if(id==='shelter')id='shelter-0';const f=Sh.facility(s,id),
   m.rows=[['함께 쉬는 친구',v.seats+'명까지'],['성체 리들리','1공간'],['성체 엘레판','2공간'],['성체가 되면 필요한 공간',number(Sh.projectedNeed(s)/4)+'공간'],['빗방울 차단','90%'],['바람 줄임','80%']];
   m.effects=['수면과 날씨 대피로 체력을 회복해요. 물·영양은 다른 자리에서 보충해요.','빈 공간이 있어도 몸과 잎이 맞고 입구가 열려 있어야 들어갈 수 있어요.'];
   if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!s.shelters.unlocked});if(!f.base)m.actions.push({action:'facility-move',label:'옮기기'},{action:'facility-store',label:'보관하기'});
- }else if(id==='litter'){
-  const total=O.storedLeaf(s),cap=O.capacity(s,id),carry=s.individuals.reduce((n,p)=>n+(p.carriedLeaf?.amount||0)+(p.rootLitter||0),0),rates=O.litterRates(s),remaining=Math.max(0,s.objects.dayQuota-s.objects.arrivedToday);
-  m.description='낙엽으로 놀고, 분해된 거름에서 영양을 얻어요.';
-  m.metrics=[metric('raw','놀이용 낙엽',amount(z.O),'가지고 놀 수 있는 양'),metric('compost','흡수할 거름',amount(z.U),'영양으로 바뀌는 양'),metric('free','남은 저장 공간',amount(Math.max(0,cap-total))),metric('capacity','전체 저장 용량',number(cap))];
-  m.gauge={label:'낙엽과 거름 합계 '+amount(total)+' / '+number(cap),max:cap,parts:[{label:'낙엽',value:z.O,tone:'raw'},{label:'거름',value:z.U,tone:'compost'},{label:'운반',value:carry,tone:'carry'}],free:Math.max(0,cap-total)};
+ }else if(id==='litter'||O.isPile(id)){
+  // v2.24 step 1: the floor-leaf budget (loose leaves + piles) gates the natural fall; compost has its own cap.
+  const L=F.Litter,pile=O.isPile(id),floor=L.floor(s),lcap=L.LCAP,ucap=O.capacity(s,'litter'),compost=L.compost(s),carry=s.individuals.reduce((n,p)=>n+(p.carriedLeaf?.pile===id?p.carriedLeaf.amount:0),0),rates=O.litterRates(s,id),remaining=Math.max(0,s.objects.dayQuota-s.objects.arrivedToday),until=pile?z.playBoostUntil:s.objects.playBoostUntil;
+  if(pile){m.name=z.O<1&&z.U>0?'낮은 부식층':'낙엽더미';m.description='한 구역에 낙엽이 다섯 장 모여 생긴 더미예요. 천천히 거름이 돼요.';}
+  else m.description='오래 모인 거름 자리예요. 남은 낙엽으로 놀고, 거름에서 영양을 얻어요.';
+  m.metrics=[metric('raw','놀이용 낙엽',amount(z.O),pile?'이 더미의 낙엽':'이 자리에 남은 낙엽'),metric('compost','흡수할 거름',amount(z.U),'영양으로 바뀌는 양'),metric('free','바닥 낙엽 여유',amount(Math.max(0,lcap-floor)),'숲 전체 '+amount(floor)+' / '+number(lcap)),metric('capacity','숲의 거름 용량',amount(compost)+' / '+number(ucap))];
+  m.gauge={label:'숲 바닥 낙엽 '+amount(floor)+' / '+number(lcap),max:lcap,parts:[{label:'낱잎',value:L.leaves(s).length,tone:'raw'},{label:'더미',value:L.piles(s).reduce((v,p)=>v+p.O,0),tone:'compost'},{label:'운반',value:Math.max(0,floor-L.leaves(s).length-L.piles(s).reduce((v,p)=>v+p.O,0)),tone:'carry'}],free:Math.max(0,lcap-floor)};
   m.status=z.O<.5?(z.U>0?'놀이할 낙엽은 부족하지만 거름은 흡수할 수 있어요.':'새 낙엽이 모이길 기다려요.'):z.U<=0?'놀이할 낙엽이 있어요. 거름은 천천히 생겨요.':'낙엽 놀이와 영양 보충을 할 수 있어요.';
-  m.rows=[['친구가 들고 있는 낙엽',amount(carry)],['거름이 되는 속도',number(Math.min(z.O*60,rates.perMinute))+' / 분'],['놀이 후 분해 촉진',rates.boost>1?number(Math.max(0,s.objects.playBoostUntil-s.worldTick))+'초 남음':'없음'],['오늘 모인 낙엽',amount(s.objects.arrivedToday)+' / '+number(s.objects.dayQuota)],['오늘 더 들어올 수 있는 양',amount(Math.min(remaining,Math.max(0,cap-total)))] ];
-  m.effects=['놀이: 기분 +3/분, 체력 −1/분. 거름 흡수: 영양 최대 +1/분.','분해는 낙엽을 거름으로 바꿔요. 거름을 흡수해야 빈 공간이 생겨요. 오늘 한도는 숲의 하루 기준이에요.'];
+  m.rows=[['친구가 들고 있는 낙엽',amount(carry)],['거름이 되는 속도',number(Math.min(z.O*60,rates.perMinute))+' / 분'],['놀이 후 분해 촉진',rates.boost>1?number(Math.max(0,until-s.worldTick))+'초 남음':'없음'],['오늘 떨어진 낙엽',number(s.objects.arrivedToday)+' / '+number(s.objects.dayQuota)+'장'],['오늘 더 떨어질 수 있는 양',number(Math.max(0,Math.min(remaining,Math.floor(lcap-floor+1e-9))))+'장'],['숲의 낙엽더미',L.piles(s).length+'개 · 낱잎 '+L.leaves(s).length+'장']];
+  m.effects=['놀이: 기분 +3/분, 체력 −1/분. 거름 흡수: 영양 최대 +1/분.','낙엽은 평균 1분에 한 장씩 숲 곳곳에 떨어지고, 한 구역에 다섯 장이 모이면 더미가 돼요. 낱잎은 분해되지 않고 더미와 이 자리에서만 거름이 돼요.','바닥 낙엽이 '+number(lcap)+'장이면 새 낙엽은 잠시 멈춰요. 거름이 용량을 넘으면 흙으로 스며들어요.'];
  }else if(id==='moss'){
   m.description='포근하게 놀며 기분과 체력을 천천히 회복해요.';
   m.metrics=[metric('water','저장된 물',amount(z.S)+' / '+O.capacity(s,id),'아주 적은 양만 머금어요'),metric('space','사용 / 전체 공간',number(u.used)+' / '+number(O.spaceCapacity(s,id)/4),'예약 '+number(u.reserved)+'공간'),metric('mood','이용 시 기분','+1 / 분','기분 80까지'),metric('energy','이용 시 체력','+2 / 분','체력 75까지')];

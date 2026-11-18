@@ -1,0 +1,170 @@
+{
+ "renderer": "scene.js + @napi-rs/canvas (not Android WebView)",
+ "report": {
+  "newGame": [
+   {
+    "seed": 1,
+    "fallen": 55,
+    "missed": 1,
+    "firstPileTick": 1370,
+    "loose": 13,
+    "piles": 5,
+    "floor": 30.23
+   },
+   {
+    "seed": 2,
+    "fallen": 60,
+    "missed": 0,
+    "firstPileTick": 687,
+    "loose": 7,
+    "piles": 7,
+    "floor": 29.14
+   },
+   {
+    "seed": 3,
+    "fallen": 57,
+    "missed": 0,
+    "firstPileTick": 1100,
+    "loose": 13,
+    "piles": 6,
+    "floor": 30.67
+   },
+   {
+    "seed": 4,
+    "fallen": 57,
+    "missed": 0,
+    "firstPileTick": 1263,
+    "loose": 18,
+    "piles": 5,
+    "floor": 39.84
+   },
+   {
+    "seed": 5,
+    "fallen": 60,
+    "missed": 0,
+    "firstPileTick": 716,
+    "loose": 18,
+    "piles": 6,
+    "floor": 37.59
+   },
+   {
+    "seed": 6,
+    "fallen": 60,
+    "missed": 0,
+    "firstPileTick": 690,
+    "loose": 19,
+    "piles": 6,
+    "floor": 34.26
+   },
+   {
+    "seed": 7,
+    "fallen": 58,
+    "missed": 1,
+    "firstPileTick": 1020,
+    "loose": 13,
+    "piles": 7,
+    "floor": 36.42
+   },
+   {
+    "seed": 8,
+    "fallen": 60,
+    "missed": 0,
+    "firstPileTick": 810,
+    "loose": 13,
+    "piles": 7,
+    "floor": 36.16
+   }
+  ],
+  "oldSave": [
+   {
+    "seed": 1,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 20
+   },
+   {
+    "seed": 2,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 36
+   },
+   {
+    "seed": 3,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 35
+   },
+   {
+    "seed": 4,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 34
+   },
+   {
+    "seed": 5,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 9
+   },
+   {
+    "seed": 6,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 33
+   },
+   {
+    "seed": 7,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 26
+   },
+   {
+    "seed": 8,
+    "migration": {
+     "tick": 50,
+     "from": 70,
+     "moved": 36,
+     "kept": 34,
+     "piles": 3
+    },
+    "firstFallSeconds": 62
+   }
+  ],
+  "renderPure": true
+ }
+}

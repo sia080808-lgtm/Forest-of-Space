@@ -205,3 +205,13 @@
 - 수정: `tools/defringe-ellisii.py`(크림색 가장자리 제거·작은 조각 제거·가장자리 재채색, 몸통 위쪽 테두리 10px를 영양엽 안쪽으로; 잎 끝 아래 y≥410은 유지) 실행 결과로 레이어 5장 갱신, 초상화 재굽기. `species-rig.js` 엘리시 생식엽·영양엽에 `ForestEffects.snow` 적용. 버전 0.6.19/versionCode36.
 - 검증: `npm test` 220/220(새 검사는 수정 전 레이어에서 실패), `npm run test:ui` PASS, 렌더 `docs/qa-0.6.19/runtime`. 실기기 미검증.
 - 다음: 패치 5(낙엽 섹터·바닥 L 게이트·기존 L70 이전), 패치 6(생물).
+- 병합·릴리스: PR #19(https://github.com/sia080808-lgtm/Forest-of-Space/pull/19) main 병합 `0318a446bb198018d7f7cd349fd4ec93e151646f`(사용자 "ㄱㄱ"). 프리릴리스 v0.6.19 `Forest-of-Space-0.6.19.apk` SHA-256 `c7fd3bf0369df254a75d06537f75eba9702fb86f590154ae7dbe5ca45d300da1` — 내려받은 파일·`.sha256`·GitHub digest 일치, 인증서 `f807cfca…7e3d`, versionCode36/0.6.19.
+
+### LITTER-L1-0.6.20-20261118 — 생태계 v2.24 1단계: 낙엽 구역 (이슈 #15 패치 5)
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(설계안 7항목 승인). 기준 main `0318a44`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 새 모듈 `litter.js`(12섹터 낙하·낱잎·더미·분해·바람 이동·기존 저장 이전·검증, 독립 난수 `rng.litter`). `objects.js`: 더미를 이용 대상(`pile:N`, 가까운 2곳)으로, 자연 유입을 `litter.step`으로, 낙하 판정은 바닥 L 40만, U 상한 초과분은 `ledger.soil` 유출. `engine.js`: 새 게임 기존 자리 O0/U10, 불러올 때 `litterInit`, 조경 후 `relocate`, 이동 목적지에 더미 허용. `recruitment.js` 낙엽 조건은 전체 원료. `scene.js` 낱잎·더미 그리기, 더미 선택. `object-cards.js` 낙엽 자리·더미 카드. `index.html`·`tools/ui-smoke.mjs` 스크립트 추가.
+- 규칙 문서 `docs/Forest-Ecosystem-SRS-v2.24-L1.md`(초안 대비 변경: 이전 더미 3개, 기존 자리는 낙하 판정 제외, U 초과분 흙 유출).
+- 테스트: `litter-sectors.test.cjs`(7) 추가. 갱신: `objects219`(classic 도우미·14/15 재작성·27 하루 전환 ≤1장), `object-cards`(더미 카드·바닥 낙엽 여유), `update218`(서식 차단 시 섹터 낙엽도 비움). `npm test` 227/227, `npm run test:ui` PASS.
+- 검수: `tools/litter-review.cjs` → `docs/qa-0.6.20/runtime`(보존식·새 게임/기존 저장 통계·렌더). 성능 Node 1명 1.77→2.18ms/틱.
+- 미검증: Android 실기기, 장기 영양 밸런스(1명 기준 영양 58 유지 확인뿐). 다음: 패치 6(생물: 개미·톡토기 → 잎응애·잎지기(기본 기후 국소 건조) → 뿌리파리·흙지기·P03).
