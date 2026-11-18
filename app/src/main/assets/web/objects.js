@@ -1,11 +1,15 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},daily=[20,30,40];
 const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:4};
 const names={moss:'이끼 자리',spring:'샘터',litter:'낙엽 자리',rock:'햇살 바위',shade:'잎 그늘',crevice:'바위틈',shelter:'쉼터'};
-const patch=(s,id)=>id==='spring'?s.spring:s.patches.find(p=>p.id===id);
+const isPile=id=>typeof id==='string'&&id.startsWith('pile:');
+const patch=(s,id)=>id==='spring'?s.spring:isPile(id)?dep('litter').pile(s,id):s.patches.find(p=>p.id===id);
+const nameOf=id=>isPile(id)?'낙엽더미':names[id];
+// Piles share the litter spot's upgrade record and play/nutrition rules.
+const kindOf=id=>isPile(id)?'litter':id;
 const level=(s,id)=>s.objects?.upgrades?.[id]?.level||1;
 const capacity=(s,id)=>(capacities[id]||[0])[level(s,id)-1];
 const scale=(s,id)=>capacities[id]?1+(level(s,id)-1)*.15:1;
@@ -15,9 +19,10 @@ function init(s){
  for(const id of ['moss','spring','litter'])s.objects.upgrades[id]??={level:1,useSeconds:0,stageUseSeconds:0,pressureSeconds:0,pressureEvidence:false,unlocked:1};
  s.spring.capacity=capacity(s,'spring');s.spring.snowWater??=0;
  const m=patch(s,'moss');m.cap=capacity(s,'moss');m.pool=0;m.drain=0;
+ if(s.shelters)dep('litter').init(s);
  return s;
 }
-function storedLeaf(s){return s.patches.reduce((v,p)=>v+p.O+p.U,0)+s.individuals.reduce((v,p)=>v+(p.carriedLeaf?.amount||0)+(p.rootLitter||0),0);}
+function storedLeaf(s){const L=dep('litter');return s.patches.reduce((v,p)=>v+p.O+p.U,0)+L.leaves(s).length+L.piles(s).reduce((v,p)=>v+p.O+p.U,0)+s.individuals.reduce((v,p)=>v+(p.carriedLeaf?.amount||0)+(p.rootLitter||0),0);}
 function migrate(s){
  if(s.objects)return s;
  // Only recognized older rules reach here; never convert an unknown save speculatively.
@@ -32,12 +37,13 @@ function migrate(s){
  return s;
 }
 function release(s,p,reason='complete'){
- if(p.carriedLeaf){const z=patch(s,p.carriedLeaf.pile);if(!z)throw Error('낙엽의 원래 자리를 찾지 못했어요.');z.O+=p.carriedLeaf.amount;p.objectContact={id:p.carriedLeaf.key+':put',cue:'putdown',tick:s.worldTick};delete p.carriedLeaf;}
+ if(p.carriedLeaf){const z=patch(s,p.carriedLeaf.pile)||patch(s,'litter');if(!z)throw Error('낙엽의 원래 자리를 찾지 못했어요.');z.O+=p.carriedLeaf.amount;p.objectContact={id:p.carriedLeaf.key+':put',cue:'putdown',tick:s.worldTick};delete p.carriedLeaf;}
  if(p.objectTask){p.lastObject={object:p.objectTask.object,kind:p.objectTask.kind,tick:s.worldTick};delete p.objectTask;}
  delete p.objectWait;delete p.objectArrived;delete p.objectDebug;
  if(reason!=='replace'){delete p.nextObjectChoice;p.target=null;p.action='wander';p.actionSeconds=0;}
 }
 function invalidate(s){for(const p of s.individuals)if(p.objectTask||p.carriedLeaf)release(s,p,'layout');}
+function relayout(s){if(s.objects?.litter)dep('litter').relocate(s);}
 function springWater(s){
  const E=dep('environment'),z=s.spring,st=s.objects;if(st.lastResourceTick===s.worldTick)return;
  const rain=12/60*E.precipitation(s,'rain')*3,snow=12/60*E.precipitation(s,'snow')*3;
@@ -49,18 +55,17 @@ function springWater(s){
 function resources(s){
  const st=s.objects;if(st.lastResourceTick===s.worldTick)return;springWater(s);
  const day=Math.floor(s.worldTick/1200);if(day!==st.dayIndex){st.dayIndex=day;st.arrivedToday=0;st.dayQuota=daily[level(s,'litter')-1];}
- const z=patch(s,'litter'),wind=s.weather.wind>=60?2:s.weather.wind>=45?1.5:1;
- const add=Math.max(0,Math.min(st.dayQuota/1200*wind,st.dayQuota-st.arrivedToday,capacity(s,'litter')-storedLeaf(s)));
- z.O+=add;st.arrivedToday+=add;st.ledger.leafInput+=add;
- const amount=Math.min(z.O,litterRates(s).perMinute/60);z.O-=amount;z.U+=amount;st.decomposedTotal+=amount;
- st.overflow=Math.max(0,storedLeaf(s)-capacity(s,'litter'));st.lastResourceTick=s.worldTick;
+ // v2.24 step 1: leaves fall one at a time into world sectors; only floor leaves gate the fall (not compost).
+ if(!st.litter)dep('litter').init(s);dep('litter').step(s);
+ st.lastResourceTick=s.worldTick;
 }
-function litterRates(s){const z=patch(s,'litter'),M=moist(z),factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,boost=s.objects.playBoostUntil>0&&s.objects.playBoostUntil>=s.worldTick?3:1;return {factor,boost,perMinute:.5*factor*boost};}
+function litterRates(s,id='litter'){return dep('litter').rates(s,patch(s,id));}
 function footprint(p){const Sh=dep('shelter'),Space=dep('spatial');return {rx:Space.diameter(p)*Sh.growth(p)*.34,ry:.007*Sh.growth(p)};}
 function region(s,id,kind='rest'){
  const z=patch(s,id),g=scale(s,id);if(!z)return null;
  if(id==='moss')return {x:z.x,y:z.y-.03,rx:.12*g,ry:.038*g};
  if(id==='litter')return {x:z.x,y:z.y-.035,rx:.10*g,ry:.034*g};
+ if(isPile(id))return {x:z.x,y:z.y,rx:.06,ry:.026};
  if(id==='spring')return kind==='edgeDrink'?{x:z.x+.105*g,y:z.y+.038*g,rx:.04*g,ry:.027*g}:{x:z.x,y:z.y+.017*g,rx:.067*g,ry:.027*g};
  if(id==='shade')return {x:z.x-.055,y:z.y+.05,rx:.075,ry:.032};
  if(id==='rock')return dep('spatial').rockTop(s);
@@ -74,7 +79,7 @@ function groundAt(s,p){
  if(dep('shelter').inside(s,p))return patch(s,'shelter');
  return s.patches.filter(z=>z.id!=='shelter'&&fits(s,p,z.id,p,'rest')).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0]||null;
 }
-function spaceCapacity(s,id){return id==='moss'?(level(s,id)+1)*4:id==='spring'?12:8;}
+function spaceCapacity(s,id){return id==='moss'?(level(s,id)+1)*4:id==='spring'?12:isPile(id)?4:8;}
 function used(s,id,exclude){const Sh=dep('shelter');return s.individuals.filter(p=>p.id!==exclude&&p.active&&p.objectTask?.object===id).reduce((n,p)=>n+Sh.units(p),0);}
 function dry(s,id){const z=patch(s,id);return z&&moist(z)<40&&z.W<=.5;}
 function windAt(s,p,q,id){
@@ -127,12 +132,15 @@ function option(s,p,id,kind,reason,free=false){
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
   if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:-30;
-  if(free)score=30+(id==='moss'?(p.personality.c||0)*3:id==='litter'?(p.personality.a||0)*3:0);
+  if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
  }
  return {object:id,kind,fail};
 }
+// Piles with something to use come first (nearest to the old spot order is by id for determinism); the old litter spot stays usable.
+// Only the two nearest usable piles are routed (routing every pile each choice is costly); the old spot stays a fallback.
+function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O'?z.O>=.5:z.U>eps).sort((a,b)=>(p?Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y):0)||a.id.localeCompare(b.id)).slice(0,2).map(z=>z.id);return [...ps,'litter'];}
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
@@ -146,14 +154,14 @@ function choose(s,p,rng){
  const definitions=[];const add=(id,k,r,free=false)=>definitions.push([id,k,r,free]);
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
  else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
- else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75))add('litter','nutrition','nutrition');
+ else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of litterSpots(s,'U',p))add(id,'nutrition','nutrition');}
  else if(n.energy){for(const id of ['shelter','moss','shade','rock','crevice'])add(id,id==='moss'?'moss':'rest','energy');}
- else if(n.mood){add('moss','moss','mood');add('litter','litterPlay','mood');add('spring','splash','mood');}
+ else if(n.mood){add('moss','moss','mood');for(const id of litterSpots(s,'O',p))add(id,'litterPlay','mood');add('spring','splash','mood');}
  else if(!current&&p.action==='rest'&&p.target==='shelter'){add('shelter','rest','free',true);}
  else {
   // Free visits preserve species expression without competing with actual needs.
   const roll=rng(s,'behavior');if(roll<.25&&!current){p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  const free=[['moss','moss'],['litter','litterPlay'],['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],['shelter','rest']];const first=Math.floor(roll*free.length)%free.length;
+  const free=[['moss','moss'],[litterSpots(s,'O',p)[0],'litterPlay'],['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],['shelter','rest']];const first=Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
  const options=[];for(const d of definitions){const o=option(s,p,...d);options.push(o);if(d[3]&&!o.fail)break;}p.objectDebug=options.map(o=>({object:o.object,kind:o.kind,score:o.score,reason:o.fail||'eligible'}));
@@ -206,14 +214,14 @@ function receive(s,p,requests){
   add(s.spring,'water',Math.min(6/60,65-p.B),n=>{p.B+=n;p.motion.water=n;if(n>0&&p.B>=65-eps){p.objectNeeds??=needs(p);p.objectNeeds.water=false;if(!t.hydrationComplete){t.hydrationComplete=true;p.justDrank=true;}}});
  }
  else if(t.kind==='litterPlay'){
-  if(!p.carriedLeaf&&z.O>=.5){z.O-=.5;p.carriedLeaf={amount:.5,pile:'litter',key:'leaf:'+p.id+':'+t.serial};p.objectContact={id:p.carriedLeaf.key+':pick',cue:'pickup',tick:s.worldTick};}
-  if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';s.objects.playBoostUntil=s.worldTick+120;}
+  if(!p.carriedLeaf&&z.O>=.5){z.O-=.5;p.carriedLeaf={amount:.5,pile:t.object,key:'leaf:'+p.id+':'+t.serial};p.objectContact={id:p.carriedLeaf.key+':pick',cue:'pickup',tick:s.worldTick};}
+  if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';if(isPile(t.object))z.playBoostUntil=s.worldTick+120;else s.objects.playBoostUntil=s.worldTick+120;}
  }else if(t.kind==='nutrition'){
   add(z,'U',Math.min(1/60,70-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=70-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
  // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
  if(t.free||t.kind==='splash'){t.remaining--;if(t.remaining<=0)t.complete=true;}
- const meta=s.objects.upgrades[t.object];if(meta&&meta.lastUsedTick!==s.worldTick){meta.useSeconds++;meta.stageUseSeconds++;meta.lastUsedTick=s.worldTick;}
+ const meta=s.objects.upgrades[kindOf(t.object)];if(meta&&meta.lastUsedTick!==s.worldTick){meta.useSeconds++;meta.stageUseSeconds++;meta.lastUsedTick=s.worldTick;}
  return ['moss','rest'].includes(t.kind);
 }
 function rootRequests(s,p,requests){
@@ -227,7 +235,7 @@ function upgradeStatus(s,id){const m=s.objects.upgrades[id];if(!m)return null;re
 function progress(s){
  for(const id of ['spring','litter','moss']){const m=s.objects.upgrades[id],z=patch(s,id);let pressure=false;
   if(id==='spring')pressure=s.spring.water<=s.spring.capacity*.1&&s.individuals.some(p=>p.active&&p.B<35);
-  if(id==='litter')pressure=storedLeaf(s)>=capacity(s,id)*.9&&s.objects.arrivedToday<s.objects.dayQuota;
+  if(id==='litter')pressure=dep('litter').floor(s)>=dep('litter').LCAP*.9&&s.objects.arrivedToday<s.objects.dayQuota;
   if(id==='moss')pressure=s.individuals.some(p=>p.objectWait?.object==='moss'&&p.objectWait.reason==='capacity');
   m.pressureSeconds=pressure?Math.min(10,m.pressureSeconds+1):0;if(m.pressureSeconds>=10)m.pressureEvidence=true;
   if(m.level<3&&m.stageUseSeconds>=(m.level===1?180:360)&&m.pressureEvidence)m.unlocked=Math.max(m.unlocked,m.level+1);
@@ -247,10 +255,10 @@ function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level+
 function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
- if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return names[t.object]+'로 가고 있어요';
+ if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
  if(t.object==='moss')return patch(s,'moss').S<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';
  if(t.kind==='splash')return p.motion?.water>0?'샘터에서 물장구를 치며 물도 마시고 있어요':'샘터에서 살짝 물장구를 치고 있어요';
- return ({nutrition:'분해된 낙엽에서 영양을 얻고 있어요',litterPlay:'낙엽을 가지고 놀고 있어요',splash:'샘터에서 물장구를 치며 물도 마시고 있어요',drink:'물가에서 천천히 물을 마시고 있어요',edgeDrink:'마른 가장자리에서 물을 마시고 있어요',rootDrink:'바위틈에 남은 물기를 느끼고 있어요'})[t.kind]||names[t.object]+'에서 쉬고 있어요';
+ return ({nutrition:'분해된 낙엽에서 영양을 얻고 있어요',litterPlay:'낙엽을 가지고 놀고 있어요',splash:'샘터에서 물장구를 치며 물도 마시고 있어요',drink:'물가에서 천천히 물을 마시고 있어요',edgeDrink:'마른 가장자리에서 물을 마시고 있어요',rootDrink:'바위틈에 남은 물기를 느끼고 있어요'})[t.kind]||nameOf(t.object)+'에서 쉬고 있어요';
 }
 function validate(s){
  const st=s.objects,f=(v,max=1e15)=>Number.isFinite(v)&&v>=0&&v<=max;
@@ -258,8 +266,8 @@ function validate(s){
  if(!st||st.version!==1||!Number.isSafeInteger(st.nextSession)||st.nextSession<1||!Number.isInteger(st.dayIndex)||!f(st.dayIndex)||!f(st.arrivedToday,st.dayQuota+eps)||!daily.includes(st.dayQuota)||!f(st.playBoostUntil)||!f(st.decomposedTotal))throw Error('오브젝트 순환 기록을 확인해 주세요.');
  for(const [id,m]of Object.entries(st.upgrades)){if(!capacities[id]||![1,2,3].includes(m.level)||![1,2,3].includes(m.unlocked)||m.unlocked<m.level||!f(m.useSeconds)||!f(m.stageUseSeconds)||!f(m.pressureSeconds,10)||typeof m.pressureEvidence!=='boolean')throw Error('확장 기록을 확인해 주세요.');}
  if(Object.keys(st.upgrades).length!==3||!f(st.ledger.leafInput)||!f(st.ledger.absorbed)||!f(s.spring.water,s.spring.capacity+eps)||!f(s.spring.snowWater,36+eps))throw Error('자원 원장을 확인해 주세요.');
- const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');
- for(const p of s.individuals){const t=p.objectTask;if(t&&(!names[t.object]||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
+ if(st.litter)dep('litter').validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
+ for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterRates,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters)dep('litter').init(s);return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });
