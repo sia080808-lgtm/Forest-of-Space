@@ -215,3 +215,11 @@
 - 테스트: `litter-sectors.test.cjs`(7) 추가. 갱신: `objects219`(classic 도우미·14/15 재작성·27 하루 전환 ≤1장), `object-cards`(더미 카드·바닥 낙엽 여유), `update218`(서식 차단 시 섹터 낙엽도 비움). `npm test` 227/227, `npm run test:ui` PASS.
 - 검수: `tools/litter-review.cjs` → `docs/qa-0.6.20/runtime`(보존식·새 게임/기존 저장 통계·렌더). 성능 Node 1명 1.77→2.18ms/틱.
 - 미검증: Android 실기기, 장기 영양 밸런스(1명 기준 영양 58 유지 확인뿐). 다음: 패치 6(생물: 개미·톡토기 → 잎응애·잎지기(기본 기후 국소 건조) → 뿌리파리·흙지기·P03).
+- 병합·릴리스: PR #20(https://github.com/sia080808-lgtm/Forest-of-Space/pull/20) main 병합 `d7e197c94e15ce4b0efa8b7bf746b877a5b2a4c7`(사용자 "ㄱㄱ"; head `8d010c1` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.20 `Forest-of-Space-0.6.20.apk` 38,746,688 bytes, SHA-256 `974ec80a80b44929a730ec17b28f75dc745cf842f7952ec50c1cba5a07063972` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode37/0.6.20, `litter.js` 포함.
+
+### CREATURES-DRAFT-20261118 — 패치 6 생물 시안 (게임 미연결)
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(패치 6) 후 "일단 캐릭터 디자인 움직이는 것부터 보여줘".
+- `creature-art.js`(짐꾼개미: 3마디·삼각 보행 다리 6개·꺾인 더듬이·낙엽 조각 운반·둔덕 둥지 / 톡토기: 회보라 둥근 몸·도약기 펴는 점프). 렌더 위상만 사용, 난수·상태 불변. 아직 index.html·scene.js에 연결하지 않음.
+- 시안 `docs/qa-creatures-draft/design-sheet.png`, `creatures-world.mp4`(실제 scene 확대 위 합성), 생성 스크립트 `tools/creatures-preview.cjs`. 커밋 `ede98b3`(작업 브랜치, PR 없음).
+- 다음: 사용자 시안 피드백 → 6a 구현(공통 유입 600초 보호·180초 20%·600초당 1집단, 개미 90초/장 실제 운반, 톡토기 더미별 Fspring 1.25·120초 적합/이탈, 엘리시 근처 톡토기 30→40%).
