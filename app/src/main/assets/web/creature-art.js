@@ -92,7 +92,7 @@ function leafMite(c,assets,{x=0,y=0,size=4,kind='spider',dir=1,phase=0,still=fal
 function silk(c,pts,alpha=.35){if(pts.length<2)return;c.save();c.strokeStyle=`rgba(255,255,250,${alpha})`;c.lineWidth=.35;c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];c.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-.4,b.x,b.y);}c.stroke();c.restore();}
 // Other SRS sheet neighbours (D04.20~24: 03 점박이, 04 흙지기, 07 뿌리날파리 성충·유충, 09 솜깍지·알주머니), cut with
 // tools/cut-srs-neighbour.py. All face left in the sheet. size = body length in world px; anchor = feet / lowest point.
-const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:261,foot:.97},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:256,foot:.95},mealybugSac:{w:105,foot:.9}};
+const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:261,foot:.985},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:256,foot:.95},mealybugSac:{w:105,foot:.9}};
 function neighbour(c,assets,key,{x=0,y=0,size=6,dir=1,phase=0,still=false,lift=0,alpha=1}={}){const im=assets[key],m=SHEET[key];if(!im||!m)return;const k=size/m.w,bob=still?0:Math.sin(phase*9)*size*.03;
  c.save();if(alpha<1)c.globalAlpha*=alpha;c.translate(x,y+bob-lift);c.scale(-dir*k,k);c.translate(-im.width/2,-im.height*m.foot);
  if(key==='rootGnatLarva')wriggle(c,im,phase,still);else if(!drawRig(c,assets,key,phase,still,key==='rootGnat'?'fly':'walk'))c.drawImage(im,0,0);c.restore();}
