@@ -431,3 +431,5 @@
   - `engine.js`·`recruitment.js`: 주렁을 코로나로 바꾸고, 저장된 이름을 불러올 때 옮긴다(별명은 유지).
   - 버전 0.6.32 / versionCode 49.
 - 검증: `npm test` 274/274(`names-030` 코로나 추가), `npm run test:ui` PASS(작은 이웃 도감 검사 추가). 화면 `docs/qa-0.6.32/runtime`. Android 실기기 미검증.
+- 병합·릴리스: PR #32(https://github.com/sia080808-lgtm/Forest-of-Space/pull/32) main 병합 `8c1fcfbdc3fc85081a8b18c215bb8557e8e5e675`(사용자 "ㄱㄱ"; head `8efbfe0` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.32 `Forest-of-Space-0.6.32.apk` 40,623,323 bytes, SHA-256 `d0bcac2e14e03b431d2f2da4e2f5a0423583f2b533537ba13f5378c1d59e2290` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode49/0.6.32, APK 안 코로나 이름·작은 이웃 도감 그림 포함 확인.
+- 사용자 질문 "개미가 솜깍지 쫓아줌?": 아니다, 개미는 감로 20 이상이면 솜깍지를 지켜 점박이 포식을 0.5배로 늦춘다(X04). 감로는 밀도 50 초과에서만 쌓여 현재 밸런스에서는 거의 안 나온다고 안내. 기준 조정은 사용자 결정 대기.
