@@ -6,8 +6,8 @@ const F=require(web+'/engine'),Rig=require(web+'/rig'),C=F.Creatures,O=F.Objects
 const game=(seed,climate)=>{const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;s.environment.climate=climate;return s;};
 const KINDS=['ant','springtail','mite','keeper','gnat','soilmite','mealy','lady'];
 (async()=>{fs.mkdirSync(out,{recursive:true});const report=[];
- for(const climate of (process.env.QUICK?[]:['C01','C02','C04']))for(let seed=1;seed<=8;seed++){const s=game(seed,climate),base=O.storedLeaf(s);const first={};let tend=0,maxLarvae=0,maxMealy=0,maxHoney=0,maxGroups=0,maxHarm=0;const prev=new Map();
-  for(let t=0;t<3600;t++){const before=new Map(s.individuals.map(p=>[p.id,p.damage+p.burden-p.nutrition]));F.step(s);for(const g of C.groups(s)){first[g.kind]??=s.worldTick;if(g.kind==='gnat')maxLarvae=Math.max(maxLarvae,g.larvae);if(g.kind==='mealy'){maxMealy=Math.max(maxMealy,g.density);maxHoney=Math.max(maxHoney,g.honey);}if(g.kind==='ant'&&g.tend)tend++;}
+ for(const climate of (process.env.QUICK?[]:['C01','C02','C04']))for(let seed=1;seed<=8;seed++){const s=game(seed,climate),base=O.storedLeaf(s);const first={};let tend=0,maxLarvae=0,maxMealy=0,maxHoney=0,maxGroups=0;
+  for(let t=0;t<3600;t++){F.step(s);for(const g of C.groups(s)){first[g.kind]??=s.worldTick;if(g.kind==='gnat')maxLarvae=Math.max(maxLarvae,g.larvae);if(g.kind==='mealy'){maxMealy=Math.max(maxMealy,g.density);maxHoney=Math.max(maxHoney,g.honey);}if(g.kind==='ant'&&g.tend)tend++;}
    maxGroups=Math.max(maxGroups,C.groups(s).length);assert.ok(C.pestKinds(s).size<=2);if(t%1200===0)F.valid(s);}
   const l=s.objects.ledger;assert.ok(Math.abs(O.storedLeaf(s)+l.absorbed+(l.soil||0)-l.leafInput-base)<1e-6,'leaf conservation');
   report.push({climate,seed,...Object.fromEntries(KINDS.map(k=>[k,first[k]??null])),maxLarvae:+maxLarvae.toFixed(1),maxMealy:+maxMealy.toFixed(1),maxHoney:+maxHoney.toFixed(1),tendSeconds:tend,maxGroups,eaten:+s.objects.creatures.log.eaten.toFixed(1)});}

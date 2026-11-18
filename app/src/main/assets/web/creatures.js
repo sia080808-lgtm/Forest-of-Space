@@ -144,7 +144,7 @@ function ladyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.
 function predatorArrivals(s,event,kind,readyKey,prey,fit,make,msg){const st=state(s);
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){const has=groups(s).some(g=>g.kind===kind&&g.host===p.id);if(has||!prey(p)||!fit(p)){if(!has)st[readyKey][p.id]=0;continue;}
   const r=st[readyKey][p.id]=(st[readyKey][p.id]||0)+1;if(st.groups.length>=MAXG||r<KEEPER.READY)continue;
-  if(r>=KEEPER.SURE||((r-KEEPER.READY)%KEEPER.EVERY===0&&rnd(s)<KEEPER.CHANCE)){st.groups.push({id:'cr:'+st.nextId++,kind,host:p.id,since:s.worldTick,bad:0,eaten:0,lastWork:s.worldTick,carry:null,...make(p)});st[readyKey][p.id]=0;st.log.arrived++;event?.(s,'creature',msg(p));}}}
+  if(r>=KEEPER.SURE||((r-KEEPER.READY)%KEEPER.EVERY===0&&rnd(s)<KEEPER.CHANCE)){st.groups.push({id:'cr:'+st.nextId++,kind,host:p.id,since:s.worldTick,bad:0,eaten:0,lastWork:s.worldTick,carry:null,...make()});st[readyKey][p.id]=0;st.log.arrived++;event?.(s,'creature',msg(p));}}}
 function soilArrivals(s,event){const st=state(s);
  for(const z of sites(s)){const has=groups(s).some(g=>g.kind==='soilmite'&&g.site===z.id),f=gnatAt(s,z.id);if(has||!f||f.larvae+f.eggs<SOIL.MIN_PREY||!soilFit(s,z)){if(!has)st.soilReady[z.id]=0;continue;}
   const r=st.soilReady[z.id]=(st.soilReady[z.id]||0)+1;if(st.groups.length>=MAXG||r<KEEPER.READY)continue;
