@@ -1,4 +1,4 @@
-const {test}=require('node:test'),a=require('node:assert/strict'),F=require('../../app/src/main/assets/web/engine'),C=F.Creatures,O=F.Objects,L=F.Litter;
+const {test}=require('node:test'),a=require('node:assert/strict'),F=require('../../app/src/main/assets/web/engine'),C=F.Creatures,L=F.Litter;
 function game(seed=5){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;const p=s.individuals[0];p.x=.8;p.y=.8;C.init(s);const st=s.objects.creatures;st.lastArrival=1e9;st.lastPest=1e9;return s;}
 const spot=s=>s.patches.find(z=>z.id==='litter');
 function drained(s,M=60){const z=spot(s);z.S=z.cap*M/100;z.W=0;z.O=Math.max(z.O,5);z.U=Math.max(z.U,5);return z;}

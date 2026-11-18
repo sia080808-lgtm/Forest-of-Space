@@ -25,7 +25,7 @@ const KINDS=['ant','springtail','mite','keeper','gnat','soilmite','rove','mealy'
  scene('root-gnats-soilmite',st=>{add(st,{kind:'gnat',site:'litter',adults:8,eggs:4,larvae:16,low:0,fit:200});add(st,{kind:'soilmite',site:'litter',eaten:0});},4,st=>({x:spot(st).x,y:spot(st).y-.01}));
  scene('mealybugs',(st,p)=>{add(st,{kind:'mealy',host:p.id,density:60,honey:30,low:0});},4,(st,p)=>({x:p.x,y:p.y-.03}));
  scene('mealybugs-ladybird-ant',(st,p)=>{add(st,{kind:'mealy',host:p.id,density:45,honey:25,low:0});add(st,{kind:'lady',host:p.id,stage:'larva',eaten:0});add(st,{kind:'ant',nest:{x:.3,y:.7},tend:p.id});},4,(st,p)=>({x:p.x,y:p.y-.03}));
- scene('rove-beetle',st=>{const z=spot(st),cr=st.patches.find(q=>q.id==='crevice');add(st,{kind:'gnat',site:'litter',adults:6,eggs:4,larvae:20,low:0,fit:200});add(st,{kind:'rove',site:'litter',hide:cr.id,eaten:0});},4,st=>({x:spot(st).x,y:spot(st).y-.01}));
+ scene('rove-beetle',st=>{const cr=st.patches.find(q=>q.id==='crevice');add(st,{kind:'gnat',site:'litter',adults:6,eggs:4,larvae:20,low:0,fit:200});add(st,{kind:'rove',site:'litter',hide:cr.id,eaten:0});},4,st=>({x:spot(st).x,y:spot(st).y-.01}));
  scene('pillbug',st=>{st.neighbor.stage='visiting';for(const p of st.individuals){p.x=.9;p.y=.9;}},4,st=>{const c=st.patches.find(q=>q.id==='crevice');return {x:c.x+.04,y:c.y};});
  scene('pillbug-rolled',st=>{st.neighbor.stage='visiting';const c=st.patches.find(q=>q.id==='crevice');st.individuals[0].x=c.x+.06;st.individuals[0].y=c.y+.03;},4,st=>{const c=st.patches.find(q=>q.id==='crevice');return {x:c.x+.04,y:c.y};});
  if(!report.length)return;fs.writeFileSync(out+'/verification.json',JSON.stringify({renderer:'scene.js + @napi-rs/canvas (not Android WebView)',days:3,report},null,1));

@@ -14,7 +14,7 @@ CFG={'pillbug':{'box':(25,195,355,375),'fg':lambda L,a,b:(L<185)&(b<146),
      'pillbug-ball':{'box':(355,240,480,375),'fg':lambda L,a,b:(L<200)&(b<145)},
      'rove-beetle':{'box':(540,470,950,630),'fg':lambda L,a,b:(L<170)}}
 sheet=cv2.imread(sys.argv[1]);name=sys.argv[2];c=CFG[name];x0,y0,x1,y1=c['box'];img=sheet[y0:y1,x0:x1].copy();h,w=img.shape[:2]
-lab=cv2.cvtColor(img,cv2.COLOR_BGR2LAB).astype(int);L,a,b=lab[...,0],lab[...,1],lab[...,2];yy,xx=np.mgrid[:h,:w]
+lab=cv2.cvtColor(img,cv2.COLOR_BGR2LAB).astype(int);L,a,b=lab[...,0],lab[...,1],lab[...,2]
 green=(a<124)&(b>130);paper=(L>238)&(b<137);soil=(b>=146)&(L<232)&(L>120)
 mask=np.full((h,w),cv2.GC_PR_BGD,np.uint8)
 core=nd.binary_opening(c['fg'](L,a,b)&~green,iterations=2);lb,n=nd.label(core);core=lb==(1+int(np.argmax(nd.sum(core,lb,range(1,n+1)))))
