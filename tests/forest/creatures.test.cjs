@@ -2,11 +2,11 @@ const {test}=require('node:test'),a=require('node:assert/strict'),F=require('../
 const game=(seed=6)=>{const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;return s;};
 const balance=(s,base)=>O.storedLeaf(s)+s.objects.ledger.absorbed+(s.objects.ledger.soil||0)-s.objects.ledger.leafInput-base;
 
-test('ECO24-B01 no small neighbour arrives in the first 600 s; afterwards at most one new group per 600 s and 8 groups total',()=>{
- const s=game(3);for(let t=0;t<599;t++){F.step(s);a.equal(C.groups(s).length,0);}
- const arrivals=[];for(let t=0;t<3600*2;t++){const n=s.objects.creatures.log.arrived;F.step(s);if(s.objects.creatures.log.arrived>n)arrivals.push(s.worldTick);a.ok(C.groups(s).length<=8);}
- a.ok(arrivals.length>=1);for(let i=1;i<arrivals.length;i++)a.ok(arrivals[i]-arrivals[i-1]>=600,'spacing '+arrivals);
- a.ok(arrivals.every(t=>t%180===0));F.valid(s);
+test('ECO24-B01 nothing arrives in the first 600 s; then helpers and pests each add at most one new group per 600 s at the 180 s checks, 8 groups total',()=>{
+ const s=game(3),C2=C;for(let t=0;t<599;t++){F.step(s);a.equal(C.groups(s).length,0);}
+ const PEST=['mite','gnat','mealy'],PRED=['keeper','soilmite','lady'],seen=new Set(),arr={helper:[],pest:[]};
+ for(let t=0;t<3600*2;t++){F.step(s);for(const g of C2.groups(s))if(!seen.has(g.id)){seen.add(g.id);if(PRED.includes(g.kind))continue;arr[PEST.includes(g.kind)?'pest':'helper'].push(s.worldTick);}a.ok(C.groups(s).length<=8);a.ok(C.pestKinds(s).size<=2);}
+ a.ok(arr.helper.length>=1);for(const k of ['helper','pest']){const v=arr[k];a.ok(v.every(t=>t%180===0),k+' '+v);for(let i=1;i<v.length;i++)a.ok(v[i]-v[i-1]>=600,k+' spacing '+v);}F.valid(s);
 });
 
 test('ECO24-A01 a carrier ant moves real loose leaves into piles or gatherings; every leaf is conserved and none is created',()=>{

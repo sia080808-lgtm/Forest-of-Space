@@ -60,15 +60,27 @@ class ForestScene {
  // v2.24 6a small neighbours (state is only read here): ant nest + workers, a carrier with its real leaf, springtails on a pile.
  // spider mites and 잎지기 on a friend's leaves: a few tiny mites in the upper leaf area (count follows real density), fine
  // silk at higher density, 잎지기 crawling between them. Render only; positions are a fixed pattern per friend.
- leafNeighbours(p,pos,phase){const s=this.state(),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null,on=Forest.Creatures?.onLeaf?.(s,p.id);if(!Art||!on||(!on.mite&&!on.keeper))return;
+ leafNeighbours(p,pos,phase){const s=this.state(),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null,on=Forest.Creatures?.onLeaf?.(s,p.id);if(!Art||!on||(!on.mite&&!on.keeper&&!on.mealy&&!on.lady&&!on.ant))return;
   const c=this.ctx,k=this.petSize(p)/48,cx=pos.x*this.w,cy=pos.y*this.h,still=s.settings.reducedMotion,t=still?0:phase,seed=[...p.id].reduce((a,ch)=>a*31+ch.charCodeAt(0)>>>0,7);
   const LEAF=[[-6,-24],[0,-27],[5,-25],[-7,-18],[-1,-21],[5,-19],[-3,-15],[2,-14]],spot=i=>{const b=LEAF[(i+seed)%LEAF.length],j=((seed>>(i*3))%5-2)*.6;return {x:cx+(b[0]+j)*k,y:cy+(b[1]+j*.5)*k};};
   if(on.mite){const n=Math.max(1,Math.min(6,Math.ceil(on.mite.density/16))),pts=[];for(let i=0;i<n;i++){const q=spot(i),dx=still?0:Math.sin(t*.7+i*2.1)*1.2*k;pts.push({x:q.x+dx,y:q.y});}
    if(on.mite.density>=30)for(let i=1;i<pts.length;i++)if(Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y)<9*k)Art.silk(c,[pts[i-1],pts[i]],Math.min(.45,.15+on.mite.density/250));pts.forEach((q,i)=>Art.leafMite(c,this.assets,{x:q.x,y:q.y,size:3.2*k,kind:'spider',dir:i%2?1:-1,phase:t+i,still}));}
-  if(on.keeper){for(let i=0;i<(on.mite&&on.mite.density>=20?2:1);i++){const a=t*.5+i*Math.PI,x=cx+(-1+Math.cos(a)*6)*k,y=cy+(-20+Math.sin(a)*4)*k;Art.leafMite(c,this.assets,{x,y,size:4*k,kind:'keeper',dir:-Math.sin(a)>=0?1:-1,phase:t+i*.5,still});}}}
+  if(on.keeper){for(let i=0;i<(on.mite&&on.mite.density>=20?2:1);i++){const a=t*.5+i*Math.PI,x=cx+(-1+Math.cos(a)*6)*k,y=cy+(-20+Math.sin(a)*4)*k;Art.leafMite(c,this.assets,{x,y,size:4*k,kind:'keeper',dir:-Math.sin(a)>=0?1:-1,phase:t+i*.5,still});}}
+  // 솜깍지 at the leaf base (white waxy bodies), egg sacs from density 20, honeydew drops when real honeydew is there
+  if(on.mealy){const d=on.mealy.density,n=Math.max(1,Math.min(4,Math.ceil(d/15))),B=[[-9,-15],[5,-17],[-2,-14],[9,-19]];for(let i=0;i<n;i++){const b=B[(i+seed)%B.length];Art.neighbour(c,this.assets,'mealybug',{x:cx+b[0]*k,y:cy+b[1]*k,size:5*k,dir:i%2?1:-1,phase:t*.2+i,still});}
+   if(d>=20)for(let i=0;i<(d>=50?2:1);i++)Art.neighbour(c,this.assets,'mealybugSac',{x:cx+(i?11:-12)*k,y:cy+(i?-16:-13)*k,size:3.4*k,still:true});
+   if(on.mealy.honey>=10)Art.honeydew(c,cx-2*k,cy-11*k,2.6*k,on.mealy.honey);}
+  if(on.lady){const a=t*.4,x=cx+Math.cos(a)*8*k,y=cy+(-12+Math.sin(a)*3)*k;Art.neighbour(c,this.assets,'ladybird',{x,y,size:(on.lady.stage==='larva'?5:6)*k,dir:-Math.sin(a)>=0?1:-1,phase:t,still});}
+  if(on.ant){const a=t*.6;Art.antSprite(c,this.assets,{x:cx+(14+Math.cos(a)*3)*k,y:cy-1*k,size:9*k,dir:Math.cos(a)>0?-1:1,phase:t,still});}}
  drawCreatures(){const s=this.state(),C=s.objects?.creatures,Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;if(!C||!Art||!C.groups.length)return;
   const c=this.ctx,w=this.w,h=this.h,A=this.assets,t=s.settings.reducedMotion?0:this.phase,frac=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   for(const g of C.groups){
+   // 뿌리날파리 (adults hover low over the wet litter, larvae show at its edge) and 흙지기 crawling in the soil
+   if(g.kind==='gnat'||g.kind==='soilmite'){const z=Forest.Creatures.site(s,g.site);if(!z)continue;const zx=z.x*w,zy=(z.y-(g.site==='litter'?.03:0))*h,still=s.settings.reducedMotion;
+    if(g.kind==='gnat'){const nl=Math.min(3,Math.ceil(g.larvae/8));for(let i=0;i<nl;i++)Art.neighbour(c,A,'rootGnatLarva',{x:zx+(i-1)*w*.012,y:zy+w*.012+(i%2)*w*.004,size:w*.008,dir:i%2?1:-1,phase:t*.3+i,still});
+     const na=Math.min(4,Math.ceil(g.adults/6));for(let i=0;i<na;i++){const a=t*(1.3+i*.2)+i*1.7,x=zx+Math.cos(a)*w*.03,y=zy-w*.012+Math.sin(a*1.7)*w*.006;Art.neighbour(c,A,'rootGnat',{x,y,size:w*.012,dir:-Math.sin(a)>=0?1:-1,phase:t*3+i,still,lift:w*.01});}}
+    else{const a=t*.3,x=zx+Math.cos(a)*w*.02,y=zy+w*.008+Math.sin(a)*w*.005;Art.neighbour(c,A,'soilMite',{x,y,size:w*.011,dir:-Math.sin(a)>=0?1:-1,phase:t,still});}
+    continue;}
    if(g.kind==='ant'){const n=g.nest;Art.nestSprite(c,A,{x:n.x*w,y:n.y*h,size:w*.11});
     // two workers patrol around the nest
     for(let k=0;k<2;k++){const a=t*.35+k*Math.PI,x=n.x*w+Math.cos(a)*w*.06,y=n.y*h+w*.006+Math.sin(a)*w*.02,dir=-Math.sin(a)>=0?1:-1;Art.antSprite(c,A,{x,y,size:w*.03,dir,phase:t+k*.4,still:s.settings.reducedMotion});}

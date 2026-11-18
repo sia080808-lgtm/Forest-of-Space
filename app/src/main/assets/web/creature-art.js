@@ -48,7 +48,7 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
-const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png'};
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png',ladybird:'assets/forest/creatures/ladybird.png',soilMite:'assets/forest/creatures/soil-mite.png',rootGnat:'assets/forest/creatures/root-gnat.png',rootGnatLarva:'assets/forest/creatures/root-gnat-larva.png',mealybug:'assets/forest/creatures/mealybug.png',mealybugSac:'assets/forest/creatures/mealybug-eggsac.png'};
 // Springtail sprite in the SRS sheet style (tools/draw-springtail.cjs, 420x260, faces +x). Rests, then hops in a short
 // arc with the furcula flicked out; lands and turns. Render phase only.
 function springtailSprite(c,assets,{x=0,y=0,size=6,phase=0,seed=0,still=false}={}){
@@ -74,5 +74,12 @@ function leafMite(c,assets,{x=0,y=0,size=4,kind='spider',dir=1,phase=0,still=fal
  const k=size/150,bob=still?0:Math.sin(phase*9)*size*.04;c.save();c.translate(x,y+bob);c.scale(-dir*k,k);c.translate(-125,-80);c.drawImage(im,0,0);c.restore();}
 // Fine silk threads where many spider mites live (only drawn at higher density; SRS NB-08 '얇은 실').
 function silk(c,pts,alpha=.35){if(pts.length<2)return;c.save();c.strokeStyle=`rgba(255,255,250,${alpha})`;c.lineWidth=.35;c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];c.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-.4,b.x,b.y);}c.stroke();c.restore();}
-return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,ANT_FILES};
+// Other SRS sheet neighbours (D04.20~24: 03 점박이, 04 흙지기, 07 뿌리날파리 성충·유충, 09 솜깍지·알주머니), cut with
+// tools/cut-srs-neighbour.py. All face left in the sheet. size = body length in world px; anchor = feet / lowest point.
+const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:261,foot:.96},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:256,foot:.95},mealybugSac:{w:105,foot:.9}};
+function neighbour(c,assets,key,{x=0,y=0,size=6,dir=1,phase=0,still=false,lift=0,alpha=1}={}){const im=assets[key],m=SHEET[key];if(!im||!m)return;const k=size/m.w,bob=still?0:Math.sin(phase*9)*size*.03;
+ c.save();if(alpha<1)c.globalAlpha*=alpha;c.translate(x,y+bob-lift);c.scale(-dir*k,k);c.translate(-im.width/2,-im.height*m.foot);c.drawImage(im,0,0);c.restore();}
+// honeydew: a few glossy drops where many mealybugs feed (only drawn when honeydew is real)
+function honeydew(c,x,y,size,amount){const n=Math.min(4,Math.ceil(amount/25));c.save();for(let i=0;i<n;i++){const dx=(i-1.5)*size*.5,dy=(i%2)*size*.25;const g=c.createRadialGradient(x+dx-size*.06,y+dy-size*.06,0,x+dx,y+dy,size*.18);g.addColorStop(0,'rgba(255,248,214,.85)');g.addColorStop(1,'rgba(196,140,52,.3)');c.fillStyle=g;c.beginPath();c.arc(x+dx,y+dy,size*.16,0,Math.PI*2);c.fill();}c.restore();}
+return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,neighbour,honeydew,SHEET,ANT_FILES};
 });
