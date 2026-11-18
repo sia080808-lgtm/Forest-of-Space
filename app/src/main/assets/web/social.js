@@ -11,7 +11,7 @@ function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const 
 // Legacy water collection by bonbon has been retired; rain remains entirely in the ground water ledger.
 function rain(s,patch,budget,held){return budget;}
 // Ellisii shelters small visitors only when a real compatible microhabitat exists.
-function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;return moisture>=40&&moisture<=75&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
+function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return moisture>=40&&E.precipitation(s,'rain')<.6&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
 function shades(s){return s.individuals.filter(p=>p.species==='neolbi'&&W.live(s,p));}
 function shadeAt(p,q){return Neolbi.covers(p,q);}

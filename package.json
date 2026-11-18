@@ -1,6 +1,6 @@
 {
   "name": "forest-of-space",
-  "version": "0.6.21",
+  "version": "0.6.22",
   "private": true,
   "scripts": {
     "test": "node --test tests/forest/*.test.cjs",
