@@ -16,7 +16,6 @@ GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');
  const ctx={ForestNeolbi:require(web+'/neolbi'),Forest:F,ForestRig:Rig,ForestEffects:require(web+'/world-effects'),ForestCamera:require(web+'/camera'),ForestSurfaces:require(web+'/surfaces'),ResizeObserver:class{observe(){}},devicePixelRatio:1,document:{querySelector:()=>null,createElement:()=>createCanvas(512,512)},requestAnimationFrame:()=>{}};
  vm.createContext(ctx);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene;',ctx);
  const sc=new ctx.Scene(canvas,()=>s);sc.assets=assets;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.dt=.1;sc.camera.z=3.2;sc.camera.cx=.47;sc.camera.cy=.53;sc.camera.clamp();
- const leafCrop=[594,690,180,100];// a piece of the litter sprite
  const nestP={x:.40,y:.585},pileP={x:.56,y:.515};
  const FR=120,fps=20;
  for(let f=0;f<FR;f++){const t=f/fps;sc.phase=t;sc.draw();const c=canvas.getContext('2d');c.save();c.setTransform(1,0,0,1,0,0);c.translate(sc.camera.tx,sc.camera.ty);c.scale(sc.camera.scale,sc.camera.scale);const w=sc.w,h=sc.h,P=q=>[q.x*w,q.y*h];
