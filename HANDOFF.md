@@ -410,3 +410,12 @@
   - 보송을 베이치로 바꿨다(`engine.js` 종 목록·불러오기 이름 이전, `recruitment.js`). `names-030.test.cjs`를 추가했다.
   - `npm test` 272/272, UI PASS.
 - 남은 일: 도감 미기록 종 확인. Android 실기기 미검증.
+- 병합·릴리스: PR #30(https://github.com/sia080808-lgtm/Forest-of-Space/pull/30) main 병합 `7403c893b67714d58db63e5e87468e7e1c7f9d51`(사용자 "ㄱㄱ"; head `fe7abc6` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.30 `Forest-of-Space-0.6.30.apk` 40,623,323 bytes, SHA-256 `6c7a4ce9d5fe5cebafad7998612f792aa25022eb8db03420ee940ac6036c7f14` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode47/0.6.30, APK 안 engine.js VERSION 0.6.30·베이치 이름·첫 만남 `springAt` 포함 확인.
+
+### ROCK-RIDER-0.6.31-20261118 — 햇살 바위 위 친구가 바위에 가려지던 문제
+
+- 담당: Claude Code. 기준 main `7403c89`(0.6.30 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 0.6.30 실기기 제보 "햇살바위에서 쉬고 있을 때 다른 케릭이 근처로 지나가면 햇살바위가 쉬고 있던 케릭터 위로 올라옴".
+- 원인: 친구마다 앞쪽 돌을 다시 그려 가리는 과정에서, 바위 뒤를 지나는 친구 때문에 다시 그린 바위가 먼저 그려진 바위 위 친구까지 덮었다.
+- 수정: `scene.js`에서 이번 화면의 바위 위 친구를 기억해 두고, 햇살 바위를 다시 그린 직후 그 친구들을 다시 그린다. 렌더 전용 변경. 버전 0.6.31 / versionCode 48.
+- 검증: `npm test` 273/273(`rock-rider.test.cjs` 추가, 수정 전 코드에서 실패), `npm run test:ui` PASS. 비교 이미지 `docs/qa-0.6.31/runtime`. Android 실기기 미검증.

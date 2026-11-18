@@ -176,6 +176,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    const rolled=s.weather.wind>=60||s.individuals.some(q=>q.active&&!q.mounted&&Math.hypot(q.x-bx,q.y-by)<.08),still=s.settings.reducedMotion,tt=still?0:this.phase;
    if(Art&&this.assets.pillbug){if(rolled)Art.neighbour(c,this.assets,'pillbugBall',{x:bx*w,y:by*h,size:w*.02,still:true});else{const sw=Math.sin(tt*.25),x=(bx+sw*.012)*w;Art.neighbour(c,this.assets,'pillbug',{x,y:by*h,size:w*.04,dir:Math.cos(tt*.25)>=0?1:-1,phase:tt,still});}}
    else{const x=bx*w,y=by*h;c.fillStyle='#777a69';c.beginPath();c.ellipse(x,y,5,3.6,-.2,0,Math.PI*2);c.fill();}}
+  const riders=[];// friends drawn on top of the sun rock this frame (0.6.31)
   for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>a.y-b.y)){
    const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y};
    if(motion?.tick===s.worldTick&&motion.distance>0){let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};for(let i=1;i<path.length;i++){const d=Forest.Space.distance(path[i-1],path[i]),n=Math.min(d,remaining);if(d)pos={x:path[i-1].x+(path[i].x-path[i-1].x)*n/d,y:path[i-1].y+(path[i].y-path[i-1].y)*n/d};remaining-=n;if(remaining<=0)break;}}
@@ -186,7 +187,10 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}
    if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
    if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
-   if(!carry)for(const z of patches.filter(z=>['rock','crevice','shade'].includes(z.id)&&z.y>pos.y&&Math.abs(z.x-pos.x)<.22&&!(z.id==='rock'&&this.onRock(pos))))this.terrain(z);
+   if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
+   // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
+   // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)
+   if(!carry)for(const z of patches.filter(z=>['rock','crevice','shade'].includes(z.id)&&z.y>pos.y&&Math.abs(z.x-pos.x)<.22&&!(z.id==='rock'&&this.onRock(pos)))){this.terrain(z);if(z.id==='rock')for(const [q,qpos,qkind,qphase] of riders)if(q!==p){this.pet(q,qpos,qkind,qphase,night,qkind==='held');this.leafNeighbours(q,qpos,qphase);}}
    const b=document.querySelector('[data-pet="'+p.id+'"]');if(b){const point=this.camera.screen(pos),size=this.petSize(p)*this.camera.scale;b.style.left=point.x+'px';b.style.top=point.y+'px';b.style.width=Math.max(48,size*.8)+'px';b.style.height=Math.max(48,size*.9)+'px';b.hidden=carry||point.x<0||point.x>this.vw||point.y<0||point.y>this.vh;}
    if(!carry&&s.mode==='game'&&motion?.tick===s.worldTick&&s.worldTick>(this.silentTick??-1)){const id=p.id+':'+s.worldTick;
     if(p.objectContact?.tick===s.worldTick&&!this.inspector)this.onMarker?.(p.objectContact.id,p.objectContact.cue,p.id);
