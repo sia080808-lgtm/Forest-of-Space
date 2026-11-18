@@ -55,6 +55,20 @@ class ForestScene {
   for(const p of L.piles){const x=p.x*w,y=p.y*h,seed=+p.id.slice(5)||1,n=Math.ceil(p.O-1e-6),R=w*(.03+.02*Math.min(1,(p.O+p.U)/12));
    if(p.U>.01)this.compostStain(x,y+R*.1,R*1.6,R*.6,.45+.55*Math.min(1,p.U/8),seed);
    for(let k=n-1;k>=0;k--){const a=k*2.399+seed*1.7,rad=Math.sqrt((k+.5)/Math.max(n,1))*R,alpha=Math.min(1,p.O-k);this.drawFallenLeaf(x+Math.cos(a)*rad,y+Math.sin(a)*rad*.45-(n-k)/Math.max(n,1)*R*.5,a*1.3,size*(1.1+.12*((k*7+seed)%3)/2),k+seed,Math.max(.25,alpha));}}
+  this.drawCreatures();
+ }
+ // v2.24 6a small neighbours (state is only read here): ant nest + workers, a carrier with its real leaf, springtails on a pile.
+ drawCreatures(){const s=this.state(),C=s.objects?.creatures,Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;if(!C||!Art||!C.groups.length)return;
+  const c=this.ctx,w=this.w,h=this.h,A=this.assets,t=s.settings.reducedMotion?0:this.phase,frac=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
+  for(const g of C.groups){
+   if(g.kind==='ant'){const n=g.nest;Art.nestSprite(c,A,{x:n.x*w,y:n.y*h,size:w*.11});
+    // two workers patrol around the nest
+    for(let k=0;k<2;k++){const a=t*.35+k*Math.PI,x=n.x*w+Math.cos(a)*w*.06,y=n.y*h+w*.006+Math.sin(a)*w*.02,dir=-Math.sin(a)>=0?1:-1;Art.antSprite(c,A,{x,y,size:w*.03,dir,phase:t+k*.4,still:s.settings.reducedMotion});}
+    if(g.carry){// walk out from the nest to the leaf (the leaf still lies there), then carry it to the destination
+     const q=g.carry,u=Math.min(1,Math.max(0,(s.worldTick-q.start+frac)/Math.max(1,q.arrive-q.start))),d1=Math.hypot(q.fromX-n.x,q.fromY-n.y),d2=Math.hypot(q.to.x-q.fromX,q.to.y-q.fromY),split=d1/Math.max(1e-6,d1+d2);
+     if(u<split){const v=u/split,x=(n.x+(q.fromX-n.x)*v)*w,y=(n.y+(q.fromY-n.y)*v)*h;this.drawFallenLeaf(q.fromX*w,q.fromY*h,q.rot,.23*w*.62,q.leafId);Art.antSprite(c,A,{x,y,size:w*.03,dir:q.fromX>=n.x?1:-1,phase:t,still:s.settings.reducedMotion});}
+     else{const v=(u-split)/Math.max(1e-6,1-split),x=(q.fromX+(q.to.x-q.fromX)*v)*w,y=(q.fromY+(q.to.y-q.fromY)*v)*h;Art.antSprite(c,A,{x,y,size:w*.03,dir:q.to.x>=q.fromX?1:-1,phase:t,carry:true,still:s.settings.reducedMotion});}}}
+   else{const p=(s.objects.litter.piles||[]).find(z=>z.id===g.pile);if(!p)continue;for(let k=0;k<4;k++){const a=k*1.6+((+g.id.slice(3))||0),r=w*(.022+.008*(k%2));Art.springtailSprite(c,A,{x:p.x*w+Math.cos(a)*r,y:p.y*h+Math.sin(a)*r*.4,size:w*.016,phase:t,seed:k+1,still:s.settings.reducedMotion});}}}
  }
  canopy(p){const c=this.ctx,size=.34*this.w,x=p.x*this.w,y=p.y*this.h,s=this.state(),t=s.settings.reducedMotion?0:this.phase;
  const a=Math.sin(t*2.25)*(s.weather.wind>=60?13:s.weather.wind>=40?7:2)*Math.PI/180;

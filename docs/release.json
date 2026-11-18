@@ -1,15 +1,15 @@
 {
-  "version": "0.6.24",
-  "versionCode": 41,
-  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1",
+  "version": "0.6.25",
+  "versionCode": 42,
+  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+creatures-6a",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 232,
+  "full_suite_passed": 238,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "Visit card per-species scene and progress steps; docs/qa-0.6.24/runtime",
+  "render": "Creatures: nest, carrier trip, springtails; docs/qa-0.6.25/runtime",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,7 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.23",
-    "versionCode": 40
+    "version": "0.6.24",
+    "versionCode": 41
   }
 }

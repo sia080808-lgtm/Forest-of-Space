@@ -275,3 +275,11 @@
 - 수정(사용자 "짐꾼 개미 왜 뒷통수가 파여 있냐"): SRS 시트에서 개미가 문 잎 줄기를 지울 때 머리 뒤쪽까지 지워져 홈이 생겼다. `ant-body.png`의 머리 타원 안 홈(103~124, 99~125)을 머리 안쪽 색으로 확산 채움+옅은 결+가장자리 음영으로 메움. 전후 비교 `docs/qa-creatures-draft/ant-head-fix.png`.
 - 수정(사용자 "개미굴 땅이랑 연장된 느낌의 작은 흙더미가 있고 그 봉오리에 개미 구멍이 있어야"): `tools/draw-antnest.cjs`를 땅에서 솟은 흙 돔(가장자리 번짐, 왼쪽 밝고 오른쪽 그늘)과 꼭대기 분화구·입구로 다시 그림. `nestSprite` 기준점은 흙더미 바닥 중심(180,150). 비교 `docs/qa-creatures-draft/nest-and-ant-fix.png`.
 - 수정 2(사용자 "흙더미 색은 여백의 숲 땅 색이랑 같고 명암만", "통수 여전히 파여 있잖아. 둥글게"): 개미굴 색을 바탕 종이(`garden-open.png` 약 #fceedf)와 같은 톤으로 바꾸고 밝음·그늘만 둠. 개미 머리는 윤곽 타원 맞춤(중심 85.8,118.1·반지름 38.2×31.1, 3차: 첫 맞춤이 좁아 y≈114 계단이 남아 다시 맞춤, 4배 표본 안티에일리어싱 테두리)으로 뒤통수 계단까지 둥글게 다시 칠하고 목 쪽 잔여 조각 제거. 개미굴 새싹은 오른쪽 하나만 남김(사용자 "오른쪽만 적용해").
+- 병합·릴리스: PR #24(https://github.com/sia080808-lgtm/Forest-of-Space/pull/24) main 병합 `9644d543c872be3e3970e6d96bc68d148c667c47`. 프리릴리스 v0.6.24 `Forest-of-Space-0.6.24.apk` 39,119,975 bytes, SHA-256 `1f6a255db08ae4c035d1b72a0016de981b011adc5bc445b17e9799a2dfc2a78c` — 내려받은 파일·`.sha256`·GitHub digest 일치, 인증서 `f807cfca…7e3d`, versionCode41/0.6.24.
+
+### CREATURES-0.6.25-20261118 — 생태계 v2.24 패치 6a: 짐꾼개미·톡토기 게임 연결
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(개미·톡토기를 실제 게임에). 기준 main `9644d54`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 새 모듈 `creatures.js`(출현 600초 보호·180초 확인·600초당 1무리·최대 8, 개미 90초마다 실제 낱잎 1장 운반·이탈 시 반환, 톡토기 자기 더미 ×1.25, 독립 난수 `rng.creatures`, 저장 `objects.creatures`). `litter.js`: 운반 중 잎을 바닥 L에 포함, 분해 배율에 톡토기, 더미 촉촉함을 낙엽 자리 흙 기준으로. `objects.js`/`engine.js` 연결, `scene.js` 둥지·운반·톡토기 그리기, `object-cards.js` '작은 이웃' 행, `index.html`·`ui-smoke.mjs`·`rig.js` 스크립트/에셋 연결. 버전 0.6.25/versionCode42.
+- 검증: `npm test` 238/238(`creatures.test.cjs` 6), `npm run test:ui` PASS. `tools/creatures-review.cjs` 8시드 3게임일 보존식 오차 0, 렌더·영상 `docs/qa-0.6.25/runtime`. Android 실기기 미검증.
+- 다음: PR 병합 후 v0.6.25 APK 확인. 패치 6b(잎응애·잎지기), 6c(뿌리날파리·흙지기·솜깍지).

@@ -9,7 +9,8 @@ const Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelt
 const Env=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;
 const Rec=typeof module==='object'?require('./recruitment.js'):globalThis.ForestRecruitment;
 const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
-const VERSION='0.6.24', RULES='SRS-2.19-objects', SCHEMA=1;
+const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
+const VERSION='0.6.25', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -53,7 +54,7 @@ function step(s,{visible=true,held=null}={}){
  if(s.mode!=='game'||!s.started||s.offline)return s;
  if(Rec.encounterStep(s))return s;
  s.worldTick++;Env.step(s,rng,event);const w=s.weather;if(held&&(w.wind>=60||s.individuals.find(p=>p.id===held)?.B<20))held=null;
- Obj.resources(s);
+ Obj.resources(s);Creatures.step(s,event);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
  Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;
  for(const p of s.patches){
@@ -189,5 +190,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
+return {Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
 });
