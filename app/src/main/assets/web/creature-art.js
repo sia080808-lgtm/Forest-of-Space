@@ -58,7 +58,7 @@ for(const [k,n] of Object.entries(RIGNAME)){ANT_FILES[k+'Body']='assets/forest/c
 // Render phase only (no state, no RNG). Returns false when the rig images are missing (caller draws the whole sprite).
 const GAIT={spiderMite:{amp:.2,speed:9},predatoryMite:{amp:.22,speed:10},ladybird:{amp:.28,speed:9},soilMite:{amp:.18,speed:6},rootGnat:{amp:.08,speed:3},mealybug:{amp:.22,speed:3}};
 function drawRig(c,assets,key,t,still,mode){const R=RIG[RIGNAME[key]],body=assets[key+'Body'],parts=assets[key+'Parts'];if(!R||!body||!parts)return false;
- const g=GAIT[key]||{amp:.2,speed:8},piece=(p,a)=>{c.save();c.translate(p.px,p.py);c.rotate(a);c.translate(-p.px,-p.py);c.drawImage(parts,p.x,p.y,p.w,p.h,p.x,p.y,p.w,p.h);c.restore();};
+ const g=GAIT[key]||{amp:.2,speed:8},piece=(p,a)=>{c.save();c.translate(p.px,p.py);c.rotate(a);c.translate(-p.px,-p.py);c.drawImage(parts,p.sx,p.sy,p.w,p.h,p.x,p.y,p.w,p.h);c.restore();};
  R.parts.forEach((p,i)=>{if(p.type!=='leg')return;const a=still?0:mode==='fly'?Math.sin(t*g.speed+i*.9)*g.amp:Math.sin(t*g.speed+(p.group?Math.PI:0)+i*.35)*g.amp;piece(p,a);});
  c.drawImage(body,0,0);
  R.parts.forEach((p,i)=>{if(p.type==='antenna')piece(p,still?0:Math.sin(t*3+i*1.3)*.12);else if(p.type==='wing')piece(p,still?0:Math.sin(t*38+i*.6)*.38);});
