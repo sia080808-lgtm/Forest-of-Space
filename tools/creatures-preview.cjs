@@ -19,7 +19,7 @@ GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');
  const nestP={x:.40,y:.585},pileP={x:.56,y:.515};
  const FR=120,fps=20;
  for(let f=0;f<FR;f++){const t=f/fps;sc.phase=t;sc.draw();const c=canvas.getContext('2d');c.save();c.setTransform(1,0,0,1,0,0);c.translate(sc.camera.tx,sc.camera.ty);c.scale(sc.camera.scale,sc.camera.scale);const w=sc.w,h=sc.h;
-  Art.nest(c,{x:nestP.x*w,y:nestP.y*h,size:w*.03});
+  Art.nestSprite(c,assets,{x:nestP.x*w,y:nestP.y*h,size:w*.05});
   // three ants on a loop: out to the pile empty-handed (upper lane), back carrying a leaf piece (lower lane)
   for(let i=0;i<3;i++){const u=((t/6)+i/3)%1,out=u<.5,v=out?u/.5:(u-.5)/.5,a=out?nestP:pileP,b=out?pileP:nestP,lane=out?-.006:.006,x=(a.x+(b.x-a.x)*v)*w,y=(a.y+(b.y-a.y)*v+lane+Math.sin(v*Math.PI*2+i)*.003)*h,heading=Math.atan2((b.y-a.y)*h,(b.x-a.x)*w);
    Art.antSprite(c,assets,{x,y,size:w*.034,dir:Math.cos(heading)>=0?1:-1,phase:t+i*.3,carry:!out});}
@@ -28,7 +28,7 @@ GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');
  // design sheet: large creatures on paper
  const sheet=createCanvas(900,420),d=sheet.getContext('2d');d.drawImage(assets.garden,assets.garden.width*.4,assets.garden.height*.04,assets.garden.width*.2,assets.garden.height*.14,0,0,900,420);
  d.fillStyle='#4a4136';d.font='22px K';d.fillText('짐꾼개미',40,40);d.fillText('톡토기',520,40);d.font='15px K';d.fillText('걷기 · 낙엽 조각 운반 · 둥지',40,66);d.fillText('쉬기 · 톡 튀어 오르기 (도약기)',520,66);
- Art.antSprite(d,assets,{x:150,y:230,size:240,dir:1,phase:.1});Art.antSprite(d,assets,{x:390,y:230,size:240,dir:1,phase:.35,carry:true});Art.nest(d,{x:270,y:340,size:110});
+ Art.antSprite(d,assets,{x:150,y:230,size:240,dir:1,phase:.1});Art.antSprite(d,assets,{x:390,y:230,size:240,dir:1,phase:.35,carry:true});Art.nestSprite(d,assets,{x:270,y:345,size:200});
  for(const [i,ph] of [[0,1.6],[1,.15],[2,1.2]])Art.springtailSprite(d,assets,{x:600+i*120,y:220+(i%2)*90,size:100,phase:ph,seed:4+i*2});
  fs.writeFileSync(out+'/design-sheet.png',sheet.toBuffer('image/png'));console.log('ok');
 })().catch(e=>{console.error(e);process.exit(1)});

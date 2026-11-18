@@ -265,3 +265,10 @@
 - 담당: Claude Code. 요청: 사용자 "니가 SRS 기준으로 톡토기 만들어줘".
 - `tools/draw-springtail.cjs`(SRS D04.20 작은 이웃 시트 화풍: 따뜻한 갈색 윤곽, 수채 음영 마디 몸통, 마디 더듬이·다리 6개, 흰 반사점 눈, 도약기 접힘/펴짐) → `assets/forest/creatures/springtail-rest.png`·`springtail-jump.png`. `creature-art.js` `springtailSprite`(쉬다가 톡 튀어 오르기, 착지 후 방향 전환). 시안 `docs/qa-creatures-draft`(디자인 시트·월드 영상·SRS 개미와 나란히 비교). 게임 미연결.
 - 다음: 사용자 확인 후 6a 구현(개미·톡토기 출현·운반·분해 보정).
+
+### VISIT-CARD-0.6.24-20261118 — 첫 만남 카드 진행 표시·손님별 장면, 개미굴 그림
+
+- 담당: Claude Code. 요청: 사용자 스크린샷 "맞이하는 카드의 캐릭터 창이 왜 이럼?", 조건·동작 질문 → 설명·개선안 후 "ㄱㄱ". 중간 의견 "개미굴 비스킷처럼 이질적".
+- `recruitment.js` `steps()`(읽기 전용 단계·값·남은 시간·필요 버튼). `forest-app.js` 카드에 단계 목록·떠나기 안내, 손님별 버튼만 표시, `drawVisit` 손님별 소품·종이 바탕·캐릭터 약 2배·접지 그림자, 제목 조사. 버전 0.6.24/versionCode41.
+- 생물 시안: `tools/draw-antnest.cjs` → `ant-nest.png`(흙 알갱이 둔덕·그늘진 입구·조약돌·새싹), `creature-art.js` `nestSprite`. 게임 미연결.
+- 확인: 엘리시 카드 '함께 살기'는 카드 연 지 149초에 활성화(시뮬레이션). 테스트 `npm test` 232/232, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.24/runtime/visit-cards.png`. 실기기 미검증.

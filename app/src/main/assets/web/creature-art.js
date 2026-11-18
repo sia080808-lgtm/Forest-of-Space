@@ -48,7 +48,7 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
-const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png'};
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png'};
 // Springtail sprite in the SRS sheet style (tools/draw-springtail.cjs, 420x260, faces +x). Rests, then hops in a short
 // arc with the furcula flicked out; lands and turns. Render phase only.
 function springtailSprite(c,assets,{x=0,y=0,size=6,phase=0,seed=0,still=false}={}){
@@ -65,5 +65,7 @@ function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=fal
  if(carry&&leaf){c.save();c.translate(122,100);c.rotate(still?0:Math.sin(t*7)*.06);c.translate(-122,-100);c.drawImage(leaf,0,0);c.restore();}
  c.restore();
 }
-return {ant,antSprite,springtail,springtailSprite,nest,ANT_FILES};
+// Nest entrance in the SRS sheet style (tools/draw-antnest.cjs, 360x200, mound centre at 180,130); size = mound width.
+function nestSprite(c,assets,{x=0,y=0,size=14}={}){const im=assets.antNest;if(!im)return nest(c,{x,y,size});const k=size/200;c.save();c.translate(x,y);c.scale(k,k);c.translate(-180,-130);c.drawImage(im,0,0);c.restore();}
+return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,ANT_FILES};
 });

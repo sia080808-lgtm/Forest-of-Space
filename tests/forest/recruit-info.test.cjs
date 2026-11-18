@@ -21,3 +21,8 @@ test('두리 is retired: Ellisii is the first visitor of a new forest; a waiting
  // a 두리 that already lives in the forest is kept as is
  const o=F.create(0,11);o.individuals.push({...o.individuals[0],id:'duri-1',species:'duri',name:'두리'});const om=F.migrate(JSON.parse(JSON.stringify(o)));a.ok(om.individuals.some(p=>p.species==='duri'));
  for(let t=0;t<2000;t++){F.step(om);const v=om.recruitment.visitor;if(v){a.notEqual(v.species,'duri');om.recruitment.visitor=null;}}});
+test('first-meeting card lists what the visitor is waiting for, with live values, and only the buttons that visitor needs',()=>{const R=F.Recruitment,s=F.create(0,3);s.started=true;s.environment.tutorialDone=true;
+ while(!s.recruitment.visitor)F.step(s);a.equal(s.recruitment.visitor.species,'bonbon');R.open(s);let st=R.steps(s);a.deepEqual(st.list.map(k=>k.done),[false,false,false]);a.deepEqual(st.buttons,{greet:false,guide:false});a.equal(st.leaveIn,600);
+ const before=JSON.stringify(s);R.steps(s);a.equal(JSON.stringify(s),before,'read-only');
+ let ready=null;for(let i=0;i<300&&ready===null;i++){F.step(s);if(s.recruitment.visitor.ready)ready=s.recruitment.visitor.seconds;}
+ st=R.steps(s);a.ok(ready!==null&&ready<=180,'ready at '+ready);a.ok(st.list.every(k=>k.done));a.equal(st.leaveIn,null);a.match(st.list[2].value,/120 \/ 120초/);});
