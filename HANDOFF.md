@@ -431,3 +431,17 @@
   - `engine.js`·`recruitment.js`: 주렁을 코로나로 바꾸고, 저장된 이름을 불러올 때 옮긴다(별명은 유지).
   - 버전 0.6.32 / versionCode 49.
 - 검증: `npm test` 274/274(`names-030` 코로나 추가), `npm run test:ui` PASS(작은 이웃 도감 검사 추가). 화면 `docs/qa-0.6.32/runtime`. Android 실기기 미검증.
+- 병합·릴리스: PR #32(https://github.com/sia080808-lgtm/Forest-of-Space/pull/32) main 병합 `8c1fcfbdc3fc85081a8b18c215bb8557e8e5e675`(사용자 "ㄱㄱ"; head `8efbfe0` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.32 `Forest-of-Space-0.6.32.apk` 40,623,323 bytes, SHA-256 `d0bcac2e14e03b431d2f2da4e2f5a0423583f2b533537ba13f5378c1d59e2290` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode49/0.6.32, APK 안 코로나 이름·작은 이웃 도감 그림 포함 확인.
+- 사용자 질문 "개미가 솜깍지 쫓아줌?": 아니다, 개미는 감로 20 이상이면 솜깍지를 지켜 점박이 포식을 0.5배로 늦춘다(X04). 감로는 밀도 50 초과에서만 쌓여 현재 밸런스에서는 거의 안 나온다고 안내. 기준 조정은 사용자 결정 대기.
+
+### MOTION-0.6.33-20261118 — 감로 기준, 잎 그늘 겹침, 친구 수 제한 풀기, 머리 정돈·낙엽 놀이 모션, 점박이 옮겨 가기
+
+- 담당: Claude Code. 기준 main `8c1fcfb`(0.6.32 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: "낮추자"(감로), "케릭별 머리 정돈 모션과 낙엽가지고 노는 모션 보여줘", "팔 없는 애들은 어케 머리 정돈 함? 낙엽은 머리 위로 뿌려서… 리들리 왼손 어색", 잎 그늘 잡초가 캐릭터 위로 올라옴, "맵에 케릭터 수 제한 풀자", "점박이가 … 근처 케릭터 머리에 솜깍지가 남아 있으면 그쪽으로 넘어가서 먹는 메커니즘".
+- 변경:
+  - `creatures.js`: 감로 `밀도/100×8−0.6`, 개미 지키기 10/5(엔진 측정 지키기 0/24 → 12/24, `tools/honeydew-review.cjs`). 점박이 유충은 솜깍지를 다 먹으면 0.2 안 가장 가까운 친구(솜깍지 남음·점박이 없음·쉼터 밖·목부작 아님)로 옮겨 간다(`LADY.HOP`, `g.hops`).
+  - `scene.js`: 잎 그늘을 줄기·잡초(깊이 순서)와 잎(맨 위)으로 나눠 그림.
+  - `engine.js`·`social.js`·`shelter.js`·`forest-app.js`: 정원 5명 제한 삭제(기록 50명 한도까지).
+  - `rig.js`: `draw` 래퍼로 낙엽 놀이(웅크려 모으고 뛰며 머리 위로 뿌리기, 낙엽 5장)와 팔 없는 친구의 머리 정돈(부르르 털기). 엘레판·슈퍼범은 자기 정돈 동작 유지.
+  - 버전 0.6.33 / versionCode 50.
+- 검증: `npm test` 275/275, `npm run test:ui` PASS. 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`, 잎 그늘 `shade-layers.png`. Android 실기기 미검증.

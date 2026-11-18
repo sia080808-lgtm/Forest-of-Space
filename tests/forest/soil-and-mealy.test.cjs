@@ -36,25 +36,36 @@ test('ECO-07/08/12 흙지기 needs real larvae (>=5) in drained moist soil for 1
  z.U=0;for(let t=0;t<200;t++)tick(s,{});a.equal(C.groups(s).includes(sm),false,'left without food');
 });
 
-test('P03/ECO-15 솜깍지: honeydew density/100 x 4/min - 2/min (max 100); nutrition burden 2/min x density/100; tidying and the shelter reduce it',()=>{
+test('P03/ECO-15 솜깍지: honeydew density/100 x 8/min - 0.6/min (0.6.33: was x4 - 2, so it never built up below density 50; max 100); nutrition burden 2/min x density/100; tidying and the shelter reduce it',()=>{
  const s=game(),p=s.individuals[0];p.nutrition=80;const g=add(s,{kind:'mealy',host:p.id,density:80,honey:0,low:0});
- for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.honey-(4*.8-2))<.05,'honey '+g.honey);a.ok(Math.abs(80-p.nutrition-1.6)<.05,'nutrition '+p.nutrition);a.equal(g.density,80,'steady in rain');
+ for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.honey-(8*.8-.6))<.05,'honey '+g.honey);a.ok(Math.abs(80-p.nutrition-1.6)<.05,'nutrition '+p.nutrition);a.equal(g.density,80,'steady in rain');
  p.action='groom';for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.density-76)<1e-6);p.action='wander';
  for(let t=0;t<60;t++)tick(s,{T:60,kind:'sun'});a.ok(Math.abs(g.density-80)<1e-6,'+4/min warm and dry');
  for(let t=0;t<60;t++)tick(s,{T:90,kind:'sun'});a.ok(Math.abs(g.density-74)<1e-6,'-6/min when too hot');
 });
 
-test('X04/AC-10 ants tend honeydew >= 20 for 30 s and stop carrying; 점박이 eats at half speed while tended; ants return after honeydew < 10 for 60 s',()=>{
+test('X04/AC-10 ants tend honeydew >= 10 for 30 s and stop carrying (0.6.33: was 20); 점박이 eats at half speed while tended; ants return after honeydew < 5 for 60 s',()=>{
  const s=game(),p=s.individuals[0];p.B=50;p.energy=70;const ant=add(s,{kind:'ant',nest:{x:.5,y:.6}});a.ok(C.antOk(s));const m=add(s,{kind:'mealy',host:p.id,density:60,honey:25,low:0});
  for(let t=0;t<29;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.equal(ant.tend??null,null);tick(s,{T:60,kind:'rain'});a.equal(ant.tend,p.id);a.ok(C.tendedBy(s,p.id));
  const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});m.density=60;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.ok(Math.abs(L.eaten-4)<.05,'tended: 4/min, ate '+L.eaten);
- for(let t=0;t<61;t++){tick(s,{T:60,kind:'rain'});m.honey=5;}a.equal(ant.tend,null,'back to carrying');const e=L.eaten;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=5;}a.ok(Math.abs(L.eaten-e-8)<.05,'untended: 8/min');
+ for(let t=0;t<61;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.equal(ant.tend,null,'back to carrying');const e=L.eaten;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.ok(Math.abs(L.eaten-e-8)<.05,'untended: 8/min');
 });
 
 test('점박이 comes only to egg sacs (density >= 20) on a reachable friend within 120~300 s, looks around 120 s as an adult, then the larva eats',()=>{
  const s=game(),p=s.individuals[0];const m=add(s,{kind:'mealy',host:p.id,density:15,honey:0,low:0});for(let t=0;t<400;t++){tick(s,{T:60,kind:'rain'});m.density=15;}a.equal(C.onLeaf(s,p.id).lady,null,'no egg sacs, no 점박이');
  let at=null;for(let t=0;t<301&&!at;t++){tick(s,{T:60,kind:'rain'});m.density=40;if(C.onLeaf(s,p.id).lady)at=t;}a.ok(at>=120&&at<=300,'arrived after '+at);
  const L=C.onLeaf(s,p.id).lady;a.equal(L.stage,'adult');for(let t=0;t<119;t++){tick(s,{T:60,kind:'rain'});m.density=40;}a.equal(L.eaten,0,'adult only looks');for(let t=0;t<61;t++)tick(s,{T:60,kind:'rain'});a.equal(L.stage,'larva');a.ok(L.eaten>0);
+});
+
+test('0.6.33 점박이 larva that cleared its friend crawls to the nearest friend close by that still has mealybugs; it leaves only when none is near',()=>{
+ const s=game(),p=s.individuals[0];p.name='리들리';const q={...F.clone(p),id:'ridley-2',name:'코코',x:p.x+.1,y:p.y},far={...F.clone(p),id:'ridley-3',name:'먼',x:.1,y:.2};s.individuals.push(q,far);
+ const m1=add(s,{kind:'mealy',host:p.id,density:3,honey:0,low:0}),m2=add(s,{kind:'mealy',host:q.id,density:30,honey:0,low:0});add(s,{kind:'mealy',host:far.id,density:30,honey:0,low:0});
+ const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});const log=[];const ev=(x,k,t)=>log.push(t);
+ for(let t=0;t<40&&L.host===p.id;t++){s.worldTick++;C.step(s,ev);}
+ a.equal(L.host,q.id,'moved to the near friend, not the far one');a.equal(L.bad,0);a.ok(log.some(t=>t.includes('코코')),'event names the new friend');
+ const before=m2.density;for(let t=0;t<60;t++){s.worldTick++;C.step(s);}a.ok(m2.density<before,'eats on the new friend');
+ m2.density=0;q.x=p.x+.1;for(let t=0;t<400&&C.groups(s).includes(L);t++){s.worldTick++;C.step(s);}a.equal(C.groups(s).includes(L),false,'no near prey left: leaves');a.ok(m1.density<1||!C.groups(s).includes(m1));
+ C.validate(s);
 });
 
 test('ECO-05 one friend\'s pest harm is capped at 2/min in total; at most two pest types are active; saves validate and reload',()=>{

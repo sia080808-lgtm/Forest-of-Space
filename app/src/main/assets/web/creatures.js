@@ -14,8 +14,8 @@ const MITE={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,GONE:5,GONE_SECONDS:60,PAU
 // SRS v2.22 S05.05·S05.06·S05.09 (ECO-05/07/08/11/12/14/15). A friend's pest harm is capped at 2/min in total.
 const GNAT={START:12,MAX:100,BREED:4,DECLINE:6,EGG:90,LARVA:180,ADULT_LIFE:600,FIT_M:70,HOLD_M:50,ORGANIC:4,T_MIN:45,T_MAX:80,HURT:2,NEAR:.12,GONE:5,GONE_SECONDS:60,PAUSE:300},
  SOIL={MIN_PREY:5,M_MIN:35,M_MAX:65,W_MAX:10,EAT:8,U:1},
- MEALY={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,T_MIN:50,T_MAX:80,SAC:20,HONEY:4,HONEY_DECAY:2,HONEY_MAX:100,HURT:2,GONE:5,GONE_SECONDS:60,PAUSE:300,GAP_FADE:600,GAP_MAX:240},
- LADY={MIN_PREY:20,NOTICE:120,EAT:8,TENDED:.5},TEND={ON:20,ON_SECONDS:30,OFF:10,OFF_SECONDS:60},HARM_MAX=2,PEST_TYPES=2;
+ MEALY={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,T_MIN:50,T_MAX:80,SAC:20,HONEY:8,HONEY_DECAY:.6,HONEY_MAX:100,HURT:2,GONE:5,GONE_SECONDS:60,PAUSE:300,GAP_FADE:600,GAP_MAX:240},
+ LADY={MIN_PREY:20,NOTICE:120,EAT:8,TENDED:.5,HOP:.2},TEND={ON:10,ON_SECONDS:30,OFF:5,OFF_SECONDS:60},HARM_MAX=2,PEST_TYPES=2;
 const PESTS=['mite','gnat','mealy'];
 // 0.6.28: 쏙쏙이 (Dalotia coriaria, rove beetle) — a second root-zone predator. Needs real root-fly larvae/eggs (>= 5) at a
 // site whose soil is moist but drained AND a hideout (바위틈 or 햇살 바위 within 0.3) for 120 s; ECO-07 arrival. Eats up to
@@ -151,6 +151,10 @@ function mealyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g
 function ladyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host),m=mealyOn(s,g.host);if(!p){st.groups=st.groups.filter(x=>x!==g);return;}if(!live(p))return;
  if(g.stage==='adult'&&s.worldTick-g.since>=LADY.NOTICE){g.stage='larva';event?.(s,'creature','점박이 유충이 솜깍지를 먹기 시작했어요.');}
  if(g.stage==='larva'&&m&&m.density>0){const k=tendedBy(s,g.host)?LADY.TENDED:1,bite=Math.min(m.density,LADY.EAT*k/60);m.density-=bite;g.eaten=(g.eaten||0)+bite;st.log.eaten+=bite;}
+ // 0.6.33: a larva that has eaten its friend's mealybugs crawls over to the nearest friend close by (HOP) whose leaves
+ // still carry mealybugs and no 점박이 of its own, and keeps eating there; it leaves only when no such friend is near.
+ if(g.stage==='larva'&&!(m&&m.density>=1)){const Sp=dep('spatial'),Sh=dep('shelter'),next=s.individuals.filter(q=>q.id!==g.host&&live(q)&&!Sh.inside?.(s,q)&&Sp.distance(p,q)<LADY.HOP&&(mealyOn(s,q.id)?.density||0)>=MEALY.GONE&&!groups(s).some(x=>x.kind==='lady'&&x.host===q.id)).sort((a,b)=>Sp.distance(p,a)-Sp.distance(p,b)||a.id.localeCompare(b.id))[0];
+  if(next){event?.(s,'creature',`점박이 유충이 ${p.name}에게서 ${next.name}의 잎으로 옮겨 갔어요.`);g.host=next.id;g.hops=(g.hops||0)+1;g.bad=0;return;}}
  g.bad=m&&m.density>=1?0:g.bad+1;if(g.bad>=LEAVE){st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature','점박이가 먹이를 다 찾아 먹고 떠났어요.');}}
 function predatorArrivals(s,event,kind,readyKey,prey,fit,make,msg){const st=state(s);
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){const has=groups(s).some(g=>g.kind===kind&&g.host===p.id);if(has||!prey(p)||!fit(p)){if(!has)st[readyKey][p.id]=0;continue;}
