@@ -410,3 +410,4 @@
   - 보송을 베이치로 바꿨다(`engine.js` 종 목록·불러오기 이름 이전, `recruitment.js`). `names-030.test.cjs`를 추가했다.
   - `npm test` 272/272, UI PASS.
 - 남은 일: 도감 미기록 종 확인. Android 실기기 미검증.
+- 병합·릴리스: PR #30(https://github.com/sia080808-lgtm/Forest-of-Space/pull/30) main 병합 `7403c893b67714d58db63e5e87468e7e1c7f9d51`(사용자 "ㄱㄱ"; head `fe7abc6` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.30 `Forest-of-Space-0.6.30.apk` 40,623,323 bytes, SHA-256 `6c7a4ce9d5fe5cebafad7998612f792aa25022eb8db03420ee940ac6036c7f14` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode47/0.6.30, APK 안 engine.js VERSION 0.6.30·베이치 이름·첫 만남 `springAt` 포함 확인.
