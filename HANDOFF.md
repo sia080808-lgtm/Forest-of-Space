@@ -247,3 +247,5 @@
 - 수정: `recruitment.js` 엘리시 조건 = 이끼 40% 이상 + 큰비(강수 0.6 이상) 아님 + 바위틈 고인 물 5 미만 + 거리·길(조건 목록 5항목). `social.js` 잎틈 정원 같은 기준. 상한 75% 삭제. 버전 0.6.22/versionCode39.
 - 결과: 같은 시뮬레이션 8시드 중 7시드 3~12분, 1시드 약 71분에 방문.
 - 테스트: `recruit-info` 갱신·추가(수정 전 코드 0/4로 실패). `npm test` 230/230, `npm run test:ui` PASS. 실기기 미검증.
+- 병합·릴리스: PR #22(https://github.com/sia080808-lgtm/Forest-of-Space/pull/22) main 병합 `f43c09e6c30739a55e56c5b788f48b8d537e56c1`(사용자 "ㄱㄱ"; head `2810928` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.22 `Forest-of-Space-0.6.22.apk` 38,968,130 bytes, SHA-256 `413a7e800079185fc6f43cb43a7555142e42307c86fda4a1012ec60d61b4ad56` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode39/0.6.22.
+- 다음: 톡토기 그림 출처 결정(지피티 생성 / 임시 그림) 후 패치 6a(개미·톡토기) 구현.
