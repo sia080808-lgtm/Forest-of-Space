@@ -342,3 +342,38 @@
 - 버전 0.6.28/versionCode45.
 - 다음: PR 병합 후 v0.6.28 APK 확인. 남은 일은 SRS NB-10(ECO-13 전이, 알·유충 원화, 감로 밸런스).
 - 병합·릴리스: PR #28(https://github.com/sia080808-lgtm/Forest-of-Space/pull/28) main 병합 `64329f6e72a86435a25bfef502124761ca31058e`(사용자 "ㄱㄱ"; head `f846968` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.28 `Forest-of-Space-0.6.28.apk` 40,146,769 bytes, SHA-256 `9f2b09e4c2f1ea4816fa483b2decde912d6637c49252076d56ee3562f1c970c1` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode45/0.6.28, 돌돌이·쏙쏙이 그림 포함.
+
+### SUPERBUM-0.6.29-20261118 — 슈퍼범: 빗물 모으기와 물 나눔, SRS v2.26
+
+- 담당: Claude Code. 기준 main `64329f6`(0.6.28 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청 흐름:
+  - "자 이제 수퍼붐 만들자". 선택은 그림 "제가 SRS 화풍으로 그림", 능력 "물 모으기 + 물 나눔"이었다.
+  - 러프 시안 뒤 사용자가 회종안을 제공하며 "이거랑 똑같이 그려줘", 크기는 "리들리의 1.7배".
+  - "레이어 순서: 얼굴이 가장 밑, 그 다음이 다리와 눈, 그 다음 레이어가 양 옆 잎, 맨 위가 머리 잎".
+  - 하단부 흰 얼룩 정리 요청 뒤 "좋네 ㄱㄱ".
+- 그림:
+  - `tools/cut-superbum.py`(회종안 누끼)와 `tools/rig-superbum.py`(마른/물 고인 두 벌, 레이어 6장씩)로 만들었다. 원화 파일 자체는 저장소에 넣지 않았다(엘리시와 같음).
+  - 초상화는 `tools/bake-superbum-portrait.cjs`, 쉼터 윤곽은 `tools/bake-superbum-profile.cjs`로 구웠다.
+  - 시안 단계의 그림 도구(draw-superbum·superbum-sheet)는 지웠다. 러프·콘셉트(`docs/qa-superbum-draft`)는 이력으로 남겼다.
+- 코드:
+  - `superbum.js`: 렌더러·모션 10종·물 상태 전환·옆잎 휘기.
+  - `rig.js`: 렌더러 연결. `scene.js`: 1.7배, 둥지 물과 '빗물 모으기' 모션 전달.
+  - `spatial.js`: 충돌 1.7배. `environment.js`: 머리 면적 2.89. `shelter.js`: 쉼터 점유 5/6/8/10과 윤곽.
+  - `social.js`:
+    - `collect`: 둥지잎에 내린 비를 모은다. 1초 0.1·최대 40이고 `ledger.rain`에 기록한다.
+    - A04 물 나눔: 기증자를 슈퍼범으로 바꿨다. 엘리시가 주던 옛 기록은 계속 은퇴로 끝난다.
+    - `supported`에 슈퍼범을 넣었다.
+  - `engine.js`: 종 목록, 매 틱 `collect` 호출, 제자리 쉼(`restSelf`, 맞는 휴식 자리가 없는 성체가 체력 40 미만일 때).
+  - `recruitment.js`: 조건(샘터 물 30%·길), 첫 만남 단계 샘터→하늘→쉬기.
+  - `forest-app.js`: 초상화·첫 만남 카드·상태 문구.
+  - `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`: 스크립트 추가.
+  - 저장 스키마 버전 불변. 버전 0.6.29 / versionCode 46.
+- 테스트: `superbum.test.cjs`(7개)를 새로 넣었다. `render.test` 종 분기와 `update218` 종별 조건 검사를 갱신했다. `npm test` 267/267, `npm run test:ui` PASS. 게임 화면 렌더 `docs/qa-superbum/world-*.png`(렌더 전후 상태 동일). Android 실기기 미검증.
+- 문서:
+  - SRS: `docs/Forest-Superbum-SRS-v2.26.md`·`.pdf`(4쪽).
+  - 릴리스 노트: `docs/Forest-0.6.29-Release.md`.
+  - 검수 자료: `docs/qa-superbum`(레이어 시트·모션 영상·하단부 확대).
+  - `tools/build-srs-pdf.cjs`: 꼬리말을 문서 제목에서 가져오게 고쳤다.
+- 남은 일:
+  - 다 자란 슈퍼범은 기본 쉼터에 들어가지 못한다(넓힌 쉼터 필요, 그 전에는 제자리 쉼). 사용자 결정 대기.
+  - Android 실기기 성능 미확인(옆잎을 띠로 휘게 그려 친구 한 명당 drawImage 약 80회).

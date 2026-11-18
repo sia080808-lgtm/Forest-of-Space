@@ -2,7 +2,7 @@
 // preinstalled Chromium (Playwright). The Markdown -> HTML step uses Python-Markdown (tables extension).
 // usage: node tools/build-srs-pdf.cjs docs/Forest-SmallNeighbours-SRS-v2.25.md docs/Forest-SmallNeighbours-SRS-v2.25.pdf
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process'),{chromium}=require('playwright');
-const [src,out]=process.argv.slice(2);const dir=path.dirname(path.resolve(src));
+const [src,out]=process.argv.slice(2);const footer=(fs.readFileSync(src,'utf8').match(/^# (.+)$/m)?.[1]||'여백의 숲').replace(/[<>&]/g,'');const dir=path.dirname(path.resolve(src));
 // a list right after a paragraph line needs a blank line for Python-Markdown; images are embedded as data URIs
 const py='import sys,re,markdown\nt=open(sys.argv[1],encoding="utf-8").read()\nt=re.sub(r"(?m)^(?!\\s*[-*|#]|\\s*$)(.+)\\n(\\s*- )",r"\\1\\n\\n\\2",t)\nprint(markdown.markdown(t,extensions=["tables"]))';
 let body=execFileSync('python3',['-c',py,src]).toString();
@@ -22,4 +22,4 @@ code{font-size:8.4pt;background:#f3eee4;padding:0 3px;border-radius:3px}
 li{margin:2px 0}
 </style></head><body>${body}</body></html>`;
 (async()=>{const b=await chromium.launch(),p=await b.newPage();await p.setContent(html,{waitUntil:'load'});await p.evaluate(()=>document.fonts.ready);
- await p.pdf({path:out,format:'A4',printBackground:true,displayHeaderFooter:true,headerTemplate:'<span></span>',footerTemplate:'<div style="width:100%;font-size:7pt;color:#8a7f70;text-align:center">여백의 숲 · SRS v2.25 작은 이웃 생태계 · <span class="pageNumber"></span>/<span class="totalPages"></span></div>',margin:{top:'16mm',bottom:'18mm',left:'14mm',right:'14mm'}});await b.close();console.log('pdf',out);})().catch(e=>{console.error(e);process.exit(1)});
+ await p.pdf({path:out,format:'A4',printBackground:true,displayHeaderFooter:true,headerTemplate:'<span></span>',footerTemplate:'<div style="width:100%;font-size:7pt;color:#8a7f70;text-align:center">'+footer+' · <span class="pageNumber"></span>/<span class="totalPages"></span></div>',margin:{top:'16mm',bottom:'18mm',left:'14mm',right:'14mm'}});await b.close();console.log('pdf',out);})().catch(e=>{console.error(e);process.exit(1)});

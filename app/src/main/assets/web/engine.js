@@ -10,7 +10,7 @@ const Env=typeof module==='object'?require('./environment.js'):globalThis.Forest
 const Rec=typeof module==='object'?require('./recruitment.js'):globalThis.ForestRecruitment;
 const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
-const VERSION='0.6.28', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.6.29', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -20,7 +20,7 @@ const PATCHES=[
  {id:'shelter',name:'기본 쉼터',cap:10,pool:6,infiltration:6,drain:3,exposure:.1,x:.23,y:.22},
  {id:'litter',name:'낙엽 자리',cap:30,pool:10,infiltration:8,drain:1.5,exposure:.8,x:.54,y:.83}
 ];
-const SPECIES=[['ridley','리들리','Platycerium ridleyi','호기심 많은 작은 관찰자'],['bonbon','엘리시','Platycerium ellisii','둥근 잎틈에 작은 이웃이 머물 자리를 내어줘요'],['neolbi','엘레판','Platycerium elephantotis','큰 잎 아래 그늘을 만들어요'],['bosong','보송','Platycerium veitchii','마른 날 물이 있는 곳을 찾아요'],['jureong','주렁','Platycerium coronarium','바람에 날린 낙엽을 모아요'],['duri','두리','Platycerium bifurcatum','친구와 나란히 쉬는 걸 좋아해요']];
+const SPECIES=[['ridley','리들리','Platycerium ridleyi','호기심 많은 작은 관찰자'],['bonbon','엘리시','Platycerium ellisii','둥근 잎틈에 작은 이웃이 머물 자리를 내어줘요'],['neolbi','엘레판','Platycerium elephantotis','큰 잎 아래 그늘을 만들어요'],['bosong','보송','Platycerium veitchii','마른 날 물이 있는 곳을 찾아요'],['jureong','주렁','Platycerium coronarium','바람에 날린 낙엽을 모아요'],['duri','두리','Platycerium bifurcatum','친구와 나란히 쉬는 걸 좋아해요'],['superbum','슈퍼범','Platycerium superbum','둥지잎에 빗물을 모아 목마른 친구에게 나눠줘요']];
 const clone=x=>JSON.parse(JSON.stringify(x));
 const clamp=(v,min=0,max=100)=>Math.max(min,Math.min(max,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -56,7 +56,7 @@ function step(s,{visible=true,held=null}={}){
  s.worldTick++;Env.step(s,rng,event);const w=s.weather;if(held&&(w.wind>=60||s.individuals.find(p=>p.id===held)?.B<20))held=null;
  Obj.resources(s);Creatures.step(s,event);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
- Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;
+ Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
   // Movable leaf canopy physically shields patches within its radius; intercepted water
@@ -87,6 +87,10 @@ function step(s,{visible=true,held=null}={}){
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-.2/60);continue;}
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-.2/60);continue;}
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
+  // 슈퍼범 is too large for most rest spots: when tired and nothing else holds it (no object task, no shelter request
+  // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
+  if(p.species==='superbum'){if(p.energy<40&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
+   if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
   const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p);
   if(motion){Object.assign(p.motion,motion);if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   // Nutrition is metabolism, never a remotely supplied shelter service.

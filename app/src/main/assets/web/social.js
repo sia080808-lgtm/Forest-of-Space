@@ -8,12 +8,14 @@ const supported=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'
 function init(s){W.init(s);s.social??={version:1,serial:0,sessions:[],cooldowns:{},observations:{}};for(const p of s.individuals)p.sources??={rain:0,other:0,unknown:p.V};return s;}
 function credit(p,n,source){const amount=Math.max(0,Math.min(n,40-p.V));p.sources[source]+=amount;p.V+=amount;return amount;}
 function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const k of ['rain','other','unknown']){parts[k]=p.V>0?p.sources[k]*amount/p.V:0;p.sources[k]=Math.max(0,p.sources[k]-parts[k]);}p.V=Math.max(0,p.V-amount);return {amount,parts};}
-// 슈퍼범's nest frond catches part of the rain that is already falling on a nearby place (the patch's own rain budget),
-// so no water is created: what it keeps is subtracted from what that place would have received. Each 슈퍼범 keeps at
-// most .1 per second and NEST in total; Ellisii (legacy 'bonbon') no longer collects.
-const NEST=40;
-function rain(s,patch,budget,held){if(!(budget>0))return budget;const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.id!==held&&p.species==='superbum'&&!p.shelter?.facilityId&&Space.distance(p,patch)<.25&&p.V<NEST).sort((a,b)=>a.id.localeCompare(b.id));if(!ps.length)return budget;
- let remaining=budget*.8;for(let loop=0;loop<ps.length+1&&remaining>1e-10;loop++){const eligible=ps.filter(p=>(p.harvestTick||0)<.1-1e-10&&p.V<NEST-1e-10);if(!eligible.length)break;const share=remaining/eligible.length;for(const p of eligible){const n=credit(p,Math.min(share,.1-(p.harvestTick||0)),'rain');p.harvestTick=(p.harvestTick||0)+n;remaining-=n;}}return budget-(budget*.8-remaining);}
+// Ground patches keep all the rain that falls on them (Ellisii, legacy 'bonbon', no longer collects).
+function rain(s,patch,budget,held){return budget;}
+// 슈퍼범's nest frond is a bowl open to the sky: the rain that falls on it (its own catchment, like the snow that settles
+// on a friend's head) stays in the nest instead of running off. It is real rain, entered in the rain ledger once; at most
+// .1 per second and NEST in total, and not while held, mounted or inside a shelter roof.
+const NEST=40,CATCH=10;
+function collect(s,held,precipitation,area){for(const p of s.individuals){if(p.species!=='superbum'||!p.active||p.mounted||p.id===held||p.shelter?.facilityId||!(precipitation>0)||p.V>=NEST)continue;
+ const n=credit(p,Math.min(.1,12/60*precipitation*area(p)*CATCH),'rain');p.harvestTick=(p.harvestTick||0)+n;s.ledger.rain+=n;}}
 // Ellisii shelters small visitors only when a real compatible microhabitat exists.
 function ellisiiHabitat(s,p){if(!p||p.species!=='bonbon'||!p.active||p.mounted||p.B<35||p.energy<40||p.burden>=40||p.damage>=30)return false;const moss=s.patches.find(x=>x.id==='moss'),c=s.patches.find(x=>x.id==='crevice');if(!moss||!c)return false;const moisture=100*moss.S/moss.cap;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return moisture>=40&&E.precipitation(s,'rain')<.6&&c.W<5&&s.climate.H>=40&&s.climate.H<=85&&s.weather.wind<60&&Space.distance(p,c)<.20;}
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
@@ -109,5 +111,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,40))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {NEST,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {NEST,collect,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });
