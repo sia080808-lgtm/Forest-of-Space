@@ -61,3 +61,15 @@ test('rendering is pure and the water state is visible: dry set when the nest is
  for(const kind of ['idle','walk','run','held','rest','groom','drink','splash','collect','share']){const p=SB.pose(kind,2.3,{water:1});a.ok(Number.isFinite(p.bob)&&Number.isFinite(p.crown));}
  const {s}=game(),before=JSON.stringify(s),c=createCanvas(600,600).getContext('2d');Rig.draw(c,A,{species:'superbum',kind:'walk',phase:3,water:.5});a.equal(JSON.stringify(s),before);
 });
+
+test('0.6.35 the nest water dries in clear weather (the spring rate, booked as evaporation) and a thirsty 슈퍼범 drinks its own nest water; water is conserved',()=>{
+ // evaporation: sunny, not thirsty
+ {const {s,p}=game(),base=F.totalWater(s);p.V=30;p.sources={rain:30,other:0,unknown:0};for(const q of s.individuals)q.B=60;const base2=F.totalWater(s);rain(s,false);s.climate.L=80;
+  for(let t=0;t<600;t++){F.step(s);rain(s,false);s.climate.L=80;}
+  a.ok(p.V<26&&p.V>18,'10 minutes of sun: '+p.V.toFixed(2));near(balance(s,base2),0,1e-6);void base;
+  // no drying in rain (rain adds instead), under fog either
+  const v=p.V;s.weather.kind='fog';s.weather.intensity=0;for(let t=0;t<60;t++){F.step(s);s.weather.kind='fog';}a.ok(p.V>=v-1e-9,'fog: no drying');}
+ // own use: body water below 45 is topped up from the nest, up to 55, at most 3/min
+ {const {s,p}=game();p.V=20;p.sources={rain:20,other:0,unknown:0};rain(s,false);p.B=30;for(const q of s.individuals)if(q!==p)q.B=60;const base=F.totalWater(s);const v0=p.V;F.step(s);
+  a.ok(v0-p.V>=S.NEST_SIP-1e-9,'drinks from the nest when thirsty');for(let t=0;t<600;t++){F.step(s);rain(s,false);}a.ok(p.B>=50,'body water topped up: '+p.B.toFixed(1));near(balance(s,base),0,1e-6);}
+});

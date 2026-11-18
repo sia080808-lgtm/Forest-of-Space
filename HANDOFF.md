@@ -463,3 +463,15 @@
 - 새 문서: `docs/Forest-SmallNeighbours-SRS-v2.27.md`/`.pdf`(v2.25 대체), `docs/Forest-World-Motion-SRS-v2.27.md`/`.pdf`. PDF는 `tools/build-srs-pdf.cjs`로 만들고 쪽 그림을 확인했다.
 - 감로 재측정: `tools/honeydew-review.cjs`(0.6.34 코드) C01 3/8·C02 3/8·C04 5/8 개미 지킴(합계 11/24).
 - 코드·버전 변경 없음. 제품 테스트는 새로 돌리지 않았다(문서만, 직전 0.6.34 결과 276/276).
+- 병합: PR #35(https://github.com/sia080808-lgtm/Forest-of-Space/pull/35) main 병합 `101f2b8f4d9e56354c260488a759f26c1abc0a37`(사용자 "ㄱㄱ"; head `93650d8` 기준 simulation·CodeQL 성공). 문서만이라 앱 버전·APK는 0.6.34 그대로.
+
+### CREVICE-0.6.35-20261118 — 바위틈 쉬는 자리를 돌 바로 앞으로, 틈에 쏙 들어가 쉬기
+
+- 담당: Claude Code. 기준 main `101f2b8`(SRS v2.27 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 사용자 실기기 화면 "바위틈에 있지 않은데 바위틈에 쉬고있다고 뜸"(코로나가 바위틈 아래 이끼 위에 있음).
+- 원인: `objects.js` `region('crevice')`가 기준점 +0.07의 빈 바닥이었다(돌 그림은 기준점 위). 이끼가 그 아래에 있는 배치에서 이끼 위에서 '바위틈에서 쉬는 중'이 됨.
+- 수정: 쉬는 자리를 돌 바로 앞(+0.003, +0.03, 0.07×0.015)으로. 버전 0.6.35 / versionCode 52. SRS `docs/Forest-World-Motion-SRS-v2.27.md` W27-02에 행 추가.
+- 검증: `npm test` 277/277(`rest-spots` 바위틈 5종 검사), `npm run test:ui` PASS, 전후 비교 `docs/qa-0.6.35/runtime/crevice-rest.png`(`tools/crevice-review.cjs`). 다 자란 슈퍼범의 바위틈 용량 초과는 수정 전과 같음(확인). 실기기 미검증.
+- 추가(사용자 "바위 틈에 쉬는 연출 저게 맞음?" → 선택 "틈에 쏙 들어가기"): `scene.js` `nookPos`·`creviceFront`·`creviceGeom` — 도착해 쉬는 친구를 틈 입구로 0.6초에 걸쳐 옮겨 그리고 앞 작은 돌(타원)을 다시 그림. 렌더 전용. `rock-rider.test.cjs`에 검사 추가. `npm test` 278/278.
+- 추가 2: 작은 돌 다시 그리기를 실제 윤곽 다각형(`nookStone`)으로, 틈에 있는 친구는 작은 돌 영역·그 아래를 잘라 그림(`nookClip`) — 사용자 제보 "검정색 조각"(돌 아래 발 끝, 경계의 틈 그늘 줄).
+- 추가 3: 슈퍼범 둥지 물 증발(샘물과 같은 식, 비·안개·눈·쉼터 안 제외, `ledger.evaporation`)과 몸 물 45 미만일 때 스스로 마시기(분당 3, 55까지) — `social.js` `nest`, 사용자 선택 "증발 + 스스로 마시기". SRS `Forest-Superbum-SRS-v2.26.md` SB-04a. `npm test` 279/279, UI PASS. 엔진 측정 2시드·6게임일: 기본 기후에서는 비가 다시 채워 마른 그림까지는 내려가지 않음.
