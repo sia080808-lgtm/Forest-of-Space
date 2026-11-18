@@ -12,3 +12,12 @@ test('Ellisii can actually arrive: with Ridley and Elephan settled and other vis
  for(const seed of [1,2,3,4]){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;F.welcomeNeolbi(s);s.recruitment.target='bonbon';
   for(let t=0;t<3600;t++){F.step(s);const v=s.recruitment.visitor;if(v){if(v.species==='bonbon'){arrived++;break;}s.recruitment.visitor=null;s.recruitment.settled.push(v.id);}}}
  a.ok(arrived>=3,'arrived in '+arrived+'/4');});
+test('두리 is retired: Ellisii is the first visitor of a new forest; a waiting or queued 두리 visit becomes an Ellisii visit; a 두리 already living stays',()=>{const R=F.Recruitment;a.deepEqual(R.retired,['duri']);
+ for(const seed of [1,2,3,4]){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;let first=null;for(let t=0;t<600&&!first;t++){F.step(s);if(s.recruitment.visitor)first=s.recruitment.visitor.species;}a.equal(first,'bonbon');}
+ const s=F.create(0,9);s.started=true;s.environment.tutorialDone=true;for(let t=0;t<200;t++)F.step(s);s.recruitment.serial=1;s.recruitment.target='duri';
+ s.recruitment.visitor={id:'visit-1-duri',species:'duri',pet:{},seconds:5,open:false,ready:false,water:20,leaves:3,phase:'adapt',x:.5,y:.77,companion:null};
+ const m=F.migrate(JSON.parse(JSON.stringify(s)));a.equal(m.recruitment.visitor,null);a.deepEqual(m.recruitment.pending,['bonbon']);a.equal(m.recruitment.target,null);F.step(m);a.equal(m.recruitment.visitor.species,'bonbon');
+ const q=F.create(0,10);q.recruitment.pending=['duri'];R.init(q);a.deepEqual(q.recruitment.pending,['bonbon']);
+ // a 두리 that already lives in the forest is kept as is
+ const o=F.create(0,11);o.individuals.push({...o.individuals[0],id:'duri-1',species:'duri',name:'두리'});const om=F.migrate(JSON.parse(JSON.stringify(o)));a.ok(om.individuals.some(p=>p.species==='duri'));
+ for(let t=0;t<2000;t++){F.step(om);const v=om.recruitment.visitor;if(v){a.notEqual(v.species,'duri');om.recruitment.visitor=null;}}});
