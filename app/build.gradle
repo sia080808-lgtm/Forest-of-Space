@@ -2,6 +2,6 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.ridleydesk.mobile'
     compileSdk 35
-    defaultConfig { applicationId 'com.ridleydesk.mobile'; minSdk 29; targetSdk 35; versionCode 48; versionName '0.6.31' }
+    defaultConfig { applicationId 'com.ridleydesk.mobile'; minSdk 29; targetSdk 35; versionCode 49; versionName '0.6.32' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 }

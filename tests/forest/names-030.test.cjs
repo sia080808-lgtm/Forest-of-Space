@@ -6,3 +6,10 @@ test('0.6.30 보송 is now 베이치 (Platycerium veitchii): new visitors, the g
  F.Recruitment.tick(s,{Space:F.Space,Social:F.Social,rng:()=>0,event:F.event,personality:F.personality});if(s.recruitment.visitor)s.recruitment.visitor.pet.name='보송';
  const m=F.migrate(JSON.parse(JSON.stringify(s)));a.deepEqual(m.individuals.map(p=>p.name),['리들리','베이치','보송']);if(m.recruitment.visitor?.species==='bosong')a.equal(m.recruitment.visitor.pet.name,'베이치');F.valid(m);
 });
+
+test('0.6.32 주렁 is now 코로나 (Platycerium coronarium): guide, visitors and saved friends without a custom name',()=>{
+ a.equal(F.SPECIES.find(x=>x[0]==='jureong')[1],'코로나');a.equal(F.Recruitment.names[F.Recruitment.ids.indexOf('jureong')],'코로나');
+ const s=F.create(0,3),base=s.individuals[0];s.individuals.push({...F.clone(base),id:'j1',species:'jureong',name:'주렁',active:false},{...F.clone(base),id:'j2',species:'jureong',name:'주렁',customName:true,active:false});
+ F.Recruitment.init(s);s.recruitment.visitor={id:'visit-9-jureong',species:'jureong',pet:{...F.clone(base),id:'visit-9-jureong',species:'jureong',name:'주렁'},seconds:0,open:false,ready:false,water:20,leaves:3,phase:'adapt',x:.5,y:.77,companion:null};
+ const m=F.migrate(JSON.parse(JSON.stringify(s)));a.deepEqual(m.individuals.map(p=>p.name),['리들리','코로나','주렁']);a.equal(m.recruitment.visitor.pet.name,'코로나');
+});
