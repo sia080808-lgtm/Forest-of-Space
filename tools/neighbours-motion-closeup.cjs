@@ -1,10 +1,10 @@
 // Close-up motion sheet: each 0.6.26~0.6.27 small neighbour drawn large with the same creature-art.js functions and the
-// same paths scene.js uses (scaled up), on the forest paper. Output: docs/qa-0.6.27/runtime/neighbours-motion-closeup.mp4
+// same paths scene.js uses (scaled up), on the forest paper. Output: docs/qa-0.6.28/runtime/neighbours-motion-closeup.mp4
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');const {createCanvas,loadImage,GlobalFonts}=require('@napi-rs/canvas');
-const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.27/runtime'),Art=require(web+'/creature-art');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.28/runtime'),Art=require(web+'/creature-art');
 for(const f of fs.readdirSync(web+'/fonts').filter(f=>/\.(ttf|otf)$/.test(f)))GlobalFonts.registerFromPath(web+'/fonts/'+f,'Forest');
 (async()=>{const A={};for(const [k,v] of Object.entries(Art.ANT_FILES))A[k]=await loadImage(web+'/'+v);const paper=await loadImage(web+'/assets/forest/garden-open.png');
- const PW=320,PH=300,frame=createCanvas(PW*3,PH*2),g=frame.getContext('2d'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'nbc-')),FPS=24,SEC=8;
+ const PW=320,PH=300,COLS=4,frame=createCanvas(PW*COLS,PH*2),g=frame.getContext('2d'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'nbc-')),FPS=24,SEC=8;
  const leaf=(cx,cy)=>{g.save();g.fillStyle='rgba(150,176,98,.55)';g.beginPath();g.ellipse(cx,cy,120,46,-.12,0,Math.PI*2);g.fill();g.strokeStyle='rgba(110,140,70,.5)';g.lineWidth=2;g.beginPath();g.moveTo(cx-110,cy+10);g.quadraticCurveTo(cx,cy-6,cx+112,cy-12);g.stroke();g.restore();};
  const soil=(cx,cy)=>{g.save();g.fillStyle='rgba(150,124,96,.18)';g.beginPath();g.ellipse(cx,cy,130,40,0,0,Math.PI*2);g.fill();g.restore();};
  const panels=[
@@ -13,8 +13,10 @@ for(const f of fs.readdirSync(web+'/fonts').filter(f=>/\.(ttf|otf)$/.test(f)))Gl
   ['뿌리날파리 · 날갯짓하며 맴돎, 유충은 꿈틀',(t,cx,cy)=>{soil(cx,cy+40);for(let i=0;i<3;i++)Art.neighbour(g,A,'rootGnatLarva',{x:cx-60+i*60,y:cy+56+(i%2)*8,size:56,dir:i%2?1:-1,phase:t*.3+i});for(let i=0;i<2;i++){const a=t*(1.3+i*.2)+i*1.7;Art.neighbour(g,A,'rootGnat',{x:cx+Math.cos(a)*90,y:cy-20+Math.sin(a*1.7)*22,size:70,dir:-Math.sin(a)>=0?1:-1,phase:t*3+i,lift:10});}}],
   ['흙지기 · 다리를 천천히 딛으며 순찰',(t,cx,cy)=>{soil(cx,cy+20);const a=t*.3;Art.neighbour(g,A,'soilMite',{x:cx+Math.cos(a)*80,y:cy+20+Math.sin(a)*20,size:100,dir:-Math.sin(a)>=0?1:-1,phase:t});}],
   ['솜깍지 · 더듬이·짧은 다리 · 알주머니 · 감로',(t,cx,cy)=>{leaf(cx,cy);Art.neighbour(g,A,'mealybug',{x:cx-50,y:cy+16,size:92,dir:1,phase:t*.2});Art.neighbour(g,A,'mealybug',{x:cx+60,y:cy+6,size:70,dir:-1,phase:t*.2+1});Art.neighbour(g,A,'mealybugSac',{x:cx+10,y:cy-14,size:50});Art.honeydew(g,cx-10,cy+34,30,40);}],
+  ['쏙쏙이 · 유충을 찾다 바위 뒤로 쏙',(t,cx,cy)=>{soil(cx-30,cy+30);g.save();g.fillStyle='rgba(150,140,130,.85)';g.beginPath();g.ellipse(cx+95,cy+18,48,34,0,0,Math.PI*2);g.fill();g.restore();const cyc=t%8;let x=null,y=cy+30;if(cyc<4){const a=t*.8;x=cx-40+Math.cos(a)*50;y=cy+30+Math.sin(a)*10;}else if(cyc<5.5){x=cx+10+(cyc-4)/1.5*75;}else if(cyc>=6.5){x=cx+85-(cyc-6.5)/1.5*75;}if(x!=null)Art.neighbour(g,A,'roveBeetle',{x,y,size:120,dir:(cyc<4?-Math.sin(t*.8)>=0:cyc<5.5)?1:-1,phase:t});g.save();g.fillStyle='rgba(150,140,130,1)';g.beginPath();g.ellipse(cx+110,cy+22,40,30,0,0,Math.PI*2);g.fill();g.restore();}],
+  ['돌돌이 · 걷다가 놀라면 공처럼 말림',(t,cx,cy)=>{soil(cx,cy+40);const cyc=t%8;if(cyc<5)Art.neighbour(g,A,'pillbug',{x:cx-60+cyc*24,y:cy+50,size:140,dir:1,phase:t});else Art.neighbour(g,A,'pillbugBall',{x:cx+60,y:cy+50,size:56,still:true});}],
   ['점박이 · 솜깍지 곁을 맴돌기 + 개미',(t,cx,cy)=>{leaf(cx,cy);Art.neighbour(g,A,'mealybug',{x:cx-30,y:cy+12,size:70,dir:1,phase:t*.2});const a=t*.4;Art.neighbour(g,A,'ladybird',{x:cx+Math.cos(a)*70,y:cy+4+Math.sin(a)*18,size:80,dir:-Math.sin(a)>=0?1:-1,phase:t});const b=t*.6;Art.antSprite(g,A,{x:cx+90+Math.cos(b)*14,y:cy+60,size:110,dir:Math.cos(b)>0?-1:1,phase:t});}]];
- for(let f=0;f<FPS*SEC;f++){const t=f/FPS;panels.forEach(([label,draw],i)=>{const x=(i%3)*PW,y=Math.floor(i/3)*PH;g.save();g.beginPath();g.rect(x,y,PW,PH);g.clip();g.drawImage(paper,200,500,PW,PH,x,y,PW,PH);draw(t,x+PW/2,y+PH/2-20);
+ for(let f=0;f<FPS*SEC;f++){const t=f/FPS;panels.forEach(([label,draw],i)=>{const x=(i%COLS)*PW,y=Math.floor(i/COLS)*PH;g.save();g.beginPath();g.rect(x,y,PW,PH);g.clip();g.drawImage(paper,200,500,PW,PH,x,y,PW,PH);draw(t,x+PW/2,y+PH/2-20);
   g.fillStyle='rgba(255,252,246,.88)';g.fillRect(x,y+PH-32,PW,32);g.fillStyle='#3d3226';g.font='15px Forest, sans-serif';g.fillText(label,x+10,y+PH-11);g.restore();g.strokeStyle='#fff';g.lineWidth=2;g.strokeRect(x,y,PW,PH);});
   fs.writeFileSync(path.join(tmp,'f'+String(f).padStart(4,'0')+'.png'),frame.toBuffer('image/png'));}
  execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(FPS),'-i',path.join(tmp,'f%04d.png'),'-c:v','libx264','-pix_fmt','yuv420p','-crf','22',out+'/neighbours-motion-closeup.mp4']);

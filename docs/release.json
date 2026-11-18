@@ -1,15 +1,15 @@
 {
-  "version": "0.6.27",
-  "versionCode": 44,
-  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+creatures-6a+leaf-mites-6b+soil-mealy-6c",
+  "version": "0.6.28",
+  "versionCode": 45,
+  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 254,
+  "full_suite_passed": 260,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "Root flies, 흙지기, mealybugs, 점박이, tending ant; docs/qa-0.6.27/runtime",
+  "render": "All small neighbours incl. 쏙쏙이·돌돌이; docs/qa-0.6.28/runtime",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,7 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.26",
-    "versionCode": 43
+    "version": "0.6.27",
+    "versionCode": 44
   }
 }

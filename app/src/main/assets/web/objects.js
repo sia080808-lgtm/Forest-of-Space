@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},daily=[20,30,40];
 const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:4};
@@ -152,16 +152,20 @@ function choose(s,p,rng){
  if(!current&&!danger&&!Object.values(n).some(Boolean)&&p.action==='groom'&&p.actionSeconds>0)return;
  if(!current&&s.worldTick<(p.nextObjectChoice||0)&&!danger&&grade>1)return;
  const definitions=[];const add=(id,k,r,free=false)=>definitions.push([id,k,r,free]);
+ // 0.6.28 plant side of the small-neighbour ecology: a friend with pests on its leaves tidies them more and seeks shade or
+ // water (moist leaves slow spider mites), and avoids playing in litter where root-fly larvae live (it still feeds there
+ // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
+ const P=s.objects?.creatures?dep('creatures').pressure(s,p):{leaf:false,mite:false,gnatSites:[]},clean=ids=>ids.filter(id=>!P.gnatSites.includes(id)),lastInfested=ids=>[...ids.filter(id=>!P.gnatSites.includes(id)),...ids.filter(id=>P.gnatSites.includes(id))];
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
  else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
- else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of litterSpots(s,'U',p))add(id,'nutrition','nutrition');}
+ else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
  else if(n.energy){for(const id of ['shelter','moss','shade','rock','crevice'])add(id,id==='moss'?'moss':'rest','energy');}
- else if(n.mood){add('moss','moss','mood');for(const id of litterSpots(s,'O',p))add(id,'litterPlay','mood');add('spring','splash','mood');}
+ else if(n.mood){add('moss','moss','mood');for(const id of clean(litterSpots(s,'O',p)))add(id,'litterPlay','mood');add('spring','splash','mood');}
  else if(!current&&p.action==='rest'&&p.target==='shelter'){add('shelter','rest','free',true);}
  else {
   // Free visits preserve species expression without competing with actual needs.
-  const roll=rng(s,'behavior');if(roll<.25&&!current){p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  const free=[['moss','moss'],[litterSpots(s,'O',p)[0],'litterPlay'],['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],['shelter','rest']];const first=Math.floor(roll*free.length)%free.length;
+  const roll=rng(s,'behavior');if(roll<(P.leaf?.55:.25)&&!current){p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
+  const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],['shelter','rest']];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
  const options=[];for(const d of definitions){const o=option(s,p,...d);options.push(o);if(d[3]&&!o.fail)break;}p.objectDebug=options.map(o=>({object:o.object,kind:o.kind,score:o.score,reason:o.fail||'eligible'}));

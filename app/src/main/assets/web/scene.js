@@ -76,10 +76,17 @@ class ForestScene {
   const c=this.ctx,w=this.w,h=this.h,A=this.assets,t=s.settings.reducedMotion?0:this.phase,frac=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   for(const g of C.groups){
    // 뿌리날파리 (adults hover low over the wet litter, larvae show at its edge) and 흙지기 crawling in the soil
-   if(g.kind==='gnat'||g.kind==='soilmite'){const z=Forest.Creatures.site(s,g.site);if(!z)continue;const zx=z.x*w,zy=(z.y-(g.site==='litter'?.03:0))*h,still=s.settings.reducedMotion;
+   if(g.kind==='gnat'||g.kind==='soilmite'||g.kind==='rove'){const z=Forest.Creatures.site(s,g.site);if(!z)continue;const zx=z.x*w,zy=(z.y-(g.site==='litter'?.03:0))*h,still=s.settings.reducedMotion;
     if(g.kind==='gnat'){const nl=Math.min(3,Math.ceil(g.larvae/8));for(let i=0;i<nl;i++)Art.neighbour(c,A,'rootGnatLarva',{x:zx+(i-1)*w*.012,y:zy+w*.012+(i%2)*w*.004,size:w*.008,dir:i%2?1:-1,phase:t*.3+i,still});
      const na=Math.min(4,Math.ceil(g.adults/6));for(let i=0;i<na;i++){const a=t*(1.3+i*.2)+i*1.7,x=zx+Math.cos(a)*w*.03,y=zy-w*.012+Math.sin(a*1.7)*w*.006;Art.neighbour(c,A,'rootGnat',{x,y,size:w*.012,dir:-Math.sin(a)>=0?1:-1,phase:t*3+i,still,lift:w*.01});}}
-    else{const a=t*.3,x=zx+Math.cos(a)*w*.02,y=zy+w*.008+Math.sin(a)*w*.005;Art.neighbour(c,A,'soilMite',{x,y,size:w*.011,dir:-Math.sin(a)>=0?1:-1,phase:t,still});}
+    else if(g.kind==='soilmite'){const a=t*.3,x=zx+Math.cos(a)*w*.02,y=zy+w*.008+Math.sin(a)*w*.005;Art.neighbour(c,A,'soilMite',{x,y,size:w*.011,dir:-Math.sin(a)>=0?1:-1,phase:t,still});}
+    else{// 쏙쏙이: hunts around the wet litter, slips behind its rock/crevice now and then and comes back out
+     const hd=s.patches.find(q=>q.id===g.hide)||z,cyc=still?0:(t%14),hx=hd.x*w,hy=(hd.y+.02)*h;let x,y,dir;
+     if(cyc<6){const a=t*.45;x=zx+Math.cos(a)*w*.025;y=zy+w*.01+Math.sin(a)*w*.006;dir=-Math.sin(a)>=0?1:-1;}
+     else if(cyc<8){const u=(cyc-6)/2;x=zx+(hx-zx)*u;y=zy+w*.01+(hy-zy-w*.01)*u;dir=hx>=zx?1:-1;}
+     else if(cyc<11){x=null;}
+     else{const u=(cyc-11)/3;x=hx+(zx-hx)*u;y=hy+(zy+w*.01-hy)*u;dir=zx>=hx?1:-1;}
+     if(x!=null)Art.neighbour(c,A,'roveBeetle',{x,y,size:w*.028,dir,phase:t,still});}
     continue;}
    if(g.kind==='ant'){const n=g.nest;Art.nestSprite(c,A,{x:n.x*w,y:n.y*h,size:w*.11});
     // two workers patrol around the nest
@@ -160,7 +167,12 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   for(const p of s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0)){const g=ForestNeolbi.geometry(p);ForestSurfaces.wash(c,g.cx*w,g.cy*h,g.rx*w,g.ry*h,'71,82,60',.14*p.canopyProgress,1.5);}
   const night=s.settings.theme==='night'||(s.settings.theme==='auto'&&Math.floor(s.worldTick/600)%2===1);
 
-  if(s.neighbor.stage==='visiting'){const p=s.patches.find(x=>x.id==='crevice');const x=(p.x+.04)*w,y=(p.y+.02)*h;c.fillStyle='#777a69';c.beginPath();c.ellipse(x,y,5,3.6,-.2,0,Math.PI*2);c.fill();c.strokeStyle='#a8aa91';for(let i=-2;i<3;i++){c.beginPath();c.moveTo(x+i*1.5,y-2);c.lineTo(x+i*1.5+1,y+2);c.stroke();}}
+  // 돌돌이 (SRS sheet 01): walks slowly in front of the crevice; curls into a ball when a friend comes close or the wind is
+  // strong (render only — the visit itself is the engine's neighbour rule)
+  if(s.neighbor.stage==='visiting'){const p=s.patches.find(x=>x.id==='crevice'),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;const bx=p.x+.04,by=p.y+.02;
+   const rolled=s.weather.wind>=60||s.individuals.some(q=>q.active&&!q.mounted&&Math.hypot(q.x-bx,q.y-by)<.08),still=s.settings.reducedMotion,tt=still?0:this.phase;
+   if(Art&&this.assets.pillbug){if(rolled)Art.neighbour(c,this.assets,'pillbugBall',{x:bx*w,y:by*h,size:w*.02,still:true});else{const sw=Math.sin(tt*.25),x=(bx+sw*.012)*w;Art.neighbour(c,this.assets,'pillbug',{x,y:by*h,size:w*.04,dir:Math.cos(tt*.25)>=0?1:-1,phase:tt,still});}}
+   else{const x=bx*w,y=by*h;c.fillStyle='#777a69';c.beginPath();c.ellipse(x,y,5,3.6,-.2,0,Math.PI*2);c.fill();}}
   for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>a.y-b.y)){
    const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y};
    if(motion?.tick===s.worldTick&&motion.distance>0){let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};for(let i=1;i<path.length;i++){const d=Forest.Space.distance(path[i-1],path[i]),n=Math.min(d,remaining);if(d)pos={x:path[i-1].x+(path[i].x-path[i-1].x)*n/d,y:path[i-1].y+(path[i].y-path[i-1].y)*n/d};remaining-=n;if(remaining<=0)break;}}

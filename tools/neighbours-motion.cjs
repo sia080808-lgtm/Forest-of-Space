@@ -1,8 +1,8 @@
 // Motion preview of the 0.6.26~0.6.27 small neighbours in the real scene.js render (native Canvas, not Android WebView):
 // one labelled panel per creature, the render phase advancing while the game state stays fixed (render never changes state).
-// Output: docs/qa-0.6.27/runtime/neighbours-motion.mp4 (frames are written to a temp folder and removed after encoding).
+// Output: docs/qa-0.6.28/runtime/neighbours-motion.mp4 (frames are written to a temp folder and removed after encoding).
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process');const {createCanvas,loadImage,GlobalFonts}=require('@napi-rs/canvas');
-const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.27/runtime');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.6.28/runtime');
 const F=require(web+'/engine'),Rig=require(web+'/rig'),C=F.Creatures;
 for(const f of fs.readdirSync(web+'/fonts').filter(f=>/\.(ttf|otf)$/.test(f)))GlobalFonts.registerFromPath(web+'/fonts/'+f,'Forest');
 (async()=>{
