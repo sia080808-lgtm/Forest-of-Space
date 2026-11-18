@@ -4,12 +4,10 @@
 // Output: app/src/main/assets/web/assets/forest/creatures/springtail-rest.png, springtail-jump.png (facing right).
 const fs=require('node:fs'),path=require('node:path');const {createCanvas}=require('@napi-rs/canvas');
 const out=path.resolve(__dirname,'../app/src/main/assets/web/assets/forest/creatures');fs.mkdirSync(out,{recursive:true});
-const W=420,H=260,LINE='rgba(92,72,70,.85)';
+const W=420,H=260;
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-function wash(c,draw,fill,layers=3,jitter=2.2){for(let i=0;i<layers;i++){c.save();c.translate((rnd()-.5)*jitter,(rnd()-.5)*jitter);c.globalAlpha=.42;c.fillStyle=fill;draw();c.fill();c.restore();}}
 function grain(c,mask){const g=c.getImageData(0,0,W,H),d=g.data;for(let i=0;i<d.length;i+=4){if(d[i+3]<10)continue;const n=(rnd()-.5)*16;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}c.putImageData(g,0,0);}
 function blob(c,x,y,rx,ry,rot,inner,outer,alpha=1){c.save();c.translate(x,y);c.rotate(rot);c.scale(1,ry/rx);const g=c.createRadialGradient(-rx*.25,-rx*.35,rx*.1,0,0,rx);g.addColorStop(0,inner);g.addColorStop(.72,outer);g.addColorStop(1,outer);c.globalAlpha=alpha;c.fillStyle=g;c.beginPath();c.arc(0,0,rx,0,Math.PI*2);c.fill();c.restore();}
-function edge(c,x,y,rx,ry,rot,w=3){c.save();c.translate(x,y);c.rotate(rot);c.scale(1,ry/rx);c.filter='blur(1.2px)';c.strokeStyle='rgba(88,74,86,.55)';c.lineWidth=w*rx/ry*.6;c.beginPath();c.arc(0,0,rx-1,0,Math.PI*2);c.stroke();c.restore();}
 // Tapered, jointed limb drawn as two soft segments with a knee bead.
 function limb(c,pts,w,color){c.save();c.lineCap='round';c.strokeStyle=color;for(let k=0;k<pts.length-1;k++){c.lineWidth=w*(1-k*.28);c.beginPath();c.moveTo(...pts[k]);c.lineTo(...pts[k+1]);c.stroke();}c.fillStyle=color;for(let k=1;k<pts.length-1;k++){c.beginPath();c.arc(...pts[k],w*.55,0,Math.PI*2);c.fill();}c.restore();}
 function body(c,jump){
