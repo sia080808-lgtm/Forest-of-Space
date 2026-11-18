@@ -4,14 +4,14 @@
 // tools/rig-superbum.py), one full set per state: 'dry' (마른 둥지) and 'wet' (물 고인 둥지, the nest frond holds rain).
 // Layers share one 480x420 canvas, feet on the ground at ANCHOR. No arms: the pendant antler leaves (skirt) are the limbs.
 const SIZE=1.7,ANCHOR=[240,404],HEIGHT=382,RIDLEY_H=38.5;
-const LAYERS=['skirt-left-back','skirt-right-back','foot-left','foot-right','body','skirt-left-front','skirt-right-front','crown'];
+const LAYERS=['body','foot-left','foot-right','skirt-left','skirt-right','crown'];
 const files={};for(const st of ['dry','wet'])for(const k of LAYERS)files['superbum_'+st+'_'+k]='assets/forest/species/superbum-'+st+'-'+k+'.png';
 const META={
- dry:{eyes:[[188.1,279.2,35.4,9.6],[260.1,279.2,34.8,9.6]],crown:[240.3,218],skirt:[[150.3,252],[330.3,252]],feet:[[177.9,387.2],[302.1,387.2]],patch:[228.3,332],rim:[[30,180],[450,180]]},
- wet:{eyes:[[185.4,279.2,34.8,9.6],[261,279.2,35.4,9.6]],crown:[240,221.6],skirt:[[150,229.5],[330,229.5]],feet:[[175.2,387.8],[304.8,387.8]],patch:[228,335.6],rim:[[22,128],[452,140]]}
+ dry:{eyes:[[188.1,279.2,35.4,9.6],[260.1,279.2,34.8,9.6]],crown:[240.3,218],skirt:[[150.3,252],[330.3,252]],feet:[[177.9,387.2],[302.1,387.2]],patch:[229.8,328.4],rim:[[30,180],[450,180]]},
+ wet:{eyes:[[185.4,279.2,34.8,9.6],[261,279.2,35.4,9.6]],crown:[240,221.6],skirt:[[150,229.5],[330,229.5]],feet:[[175.2,387.8],[304.8,387.8]],patch:[228.1,326.6],rim:[[22,128],[452,140]]}
 };
 // Water held in the nest: the wet set shows from WET_ON and fully at WET_FULL (fraction of the nest's capacity).
-const WET_ON=.12,WET_FULL=.3;
+const WET_ON=.12,WET_FULL=.3,STRIP=6;
 const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>(x=clamp(x))*x*(3-2*x);
 const MOVING=['walk','slow','hurry','run','duck','step','avoid'];
 // Rig-frame scale: the common renderer gives 1254 px for a 48-unit friend; 슈퍼범 stands 1.7x 리들리 (38.5 units tall).
@@ -35,8 +35,8 @@ function pose(kind,t,opt={}){
   if(full)p.drips=run?1:.35;
  }
  if(kind==='held'){p.feet=[0,1].map(i=>({dx:0,dy:6,rot:Math.sin(t*8+i*Math.PI)*.35}));p.skirt=[Math.sin(t*7)*.07,Math.sin(t*7+1.4)*.07];p.skirtLift=[.03,.03];p.tilt=Math.sin(t*4.5)*.05;p.crown=Math.sin(t*5.5)*.05;p.eyes=opt.expression||'surprised';if(full)p.drips=1;}
- if(kind==='rest'||kind==='sleep'||kind==='moss'){const r=opt.restBlend??1;p.sink=10*r;p.bob=breathe*1.6;p.squash=1-.03*r;p.skirt=[.06*r+Math.sin(t*.8)*.012,-.06*r-Math.sin(t*.8)*.012];p.crown=.03*r+Math.sin(t*.7)*.01;p.crownLift=6*r;p.eyes=opt.expression||'sleepy';}
- if(kind==='groom'){const cyc=(t%5)/5,q=ease(cyc/.2)*(1-ease((cyc-.8)/.2));p.skirtLift=[0,q*.5];p.skirt[1]=-q*.55+Math.sin(t*8)*.05*q;p.crown=Math.sin(t*8)*.03*q;p.eyes=opt.expression||'focused';}
+ if(kind==='rest'||kind==='sleep'||kind==='moss'){const r=opt.restBlend??1;p.sink=10*r;p.bob=breathe*1.6;p.squash=1-.03*r;p.skirt=[.03*r+Math.sin(t*.8)*.01,-.03*r-Math.sin(t*.8)*.01];p.crown=.03*r+Math.sin(t*.7)*.01;p.crownLift=6*r;p.eyes=opt.expression||'sleepy';}
+ if(kind==='groom'){const cyc=(t%5)/5,q=ease(cyc/.2)*(1-ease((cyc-.8)/.2));p.skirtLift=[0,q*.35];p.skirt[1]=-q*.18+Math.sin(t*8)*.03*q;p.crown=Math.sin(t*8)*.03*q;p.eyes=opt.expression||'focused';}
  if(kind==='drink'){p.tilt=.06+Math.sin(t*4)*.015;p.sink=5;p.eyes=opt.expression||'focused';}
  if(kind==='splash'){p.bob=-Math.abs(Math.sin(t*6))*10;p.skirt=[Math.sin(t*7)*.08,-Math.sin(t*7)*.08];p.skirtLift=[.04,.04];p.eyes=opt.expression||'happy';}
  if(kind==='litter'){p.skirt[0]=-.25+Math.sin(t*5)*.12;p.skirtLift[0]=.2;p.tilt=-.04;}
@@ -69,16 +69,21 @@ function eyes(c,set,m,p,a,opt,t){
 function drawSet(c,a,set,p,opt,t){
  const m=META[set],L=k=>a['superbum_'+set+'_'+k],snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
  const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
- const turn=(k,px,py,ang,lift,snowy)=>{c.save();c.translate(px,py);c.rotate(ang);c.translate(0,-lift*30);c.translate(-px,-py);img(k,snowy);c.restore();};
- // feet stay on the ground (they are drawn before the body lifts), body + skirt + crown move together
- for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+(opt.kind==='held'?p.bob:0));c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
- c.save();c.translate(0,p.bob+p.sink);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);
- // back skirt first (behind the feet's tops and the body)
- turn('skirt-left-back',m.skirt[0][0],m.skirt[0][1],p.skirt[0],p.skirtLift[0],true);
- turn('skirt-right-back',m.skirt[1][0],m.skirt[1][1],p.skirt[1],p.skirtLift[1],true);
- img('body');eyes(c,set,m,p,a,opt,t);
- turn('skirt-left-front',m.skirt[0][0],m.skirt[0][1],p.skirt[0],p.skirtLift[0]);
- turn('skirt-right-front',m.skirt[1][0],m.skirt[1][1],p.skirt[1],p.skirtLift[1]);
+ // The pendant leaves hang from the cheeks: their top stays attached and only the lower part swings (drawn in thin
+ // horizontal strips, each shifted more the further it hangs), so a leaf bends instead of coming apart from the face.
+ const bend=(k,py,ang,lift,snowy)=>{const im=L(k);if(!im)return;if(Math.abs(ang)<1e-4&&Math.abs(lift)<1e-4){img(k,snowy);return;}
+  // each strip is clipped on the canvas and the whole layer is drawn shifted inside it: no resampled strip edges
+  const top=Math.max(0,Math.floor(py-40)),span=420-py;c.save();c.beginPath();c.rect(-60,-60,600,top+60);c.clip();c.drawImage(im,0,0,480,420);c.restore();
+  for(let y=top;y<420;y+=STRIP){const h=Math.min(STRIP,420-y),f=Math.max(0,(y+h/2-py)/span),w=f*f*(3-2*f),dx=-ang*span*w,dy=-lift*span*.35*w;c.save();c.beginPath();c.rect(-60,y+dy-.75,600,h+1.5);c.clip();c.drawImage(im,dx,dy,480,420);c.restore();}
+  if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
+ // body (round face) first; the feet are attached in front of its lower edge (they move with the body and step on their own); leaves and crown move with the body
+ const lift=()=>{c.translate(0,p.bob+p.sink);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
+ c.save();lift();img('body');eyes(c,set,m,p,a,opt,t);c.restore();
+ for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink);c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
+ c.save();lift();
+ // each side's leaves hang over its cheek
+ bend('skirt-left',m.skirt[0][1],p.skirt[0],p.skirtLift[0],true);
+ bend('skirt-right',m.skirt[1][1],p.skirt[1],p.skirtLift[1],true);
  const [cx,cy]=m.crown;c.save();c.translate(cx,cy);c.rotate(p.crown);c.scale(p.crownScale,p.crownScale);c.translate(-cx,-cy+p.crownLift);img('crown',true);const M=c.getTransform();c.restore();
  c.restore();return M;
 }
