@@ -3,7 +3,8 @@ const web=path.resolve(__dirname,'../../app/src/main/assets/web'),R=require(web+
 async function assets(){const out={};for(const [k,v]of Object.entries(R.files))out[k]=await loadImage(web+'/'+v);return out;}
 test('intact body remains opaque through all limb positions and both directions',async()=>{const images=await assets(),can=createCanvas(320,320),c=can.getContext('2d');
  for(const face of [-1,1]){c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,278);c.scale(face*.25,.25);c.translate(-627,-1065.9);c.drawImage(images.rigBody,0,0);const base=c.getImageData(0,0,320,320).data;
- for(const kind of ['idle','walk','slow','hurry','run','groom','held','rest','drink','land','duck','step','avoid'])for(let i=0;i<24;i++){
+ // 'groom' is left out of this in-place check since 0.6.33: it shakes the whole intact body (the next test still checks one body and both hands)
+ for(const kind of ['idle','walk','slow','hurry','run','held','rest','drink','land','duck','step','avoid'])for(let i=0;i<24;i++){
  const t=i/6,p=R.pose(kind,t,false,kind==='held'?Math.sin(t)*.9:0);c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,278);c.scale(face*.25,.25);c.translate(-627,-1065.9-p.bob);R.draw(c,images,{kind,phase:t,wiggle:kind==='held'?Math.sin(t)*.9:0});const actual=c.getImageData(0,0,320,320).data;
  for(let n=3;n<base.length;n+=4)if(base[n]>=250)a.ok(actual[n]>=249,`${kind}/${t} damaged body pixel ${n}`);
  }}

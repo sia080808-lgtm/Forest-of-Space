@@ -57,6 +57,17 @@ test('점박이 comes only to egg sacs (density >= 20) on a reachable friend wit
  const L=C.onLeaf(s,p.id).lady;a.equal(L.stage,'adult');for(let t=0;t<119;t++){tick(s,{T:60,kind:'rain'});m.density=40;}a.equal(L.eaten,0,'adult only looks');for(let t=0;t<61;t++)tick(s,{T:60,kind:'rain'});a.equal(L.stage,'larva');a.ok(L.eaten>0);
 });
 
+test('0.6.33 점박이 larva that cleared its friend crawls to the nearest friend close by that still has mealybugs; it leaves only when none is near',()=>{
+ const s=game(),p=s.individuals[0];p.name='리들리';const q={...F.clone(p),id:'ridley-2',name:'코코',x:p.x+.1,y:p.y},far={...F.clone(p),id:'ridley-3',name:'먼',x:.1,y:.2};s.individuals.push(q,far);
+ const m1=add(s,{kind:'mealy',host:p.id,density:3,honey:0,low:0}),m2=add(s,{kind:'mealy',host:q.id,density:30,honey:0,low:0});add(s,{kind:'mealy',host:far.id,density:30,honey:0,low:0});
+ const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});const log=[];const ev=(x,k,t)=>log.push(t);
+ for(let t=0;t<40&&L.host===p.id;t++){s.worldTick++;C.step(s,ev);}
+ a.equal(L.host,q.id,'moved to the near friend, not the far one');a.equal(L.bad,0);a.ok(log.some(t=>t.includes('코코')),'event names the new friend');
+ const before=m2.density;for(let t=0;t<60;t++){s.worldTick++;C.step(s);}a.ok(m2.density<before,'eats on the new friend');
+ m2.density=0;q.x=p.x+.1;for(let t=0;t<400&&C.groups(s).includes(L);t++){s.worldTick++;C.step(s);}a.equal(C.groups(s).includes(L),false,'no near prey left: leaves');a.ok(m1.density<1||!C.groups(s).includes(m1));
+ C.validate(s);
+});
+
 test('ECO-05 one friend\'s pest harm is capped at 2/min in total; at most two pest types are active; saves validate and reload',()=>{
  const s=game(),p=s.individuals[0],z=wetSpot(s,90);p.x=z.x;p.y=z.y+.02;p.damage=0;p.burden=0;p.nutrition=90;
  add(s,{kind:'mite',host:p.id,density:100,low:0});add(s,{kind:'mealy',host:p.id,density:100,honey:0,low:0});
