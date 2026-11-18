@@ -1,6 +1,6 @@
 {
-  "version": "0.6.33",
-  "versionCode": 50,
+  "version": "0.6.34",
+  "versionCode": 51,
   "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25+superbum-v2.26",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
@@ -9,7 +9,7 @@
   "full_suite_passed": 275,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "shade layering, groom/leaf-play motions; docs/qa-0.6.33/runtime",
+  "render": "엘레판 groom nod, 베이치 arms-up leaf toss; docs/qa-0.6.33/runtime/groom-litter.mp4",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",

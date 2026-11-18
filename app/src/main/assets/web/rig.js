@@ -14,10 +14,10 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1}={}){
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0}={}){
  if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side});
  if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow});
- if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow}))return;
+ if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp}))return;
  const p=pose(kind,phase,reduced,wiggle);c.save();c.translate(0,p.bob);
  for(const [i,x]of [515,795].entries()){c.save();c.translate(x,930);c.rotate(i?p.right:p.left);c.drawImage(assets[definition.legs[i]],-49,-45,98,202.385);c.restore();}
  c.save();c.globalAlpha*=bodyAlpha;c.drawImage(assets[definition.body],0,0);c.restore();
@@ -45,7 +45,8 @@ function playBody(t){const u=mod(t,PLAY);if(u<.8){const e=ease(u/.8);return {dy:
  if(u<1.55){const k=(u-1.15)/.4;return {dy:-116*(1-k*k),sq:1+.05*(1-k)};}
  const k=u-1.55;return {dy:-Math.abs(Math.sin(k*5))*16*Math.max(0,1-k/1.2),sq:1};}
 // 리들리's hands: down by the feet while scooping, raised beside the body (a little cheer) while flinging, back down
-function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const u=mod(t,PLAY),up=u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);
+function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);}
+function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
 // friends groom by shaking their leaves like a wet dog (리들리's hands are too small to reach its head): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
@@ -72,9 +73,9 @@ function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(
 const OWN_GROOM=['neolbi','superbum'];
 function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridley',t=opt.phase||0,h=H[sp]||1000;
  if(kind==='litter'){
-  if(opt.reduced){drawCore(c,assets,{...opt,kind:sp==='ridley'?'litter':'idle'});leafToss(c,0,h);return;}
+  if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
   const b=playBody(t);c.save();c.translate(FEET[0],FEET[1]);c.scale(1/Math.sqrt(b.sq),b.sq);c.translate(0,b.dy);c.translate(-FEET[0],-FEET[1]);
-  drawCore(c,assets,{...opt,kind:sp==='ridley'||sp==='superbum'?'litter':'idle',expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
+  drawCore(c,assets,{...opt,kind:['ridley','superbum','bosong'].includes(sp)?'litter':'idle',litterUp:litterUp(t),expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
  if(kind==='groom'&&!OWN_GROOM.includes(sp)&&!opt.reduced){const m=shake(t);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle'});c.restore();specks(c,t,h);return;}
  return drawCore(c,assets,opt);}

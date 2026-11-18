@@ -445,3 +445,10 @@
   - `rig.js`: `draw` 래퍼로 낙엽 놀이(웅크려 모으고 뛰며 머리 위로 뿌리기, 낙엽 5장)와 팔 없는 친구의 머리 정돈(부르르 털기). 엘레판·슈퍼범은 자기 정돈 동작 유지.
   - 버전 0.6.33 / versionCode 50.
 - 검증: `npm test` 275/275, `npm run test:ui` PASS. 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`, 잎 그늘 `shade-layers.png`. Android 실기기 미검증.
+
+### NOD-ARMS-0.6.34-20261118 — 엘레판 정돈 까닥까닥, 베이치 팔 올려 뿌리기
+
+- 담당: Claude Code. 기준 main `24c92e8`(0.6.33 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 0.6.33 병합: PR #33(https://github.com/sia080808-lgtm/Forest-of-Space/pull/33) main `24c92e899907eb9f346529cb153f487b1a02db69`(사용자 "낙엽놀이 및 머리정돈 ㄱㄱ", 낙엽은 땅에서 모아 던지도록 수정 후; head `6fbbbd2` 기준 simulation·CodeQL 성공).
+- 변경: `neolbi-motion.js` groom 후드 10rad/s 까닥임, `species-rig.js` litter 모드 팔(`litterUp`), `rig.js` 베이치도 litter 모드. 버전 0.6.34 / versionCode 51.
+- 검증: `npm test` 275/275, `npm run test:ui` PASS, 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`. 실기기 미검증.
