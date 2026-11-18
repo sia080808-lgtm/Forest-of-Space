@@ -273,3 +273,4 @@
 - 생물 시안: `tools/draw-antnest.cjs` → `ant-nest.png`(흙 알갱이 둔덕·그늘진 입구·조약돌·새싹), `creature-art.js` `nestSprite`. 게임 미연결.
 - 확인: 엘리시 카드 '함께 살기'는 카드 연 지 149초에 활성화(시뮬레이션). 테스트 `npm test` 232/232, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.24/runtime/visit-cards.png`. 실기기 미검증.
 - 수정(사용자 "짐꾼 개미 왜 뒷통수가 파여 있냐"): SRS 시트에서 개미가 문 잎 줄기를 지울 때 머리 뒤쪽까지 지워져 홈이 생겼다. `ant-body.png`의 머리 타원 안 홈(103~124, 99~125)을 머리 안쪽 색으로 확산 채움+옅은 결+가장자리 음영으로 메움. 전후 비교 `docs/qa-creatures-draft/ant-head-fix.png`.
+- 수정(사용자 "개미굴 땅이랑 연장된 느낌의 작은 흙더미가 있고 그 봉오리에 개미 구멍이 있어야"): `tools/draw-antnest.cjs`를 땅에서 솟은 흙 돔(가장자리 번짐, 왼쪽 밝고 오른쪽 그늘)과 꼭대기 분화구·입구로 다시 그림. `nestSprite` 기준점은 흙더미 바닥 중심(180,150). 비교 `docs/qa-creatures-draft/nest-and-ant-fix.png`.

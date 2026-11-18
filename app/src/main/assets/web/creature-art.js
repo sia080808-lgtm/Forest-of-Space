@@ -65,7 +65,7 @@ function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=fal
  if(carry&&leaf){c.save();c.translate(122,100);c.rotate(still?0:Math.sin(t*7)*.06);c.translate(-122,-100);c.drawImage(leaf,0,0);c.restore();}
  c.restore();
 }
-// Nest entrance in the SRS sheet style (tools/draw-antnest.cjs, 360x200, mound centre at 180,130); size = mound width.
-function nestSprite(c,assets,{x=0,y=0,size=14}={}){const im=assets.antNest;if(!im)return nest(c,{x,y,size});const k=size/200;c.save();c.translate(x,y);c.scale(k,k);c.translate(-180,-130);c.drawImage(im,0,0);c.restore();}
+// Nest entrance in the SRS sheet style (tools/draw-antnest.cjs, 360x200, base centre at 180,150, entrance on the peak); size = mound width.
+function nestSprite(c,assets,{x=0,y=0,size=14}={}){const im=assets.antNest;if(!im)return nest(c,{x,y,size});const k=size/200;c.save();c.translate(x,y);c.scale(k,k);c.translate(-180,-150);c.drawImage(im,0,0);c.restore();}
 return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,ANT_FILES};
 });
