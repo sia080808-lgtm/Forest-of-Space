@@ -11,3 +11,10 @@ test('intact body remains opaque through all limb positions and both directions'
 });
 test('all motions draw one body and exactly two hands without cutting the torso',async()=>{const images=await assets();for(const kind of ['run','groom','held','rest','duck','step'])for(let t=0;t<4;t+=.2){const draws=[];const c=new Proxy({globalAlpha:1},{get:(o,k)=>k in o?o[k]:k==='drawImage'?(im)=>draws.push(im):()=>{}});R.draw(c,images,{kind,phase:t});a.equal(draws.filter(x=>x===images.rigBody).length,1);a.equal(draws.filter(x=>x===images.rigPalm).length,2);a.equal(draws.filter(x=>x===images.rigLegLeft||x===images.rigLegRight).length,2);}});
 test('reduced motion is static and render does not alter its inputs',async()=>{const images=await assets();for(const kind of ['run','groom','held','rest']){a.deepEqual(R.pose(kind,0,true),R.pose(kind,9,true));const options={kind,phase:2,reduced:true};const before={...options};R.draw(createCanvas(1254,1254).getContext('2d'),images,options);a.deepEqual(options,before);}});
+test('0.6.34 every species shivers now and then while spider mites are on its leaves, and not while asleep; the render leaves its options unchanged',async()=>{const images=await assets(),can=createCanvas(320,320),c=can.getContext('2d');
+ const shot=o=>{c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,300);c.scale(.2,.2);c.translate(-627,-1065.9);R.draw(c,images,o);return Buffer.from(c.getImageData(0,0,320,320).data);};
+ for(const species of ['ridley','bonbon','neolbi','bosong','jureong','superbum']){const o={species,kind:'idle',phase:.7,seed:0,itch:true},before=JSON.stringify(o);
+  a.notDeepEqual(shot(o),shot({...o,itch:false}),species+' shivers');a.equal(JSON.stringify(o),before);
+  a.deepEqual(shot({...o,phase:3}),shot({...o,phase:3,itch:false}),species+' only part of each '+R.ITCH+' s');
+  a.deepEqual(shot({...o,kind:'sleep'}),shot({...o,kind:'sleep',itch:false}),species+' not while asleep');}
+});

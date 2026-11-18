@@ -445,3 +445,13 @@
   - `rig.js`: `draw` 래퍼로 낙엽 놀이(웅크려 모으고 뛰며 머리 위로 뿌리기, 낙엽 5장)와 팔 없는 친구의 머리 정돈(부르르 털기). 엘레판·슈퍼범은 자기 정돈 동작 유지.
   - 버전 0.6.33 / versionCode 50.
 - 검증: `npm test` 275/275, `npm run test:ui` PASS. 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`, 잎 그늘 `shade-layers.png`. Android 실기기 미검증.
+
+### NOD-ARMS-0.6.34-20261118 — 엘레판 정돈 까닥까닥, 베이치 팔 올려 뿌리기
+
+- 담당: Claude Code. 기준 main `24c92e8`(0.6.33 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 0.6.33 병합: PR #33(https://github.com/sia080808-lgtm/Forest-of-Space/pull/33) main `24c92e899907eb9f346529cb153f487b1a02db69`(사용자 "낙엽놀이 및 머리정돈 ㄱㄱ", 낙엽은 땅에서 모아 던지도록 수정 후; head `6fbbbd2` 기준 simulation·CodeQL 성공).
+- 0.6.33 APK 검증: 프리릴리스 v0.6.33 `Forest-of-Space-0.6.33.apk` 40,627,419 bytes, SHA-256 `ca8ab6a24ee14ed5feab9413e9665a22f590f13df2eb09cddb6759821ab1b351` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode50/0.6.33, APK 안 engine.js VERSION 0.6.33·점박이 옮겨 가기(`LADY.HOP`) 포함 확인.
+- 변경: `neolbi-motion.js` groom 후드 10rad/s 까닥임, 리들리·베이치 손으로 머리 정돈(`rig.js` OWN_GROOM, `species-rig.js` 베이치 오른손 머리 옆·정돈 중 오른팔 앞 그리기), `species-rig.js` litter 모드 팔(`litterUp`), `rig.js` 베이치도 litter 모드. 버전 0.6.34 / versionCode 51.
+- 추가: 엘리시 두 갈래 생식엽·코로나 머리 잎 까닥임(`species-rig.js`), 잎응애(밀도 5 이상) 붙은 친구 공통 떨기(`rig.js` ITCH 7초, `scene.js` itch 전달).
+- 추가 2: 베이치 팔 항상 몸 뒤·머리 뒤 긁적이기(손끝만 정수리 옆, 머리 기울임 .07)·팔 길이 제한 7.2, 엘리시 생식엽 누끼 다시 따기(`tools/refine-ellisii-fronds.py`, 500×659 좌우 레이어, `ELLI.frondRect`), 초상화 재굽기.
+- 검증: `npm test` 276/276, `npm run test:ui` PASS, 영상 `docs/qa-0.6.33/runtime/groom-litter.mp4`. 실기기 미검증.

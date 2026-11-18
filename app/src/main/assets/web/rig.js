@@ -14,10 +14,10 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1}={}){
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0}={}){
  if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side});
  if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow});
- if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow}))return;
+ if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp}))return;
  const p=pose(kind,phase,reduced,wiggle);c.save();c.translate(0,p.bob);
  for(const [i,x]of [515,795].entries()){c.save();c.translate(x,930);c.rotate(i?p.right:p.left);c.drawImage(assets[definition.legs[i]],-49,-45,98,202.385);c.restore();}
  c.save();c.globalAlpha*=bodyAlpha;c.drawImage(assets[definition.body],0,0);c.restore();
@@ -45,9 +45,10 @@ function playBody(t){const u=mod(t,PLAY);if(u<.8){const e=ease(u/.8);return {dy:
  if(u<1.55){const k=(u-1.15)/.4;return {dy:-116*(1-k*k),sq:1+.05*(1-k)};}
  const k=u-1.55;return {dy:-Math.abs(Math.sin(k*5))*16*Math.max(0,1-k/1.2),sq:1};}
 // 리들리's hands: down by the feet while scooping, raised beside the body (a little cheer) while flinging, back down
-function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const u=mod(t,PLAY),up=u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);
+function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);}
+function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
-// friends groom by shaking their leaves like a wet dog (리들리's hands are too small to reach its head): crouch, a quick shiver that fades, then a satisfied tilt
+// shiver (0.6.34: the common motion of a friend with spider mites on its leaves; 0.6.33 used it for grooming): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
  const k=u-1.35;return {rot:.035*Math.sin(Math.min(1,k/2.4)*Math.PI*2)*(1-Math.min(1,k/2.65)),dx:0,sq:1};}
 const LEAF=[['#c99a4c','#8d5a2b'],['#d8b25a','#9a6e2c'],['#b7863f','#7c4e24'],['#cfa55b','#94622e'],['#a97b39','#6d4520']];
@@ -69,14 +70,21 @@ function leafToss(c,t,height){const u=mod(t,PLAY),N=5,size=Math.max(62,height*.1
 // specks shaken off while grooming
 function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(u-.4)/1.2;c.save();c.translate(FEET[0],FEET[1]-height*.6);c.fillStyle='rgba(150,124,92,'+(.55*(1-k))+')';
  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.4,r=height*(.32+.35*k);c.beginPath();c.arc(Math.cos(a)*r,Math.sin(a)*r*.6+height*.25*k*k,height*.012,0,7);c.fill();}c.restore();}
-const OWN_GROOM=['neolbi','superbum'];
+// 0.6.34: friends with arms (리들리·베이치) keep their hand-on-head grooming; 엘레판·슈퍼범 their own leaf moves
+const ITCH=7,NO_ITCH=['held','rest','sleep','nightrest','moss','land'];
+const OWN_GROOM=['neolbi','superbum','ridley','bosong','bonbon','jureong'];
 function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridley',t=opt.phase||0,h=H[sp]||1000;
  if(kind==='litter'){
-  if(opt.reduced){drawCore(c,assets,{...opt,kind:sp==='ridley'?'litter':'idle'});leafToss(c,0,h);return;}
+  if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
   const b=playBody(t);c.save();c.translate(FEET[0],FEET[1]);c.scale(1/Math.sqrt(b.sq),b.sq);c.translate(0,b.dy);c.translate(-FEET[0],-FEET[1]);
-  drawCore(c,assets,{...opt,kind:sp==='ridley'||sp==='superbum'?'litter':'idle',expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
+  drawCore(c,assets,{...opt,kind:['ridley','superbum','bosong'].includes(sp)?'litter':'idle',litterUp:litterUp(t),expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
  if(kind==='groom'&&!OWN_GROOM.includes(sp)&&!opt.reduced){const m=shake(t);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle'});c.restore();specks(c,t,h);return;}
+ // 0.6.34: a friend whose leaves carry spider mites (the leaf-damaging pest) shivers now and then, every species alike:
+ // every ITCH seconds a short crouch-and-shiver plays over whatever it is doing (not while held, resting or asleep).
+ if(opt.itch&&!opt.reduced&&!NO_ITCH.includes(kind)){const u=mod(t+(opt.seed||0)*1.7,ITCH);if(u<1.35){const m=shake(u);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();specks(c,u,h);return;}}
+ // 0.6.34: while 베이치 scratches the back of its head (hand hidden behind it, fingertips at the crown) it leans its head into the hand
+ if(kind==='groom'&&sp==='bosong'&&!opt.reduced){const u=mod(t,8),q=ease(u/.9)*(1-ease((u-6.7)/1.3));c.save();c.translate(FEET[0],FEET[1]);c.rotate(.07*q);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();return;}
  return drawCore(c,assets,opt);}
-return Object.freeze({files,definition,pose,draw,PLAY,GROOM});
+return Object.freeze({files,definition,pose,draw,PLAY,GROOM,ITCH});
 });
