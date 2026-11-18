@@ -53,13 +53,18 @@ function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease
 const LEAF=[['#c99a4c','#8d5a2b'],['#d8b25a','#9a6e2c'],['#b7863f','#7c4e24'],['#cfa55b','#94622e'],['#a97b39','#6d4520']];
 function leafShape(c,size,col){c.fillStyle=col[0];c.beginPath();c.moveTo(-size,0);c.quadraticCurveTo(-size*.2,-size*.62,size,0);c.quadraticCurveTo(-size*.2,size*.62,-size,0);c.fill();c.strokeStyle=col[1];c.lineWidth=size*.1;c.beginPath();c.moveTo(-size*.9,0);c.lineTo(size*.95,0);c.stroke();}
 // the flung leaves: lie in a little heap by the feet, fly up over the head when flung, then flutter down around the friend
-function leafToss(c,t,height){const u=mod(t,PLAY),N=5,size=Math.max(46,height*.075);c.save();c.translate(FEET[0],FEET[1]);
- for(let i=0;i<N;i++){const r=(i*37%11)/11,side=(i%2?1:-1)*(.25+.55*r),peak=height*(1.08+.28*((i*53%7)/7)),col=LEAF[i%LEAF.length];let x,y,rot,a=1;
-  const home={x:height*.18*(i-2)/2+height*.08,y:-size*.2};
-  if(u<.95){x=home.x;y=home.y;rot=i*1.3;}
-  else{const τ=u-.95;if(τ<.45){const k=τ/.45;x=home.x+side*height*.25*k;y=home.y-peak*(1-(1-k)*(1-k));rot=i*1.3+k*6*(i%2?1:-1);}
-   else{const k=Math.min(1,(τ-.45)/1.6),sw=Math.sin((τ-.45)*5+i)*height*.08*(1-k*.5);x=home.x+side*height*.25+side*height*.12*k+sw;y=home.y-peak*(1-k);rot=i*1.3+Math.sin((τ-.45)*6+i)*1.1;if(u>PLAY-.25)a=Math.max(0,(PLAY-u)/.25);}}
-  c.save();c.globalAlpha*=a;c.translate(x,y);c.rotate(rot);leafShape(c,size,col);c.restore();}
+// 0.6.33: the leaves come off the ground. They lie scattered on the ground in front of the friend, are scooped into a
+// little heap at its feet while it crouches, flung up over its head as it hops, flutter down and come to rest on the
+// ground again, where the next scoop picks them up (no leaf appears from or fades into the air).
+function leafToss(c,t,height){const u=mod(t,PLAY),N=5,size=Math.max(62,height*.1);c.save();c.translate(FEET[0],FEET[1]);
+ for(let i=0;i<N;i++){const r=(i*37%11)/11,side=(i%2?1:-1),peak=height*(1.08+.28*((i*53%7)/7)),col=LEAF[i%LEAF.length];
+  const heap={x:height*.1*(i-2)/2,y:18+6*(i%3)},ground={x:side*height*(.3+.28*r)+(i===2?height*.12:0),y:10+34*((i*29%5)/5)},rest=i*1.3+(i%2?.4:-.4);
+  let x,y,rot,lift;
+  if(u<.8){const k=ease(u/.8);x=ground.x+(heap.x-ground.x)*k;y=ground.y+(heap.y-ground.y)*k;rot=rest+k*.5;lift=0;}
+  else if(u<.95){x=heap.x;y=heap.y;rot=rest+.5;lift=0;}
+  else{const τ=u-.95;if(τ<.45){const k=τ/.45,e=1-(1-k)*(1-k);x=heap.x+(ground.x-heap.x)*.45*k;y=heap.y-peak*e;rot=rest+.5+k*6*side;lift=Math.min(1,k*3);}
+   else{const k=Math.min(1,(τ-.45)/1.55),sw=Math.sin((τ-.45)*5+i)*height*.08*(1-k);x=heap.x+(ground.x-heap.x)*(.45+.55*k)+sw;y=heap.y-peak*(1-k)+(ground.y-heap.y)*k;rot=k<1?rest+Math.sin((τ-.45)*6+i)*1.1*(1-k):rest;lift=Math.min(1,(1-k)*4);}}
+  c.save();c.translate(x,y);c.scale(1,.7+.3*lift);c.rotate(rot);leafShape(c,size,col);c.restore();}
  c.restore();}
 // specks shaken off while grooming
 function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(u-.4)/1.2;c.save();c.translate(FEET[0],FEET[1]-height*.6);c.fillStyle='rgba(150,124,92,'+(.55*(1-k))+')';
