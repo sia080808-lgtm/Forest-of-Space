@@ -71,7 +71,7 @@ function blow(s){
 // Pile moisture follows the forest-floor litter soil (the old litter spot's M and standing water W). 0.6.25: the nearest
 // terrain patch (rock, shade, crevice…) gave only 0% or 100% and starved decomposition; the litter soil moves with rain.
 function soak(s,p){const z=s.patches.find(q=>q.id==='litter')||s.patches.filter(z=>z.id!=='shelter').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id))[0];if(!z)return;p.S=z.cap?100*z.S/z.cap:0;p.cap=100;p.W=z.W;}
-function rates(s,z){const M=z.cap?100*z.S/z.cap:0,factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,until=z.id==='litter'?s.objects.playBoostUntil:z.playBoostUntil,boost=until>0&&until>=s.worldTick?3:1;const spring=z.id!=='litter'&&s.objects?.creatures?dep('creatures').decomposeBoost(s,z.id):1,mult=Math.min(3.75,boost*spring);return {factor,boost,spring,perMinute:.5*factor*mult};}
+function rates(s,z){const M=z.cap?100*z.S/z.cap:0,factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,until=z.id==='litter'?s.objects.playBoostUntil:z.playBoostUntil,boost=until>0&&until>=s.worldTick?3:1;const spring=s.objects?.creatures?dep('creatures').decomposeBoost(s,z.id):1,mult=Math.min(3.75,boost*spring);return {factor,boost,spring,perMinute:.5*factor*mult};}
 function decompose(s){
  // N01/P0-1: only piles and the old litter spot decompose; loose leaves do not. Compost above the level's capacity
  // soaks into the soil (recorded outflow), so a full compost store never stops leaves from breaking down and falling.

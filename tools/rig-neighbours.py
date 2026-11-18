@@ -8,7 +8,7 @@ import json,numpy as np
 from PIL import Image
 from scipy import ndimage as nd
 D='app/src/main/assets/web/assets/forest/creatures/'
-CFG={'spidermite':{'r':15,'mite':True},'predatory-mite':{'r':15,'mite':True},'ladybird':{'r':15},'soil-mite':{'r':15,'mite':True},'root-gnat':{'r':9,'wings':True},'mealybug':{'r':6,'wax':True}}
+CFG={'spidermite':{'r':15,'mite':True},'predatory-mite':{'r':15,'mite':True},'ladybird':{'r':15},'soil-mite':{'r':15,'mite':True},'root-gnat':{'r':9,'wings':True},'mealybug':{'r':6,'wax':True},'pillbug':{'r':7,'antennaLeft':2},'rove-beetle':{'r':6,'antennaLeft':3,'tailStatic':True}}
 def disk(r):yy,xx=np.mgrid[-r:r+1,-r:r+1];return xx*xx+yy*yy<=r*r
 meta={}
 for name,c in CFG.items():
@@ -34,6 +34,14 @@ for name,c in CFG.items():
         near=nd.binary_dilation(m,iterations=6);best=max(parts,key=lambda p:int((near&p['_m']).sum()),default=None)
         if best is not None and (near&best['_m']).any():best['_m']=best['_m']|m
         else:static|=m
+    if c.get('tailStatic'):   # thin abdomen-tip pieces behind and above the body centre belong to the body
+        keep_=[]
+        for p in parts:
+            if p['px']>cx and p['py']<cy: static|=p['_m']
+            else: keep_.append(p)
+        parts=keep_
+    if c.get('antennaLeft'):  # the frontmost pieces (sheet sprites face left) are antennae / mouthparts
+        for p in sorted(parts,key=lambda p:p['px'])[:c['antennaLeft']]: p['type']='antenna'
     legs=sorted([p for p in parts if p['type']=='leg'],key=lambda p:p['px'])
     for i,p in enumerate(legs):p['group']=i%2
     keep=(body|static)[...,None]

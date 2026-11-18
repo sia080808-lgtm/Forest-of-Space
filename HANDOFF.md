@@ -323,3 +323,20 @@
   - 솜깍지 등 왁스 돌기는 종이와 색이 같아 색·경계로 구분되지 않았다. 몸 윗선을 따라 약 12px마다 돌기 모양 마스크를 두고 원본 픽셀을 쓴다. 앞다리는 흙 제거 단계가 다리 가장자리를 지워 떨어져 나가던 문제를 고쳤다.
   - 뿌리파리 발밑 흙 점·가슴 홈, 유충 밑 흙 띠는 `tools/clean-root-gnat.py`로 정리했다.
   - 원본 대 결과 비교 `docs/qa-0.6.27/runtime/cutout-fixes.png`. `npm test` 254/254, UI PASS.
+
+### NEIGHBOURS-0.6.28-20261118 — 쏙쏙이·돌돌이, 식물과의 관계, SRS v2.25 작은 이웃
+
+- 담당: Claude Code. 요청: 사용자 "다 넣고, 얘네들 생태계 로직 같은 것도 설정 다 하고 식물들과의 메커니즘도 다 넣고 SRS에 정리하고 업데이트하자". 기준 main `9608586`(0.6.27 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- `creatures.js`:
+  - 쏙쏙이: 은신처 바위틈·햇살 바위 0.3 안, ECO-07, 8/분, 흙지기와 한 자리 합계 12/분 `zoneBite`, 대체 먹이 없음, 최대 2.
+  - 돌돌이 분해 ×1.1 `pillNear`(litter.js가 기존 낙엽 자리에도 배율 적용).
+  - 엘레판 펼친 잎 그늘 `canopy`, 친구가 느끼는 해충 `pressure`, 도감 관찰 기록 `seen`.
+- 그 밖의 코드:
+  - `objects.js`: 해충 반응(정돈 25→55%, 잎응애 시 그늘·샘터 우선, 뿌리날파리 낙엽 놀이 제외·영양은 마지막).
+  - `scene.js`: 돌돌이 시트 그림·말림, 쏙쏙이 숨기.
+  - `forest-app.js`: 도감 10종, 카드 문구. `object-cards.js`: 쏙쏙이·돌돌이 문구.
+- 그림·리그: `tools/cut-neighbour-grabcut.py`(돌돌이·말린 공·쏙쏙이; 돌돌이 다리는 흙과 같은 색이라 손으로 짚은 마스크), `tools/rig-neighbours.py`에 두 종 추가.
+- SRS: `docs/Forest-SmallNeighbours-SRS-v2.25.md`와 PDF(6쪽, `tools/build-srs-pdf.cjs`). 원칙·출현 공통·환경 판정·종별 표·먹이 관계·식물 관계·그림·초안 대비 변경·AC↔테스트·검증 결과·남은 일을 정리했다. 422쪽 통합 PDF는 v2.22 그대로다.
+- 검증: `npm test` 260/260(`neighbours-plants.test.cjs` 6, `creatures.test.cjs` 천적 목록에 쏙쏙이), `npm run test:ui` PASS. `tools/ecosystem-review.cjs` → `docs/qa-0.6.28/runtime`(기후별 표, 보존식 0). 움직임 영상 8종. 실기기 미검증.
+- 버전 0.6.28/versionCode45.
+- 다음: PR 병합 후 v0.6.28 APK 확인. 남은 일은 SRS NB-10(ECO-13 전이, 알·유충 원화, 감로 밸런스).
