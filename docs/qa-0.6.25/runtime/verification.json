@@ -1,0 +1,69 @@
+{
+ "renderer": "scene.js + @napi-rs/canvas (not Android WebView)",
+ "report": [
+  {
+   "seed": 1,
+   "firstAnt": 1980,
+   "firstSpringtail": 3960,
+   "arrived": 5,
+   "left": 4,
+   "carried": 45
+  },
+  {
+   "seed": 2,
+   "firstAnt": 1260,
+   "firstSpringtail": null,
+   "arrived": 3,
+   "left": 2,
+   "carried": 52
+  },
+  {
+   "seed": 3,
+   "firstAnt": 720,
+   "firstSpringtail": null,
+   "arrived": 3,
+   "left": 3,
+   "carried": 48
+  },
+  {
+   "seed": 4,
+   "firstAnt": 900,
+   "firstSpringtail": null,
+   "arrived": 3,
+   "left": 2,
+   "carried": 54
+  },
+  {
+   "seed": 5,
+   "firstAnt": 1260,
+   "firstSpringtail": null,
+   "arrived": 2,
+   "left": 1,
+   "carried": 51
+  },
+  {
+   "seed": 6,
+   "firstAnt": 1260,
+   "firstSpringtail": 2520,
+   "arrived": 4,
+   "left": 3,
+   "carried": 50
+  },
+  {
+   "seed": 7,
+   "firstAnt": 2880,
+   "firstSpringtail": 3780,
+   "arrived": 4,
+   "left": 4,
+   "carried": 31
+  },
+  {
+   "seed": 8,
+   "firstAnt": 900,
+   "firstSpringtail": 5220,
+   "arrived": 7,
+   "left": 5,
+   "carried": 42
+  }
+ ]
+}

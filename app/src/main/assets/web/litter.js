@@ -2,7 +2,7 @@
 'use strict';
 // ECO24-L01~L06 / N01~N05 step 1 (0.6.20): natural leaf fall into 12 fixed world sectors, loose leaves, piles,
 // pile decomposition, and the one-time move of an old save's raw leaves into real piles. No creatures yet.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',environment:'ForestEnvironment',objects:'ForestObjects'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',environment:'ForestEnvironment',objects:'ForestObjects',creatures:'ForestCreatures'}[n]];
 const COLS=4,ROWS=3,X0=.08,X1=.92,Y0=.15,Y1=.91,LCAP=40,SECTOR=12,PILE=5,eps=1e-8;
 const MIGRATE_PILES=3;
 function rnd(s){let x=s.rng.litter>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.litter=x>>>0;return (x>>>0)/4294967296;}
@@ -15,7 +15,9 @@ function pile(s,id){return piles(s).find(p=>p.id===id)||null;}
 function carried(s,from){return s.individuals.reduce((v,p)=>v+(p.carriedLeaf&&(from?p.carriedLeaf.pile===from:p.carriedLeaf.pile!=='litter')?p.carriedLeaf.amount:0),0);}
 // Floor leaves that gate the natural fall: loose leaves, piles and pieces carried from them. The old litter spot is the
 // legacy compost heap and does not gate the fall; withSpot adds its raw leaves for "any leaves at all" checks.
-function floor(s,withSpot=false){const z=s.patches.find(p=>p.id==='litter');return leaves(s).length+piles(s).reduce((v,p)=>v+p.O,0)+carried(s)+(withSpot?z?.O||0:0);}
+function floor(s,withSpot=false){const z=s.patches.find(p=>p.id==='litter');return leaves(s).length+piles(s).reduce((v,p)=>v+p.O,0)+carried(s)+antCarry(s)+(withSpot?z?.O||0:0);}
+// leaves an ant is carrying right now (each L=1, between two sectors)
+function antCarry(s){return s.objects?.creatures?dep('creatures').carried(s):0;}
 function compost(s){const z=s.patches.find(p=>p.id==='litter');return piles(s).reduce((v,p)=>v+p.U,0)+(z?.U||0);}
 function sectorRaw(s,i){const p=piles(s).find(p=>p.sector===i);return leaves(s).filter(l=>l.sector===i).length+(p?p.O+carried(s,p.id):0);}
 function ucap(s){const O=dep('objects');return O.capacity(s,'litter');}
@@ -66,9 +68,10 @@ function blow(s){
   st.leaves=st.leaves.filter(x=>x!==l);const kind=land(s,i,q);const moved=kind==='loose'?st.leaves.at(-1):null;if(moved){moved.id=l.id;moved.rot=l.rot;moved.moved=s.worldTick;}st.moves++;
  }
 }
-// Pile moisture follows the nearest terrain patch (P0-3): same M and standing water W as the ground it sits on.
-function soak(s,p){const z=s.patches.filter(z=>z.id!=='shelter').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id))[0];if(!z)return;p.S=z.cap?100*z.S/z.cap:0;p.cap=100;p.W=z.W;}
-function rates(s,z){const M=z.cap?100*z.S/z.cap:0,factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,until=z.id==='litter'?s.objects.playBoostUntil:z.playBoostUntil,boost=until>0&&until>=s.worldTick?3:1;return {factor,boost,perMinute:.5*factor*boost};}
+// Pile moisture follows the forest-floor litter soil (the old litter spot's M and standing water W). 0.6.25: the nearest
+// terrain patch (rock, shade, crevice…) gave only 0% or 100% and starved decomposition; the litter soil moves with rain.
+function soak(s,p){const z=s.patches.find(q=>q.id==='litter')||s.patches.filter(z=>z.id!=='shelter').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id))[0];if(!z)return;p.S=z.cap?100*z.S/z.cap:0;p.cap=100;p.W=z.W;}
+function rates(s,z){const M=z.cap?100*z.S/z.cap:0,factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,until=z.id==='litter'?s.objects.playBoostUntil:z.playBoostUntil,boost=until>0&&until>=s.worldTick?3:1;const spring=z.id!=='litter'&&s.objects?.creatures?dep('creatures').decomposeBoost(s,z.id):1,mult=Math.min(3.75,boost*spring);return {factor,boost,spring,perMinute:.5*factor*mult};}
 function decompose(s){
  // N01/P0-1: only piles and the old litter spot decompose; loose leaves do not. Compost above the level's capacity
  // soaks into the soil (recorded outflow), so a full compost store never stops leaves from breaking down and falling.
@@ -114,5 +117,5 @@ function validate(s){
  if(floor(s)>Math.max(LCAP,legacy)+1e-6)throw Error('바닥 낙엽이 상한을 넘었어요.');
  if(compost(s)>ucap(s)+(s.objects.overflow||0)+1e-6)throw Error('부식층 영양이 상한을 넘었어요.');
 }
-return {COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
+return {land,spot,antCarry,COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
 });

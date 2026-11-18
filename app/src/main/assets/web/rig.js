@@ -2,7 +2,8 @@
 'use strict';
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Species=typeof module==='object'?require('./species-rig.js'):globalThis.ForestSpeciesRig;
-const files=Object.freeze({...Species.files,...Neolbi.files,rigBody:'assets/forest/rig/body.png',rigLeaves:'assets/forest/rig/leaves.png',rigLegLeft:'assets/forest/rig/leg-left.png',rigLegRight:'assets/forest/rig/leg-right.png',rigPalm:'assets/forest/rig/palm.png',rigFace:'assets/forest/rig/face.png'});
+const Art=typeof module==='object'?require('./creature-art.js'):globalThis.ForestCreatureArt;
+const files=Object.freeze({...Species.files,...Neolbi.files,...(Art?.ANT_FILES||{}),rigBody:'assets/forest/rig/body.png',rigLeaves:'assets/forest/rig/leaves.png',rigLegLeft:'assets/forest/rig/leg-left.png',rigLegRight:'assets/forest/rig/leg-right.png',rigPalm:'assets/forest/rig/palm.png',rigFace:'assets/forest/rig/face.png'});
 // Species share the intact-body invariant; armless Neolbi uses its dedicated leaf/foot rig.
 // Species-specific art may replace these independent layers without replacing the motion renderer.
 const definition=Object.freeze({width:1254,height:1254,body:'rigBody',leaves:'rigLeaves',legs:Object.freeze(['rigLegLeft','rigLegRight']),palm:'rigPalm'});
