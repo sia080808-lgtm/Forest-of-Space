@@ -1,7 +1,7 @@
 {
   "version": "0.6.34",
   "versionCode": 51,
-  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25+superbum-v2.26",
+  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25+superbum-v2.26+small-neighbours-v2.27+world-motion-v2.27",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
