@@ -419,3 +419,4 @@
 - 원인: 친구마다 앞쪽 돌을 다시 그려 가리는 과정에서, 바위 뒤를 지나는 친구 때문에 다시 그린 바위가 먼저 그려진 바위 위 친구까지 덮었다.
 - 수정: `scene.js`에서 이번 화면의 바위 위 친구를 기억해 두고, 햇살 바위를 다시 그린 직후 그 친구들을 다시 그린다. 렌더 전용 변경. 버전 0.6.31 / versionCode 48.
 - 검증: `npm test` 273/273(`rock-rider.test.cjs` 추가, 수정 전 코드에서 실패), `npm run test:ui` PASS. 비교 이미지 `docs/qa-0.6.31/runtime`. Android 실기기 미검증.
+- 병합·릴리스: PR #31(https://github.com/sia080808-lgtm/Forest-of-Space/pull/31) main 병합 `c5ae66827cbd831f18e9e3976a8672ab868b6516`(사용자 "ㄱㄱ"; head `46dc9c4` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.31 `Forest-of-Space-0.6.31.apk` 40,623,323 bytes, SHA-256 `5ca34fb8b7f89dd57d48057d3ba627b94bf9a8f73557e34970fb3bb59adda652` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode48/0.6.31, APK 안 scene.js에 바위 위 친구 다시 그리기 포함 확인.
