@@ -215,3 +215,19 @@
 - 테스트: `litter-sectors.test.cjs`(7) 추가. 갱신: `objects219`(classic 도우미·14/15 재작성·27 하루 전환 ≤1장), `object-cards`(더미 카드·바닥 낙엽 여유), `update218`(서식 차단 시 섹터 낙엽도 비움). `npm test` 227/227, `npm run test:ui` PASS.
 - 검수: `tools/litter-review.cjs` → `docs/qa-0.6.20/runtime`(보존식·새 게임/기존 저장 통계·렌더). 성능 Node 1명 1.77→2.18ms/틱.
 - 미검증: Android 실기기, 장기 영양 밸런스(1명 기준 영양 58 유지 확인뿐). 다음: 패치 6(생물: 개미·톡토기 → 잎응애·잎지기(기본 기후 국소 건조) → 뿌리파리·흙지기·P03).
+- 병합·릴리스: PR #20(https://github.com/sia080808-lgtm/Forest-of-Space/pull/20) main 병합 `d7e197c94e15ce4b0efa8b7bf746b877a5b2a4c7`(사용자 "ㄱㄱ"; head `8d010c1` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.20 `Forest-of-Space-0.6.20.apk` 38,746,688 bytes, SHA-256 `974ec80a80b44929a730ec17b28f75dc745cf842f7952ec50c1cba5a07063972` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode37/0.6.20, `litter.js` 포함.
+
+### CREATURES-DRAFT-20261118 — 패치 6 생물 시안 (게임 미연결)
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(패치 6) 후 "일단 캐릭터 디자인 움직이는 것부터 보여줘".
+- `creature-art.js`(짐꾼개미: 3마디·삼각 보행 다리 6개·꺾인 더듬이·낙엽 조각 운반·둔덕 둥지 / 톡토기: 회보라 둥근 몸·도약기 펴는 점프). 렌더 위상만 사용, 난수·상태 불변. 아직 index.html·scene.js에 연결하지 않음.
+- 시안 `docs/qa-creatures-draft/design-sheet.png`, `creatures-world.mp4`(실제 scene 확대 위 합성), 생성 스크립트 `tools/creatures-preview.cjs`. 커밋 `ede98b3`(작업 브랜치, PR 없음).
+- 다음: 사용자 시안 피드백 → 6a 구현(공통 유입 600초 보호·180초 20%·600초당 1집단, 개미 90초/장 실제 운반, 톡토기 더미별 Fspring 1.25·120초 적합/이탈, 엘리시 근처 톡토기 30→40%).
+
+### UI-0.6.21-20261118 — 거름 표시, 엘리시 영입 안내, 조사
+
+- 담당: Claude Code. 요청: 사용자 제보(스크린샷) "이 좁쌀들은 뭐임" → 개선안에 "ㅇㅇ 그렇게 고쳐주고", "엘리시는 어디 있음? 데려오려니 정보가 없던데", 중간 의견 "불에 탄 것 같다".
+- `scene.js`: 거름 점 43개 → `compostStain` 옅은 흙빛 얼룩, 거름 자리에 낙엽이 없으면 색 바랜 잎 3장, 더미 둘레도 얼룩. `recruitment.js`: `josa`(이/가·을/를), 엘리시 조건 4개 `checks`(이끼 촉촉함·바위틈 고인 물·거리·길). `forest-app.js`: 친구들 화면 조건 목록·180초/35%/3회 보장 안내·손님 대기 중 준비 시간 정지 안내, 조사 적용. `social.js` 보호 기록 조사. `forest.css` 목록 스타일. 영입 규칙 불변.
+- 원인 설명: 엘리시는 아직 숲에 없음(미영입). 두리가 입구에서 기다리는 동안 `Recruitment.tick`이 다른 후보 진행을 멈춤(기존 규칙). 사용자 화면 '준비된 시간 1/180'은 그 때문 + 비로 이끼 촉촉함이 75%를 넘었을 가능성(미확인).
+- 테스트 `recruit-info.test.cjs`(2). `npm test` 229/229, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.21/runtime/compost-stain.png`. 버전 0.6.21/versionCode38.
+- 포함: 작업 브랜치의 생물 시안 `creature-art.js`(게임 미연결).
