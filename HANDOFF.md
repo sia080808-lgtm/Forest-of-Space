@@ -283,6 +283,7 @@
 - 새 모듈 `creatures.js`(출현 600초 보호·180초 확인·600초당 1무리·최대 8, 개미 90초마다 실제 낱잎 1장 운반·이탈 시 반환, 톡토기 자기 더미 ×1.25, 독립 난수 `rng.creatures`, 저장 `objects.creatures`). `litter.js`: 운반 중 잎을 바닥 L에 포함, 분해 배율에 톡토기, 더미 촉촉함을 낙엽 자리 흙 기준으로. `objects.js`/`engine.js` 연결, `scene.js` 둥지·운반·톡토기 그리기, `object-cards.js` '작은 이웃' 행, `index.html`·`ui-smoke.mjs`·`rig.js` 스크립트/에셋 연결. 버전 0.6.25/versionCode42.
 - 검증: `npm test` 238/238(`creatures.test.cjs` 6), `npm run test:ui` PASS. `tools/creatures-review.cjs` 8시드 3게임일 보존식 오차 0, 렌더·영상 `docs/qa-0.6.25/runtime`. Android 실기기 미검증.
 - 다음: PR 병합 후 v0.6.25 APK 확인. 패치 6b(잎응애·잎지기), 6c(뿌리날파리·흙지기·솜깍지).
+- 병합·릴리스: PR #25(https://github.com/sia080808-lgtm/Forest-of-Space/pull/25) main 병합 `b9a822a6bf8244db2ed4b7fd0c7c1261308557c1`(사용자 "ㄱㄱ"; head `93fa8df` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.25 `Forest-of-Space-0.6.25.apk` 39,124,140 bytes, SHA-256 `953c162b5ecc016350b33f9240d37f0894217d821a658be702df23c0e61a9097` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode42/0.6.25, `creatures.js` 포함.
 
 ### MITES-0.6.26-20261118 — 생태계 v2.24 패치 6b: 잎응애·잎지기
 
