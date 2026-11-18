@@ -257,6 +257,7 @@
 - 테스트: `recruit-info`에 제외 검사 추가(새 게임 첫 손님, 저장 이전, 보유 두리 보존, 이후 두리 방문 없음). `npm test` 231/231, `npm run test:ui` PASS. 실기기 미검증.
 - 남은 일: SRS PDF 본문(첫 10분 흐름의 두리)을 엘리시로 개정하는 문서 작업.
 - 병합: PR #23(https://github.com/sia080808-lgtm/Forest-of-Space/pull/23) main 병합 `4109e81b89a22bfa905691540a1d8b94b23b5fc6`(사용자 "ㄱㄱ"; head `c2a6f58` 기준 simulation·CodeQL 성공).
+- 릴리스: 프리릴리스 v0.6.23 `Forest-of-Space-0.6.23.apk` 38,968,130 bytes, SHA-256 `70dfc7c066b4f3be7625425d06ec4fe720f32fad2d3cbc0afa2119502a0efb3c` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode40/0.6.23.
 - SRS 개정안: `docs/Forest-Recruit-SRS-v2.25-ELL1.md`(두리 은퇴·첫 손님 엘리시·엘리시 서식 조건, v2.22 PDF 8·9·14·15·88·98·111·124쪽 대체 서술). PDF 재조판은 안 함. 작업 브랜치에만 있음(다음 PR에 포함).
 
 ### CREATURES-SPRINGTAIL-20261118 — 톡토기 그림 (SRS 화풍)
