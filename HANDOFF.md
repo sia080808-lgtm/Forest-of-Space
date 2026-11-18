@@ -341,3 +341,4 @@
 - 검증: `npm test` 260/260(`neighbours-plants.test.cjs` 6, `creatures.test.cjs` 천적 목록에 쏙쏙이), `npm run test:ui` PASS. `tools/ecosystem-review.cjs` → `docs/qa-0.6.28/runtime`(기후별 표, 보존식 0). 움직임 영상 8종. 실기기 미검증.
 - 버전 0.6.28/versionCode45.
 - 다음: PR 병합 후 v0.6.28 APK 확인. 남은 일은 SRS NB-10(ECO-13 전이, 알·유충 원화, 감로 밸런스).
+- 병합·릴리스: PR #28(https://github.com/sia080808-lgtm/Forest-of-Space/pull/28) main 병합 `64329f6e72a86435a25bfef502124761ca31058e`(사용자 "ㄱㄱ"; head `f846968` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.28 `Forest-of-Space-0.6.28.apk` 40,146,769 bytes, SHA-256 `9f2b09e4c2f1ea4816fa483b2decde912d6637c49252076d56ee3562f1c970c1` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode45/0.6.28, 돌돌이·쏙쏙이 그림 포함.
