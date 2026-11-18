@@ -1,7 +1,7 @@
 // Draft preview (not wired into the game): carrier ants and springtails over the real scene. Usage: node tools/creatures-preview.cjs <out-dir>
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const {createCanvas,loadImage,GlobalFonts}=require('/home/user/Forest-of-Space/node_modules/@napi-rs/canvas');
-const web='/home/user/Forest-of-Space/app/src/main/assets/web',out=process.argv[2];
+const {createCanvas,loadImage,GlobalFonts}=require('@napi-rs/canvas');
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=process.argv[2]||path.resolve(__dirname,'../docs/qa-creatures-draft/frames');
 const F=require(web+'/engine'),Rig=require(web+'/rig'),Art=require(web+'/creature-art.js');
 GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');
 (async()=>{fs.mkdirSync(out,{recursive:true});const assets={};
@@ -18,7 +18,7 @@ GlobalFonts.registerFromPath(web+'/fonts/GowunDodum-Regular.ttf','K');
  const sc=new ctx.Scene(canvas,()=>s);sc.assets=assets;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.dt=.1;sc.camera.z=3.2;sc.camera.cx=.47;sc.camera.cy=.53;sc.camera.clamp();
  const nestP={x:.40,y:.585},pileP={x:.56,y:.515};
  const FR=120,fps=20;
- for(let f=0;f<FR;f++){const t=f/fps;sc.phase=t;sc.draw();const c=canvas.getContext('2d');c.save();c.setTransform(1,0,0,1,0,0);c.translate(sc.camera.tx,sc.camera.ty);c.scale(sc.camera.scale,sc.camera.scale);const w=sc.w,h=sc.h,P=q=>[q.x*w,q.y*h];
+ for(let f=0;f<FR;f++){const t=f/fps;sc.phase=t;sc.draw();const c=canvas.getContext('2d');c.save();c.setTransform(1,0,0,1,0,0);c.translate(sc.camera.tx,sc.camera.ty);c.scale(sc.camera.scale,sc.camera.scale);const w=sc.w,h=sc.h;
   Art.nest(c,{x:nestP.x*w,y:nestP.y*h,size:w*.03});
   // three ants on a loop: out to the pile empty-handed (upper lane), back carrying a leaf piece (lower lane)
   for(let i=0;i<3;i++){const u=((t/6)+i/3)%1,out=u<.5,v=out?u/.5:(u-.5)/.5,a=out?nestP:pileP,b=out?pileP:nestP,lane=out?-.006:.006,x=(a.x+(b.x-a.x)*v)*w,y=(a.y+(b.y-a.y)*v+lane+Math.sin(v*Math.PI*2+i)*.003)*h,heading=Math.atan2((b.y-a.y)*h,(b.x-a.x)*w);
