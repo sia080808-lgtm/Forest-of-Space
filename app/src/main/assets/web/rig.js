@@ -70,7 +70,8 @@ function leafToss(c,t,height){const u=mod(t,PLAY),N=5,size=Math.max(62,height*.1
 // specks shaken off while grooming
 function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(u-.4)/1.2;c.save();c.translate(FEET[0],FEET[1]-height*.6);c.fillStyle='rgba(150,124,92,'+(.55*(1-k))+')';
  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.4,r=height*(.32+.35*k);c.beginPath();c.arc(Math.cos(a)*r,Math.sin(a)*r*.6+height*.25*k*k,height*.012,0,7);c.fill();}c.restore();}
-const OWN_GROOM=['neolbi','superbum'];
+// 0.6.34: friends with arms (리들리·베이치) keep their hand-on-head grooming; 엘레판·슈퍼범 their own leaf moves
+const OWN_GROOM=['neolbi','superbum','ridley','bosong'];
 function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridley',t=opt.phase||0,h=H[sp]||1000;
  if(kind==='litter'){
   if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
