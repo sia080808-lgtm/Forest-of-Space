@@ -231,3 +231,19 @@
 - 원인 설명: 엘리시는 아직 숲에 없음(미영입). 두리가 입구에서 기다리는 동안 `Recruitment.tick`이 다른 후보 진행을 멈춤(기존 규칙). 사용자 화면 '준비된 시간 1/180'은 그 때문 + 비로 이끼 촉촉함이 75%를 넘었을 가능성(미확인).
 - 테스트 `recruit-info.test.cjs`(2). `npm test` 229/229, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.21/runtime/compost-stain.png`. 버전 0.6.21/versionCode38.
 - 포함: 작업 브랜치의 생물 시안 `creature-art.js`(게임 미연결).
+- 병합·릴리스: PR #21(https://github.com/sia080808-lgtm/Forest-of-Space/pull/21) main 병합 `de1063d895758602386b506f64e05236346dbc84`(사용자 "ㄱㄱ"; head `c49eb04` 기준 simulation·CodeQL 성공, CodeQL 미사용 변수 3건은 `tools/creatures-preview.cjs`에서 수정). 프리릴리스 v0.6.21 `Forest-of-Space-0.6.21.apk` 38,750,856 bytes, SHA-256 `746d071099e12b5456776689a35f4a4769ff254c7da9326dc5c4604b149a52c1` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode38/0.6.21.
+
+### CREATURES-SRS-ART-20261118 — 짐꾼개미를 SRS 승인 시트 그림으로
+
+- 담당: Claude Code. 요청: 사용자 "시안은 SRS에 있음".
+- 출처: `docs/Forest_SRS_Design_Audio_v2.22.pdf` 249~253쪽 D04.20~24 '작은 이웃 형태 시안'(1536×1024 시트 1장, 9종: 돌돌이·짐꾼개미·점박이·흙지기·쏙쏙이·잎지기·뿌리날파리·잎응애·솜깍지). **톡토기는 시트에 없음**(v2.24 신규).
+- 짐꾼개미(시트 02)를 배경·풀·흙 제거 후 `assets/forest/creatures/ant-body.png`·`ant-leaf.png`로 분리. `creature-art.js` `antSprite`(걸음 들썩임·흔들림, 잎 줄기 축 흔들림, 좌우 반전). 시안 영상·시트 갱신 `docs/qa-creatures-draft`. 커밋 `05e9271`(작업 브랜치). 게임 미연결.
+- 대기: 톡토기 그림 출처 결정(지피티 생성 추천 / 임시 그림 사용). 그 뒤 6a 구현.
+
+### ELLISII-ARRIVAL-0.6.22-20261118 — 엘리시가 실제로 찾아올 수 있게
+
+- 담당: Claude Code. 요청: 사용자 "이거 엘리시 들어올 수 있는 거 맞음?"(두리 방문 화면 스크린샷) → 원인·수정안 설명 후 "ㄱㄱ".
+- 확인: 화면의 손님은 두리(월드 안내와 동일). 실제 엔진 8시드×3게임일 시뮬레이션에서 이끼 촉촉함이 거의 항상 100%(용량 5, 비에 금방 참)라 엘리시 조건 40~75% 충족 1~3%, 방문 1/8.
+- 수정: `recruitment.js` 엘리시 조건 = 이끼 40% 이상 + 큰비(강수 0.6 이상) 아님 + 바위틈 고인 물 5 미만 + 거리·길(조건 목록 5항목). `social.js` 잎틈 정원 같은 기준. 상한 75% 삭제. 버전 0.6.22/versionCode39.
+- 결과: 같은 시뮬레이션 8시드 중 7시드 3~12분, 1시드 약 71분에 방문.
+- 테스트: `recruit-info` 갱신·추가(수정 전 코드 0/4로 실패). `npm test` 230/230, `npm run test:ui` PASS. 실기기 미검증.

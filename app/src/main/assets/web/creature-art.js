@@ -46,5 +46,17 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(140,112,78,.55)';c.beginPath();c.ellipse(0,0,.55,.35,0,0,Math.PI*2);c.fill();
  for(const [cx,cy,r] of crumbs){c.fillStyle='rgba(122,96,66,.75)';c.beginPath();c.ellipse(cx,cy,r,r*.8,0,0,Math.PI*2);c.fill();}
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
-return {ant,springtail,nest};
+// SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
+// Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png'};
+function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=false}={}){
+ const body=assets.antBody,leaf=assets.antLeaf;if(!body)return ant(c,{x,y,size,heading:dir>0?0:Math.PI,phase,carry,still});
+ const t=still?0:phase,step=Math.abs(Math.sin(t*14)),k=size/300;c.save();c.translate(x,y);
+ c.save();c.scale(1,.42);shadow(c,size*.42,size*.2);c.restore();
+ c.translate(0,-step*size*.035);c.rotate((still?0:Math.sin(t*14))*.025*dir);c.scale(-dir*k,k);c.translate(-150,-200);
+ c.drawImage(body,0,0);
+ if(carry&&leaf){c.save();c.translate(122,100);c.rotate(still?0:Math.sin(t*7)*.06);c.translate(-122,-100);c.drawImage(leaf,0,0);c.restore();}
+ c.restore();
+}
+return {ant,antSprite,springtail,nest,ANT_FILES};
 });
