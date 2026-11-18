@@ -38,6 +38,18 @@ def inpaint(rgb, known, r=9):
     return cv2.inpaint(img, hole, r, cv2.INPAINT_TELEA)
 
 
+def pull_in(rgb, alpha, depth=7):
+    """the outer rim of a filled part takes the colour from a little further inside, so no light seam runs along it"""
+    inner = ndimage.binary_erosion(alpha > 0.5, iterations=depth)
+    if not inner.any():
+        return rgb
+    _, (iy, ix) = ndimage.distance_transform_edt(~inner, return_indices=True)
+    out = rgb.copy()
+    rim = (alpha > 0) & ~inner
+    out[rim] = rgb[iy[rim], ix[rim]]
+    return out
+
+
 def soft_ellipse(shape, cx, cy, a, b, ang=0.0):
     yy, xx = np.mgrid[0:shape[0], 0:shape[1]].astype(float)
     c, s = np.cos(np.radians(ang)), np.sin(np.radians(ang))
@@ -54,7 +66,7 @@ for name, st in STATE.items():
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     yy, xx = np.mgrid[0:h, 0:w]
     on = A > 0.02
-    brown = on & (r > g + 8) & (g > b) & (r < 175)
+    brown = on & (r > g + 8) & (g > b) & (r < 160) & (r - b > 30)
     brown = ndimage.binary_opening(brown, iterations=1)
     lab, n = ndimage.label(brown)
     brown = np.isin(lab, 1 + np.nonzero(ndimage.sum(np.ones_like(A), lab, range(1, n + 1)) > 500)[0])
@@ -85,8 +97,11 @@ for name, st in STATE.items():
     mask = ndimage.binary_fill_holes(ndimage.binary_closing(ell | base | under | (head & (yy < ecy)), iterations=10))
     sm = ndimage.gaussian_filter(mask.astype(float), 2.2)
     face_a = np.clip((sm - .5) * 2.2 + .5, 0, 1)
-    face_known = (brown | eyes) & (face_a > 0.99) & (A > 0.9)
+    # colours come only from well inside the painted body: its painted outline blends into the ground shadow
+    solid = ndimage.binary_erosion(brown | eyes, iterations=4)
+    face_known = solid & (face_a > 0.99) & (A > 0.9)
     face_rgb = inpaint(rgb, face_known)
+    face_rgb = pull_in(face_rgb.astype(float), face_a, 5)
     face_rgb[eyes] = rgb[eyes]
     layers = {}
 
@@ -100,12 +115,17 @@ for name, st in STATE.items():
     for i, side in enumerate(['left', 'right']):
         fx, fy, rx, ry = st['feet'][i]
         fa = soft_ellipse(A.shape, fx, fy, rx, ry)
-        known = brown & (fa > 0.99) & (A > 0.9) & (yy > fy - ry * .2)
-        put('foot-' + side, inpaint(rgb, known), fa)
+        known = solid & (fa > 0.99) & (A > 0.9) & (yy > fy - ry * .2)
+        put('foot-' + side, pull_in(inpaint(rgb, known).astype(float), fa, 6), fa)
     bound = np.interp(np.arange(w), *zip(*st['rim']))[None, :]
     crown = on & ~brown & ~eyes & (yy < bound)
     put('crown', rgb, np.where(crown, A, 0))
-    skirt = on & ~brown & ~eyes & ~crown
+    # leaves are green: the beige ground-shadow strip left under the body by the cut-out is not part of any leaf
+    skirt = on & ~brown & ~eyes & ~crown & (g - b > 35)
+    labs, ns = ndimage.label(skirt)
+    skirt = np.isin(labs, 1 + np.nonzero(ndimage.sum(np.ones_like(A), labs, range(1, ns + 1)) > 200)[0])
+    # keep the leaves' soft outer edge: anti-aliased pixels right next to green ones, but never the beige strip
+    skirt |= ndimage.binary_dilation(skirt, iterations=2) & on & ~brown & ~eyes & ~crown & (g - b > 22)
     for side in ['left', 'right']:
         sidem = (xx < st['cx']) if side == 'left' else (xx >= st['cx'])
         sk = skirt & sidem
