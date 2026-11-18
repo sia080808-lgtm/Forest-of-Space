@@ -316,6 +316,7 @@
   - 성충 수명 600초.
 - 미구현: ECO-13 전이, 알 원화, 점박이 유충 원화, 쏙쏙이.
 - 다음: PR 병합 후 v0.6.27 APK 확인.
+- 병합·릴리스: PR #27(https://github.com/sia080808-lgtm/Forest-of-Space/pull/27) main 병합 `96085869de39d8390c60d77f404e64c78b96a9ae`(사용자 "ㄱㄱ"; head `cec195b` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.27 `Forest-of-Space-0.6.27.apk` 39,814,310 bytes, SHA-256 `2861d23f9aef8254512daef090fd74d7b6f55f06f26ccdb284cd2ae9a4ce6e03` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode44/0.6.27, `creature-rig.js`·부위 PNG 포함.
 - 다리·날개 분리(사용자 "곤충들 별 움직이는 시안 왜 안보여줘" → 영상 → "다리랑 날개랑 따로 움직이게 해줘" → "ㄱㄱ"): `tools/rig-neighbours.py`가 SRS 시트 그림 6종을 몸통 + 부위 아틀라스(다리·날개·더듬이, 부위마다 따로 칸·회전축)로 나누고 `creature-rig.js`를 만든다. `creature-art.js` `drawRig`: 다리는 두 무리가 번갈아 딛고, 뿌리날파리 날개는 빠르게 날갯짓, 더듬이 흔들림. 유충은 `wriggle`(띠 물결). 솜깍지 왁스 돌기는 몸통에 둔다(SRS D04.24). 진드기류는 더듬이 없음(앞다리로 분류). 처음 시안에서 이웃 다리 조각이 같이 돌던 문제는 아틀라스 칸 분리로 고침. 영상 `docs/qa-0.6.27/runtime/neighbours-motion-closeup.mp4`(크게)·`neighbours-motion.mp4`(게임 화면), 위상 비교 `rig-phases.png`. `npm test` 254/254, UI PASS.
 - 누끼 다시 따기(사용자 "얜 왜 다리가 짤렸냐", "솜깍지 누끼 제대로 안 따져 있고", "뿌리파리 다리 밑 누끼", "입도 짤림", "원본이 버젓이 이렇게 있는데 왜 그렇게 하냐"):
   - 처음에는 흙 높이에서 가로로 잘라 흙지기 턱·다리 끝이 잘렸고, 이를 다시 그려 메우려 했다(잘못된 방향, 도구 삭제).
