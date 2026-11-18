@@ -48,7 +48,7 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
  c.fillStyle='rgba(48,36,26,.85)';c.beginPath();c.ellipse(0,0,.13,.09,0,0,Math.PI*2);c.fill();c.restore();}
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
-const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png'};
+const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png'};
 // Springtail sprite in the SRS sheet style (tools/draw-springtail.cjs, 420x260, faces +x). Rests, then hops in a short
 // arc with the furcula flicked out; lands and turns. Render phase only.
 function springtailSprite(c,assets,{x=0,y=0,size=6,phase=0,seed=0,still=false}={}){
@@ -67,5 +67,12 @@ function antSprite(c,assets,{x=0,y=0,size=10,dir=1,phase=0,carry=false,still=fal
 }
 // Nest entrance in the SRS sheet style (tools/draw-antnest.cjs, 360x200, base centre at 180,150, entrance on the peak); size = mound width.
 function nestSprite(c,assets,{x=0,y=0,size=14}={}){const im=assets.antNest;if(!im)return nest(c,{x,y,size});const k=size/200;c.save();c.translate(x,y);c.scale(k,k);c.translate(-180,-150);c.drawImage(im,0,0);c.restore();}
-return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,ANT_FILES};
+// Leaf mites (SRS D04.22 NB-06 잎지기 cut from the sheet; D04.23 NB-08 잎응애 recoloured from the same template, see
+// tools/recolor-spidermite.py). 237x161 sprites facing left; size = body length in world px. They crawl in short steps.
+function leafMite(c,assets,{x=0,y=0,size=4,kind='spider',dir=1,phase=0,still=false}={}){const im=kind==='spider'?assets.spiderMite:assets.predatoryMite;
+ if(!im){c.save();c.fillStyle=kind==='spider'?'rgba(214,206,150,.95)':'rgba(222,128,88,.95)';c.beginPath();c.ellipse(x,y,size*.5,size*.36,0,0,Math.PI*2);c.fill();c.restore();return;}
+ const k=size/150,bob=still?0:Math.sin(phase*9)*size*.04;c.save();c.translate(x,y+bob);c.scale(-dir*k,k);c.translate(-125,-80);c.drawImage(im,0,0);c.restore();}
+// Fine silk threads where many spider mites live (only drawn at higher density; SRS NB-08 '얇은 실').
+function silk(c,pts,alpha=.35){if(pts.length<2)return;c.save();c.strokeStyle=`rgba(255,255,250,${alpha})`;c.lineWidth=.35;c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];c.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-.4,b.x,b.y);}c.stroke();c.restore();}
+return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,ANT_FILES};
 });

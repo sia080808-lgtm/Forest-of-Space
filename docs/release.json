@@ -1,15 +1,15 @@
 {
-  "version": "0.6.25",
-  "versionCode": 42,
-  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+creatures-6a",
+  "version": "0.6.26",
+  "versionCode": 43,
+  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+creatures-6a+leaf-mites-6b",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 238,
+  "full_suite_passed": 246,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "Creatures: nest, carrier trip, springtails; docs/qa-0.6.25/runtime",
+  "render": "Leaf mites and 잎지기 on a friend; docs/qa-0.6.26/runtime",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,7 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.24",
-    "versionCode": 41
+    "version": "0.6.25",
+    "versionCode": 42
   }
 }

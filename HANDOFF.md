@@ -283,3 +283,11 @@
 - 새 모듈 `creatures.js`(출현 600초 보호·180초 확인·600초당 1무리·최대 8, 개미 90초마다 실제 낱잎 1장 운반·이탈 시 반환, 톡토기 자기 더미 ×1.25, 독립 난수 `rng.creatures`, 저장 `objects.creatures`). `litter.js`: 운반 중 잎을 바닥 L에 포함, 분해 배율에 톡토기, 더미 촉촉함을 낙엽 자리 흙 기준으로. `objects.js`/`engine.js` 연결, `scene.js` 둥지·운반·톡토기 그리기, `object-cards.js` '작은 이웃' 행, `index.html`·`ui-smoke.mjs`·`rig.js` 스크립트/에셋 연결. 버전 0.6.25/versionCode42.
 - 검증: `npm test` 238/238(`creatures.test.cjs` 6), `npm run test:ui` PASS. `tools/creatures-review.cjs` 8시드 3게임일 보존식 오차 0, 렌더·영상 `docs/qa-0.6.25/runtime`. Android 실기기 미검증.
 - 다음: PR 병합 후 v0.6.25 APK 확인. 패치 6b(잎응애·잎지기), 6c(뿌리날파리·흙지기·솜깍지).
+
+### MITES-0.6.26-20261118 — 생태계 v2.24 패치 6b: 잎응애·잎지기
+
+- 담당: Claude Code. 요청: 사용자 "6b 잎응애 잎지기도 진행". 기준 main `b9a822a`(0.6.25 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- `creatures.js`: 잎 국소 기후 `leaf()`(햇살 바위·맑음·목마름·물가·쉼터), 잎응애 P02(마른 잎 시간 누적·10분 감쇠, 공통 출현 20%, 밀도 12/+4/정지/−6/정돈·쉼터 −4, 잎 부담 2×밀도/100, 5 미만 60초 회복·300초 대기), 잎지기(ECO-07 120초·60초 30%·300초 보장, 분당 8 포식, 먹이·서식 없으면 120초 뒤 이탈), 검증·`onLeaf`. `scene.js` `leafNeighbours`, `creature-art.js` `leafMite`·`silk`, `forest-app.js` 카드 상태 한 줄 `leafNote`. 에셋 `predatory-mite.png`(SRS 시트 06), `spidermite.png`(시트 08 색으로 다시 칠함, `tools/recolor-spidermite.py`). 버전 0.6.26/versionCode43.
+- 검증: `npm test` 246/246(`leaf-mites.test.cjs` 8), `npm run test:ui` PASS, `tools/leaf-mites-review.cjs` → `docs/qa-0.6.26/runtime`(C01 7일 4/8 잎응애·잎지기 0, C02 2/8, C04 8/8·잎지기 3/8, 최대 잎 부담 17.5). 실기기 미검증.
+- 초안 대비: 마른 잎 시간 누적(연속 120초 대신), 잎응애 정지 구간 35~55, 잎지기는 공통 600초 간격과 별도. 미구현: 잎 해충 전이(ECO-13), 알·미성숙 단계 표시.
+- 다음: PR 병합 후 v0.6.26 APK 확인. 6c(뿌리날파리·흙지기·솜깍지·점박이).
