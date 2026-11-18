@@ -36,19 +36,19 @@ test('ECO-07/08/12 흙지기 needs real larvae (>=5) in drained moist soil for 1
  z.U=0;for(let t=0;t<200;t++)tick(s,{});a.equal(C.groups(s).includes(sm),false,'left without food');
 });
 
-test('P03/ECO-15 솜깍지: honeydew density/100 x 4/min - 2/min (max 100); nutrition burden 2/min x density/100; tidying and the shelter reduce it',()=>{
+test('P03/ECO-15 솜깍지: honeydew density/100 x 8/min - 0.6/min (0.6.33: was x4 - 2, so it never built up below density 50; max 100); nutrition burden 2/min x density/100; tidying and the shelter reduce it',()=>{
  const s=game(),p=s.individuals[0];p.nutrition=80;const g=add(s,{kind:'mealy',host:p.id,density:80,honey:0,low:0});
- for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.honey-(4*.8-2))<.05,'honey '+g.honey);a.ok(Math.abs(80-p.nutrition-1.6)<.05,'nutrition '+p.nutrition);a.equal(g.density,80,'steady in rain');
+ for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.honey-(8*.8-.6))<.05,'honey '+g.honey);a.ok(Math.abs(80-p.nutrition-1.6)<.05,'nutrition '+p.nutrition);a.equal(g.density,80,'steady in rain');
  p.action='groom';for(let t=0;t<60;t++)tick(s,{T:60,kind:'rain'});a.ok(Math.abs(g.density-76)<1e-6);p.action='wander';
  for(let t=0;t<60;t++)tick(s,{T:60,kind:'sun'});a.ok(Math.abs(g.density-80)<1e-6,'+4/min warm and dry');
  for(let t=0;t<60;t++)tick(s,{T:90,kind:'sun'});a.ok(Math.abs(g.density-74)<1e-6,'-6/min when too hot');
 });
 
-test('X04/AC-10 ants tend honeydew >= 20 for 30 s and stop carrying; 점박이 eats at half speed while tended; ants return after honeydew < 10 for 60 s',()=>{
+test('X04/AC-10 ants tend honeydew >= 10 for 30 s and stop carrying (0.6.33: was 20); 점박이 eats at half speed while tended; ants return after honeydew < 5 for 60 s',()=>{
  const s=game(),p=s.individuals[0];p.B=50;p.energy=70;const ant=add(s,{kind:'ant',nest:{x:.5,y:.6}});a.ok(C.antOk(s));const m=add(s,{kind:'mealy',host:p.id,density:60,honey:25,low:0});
  for(let t=0;t<29;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.equal(ant.tend??null,null);tick(s,{T:60,kind:'rain'});a.equal(ant.tend,p.id);a.ok(C.tendedBy(s,p.id));
  const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});m.density=60;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.ok(Math.abs(L.eaten-4)<.05,'tended: 4/min, ate '+L.eaten);
- for(let t=0;t<61;t++){tick(s,{T:60,kind:'rain'});m.honey=5;}a.equal(ant.tend,null,'back to carrying');const e=L.eaten;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=5;}a.ok(Math.abs(L.eaten-e-8)<.05,'untended: 8/min');
+ for(let t=0;t<61;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.equal(ant.tend,null,'back to carrying');const e=L.eaten;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.ok(Math.abs(L.eaten-e-8)<.05,'untended: 8/min');
 });
 
 test('점박이 comes only to egg sacs (density >= 20) on a reachable friend within 120~300 s, looks around 120 s as an adult, then the larva eats',()=>{
