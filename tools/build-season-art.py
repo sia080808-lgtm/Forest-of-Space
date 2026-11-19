@@ -51,19 +51,14 @@ GREY = np.array([196, 202, 206], np.float32); RIM = np.array([128, 134, 140], np
 def solid_near(solid):
     return ndimage.binary_dilation(solid, iterations=2).astype(np.float32)
 
-def heavy_snow(res, al, solid, T, seed, bias=0.0):
-    """Snow lying on the surfaces that face the sky. The pictures are drawn from above at an angle, so the top of a stone,
-    the roof of the shelter or the face of a broad leaf is a whole visible plane, not just the silhouette's edge: the
-    snow covers the upper part of each object (by its height in that column) and, more, the parts the painting lights
-    from above; the sides and the shadowed faces keep their colour. Snow is blank paper with a faint cool shade on its
-    shadowed side, a soft grey ink line along its top and a faint one where it ends."""
-    if T <= 0:
-        return res, al
+def surface(res, solid, T, seed, bias=0.0, small_min=160):
+    """How much each pixel belongs to a sky-facing surface of the perspective art (0..1): upper part of each object (by its
+    height in that column) and the parts the painting lights from above. Also returns run (depth below the top edge)."""
     H, W = solid.shape
     lab, n = ndimage.label(solid)
-    if n:                                                   # tiny pieces (sprout tips, specks) get no snow
+    if n:
         size = ndimage.sum(np.ones_like(lab), lab, index=np.arange(1, n + 1))
-        small = np.r_[False, size < max(160, T * T * .6)]; solid = solid & ~small[lab]; lab, n = ndimage.label(solid)
+        small = np.r_[False, size < max(small_min, T * T * .6)]; solid = solid & ~small[lab]; lab, n = ndimage.label(solid)
     top = np.full((n + 1) * W, H, np.int64); bot = np.zeros((n + 1) * W, np.int64)
     ys, xs = np.nonzero(lab); key = lab[ys, xs] * W + xs
     np.minimum.at(top, key, ys); np.maximum.at(bot, key, ys)
@@ -75,6 +70,48 @@ def heavy_snow(res, al, solid, T, seed, bias=0.0):
     nz = noise((H, W), max(3, T * .9), seed)
     score = 1.05 + bias - frac * 1.75 + .45 * lit + .3 * (nz - .5)
     a = np.clip((score - .38) / .22, 0, 1) * solid; a = ndimage.gaussian_filter(a, .7) * solid
+    return a, run, frac, lit, solid
+
+FRESH = np.array([170, 198, 132], np.float32)
+BLOSSOM = np.array([240, 200, 204], np.float32); BLOSSOM_IN = np.array([200, 128, 138], np.float32)
+
+def spring_growth(res, al, solid, T, seed, bias=0.0):
+    """Spring on the same sky-facing surfaces: a pale fresh-green wash of new moss and leaves (light, see-through, the
+    painting stays visible) and a few small plum-blossom clusters, sparse, in soft pale pink with a darker heart."""
+    if T <= 0:
+        return res, al
+    a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
+    w = (a * .6)[..., None]
+    out = res * (1 - w) + (res * .3 + FRESH * .7) * w
+    H, W = solid.shape
+    rng = np.random.default_rng(seed + 7); cand = np.argwhere(a > .7)
+    if len(cand):
+        k = max(1, int(len(cand) / (T * T * 4)))                       # a few per object
+        pick = cand[rng.choice(len(cand), size=min(k, 40), replace=False)]
+        yy, xx = np.mgrid[0:H, 0:W]; petal = np.zeros((H, W), np.float32); heart = np.zeros((H, W), np.float32)
+        r = max(2.6, T * .3)
+        for y, x in pick:
+            for j in range(rng.integers(2, 4)):                         # a small cluster of 2~3 blossoms
+                cy, cx = y + rng.normal(0, r * 1.4), x + rng.normal(0, r * 1.8)
+                y0, y1, x0, x1 = max(0, int(cy - r * 2)), min(H, int(cy + r * 2) + 1), max(0, int(cx - r * 2)), min(W, int(cx + r * 2) + 1)
+                if y0 >= y1 or x0 >= x1: continue
+                d = np.hypot(yy[y0:y1, x0:x1] - cy, (xx[y0:y1, x0:x1] - cx) * .9)
+                petal[y0:y1, x0:x1] = np.maximum(petal[y0:y1, x0:x1], np.clip(1 - d / r, 0, 1) ** .5)
+                heart[y0:y1, x0:x1] = np.maximum(heart[y0:y1, x0:x1], np.clip(1 - d / (r * .35), 0, 1))
+        petal *= solid; heart *= solid
+        out = out * (1 - petal[..., None] * .85) + BLOSSOM * (petal[..., None] * .85)
+        out = out * (1 - heart[..., None] * .6) + BLOSSOM_IN * (heart[..., None] * .6)
+    return out, al
+
+def heavy_snow(res, al, solid, T, seed, bias=0.0):
+    """Snow lying on the surfaces that face the sky. The pictures are drawn from above at an angle, so the top of a stone,
+    the roof of the shelter or the face of a broad leaf is a whole visible plane, not just the silhouette's edge: the
+    snow covers the upper part of each object (by its height in that column) and, more, the parts the painting lights
+    from above; the sides and the shadowed faces keep their colour. Snow is blank paper with a faint cool shade on its
+    shadowed side, a soft grey ink line along its top and a faint one where it ends."""
+    if T <= 0:
+        return res, al
+    a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
     shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)                  # shadowed / lower snow a touch grey
     col = SNOW * (1 - .22 * shade[..., None]) + GREY * (.22 * shade[..., None])
     out = res * (1 - a[..., None]) + col * a[..., None]
@@ -131,6 +168,10 @@ def season(name, im, kind, se):
         # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
         # paper-coloured pixels become snow-white
         res = res + (SNOW - res) * (1 - paperish)
+    if se == 'spring' and kind != 'flora':
+        solid = (paperish[..., 0] > .6) & (al > 200)
+        solid = ndimage.binary_fill_holes(ndimage.binary_closing(ndimage.binary_opening(solid, iterations=1), iterations=2)) & (al > 30)
+        res, al = spring_growth(res, al, solid, THICK.get(name, 8), 31 + len(name), BIAS.get(name, 0.0))
     if se == 'spring' and kind == 'flora':
         # a few plum-blossom dabs at frond tips (soft, pale, like a light brush touch)
         rng = np.random.default_rng(5 + len(name)); tips = np.argwhere((edge > .5) & (leaf > .5) & (al > 80))

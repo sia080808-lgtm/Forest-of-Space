@@ -18,7 +18,7 @@ class ForestScene {
  propSpots(s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.walk?.(s)||{x0:0,y0:0,x1:1,y1:1},o=[];for(let i=0;i<110;i++){const u=(i*.61803398875+.13)%1,v=(i*.75487766625+.37)%1;o.push({x:W.x0+u*(W.x1-W.x0),y:W.y0+v*(W.y1-W.y0),i,k:(i*7)%11,near:false});}
   for(const [j,p] of [...(s.patches||[]),...(s.spring?[{id:'spring',x:s.spring.x,y:s.spring.y}]:[])].entries())for(let n=0;n<6;n++){const a=n*1.05+j,r=.05+.02*(n%3);o.push({x:p.x+Math.cos(a)*r*1.2,y:p.y+.018+Math.abs(Math.sin(a))*r*.45,i:200+j*6+n,k:(j*6+n)%11,near:true});}return o;}
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
-  for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}
+  for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}if(se==='spring'){for(const p of [...(s.patches||[]),...(s.spring?[{x:s.spring.x,y:s.spring.y}]:[])]){const x=p.x*w,y=(p.y+.012)*h,r=.1*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,198,132,.13)');g.addColorStop(1,'rgba(170,198,132,0)');c.save();c.translate(x,y);c.scale(1,.42);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}}
    for(const q of this.propSpots(s)){let name,size,rot=0;
     if(se==='spring'){if(!q.near||q.k%3)continue;name=q.k%2?'sprout-2':'sprout-1';size=.04*w;}
     else if(se==='autumn'){if(q.near?q.k%2:q.k%3)continue;name=['maple-1','ginkgo-1','maple-2','ginkgo-2'][q.i%4];size=.036*w;rot=q.i*2.3;}
