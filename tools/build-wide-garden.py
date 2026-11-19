@@ -81,21 +81,20 @@ def over(base, im, x, y):
 # and stepped down the new edges; the bottom-corner clusters go to the new bottom corners
 edge = np.zeros((H, W), np.float32); edge[fern] = 1
 strip = lambda x0, x1: Image.fromarray(np.dstack([np.clip(PAPER + (src[:, x0:x1] - PAPER) / np.maximum(a[:, x0:x1], .08)[..., None], 0, 255), (np.clip(a[:, x0:x1] * 1.15, 0, 1) * (1 - softShelter[:, x0:x1]) * 255)]).astype(np.uint8), 'RGBA')
-left, right = strip(0, 230), strip(W - 230, W)
-def feather(im, r=160):
-    arr = np.asarray(im).copy().astype(np.float32); hh = arr.shape[0]; f = np.ones(hh, np.float32)
-    f[:r] = np.linspace(0, 1, r); f[-r:] = np.linspace(1, 0, r); arr[..., 3] *= f[:, None]
-    return Image.fromarray(arr.astype(np.uint8), 'RGBA')
+# 0.7.0 (user: "기본배율에서 보이던 고사리 테두리 예뻤는데 … 화면을 옮기더라도 계속 그림을 보는 것처럼"): the edge ferns
+# are no longer part of the floor. They become a screen frame (frame.png): the original garden's fern layer, colour-keyed
+# from the paper, drawn fixed to the screen edges at today's size over the floor and under friends and objects.
 img = Image.fromarray(wide.astype(np.uint8)).convert('RGBA')
-for y, flip in [(-260, True), (560, False), (1240, True)]:
-    L = left.transpose(Image.FLIP_TOP_BOTTOM) if flip else left
-    R = right.transpose(Image.FLIP_TOP_BOTTOM) if flip else right
-    img.alpha_composite(feather(L), (0, y)); img.alpha_composite(feather(R), (WW - 230, y))
-cw = 430
-corner = lambda x0: Image.fromarray(np.dstack([np.clip(PAPER + (src[H - 300:H, x0:x0 + cw] - PAPER) / np.maximum(a[H - 300:H, x0:x0 + cw], .08)[..., None], 0, 255), np.clip(a[H - 300:H, x0:x0 + cw] * 1.15, 0, 1) * 255]).astype(np.uint8), 'RGBA')
-bl, br = corner(0), corner(W - cw)
-img.alpha_composite(bl, (0, WH - 300)); img.alpha_composite(br, (WW - cw, WH - 300))
-img.alpha_composite(bl.transpose(Image.FLIP_TOP_BOTTOM), (0, 0)); img.alpha_composite(br.transpose(Image.FLIP_TOP_BOTTOM), (WW - cw, 0))
+fa = np.clip(a * 1.15, 0, 1) * (1 - softShelter)
+fcol = np.clip(PAPER + (src - PAPER) / np.maximum(a, .08)[..., None], 0, 255)
+fa[fa < .06] = 0
+far = ~ndimage.binary_dilation(fa > .2, iterations=40); fa[far] = 0          # paper specks away from the ferns
+fr = np.dstack([fcol, fa * 255])
+# the left edge behind the shelter had no ferns of its own: borrow the right edge there, mirrored, softly faded in
+band = np.zeros(H, np.float32); band[150:600] = 1; band = ndimage.gaussian_filter1d(band, 40)
+mir = fr[:, ::-1][:, :260].copy(); mir[..., 3] *= band[:, None]
+left = fr[:, :260]; take = mir[..., 3] > left[..., 3]; left[take] = mir[take]
+Image.fromarray(fr.astype(np.uint8), 'RGBA').save(os.path.join(ROOT, 'frame.png'), optimize=True)
 img.convert('RGB').save(os.path.join(ROOT, 'garden-wide.png'), optimize=True)
 
 # 5. clump sprites for the new ground (the five largest distinct fern regions), trimmed
