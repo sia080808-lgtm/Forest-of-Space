@@ -120,3 +120,22 @@ for k, s in enumerate(picked, 1):
     print('fern', k, s.size)
 sheet.save('/tmp/fern-sheet.png')
 print('garden-wide', img.size)
+
+# 6. shelter art (0.7.0): the shelter used to be drawn as the rectangle (0,190)-(500,520) of garden-open.png, paper and all.
+# On the wide floor that rectangle's edges would show, so the shelter is saved on its own with soft transparent edges.
+sx0, sy0, sx1, sy1 = 0, 190, 500, 520
+crop = src[sy0:sy1, sx0:sx1]
+hh, ww = crop.shape[:2]
+al = np.ones((hh, ww), np.float32)
+for r, side in [(40, 'l'), (24, 'r'), (24, 't'), (18, 'b')]:
+    ramp = np.linspace(0, 1, r)
+    if side == 'l': al[:, :r] *= ramp[None, :]
+    if side == 'r': al[:, -r:] *= ramp[None, ::-1]
+    if side == 't': al[:r] *= ramp[:, None]
+    if side == 'b': al[-r:] *= ramp[::-1][:, None]
+# plain paper fades out completely (only the arch, its grass and vines stay solid)
+ink = np.clip((np.abs(crop - PAPER).max(2) - 6) / 30, 0, 1)
+ink = np.clip(ndimage.gaussian_filter(ndimage.binary_dilation(ink > .15, iterations=8).astype(np.float32), 4) * 1.2, 0, 1)
+al *= ink
+Image.fromarray(np.dstack([crop, al * 255]).astype(np.uint8), 'RGBA').save(os.path.join(ROOT, 'shelter-art.png'), optimize=True)
+print('shelter-art', (ww, hh))

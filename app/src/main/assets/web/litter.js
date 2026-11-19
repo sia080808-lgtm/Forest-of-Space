@@ -1,9 +1,12 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestLitter=api;})(globalThis,function(){
 'use strict';
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 // ECO24-L01~L06 / N01~N05 step 1 (0.6.20): natural leaf fall into 12 fixed world sectors, loose leaves, piles,
 // pile decomposition, and the one-time move of an old save's raw leaves into real piles. No creatures yet.
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',environment:'ForestEnvironment',objects:'ForestObjects',creatures:'ForestCreatures'}[n]];
-const COLS=4,ROWS=3,X0=.08,X1=.92,Y0=.15,Y1=.91,LCAP=40,SECTOR=12,PILE=5,eps=1e-8;
+// 0.7.0 넓은 숲: 6x5 sectors over the forest's walkable ground (cells about as big as the old 4x3 garden cells); the floor
+// leaf cap grows with the area (40 -> 90). Old saves are re-sectored once on load (grid 2), see regrid().
+const WB=World.walk(null),COLS=6,ROWS=5,X0=WB.x0,X1=WB.x1,Y0=WB.y0,Y1=WB.y1,LCAP=90,SECTOR=12,PILE=5,eps=1e-8,GRID=2;
 const MIGRATE_PILES=3;
 function rnd(s){let x=s.rng.litter>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.litter=x>>>0;return (x>>>0)/4294967296;}
 function sectorOf(q){const c=Math.max(0,Math.min(COLS-1,Math.floor((q.x-X0)/(X1-X0)*COLS))),r=Math.max(0,Math.min(ROWS-1,Math.floor((q.y-Y0)/(Y1-Y0)*ROWS)));return r*COLS+c;}
@@ -87,10 +90,22 @@ function relocate(s){
  for(const l of leaves(s))if(blocked(s,l,0)){const q=spot(s,l.sector,12);if(q){l.x=q.x;l.y=q.y;}}
  for(const p of piles(s)){const others=piles(s).filter(x=>x!==p);const stuck=!dep('spatial').walkable(s,p)||Math.hypot(p.x-s.spring.x,(p.y-s.spring.y)*1.6)<.16||s.patches.some(z=>z.id!=='shelter'&&Math.hypot(p.x-z.x,(p.y-z.y)*1.6)<.11);if(stuck){const st=state(s);st.piles=others;const q=spot(s,p.sector,12);st.piles.push(p);if(q){p.x=q.x;p.y=q.y;}}}
 }
+// 0.7.0: an old save's leaves and piles get their sector numbers on the new 6x5 grid from where they lie. Two piles that
+// fall into one new sector: the second keeps its place and takes the nearest free sector number (a pile's sector is its
+// bookkeeping cell). A sector left with 5+ loose leaves and no pile forms a pile, as a fifth landing would. Nothing is
+// created, lost or moved on the ground.
+function regrid(s){const st=state(s);
+ for(const l of st.leaves)l.sector=sectorOf(l);
+ const used=new Set();for(const p of [...st.piles].sort((a,b)=>b.O-a.O||a.id.localeCompare(b.id))){let i=sectorOf(p);
+  if(used.has(i)){const free=[...Array(COLS*ROWS).keys()].filter(k=>!used.has(k)).sort((a,b)=>{const A=bounds(a),B=bounds(b);return Math.hypot(A.cx-p.x,A.cy-p.y)-Math.hypot(B.cx-p.x,B.cy-p.y)||a-b;});i=free[0];}
+  p.sector=i;used.add(i);}
+ for(let i=0;i<COLS*ROWS;i++){const here=st.leaves.filter(l=>l.sector===i);if(here.length>=PILE&&!used.has(i)){const c={x:here.reduce((v,l)=>v+l.x,0)/here.length,y:here.reduce((v,l)=>v+l.y,0)/here.length};st.leaves=st.leaves.filter(l=>l.sector!==i);newPile(s,i,here.length,c);used.add(i);}}
+ for(const g of s.objects?.creatures?.groups||[])if(g.carry?.to)g.carry.to.sector=sectorOf(g.carry.to);
+ st.grid=GRID;}
 function init(s){
- const o=s.objects;if(o.litter)return s;
+ const o=s.objects;if(o.litter){if(o.litter.grid!==GRID)regrid(s);return s;}
  s.rng.litter??=((s.rng.weather^0x6c8e9cf5)>>>0)||1;
- o.litter={version:1,nextLeaf:1,nextPile:1,leaves:[],piles:[],fallen:0,missed:0,moves:0,migration:null};
+ o.litter={version:1,grid:GRID,nextLeaf:1,nextPile:1,leaves:[],piles:[],fallen:0,missed:0,moves:0,migration:null};
  const z=s.patches.find(p=>p.id==='litter');
  if(z&&z.O>eps){
   // An old save's raw leaves become real piles (max 5 x 12) in the sectors nearest the old litter spot. The rest
@@ -108,10 +123,10 @@ function init(s){
 }
 function validate(s){
  const st=state(s),f=(v,max=1e15)=>Number.isFinite(v)&&v>=-eps&&v<=max;if(!st)return;
- if(st.version!==1||!Array.isArray(st.leaves)||!Array.isArray(st.piles)||!Number.isSafeInteger(st.nextLeaf)||!Number.isSafeInteger(st.nextPile)||!Number.isInteger(s.rng.litter))throw Error('낙엽 구역 기록을 확인해 주세요.');
+ if(st.version!==1||(st.grid!==undefined&&st.grid!==GRID)||!Array.isArray(st.leaves)||!Array.isArray(st.piles)||!Number.isSafeInteger(st.nextLeaf)||!Number.isSafeInteger(st.nextPile)||!Number.isInteger(s.rng.litter))throw Error('낙엽 구역 기록을 확인해 주세요.');
  const seen=new Set();
- for(const l of st.leaves){if(!Number.isInteger(l.sector)||l.sector<0||l.sector>=COLS*ROWS||!f(l.x,1)||!f(l.y,1)||!Number.isFinite(l.rot)||seen.has('l'+l.id))throw Error('낙엽 구역 기록을 확인해 주세요.');seen.add('l'+l.id);}
- for(const p of st.piles){if(typeof p.id!=='string'||!p.id.startsWith('pile:')||seen.has(p.id)||!Number.isInteger(p.sector)||p.sector<0||p.sector>=COLS*ROWS||!f(p.x,1)||!f(p.y,1)||!f(p.O,SECTOR)||!f(p.U)||!f(p.S,100)||!f(p.W)||!f(p.playBoostUntil))throw Error('낙엽더미 기록을 확인해 주세요.');seen.add(p.id);}
+ for(const l of st.leaves){if(!Number.isInteger(l.sector)||l.sector<0||l.sector>=COLS*ROWS||!World.inside(s,l,World.bounds(s))||!Number.isFinite(l.rot)||seen.has('l'+l.id))throw Error('낙엽 구역 기록을 확인해 주세요.');seen.add('l'+l.id);}
+ for(const p of st.piles){if(typeof p.id!=='string'||!p.id.startsWith('pile:')||seen.has(p.id)||!Number.isInteger(p.sector)||p.sector<0||p.sector>=COLS*ROWS||!World.inside(s,p,World.bounds(s))||!f(p.O,SECTOR)||!f(p.U)||!f(p.S,100)||!f(p.W)||!f(p.playBoostUntil))throw Error('낙엽더미 기록을 확인해 주세요.');seen.add(p.id);}
  for(let i=0;i<COLS*ROWS;i++){if(st.piles.filter(p=>p.sector===i).length>1||(!st.piles.some(p=>p.sector===i)&&st.leaves.filter(l=>l.sector===i).length>=PILE))throw Error('낙엽더미 기록을 확인해 주세요.');}
  const legacy=st.migration?st.migration.moved:0;
  if(floor(s)>Math.max(LCAP,legacy)+1e-6)throw Error('바닥 낙엽이 상한을 넘었어요.');

@@ -1,8 +1,9 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
-const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},daily=[20,30,40];
+const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},daily=[45,68,90],OLD_DAILY=[20,30,40];// 0.7.0: leaves per day grow with the forest area (x2.25)
 const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:4};
 const names={moss:'이끼 자리',spring:'샘터',litter:'낙엽 자리',rock:'햇살 바위',shade:'잎 그늘',crevice:'바위틈',shelter:'쉼터'};
 const isPile=id=>typeof id==='string'&&id.startsWith('pile:');
@@ -16,6 +17,7 @@ const scale=(s,id)=>capacities[id]?1+(level(s,id)-1)*.15:1;
 const moist=z=>z?.cap?100*z.S/z.cap:0;
 function init(s){
  if(!s.objects)s.objects={version:1,nextSession:1,dayIndex:Math.floor(s.worldTick/1200),dayQuota:daily[level(s,'litter')-1],arrivedToday:0,playBoostUntil:0,decomposedTotal:0,upgrades:{},ledger:{leafInput:0,absorbed:0},lastResourceTick:-1};
+ {const o=s.objects,k=OLD_DAILY.indexOf(o.dayQuota);if(k>=0)o.dayQuota=daily[k];}
  for(const id of ['moss','spring','litter'])s.objects.upgrades[id]??={level:1,useSeconds:0,stageUseSeconds:0,pressureSeconds:0,pressureEvidence:false,unlocked:1};
  s.spring.capacity=capacity(s,'spring');s.spring.snowWater??=0;
  const m=patch(s,'moss');m.cap=capacity(s,'moss');m.pool=0;m.drain=0;
@@ -264,7 +266,7 @@ function planUpgrade(s,id){
  const meta=upgradeStatus(s,id);if(!meta?.ready)throw Error('실제로 이용하고 공간·잔량 부족을 겪으면 확장할 수 있어요.');
  if(s.individuals.some(p=>p.active&&p.objectTask?.object===id))throw Error('친구들이 이용을 마친 뒤 넓힐 수 있어요.');
  const next=JSON.parse(JSON.stringify(s));next.objects.upgrades[id].level++;init(next);
- const r=region(next,id),Space=dep('spatial');if(r.x-r.rx<.08||r.x+r.rx>.92||r.y-r.ry<.15||r.y+r.ry>.91)throw Error('넓어질 공간을 정원 안에 확보해 주세요.');
+ const r=region(next,id),Space=dep('spatial');{const wb=World.walk(next);if(r.x-r.rx<wb.x0||r.x+r.rx>wb.x1||r.y-r.ry<wb.y0||r.y+r.ry>wb.y1)throw Error('넓어질 공간을 숲 안에 확보해 주세요.');}
  for(const z of [...next.patches.filter(z=>z.id!==id&&z.id!=='shelter'),...(id==='spring'?[]:[next.spring])])if(Math.hypot((z.x-r.x)/(r.rx+.055),(z.y-r.y)/(r.ry+.035))<1)throw Error('주변 오브젝트를 옮겨 넓어질 공간을 비워주세요.');
  for(const p of next.individuals.filter(p=>p.active))if(fits(next,p,id,p,'rest'))throw Error('친구가 있는 자리를 비워주세요.');
  for(const f of next.shelters.facilities)if(!Space.route(next,dep('shelter').entry(f),Space.socket(next,'spring')))throw Error('샘터와 쉼터를 잇는 길을 비워주세요.');
@@ -288,5 +290,5 @@ function validate(s){
  if(st.litter)dep('litter').validate(s);if(st.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=daily[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });

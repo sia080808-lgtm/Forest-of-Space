@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestSpace=api;})(globalThis,function(){
 'use strict';
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const Shelter=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 // One adult body diameter, in a fixed world coordinate system, independent of DPI.
@@ -11,6 +12,7 @@ function obstacles(s){return [...s.individuals.filter(p=>p.active&&p.species==='
 // layouts, shelter entrances and paths valid before stay valid; nothing becomes stuck or unloadable.
 const STONE={rock:{dx:.01,dy:-.028,rx:.10,ry:.032},crevice:{dx:.003,dy:-.026,rx:.095,ry:.03}};
 let LEGACY=false;
+const DETOUR=.3,NEAR_FRIENDS=10;
 // Sun-rock resting happens on the rock's upper face; only a route that starts or ends there may climb over the rock body.
 function rockTop(s){const r=s.patches.find(p=>p.id==='rock');return r?{x:r.x+.01,y:r.y-.04,rx:.075,ry:.016}:null;}
 function onRock(s,p){const t=rockTop(s);return !!t&&p&&((p.x-t.x)/t.rx)**2+((p.y-t.y)/t.ry)**2<=1+1e-9;}
@@ -27,7 +29,7 @@ function socket(s,id,individual){const p=id==='spring'?s.spring:s.patches.find(p
 }
 function walkable(s,p,id,skip,obs,w=pad(s,id)){
  if(Shelter.blocked(s,p,id))return false;
- if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<.08||p.x>.92||p.y<.15||p.y>.91)return false;
+ if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p))return false;
  const top=onRock(s,p);
  return !(obs||obstacles(s)).some(z=>skip&&skip.has(z.id)||z.id==='rock'&&top?false:z.id==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:solid(z,p,w));
 }
@@ -64,9 +66,17 @@ function routeOnce(s,start,end,id,avoidFriends){
   for(const [dx,dy]of [[-rx,-ry],[rx,-ry],[-rx,ry],[rx,ry],[0,-ry],[0,ry],[-rx,0],[rx,0]]){const p={x:z.x+dx,y:z.y+dy};if(walkable(s,p,id,null,obs))nodes.push(p);}
  }
  for(const f of s.shelters?.facilities||[]){const t=Shelter.transform(f);for(const [x,y]of [[15,10],[210+t.extra,10],[15,190],[210+t.extra,190]]){const q={x:(t.x+x)/360,y:(t.y+y)/576};if(walkable(s,q,id,null,obs))nodes.push(q);}}
- if(actor)for(const z of s.individuals.filter(p=>p.active&&p.id!==id).sort((a,b)=>a.id.localeCompare(b.id))){const r=.4*(diameter(actor)+diameter(z))+.014;for(let k=0;k<12;k++){const angle=k*Math.PI/6,q={x:z.x+Math.cos(angle)*r,y:z.y+Math.sin(angle)*r/ASPECT};if(walkable(s,q,id,null,obs))nodes.push(q);}}
- const cost=nodes.map(()=>Infinity),prev=[],done=new Set();cost[0]=0;
- while(done.size<nodes.length){let i=-1;for(let j=0;j<nodes.length;j++)if(!done.has(j)&&(i<0||cost[j]<cost[i]))i=j;if(i<0||!Number.isFinite(cost[i]))break;if(i===1){const path=[];for(let k=1;k!==0;k=prev[k])path.unshift(nodes[k]);return path;}done.add(i);
+ // 0.7.0 (many friends): only friends near the way between start and end get detour points. A friend outside this
+ // ellipse cannot block the straight way or any short detour; with dozens of friends this keeps the graph small.
+ const near=z=>distance(z,start)+distance(z,end)<=distance(start,end)+DETOUR;
+ // and at most the NEAR_FRIENDS closest to the way (a crowd around a busy spot otherwise means hundreds of detour points)
+ const toLine=z=>{const dx=end.x-start.x,dy=(end.y-start.y)*ASPECT,len=dx*dx+dy*dy,u=len?Math.max(0,Math.min(1,((z.x-start.x)*dx+(z.y-start.y)*ASPECT*dy)/len)):0;return distance(z,{x:start.x+u*dx,y:start.y+u*dy/ASPECT});};
+ const crowd=actor?s.individuals.filter(p=>p.active&&p.id!==id&&near(p)).map(z=>[toLine(z),z]).sort((a,b)=>a[0]-b[0]||a[1].id.localeCompare(b[1].id)).slice(0,NEAR_FRIENDS).map(x=>x[1]).sort((a,b)=>a.id.localeCompare(b.id)):[];
+ if(actor)for(const z of crowd){const r=.4*(diameter(actor)+diameter(z))+.014;for(let k=0;k<12;k++){const angle=k*Math.PI/6,q={x:z.x+Math.cos(angle)*r,y:z.y+Math.sin(angle)*r/ASPECT};if(walkable(s,q,id,null,obs))nodes.push(q);}}
+ // 0.7.0 (many friends): A* instead of plain Dijkstra. The heuristic is the straight distance to the end (never more than
+ // the true remaining cost), so the shortest path is the same; far fewer nodes are opened, so far fewer segment checks.
+ const cost=nodes.map(()=>Infinity),prev=[],done=new Set(),h=nodes.map(q=>distance(q,end));cost[0]=0;
+ while(done.size<nodes.length){let i=-1;for(let j=0;j<nodes.length;j++)if(!done.has(j)&&Number.isFinite(cost[j])&&(i<0||cost[j]+h[j]<cost[i]+h[i]))i=j;if(i<0||!Number.isFinite(cost[i]))break;if(i===1){const path=[];for(let k=1;k!==0;k=prev[k])path.unshift(nodes[k]);return path;}done.add(i);
   for(let j=1;j<nodes.length;j++)if(!done.has(j)&&clear(nodes[i],nodes[j])){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]){cost[j]=c;prev[j]=i;}}
  }return null;
 }

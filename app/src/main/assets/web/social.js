@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory(typeof module==='object'?require('./spatial.js'):root.ForestSpace);if(typeof module==='object')module.exports=api;else root.ForestSocial=api;})(globalThis,function(Space){
 'use strict';
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;return w+(c>=0&&c<11172&&c%28?a:b);};
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Motion=typeof module==='object'?require('./neolbi-motion.js'):globalThis.ForestNeolbiMotion;
@@ -110,7 +111,7 @@ function validate(s){
   const phases=a.type==='CANOPY'?['signal','approach','rest','exit']:a.type==='A04'?['signal','approach','accept','transfer','response']:['signal','approach','rest'];
   if(!phases.includes(a.phase)||typeof a.id!=='string'||!/^social-\d+$/.test(a.id)||Number(a.id.slice(7))>v.serial||sessionIds.has(a.id)||a.key!==a.type+':'+[...a.ids].sort().join(':')||a.layout!==s.layoutRevision)fail();
   const ps=a.ids.map(id=>s.individuals.find(p=>p.id===id));
-  if(a.type==='A04'?!['bonbon','superbum'].includes(ps[0].species):a.type==='CANOPY'?ps[0].species!=='neolbi':ps.slice(0,2).some(p=>p.species!=='neolbi'))fail();if(a.seat&&(!finite(a.seat.x,0,1)||!finite(a.seat.y,0,1)))fail();
+  if(a.type==='A04'?!['bonbon','superbum'].includes(ps[0].species):a.type==='CANOPY'?ps[0].species!=='neolbi':ps.slice(0,2).some(p=>p.species!=='neolbi'))fail();if(a.seat&&(!World.inside(s,a.seat,World.bounds(s))))fail();
   for(const k of ['elapsed','started','steps','total','rain'])if(!finite(a[k]))fail();
   if(a.started>s.worldTick||!Number.isInteger(a.steps)||a.steps>(a.type==='A04'?5:20)||a.total>10||a.rain>a.total||!finite(a.lastTick,-1,s.worldTick)||(a.processedTick!==undefined&&!finite(a.processedTick,0,s.worldTick))||(a.observed!==undefined&&!finite(a.observed,0,20)))fail();
   a.ids.forEach(id=>used.add(id));sessionIds.add(a.id);

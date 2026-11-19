@@ -9,8 +9,8 @@ test('ECO24-N03 new game: three real loose leaves on the ground, compost 10 on t
 test('ECO24-L01/L03/L05 over three game days leaves fall one at a time, five in a sector become one pile, conservation holds',()=>{
  for(const seed of [1,2,3]){const s=game(seed),base=O.storedLeaf(s);let first=null;
   for(let t=0;t<3600;t++){F.step(s);if(first===null&&L.piles(s).length)first=s.worldTick;if(t%600===0)F.valid(s);}
-  near(balance(s,base),0);a.ok(s.objects.litter.fallen>=45&&s.objects.litter.fallen<=60,'fallen '+s.objects.litter.fallen);a.ok(first!==null&&first<2400,'first pile '+first);
-  for(let i=0;i<12;i++){a.ok(L.piles(s).filter(p=>p.sector===i).length<=1);if(!L.piles(s).some(p=>p.sector===i))a.ok(L.leaves(s).filter(l=>l.sector===i).length<5);}
+  near(balance(s,base),0);a.ok(s.objects.litter.fallen>=95&&s.objects.litter.fallen<=135,'fallen '+s.objects.litter.fallen);// 0.7.0: 45 a day in the wider foresta.ok(first!==null&&first<2400,'first pile '+first);
+  for(let i=0;i<L.COLS*L.ROWS;i++){a.ok(L.piles(s).filter(p=>p.sector===i).length<=1);if(!L.piles(s).some(p=>p.sector===i))a.ok(L.leaves(s).filter(l=>l.sector===i).length<5);}
   for(const l of L.leaves(s))a.equal(L.sectorOf(l),l.sector);F.valid(s);}
 });
 
