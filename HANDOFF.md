@@ -526,3 +526,9 @@
 - 검증: `npm test` 295/295, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.38/runtime`(상태 불변 확인), 측정 `docs/qa-0.6.38/pest-spread.json`. Android 실기기 미검증.
 - 대기: 두리 전용 그림(사용자 "차차").
 - 병합·릴리스: PR #40(https://github.com/sia080808-lgtm/Forest-of-Space/pull/40) main 병합 `dd21c137507722d4c82fe9f3e87e58aff1672ea4`(사용자 "ㄱㄱ"; head `a2572f8` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.38 `Forest-of-Space-0.6.38.apk` 40,849,372 bytes, SHA-256 `3251e8c1abc6ea81e009851b7ca976204cedbdd0fbc5e336ae4d228e2dfe8646` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode55/0.6.38, APK 안 engine.js VERSION 0.6.38·creatures.js `contactStep`/`flyStep`·어린 단계 PNG 5개 포함 확인. APK는 사용자에게 파일로 전달.
+
+### MAP-WIDE-DRAFT-20261119 — 넓은 숲(맵 1.5배) 기획 초안 (문서만, 구현 전)
+
+- 담당: Claude Code. 요청: 사용자 "친구 수십명일 때를 대비하여 난 맵을 넓힐 거임. 전체 크기를 넓히는 거지" → 선택(가로·세로 1.5배, 바닥 그림만 이어 그리기) → "기획해봐", "군데군데 고사리화풍들이 있었으면", "화면 기본 디폴트 배율은 지금 설정된 화면 크기가 디폴트고 거기서 줌인 줌 아웃 가능. 그리고 기본 디폴트 배율에서 화면 드래그로 보기 가능".
+- 문서: `docs/Forest-Map-Expansion-SRS-v2.29-DRAFT.md`·`.pdf`. 핵심: 기존 정원 좌표(0~1)를 그대로 두고 세계를 −0.25~1.25로 넓힘(저장 이전·거리 상수 변경 없음), 경계 하드코딩 위치 목록(spatial·litter·engine·shelter·objects·camera·scene·recruitment), 카메라(기본 = 지금 크기, 줌인·줌아웃·기본에서 끌어 보기), 넓은 바닥 그림·고사리 덤불, 낙엽 6×5칸, 성능 측정 기준, 작업 순서.
+- 코드 변경 없음. 결정 대기: 고사리 덤불 장식만/쉼 자리 겸용, 낙엽 양 면적 비례 여부, 버전 0.7.0/0.6.39.
