@@ -18,7 +18,7 @@ class ForestScene {
  propSpots(s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.walk?.(s)||{x0:0,y0:0,x1:1,y1:1},o=[];for(let i=0;i<110;i++){const u=(i*.61803398875+.13)%1,v=(i*.75487766625+.37)%1;o.push({x:W.x0+u*(W.x1-W.x0),y:W.y0+v*(W.y1-W.y0),i,k:(i*7)%11,near:false});}
   for(const [j,p] of [...(s.patches||[]),...(s.spring?[{id:'spring',x:s.spring.x,y:s.spring.y}]:[])].entries())for(let n=0;n<6;n++){const a=n*1.05+j,r=.05+.02*(n%3);o.push({x:p.x+Math.cos(a)*r*1.2,y:p.y+.018+Math.abs(Math.sin(a))*r*.45,i:200+j*6+n,k:(j*6+n)%11,near:true});}return o;}
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
-  for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter')this.snowCover(c,w,h,s);
+  for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}
    for(const q of this.propSpots(s)){let name,size,rot=0;
     if(se==='spring'){if(!q.near||q.k%3)continue;name=q.k%2?'sprout-2':'sprout-1';size=.04*w;}
     else if(se==='autumn'){if(q.near?q.k%2:q.k%3)continue;name=['maple-1','ginkgo-1','maple-2','ginkgo-2'][q.i%4];size=.036*w;rot=q.i*2.3;}
@@ -29,6 +29,10 @@ class ForestScene {
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
  // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
  snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);c.restore();}
+ // winter footprints (render only, not saved): a pair of soft grey ink dabs per step, fading over 30 s
+ footprint(key,pos,p){this._prints??=[];this._printKeys??=new Set();if(this._printKeys.has(key))return;this._printKeys.add(key);if(this._printKeys.size>600)this._printKeys.delete(this._printKeys.values().next().value);
+  const big=['neolbi','superbum'].includes(p.species)?1.4:1,side=this._prints.length%2?1:-1;this._prints.push({x:pos.x,y:pos.y,side,big,at:performance.now()/1000});if(this._prints.length>240)this._prints.shift();}
+ drawPrints(c,w,h){const ps=this._prints;if(!ps?.length)return;const now=performance.now()/1000,LIFE=30;this._prints=ps.filter(q=>now-q.at<LIFE);c.save();for(const q of this._prints){const a=1-(now-q.at)/LIFE;c.globalAlpha=.4*a*a;c.fillStyle='rgb(140,147,152)';const x=q.x*w+q.side*2.6*q.big,y=q.y*h+1;c.beginPath();c.ellipse(x,y,2.1*q.big,1.3*q.big,0,0,Math.PI*2);c.fill();}c.restore();}
  // a soft patch of lying snow on open ground: paper-white wash with a faint cool grey ink edge (irregular, 3 lobes)
  snowPatch(c,x,y,r,i){c.save();for(let k=0;k<3;k++){const ox=Math.cos(i*1.7+k*2.1)*r*.45,oy=Math.sin(i*2.3+k*1.3)*r*.12,rr=r*(.55+.25*((i+k)%3)/2),g=c.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,rr);g.addColorStop(0,'rgba(251,251,248,.92)');g.addColorStop(.72,'rgba(246,247,245,.78)');g.addColorStop(.9,'rgba(200,206,210,.22)');g.addColorStop(1,'rgba(200,206,210,0)');c.save();c.translate(x+ox,y+oy);c.scale(1,.34);c.translate(-x-ox,-y-oy);c.fillStyle=g;c.beginPath();c.arc(x+ox,y+oy,rr,0,Math.PI*2);c.fill();c.restore();}c.restore();}
  // falling maple/ginkgo leaves in autumn and plum petals in spring (render only; still when motion is reduced)
@@ -288,7 +292,10 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     if(p.species==='neolbi'&&fraction>=.55&&(p.motion?.kind==='umbrella'||p.motion?.kind==='shade')&&s.events.some(e=>e.type==='protect'&&e.individual===p.id&&s.worldTick-e.tick===1))this.onMarker?.('protect:'+p.id+':'+s.worldTick,'groom',p.id);
     if(p.snowShedTick===s.worldTick&&fraction>=.5)this.onMarker?.(id+':snow','snowShake'+(1+s.worldTick%3),p.id);
     if(kind==='groom'&&ForestRig.pose(kind,phase).reach>.7&&fraction>=.5&&s.worldTick%3===0)this.onMarker?.(id+':groom','groom',p.id);
-    if(motion.distance>0&&fraction<1){const step=Math.floor(fraction*(kind==='run'?4:2));const patch=s.patches.find(z=>Forest.dist(z,pos)<.10);const cue=(patch?.snowWater||0)>.01?'snowStep'+(1+(s.worldTick+step)%3):['rock','crevice'].includes(patch?.id)?'stone':patch?.id==='shelter'?'wood':['litter','moss','shade'].includes(patch?.id)?'leaf':'soil';this.onMarker?.(id+':foot:'+step,cue,p.id);}
+    if(motion.distance>0&&fraction<1){const step=Math.floor(fraction*(kind==='run'?4:2));const patch=s.patches.find(z=>Forest.dist(z,pos)<.10);const cal=this.cal(),se=cal?(cal.blend<.5?cal.prev:cal.id):null,indoor=!!Forest.Shelter?.inside?.(s,p),hard=['rock','crevice'].includes(patch?.id)||patch?.id==='shelter'||indoor;
+     // 0.8.1: in winter every step outdoors crunches snow and leaves a footprint that fades; in autumn steps rustle fallen leaves
+     const cue=(se==='winter'&&!hard)||(patch?.snowWater||0)>.01?'snowStep'+(1+(s.worldTick+step)%3):['rock','crevice'].includes(patch?.id)?'stone':patch?.id==='shelter'?'wood':(se==='autumn'&&!hard)||['litter','moss','shade'].includes(patch?.id)?'leaf':'soil';this.onMarker?.(id+':foot:'+step,cue,p.id);
+     if(se==='winter'&&!hard)this.footprint(id+':foot:'+step,pos,p);}
    }
   }
   // Foreground leaf pass: visitors render under the continuous canopy.

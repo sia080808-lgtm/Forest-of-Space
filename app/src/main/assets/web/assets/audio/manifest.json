@@ -113,5 +113,35 @@
     "file": "sfx/SFX_SHAKE_SNOW_v03.wav",
     "sha256": "e9e8892bf9f3ecf81c72fc04595de78bede18fc1183ea953d6442994750a90a8",
     "status": "derived_original_local_mix_0.6.6"
+  },
+  {
+    "file": "bgm/BGM_SPRING_DAY_FULL.ogg",
+    "sha256": "32ea393740a24c063edcb1339fa6c56587c9bace3a400f67ecadf430d1b8a17d",
+    "status": "synthesized_draft_v0.8.1"
+  },
+  {
+    "file": "bgm/BGM_SPRING_NIGHT_FULL.ogg",
+    "sha256": "fdc574f1bfc157106505c95fba7c00adb362b6509c243ae7de5271610dd1c5be",
+    "status": "synthesized_draft_v0.8.1"
+  },
+  {
+    "file": "bgm/BGM_AUTUMN_DAY_FULL.ogg",
+    "sha256": "5706e7ec7ff514632d26cfe3c390dc49f03f29b29ddb688bdc7dd97c1a3ea030",
+    "status": "synthesized_draft_v0.8.1"
+  },
+  {
+    "file": "bgm/BGM_AUTUMN_NIGHT_FULL.ogg",
+    "sha256": "2a41de12f49a5d2aa4c78e5be8d265e99b643e782870f42ab482b4d2aface66d",
+    "status": "synthesized_draft_v0.8.1"
+  },
+  {
+    "file": "bgm/BGM_WINTER_DAY_FULL.ogg",
+    "sha256": "a801bef27530a5e557ff80674e2a1cf8aa840a96bd9c3d8ac4e939bb2109b330",
+    "status": "synthesized_draft_v0.8.1"
+  },
+  {
+    "file": "bgm/BGM_WINTER_NIGHT_FULL.ogg",
+    "sha256": "58b6d9c25c57e4b338244e47e1bc3bbda68bd948b94e635e90a4cc86a6f71b35",
+    "status": "synthesized_draft_v0.8.1"
   }
 ]
