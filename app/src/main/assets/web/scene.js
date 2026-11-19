@@ -20,25 +20,20 @@ class ForestScene {
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
   for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter')this.snowCover(c,w,h,s);
    for(const q of this.propSpots(s)){let name,size,rot=0;
-    if(se==='spring'){if(q.near?q.k%2:q.k%4)continue;name=q.near?(q.k%3?'sprout-1':'sprout-2'):(q.i%3?'sprout-3':'sprout-1');size=(name==='sprout-3'?.055:.045)*w;}
+    if(se==='spring'){if(!q.near||q.k%3)continue;name=q.k%2?'sprout-2':'sprout-1';size=.04*w;}
     else if(se==='autumn'){if(q.near?q.k%2:q.k%3)continue;name=['maple-1','ginkgo-1','maple-2','ginkgo-2'][q.i%4];size=.036*w;rot=q.i*2.3;}
     else continue;
     const im=A['prop_'+name];if(!im)continue;const k=size/Math.max(im.width,im.height),dw=im.width*k,dh=im.height*k;c.save();c.translate(q.x*w,q.y*h);if(rot){c.scale(1,.62);c.rotate(rot);c.drawImage(im,-dw/2,-dh/2,dw,dh);}else{if(q.i%2)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);}c.restore();}
    c.restore();}}
  // winter: one continuous snow cover over most of the ground (cached), the paper showing through in thawing patches;
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
- snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},key=[W.x0,W.y0,W.x1,W.y1].join(',');
-  if(this._snow?.key!==key){const tw=192,th=Math.round(tw*(W.y1-W.y0)*576/((W.x1-W.x0)*360)),cv=document.createElement('canvas');cv.width=tw;cv.height=th;const x=cv.getContext('2d'),img=x.createImageData(tw,th),d=img.data;
-   const hash=(i,j)=>{const v=Math.sin(i*127.1+j*311.7)*43758.5453;return v-Math.floor(v);},sm=f=>f*f*(3-2*f),vn=(u,v)=>{const i=Math.floor(u),j=Math.floor(v),fu=sm(u-i),fv=sm(v-j);return (hash(i,j)*(1-fu)+hash(i+1,j)*fu)*(1-fv)+(hash(i,j+1)*(1-fu)+hash(i+1,j+1)*fu)*fv;};
-   for(let y=0;y<th;y++)for(let xx=0;xx<tw;xx++){const u=xx/tw*3.2,v=y/th*4.6,n=.75*vn(u,v)+.25*vn(u*1.9+5,v*1.9+1),a0=Math.max(0,Math.min(1,(n-.32)/.3)),a=a0*a0*(3-2*a0),o=(y*tw+xx)*4;
-    d[o]=250-6*(1-a);d[o+1]=250-5*(1-a);d[o+2]=247-3*(1-a);d[o+3]=Math.round(255*.82*a);}
-   x.putImageData(img,0,0);this._snow={key,cv};}
-  c.drawImage(this._snow.cv,W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);}
+ // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
+ snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);c.restore();}
  // a soft patch of lying snow on open ground: paper-white wash with a faint cool grey ink edge (irregular, 3 lobes)
  snowPatch(c,x,y,r,i){c.save();for(let k=0;k<3;k++){const ox=Math.cos(i*1.7+k*2.1)*r*.45,oy=Math.sin(i*2.3+k*1.3)*r*.12,rr=r*(.55+.25*((i+k)%3)/2),g=c.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,rr);g.addColorStop(0,'rgba(251,251,248,.92)');g.addColorStop(.72,'rgba(246,247,245,.78)');g.addColorStop(.9,'rgba(200,206,210,.22)');g.addColorStop(1,'rgba(200,206,210,0)');c.save();c.translate(x+ox,y+oy);c.scale(1,.34);c.translate(-x-ox,-y-oy);c.fillStyle=g;c.beginPath();c.arc(x+ox,y+oy,rr,0,Math.PI*2);c.fill();c.restore();}c.restore();}
  // falling maple/ginkgo leaves in autumn and plum petals in spring (render only; still when motion is reduced)
  seasonFall(c,w,h){const cal=this.cal(),s=this.state();if(!cal||s.settings.reducedMotion)return;const al=cal.id==='autumn'||cal.id==='spring'?cal.blend:cal.prev==='autumn'||cal.prev==='spring'?1-cal.blend:0,se=cal.blend<.5?cal.prev:cal.id;if(al<=0||(se!=='autumn'&&se!=='spring'))return;
-  const A=this.assets,t=this.phase||0,W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},n=se==='autumn'?7:6;c.save();c.globalAlpha*=al*.8;
+  const A=this.assets,t=this.phase||0,W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},n=se==='autumn'?7:4;c.save();c.globalAlpha*=al*.8;
   for(let i=0;i<n;i++){const name=se==='autumn'?['maple-1','ginkgo-1','maple-2','ginkgo-2'][i%4]:'blossom',im=A['prop_'+name];if(!im)continue;const span=(W.y1-W.y0)*h,fall=((t*(7+i%4*2)+i*211)%span),x=(W.x0+((i*.618034+.1)%1)*(W.x1-W.x0))*w+Math.sin(t*.6+i)*w*.03,y=W.y0*h+fall,size=(se==='autumn'?.038:.022)*w,k=size/Math.max(im.width,im.height);
    c.save();c.translate(x,y);c.rotate(Math.sin(t*1.3+i)*1.2+i);c.scale(1,.5+.5*Math.abs(Math.cos(t*1.7+i)));c.drawImage(im,-im.width*k/2,-im.height*k/2,im.width*k,im.height*k);c.restore();}
   c.restore();}

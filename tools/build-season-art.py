@@ -88,6 +88,10 @@ def season(name, im, kind, se):
                 sh = np.zeros_like(cap); sh[dy:] = cap[:H - dy] if dy else cap; depth = np.maximum(depth, sh * (1 - dy / kk))
             depth = ndimage.gaussian_filter(depth * solid, 1.2) * (noise((H, W), 3, 11) > .3)
             res = res + (SNOW - res) * (depth[..., None] * .92); al = np.maximum(al, depth * 230)
+    if se == 'winter':
+        # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
+        # paper-coloured pixels become snow-white
+        res = res + (SNOW - res) * (1 - paperish)
     if se == 'spring' and kind == 'flora':
         # a few plum-blossom dabs at frond tips (soft, pale, like a light brush touch)
         rng = np.random.default_rng(5 + len(name)); tips = np.argwhere((edge > .5) & (leaf > .5) & (al > 80))
