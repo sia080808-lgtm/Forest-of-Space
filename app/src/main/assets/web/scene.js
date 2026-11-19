@@ -14,9 +14,6 @@ class ForestScene {
  sa(name){const A=this.assets,c=this.cal();if(!c)return A[name];const id=c.blend<.5?c.prev:c.id;return id==='summer'?A[name]:A[name+'_'+id]||A[name];}
  seasonal(base,draw){const A=this.assets,E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state(),c=E&&s?.environment?E.calendar(s):null,pick=id=>id==='summer'?A[base]:A[base+'_'+id]||A[base];
   if(!c){if(A[base])draw(A[base]);return;}const cur=pick(c.id);if(c.blend<1){const prev=pick(c.prev);if(prev)draw(prev);const g=this.ctx;g.save();g.globalAlpha*=c.blend;if(cur)draw(cur);g.restore();}else if(cur)draw(cur);}
- // fixed scatter (no RNG state): golden-ratio sequence over the walkable forest, plus a few around each object's base
- propSpots(s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.walk?.(s)||{x0:0,y0:0,x1:1,y1:1},o=[];for(let i=0;i<110;i++){const u=(i*.61803398875+.13)%1,v=(i*.75487766625+.37)%1;o.push({x:W.x0+u*(W.x1-W.x0),y:W.y0+v*(W.y1-W.y0),i,k:(i*7)%11,near:false});}
-  for(const [j,p] of [...(s.patches||[]),...(s.spring?[{id:'spring',x:s.spring.x,y:s.spring.y}]:[])].entries())for(let n=0;n<6;n++){const a=n*1.05+j,r=.05+.02*(n%3);o.push({x:p.x+Math.cos(a)*r*1.2,y:p.y+.018+Math.abs(Math.sin(a))*r*.45,i:200+j*6+n,k:(j*6+n)%11,near:true});}return o;}
  // 0.8.1 봄: flowering tufts grow against the foot of each object (user: "잡초들은 오브젝트들 주위에 좀 자연스럽게"):
  // one or two at the sides of its base, sometimes a small one in front; the stone or leaf covers their back. Open ground stays empty.
  bloomSpots(s){const FOOT={rock:[.075,.012],crevice:[.072,.014],moss:[.07,.03],shade:[.04,.02],spring:[.085,.04]},o=[];
@@ -34,11 +31,6 @@ class ForestScene {
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
   for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}if(se==='spring'){for(const p of [...(s.patches||[]),...(s.spring?[{x:s.spring.x,y:s.spring.y}]:[])]){const x=p.x*w,y=(p.y+.012)*h,r=.1*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,198,132,.13)');g.addColorStop(1,'rgba(170,198,132,0)');c.save();c.translate(x,y);c.scale(1,.42);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}for(const q of this.bloomSpots(s)){const im=A['prop_bloom-'+q.v];if(!im)continue;const dw=q.size*w,dh=dw*im.height/im.width;c.save();c.translate(q.x*w,q.y*h);if(q.flip)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);c.restore();}}
    if(se==='autumn'){const L=['maple-1','ginkgo-1','maple-2','ginkgo-2'];for(const q of this.leafRing(s)){const im=A['prop_'+L[q.v]];if(!im)continue;const sz=q.size*w,kk=sz/Math.max(im.width,im.height);c.save();c.translate(q.x*w,q.y*h);c.scale(1,.6);c.rotate(q.rot);c.drawImage(im,-im.width*kk/2,-im.height*kk/2,im.width*kk,im.height*kk);c.restore();}}
-   for(const q of this.propSpots(s)){let name,size,rot=0;
-    if(se==='spring'){continue;}   /* spring tufts: bloomSpots (around the objects) */
-    else if(se==='autumn'){continue;}   /* autumn: leaves gather at the feet of the objects (below), open ground stays empty */
-    else continue;
-    const im=A['prop_'+name];if(!im)continue;const k=size/Math.max(im.width,im.height),dw=im.width*k,dh=im.height*k;c.save();c.translate(q.x*w,q.y*h);if(rot){c.scale(1,.62);c.rotate(rot);c.drawImage(im,-dw/2,-dh/2,dw,dh);}else{if(q.i%2)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);}c.restore();}
    c.restore();}}
  // winter: one continuous snow cover over most of the ground (cached), the paper showing through in thawing patches;
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
