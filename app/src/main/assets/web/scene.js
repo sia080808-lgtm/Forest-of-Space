@@ -1,11 +1,16 @@
 'use strict';
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
+ // 0.8.0 사계절: seasonal pictures of the fern frame, the fern clumps and the leaf-shade plant (tools/build-season-art.py,
+ // from the original pixels). Summer uses the original picture. The first 120 s of a season cross-fade from the last one.
+ static seasonFiles(){const o={},file={frame:'frame',shadePlant:'shade-plant'};for(let i=1;i<=6;i++)file['fern'+i]='fern-'+i;for(const [k,f] of Object.entries(file))for(const se of ['spring','autumn','winter'])o[k+'_'+se]='assets/forest/seasons/'+f+'-'+se+'.png';return o;}
+ seasonal(base,draw){const A=this.assets,E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state(),c=E&&s?.environment?E.calendar(s):null,pick=id=>id==='summer'?A[base]:A[base+'_'+id]||A[base];
+  if(!c){if(A[base])draw(A[base]);return;}const cur=pick(c.id);if(c.blend<1){const prev=pick(c.prev);if(prev)draw(prev);const g=this.ctx;g.save();g.globalAlpha*=c.blend;if(cur)draw(cur);g.restore();}else if(cur)draw(cur);}
  static FERNS=[[-.17,.06,1,.5,0],[1.15,.22,2,.55,1],[-.15,.55,3,.6,0],[1.17,.62,6,.7,1],[.18,-.13,5,.5,0],[.78,-.15,4,.55,1],[.25,1.17,2,.5,1],[.88,1.15,3,.55,0],[-.12,1.05,6,.6,1],[1.12,1.02,1,.45,0],[.5,-.17,6,.55,0]];
  constructor(canvas,getState){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.state=getState;this.assets={};this.selected=null;this.editing=false;this.preview={};this.selectedPatch='moss';this.phase=0;this.display={};this.ready=false;this.onSelect=()=>{};this.onMove=()=>{};this.paused=false;this.drag=null;this.last=0;this.resize=new ResizeObserver(()=>this.measure());this.resize.observe(canvas);this.measure();
   let saved;try{saved=JSON.parse(localStorage.getItem('forest-camera-v2'));}catch{}this.camera=new ForestCamera(saved);this.measure();
  }
- async load(){await Promise.all(['shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin',...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
+ async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin',...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
 
  prepareLitter(){const im=this.assets.terrain,c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.drawImage(im,512,512,512,512,0,0,512,512);const silhouette=document.createElement('canvas');silhouette.width=silhouette.height=512;const q=silhouette.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle='rgba(62,53,30,.19)';q.fillRect(0,0,512,512);this.litterShadow=silhouette;this.litterPicked=document.createElement('canvas');this.litterPicked.width=im.width;this.litterPicked.height=im.height;const v=this.litterPicked.getContext('2d');v.drawImage(im,0,0);v.save();v.globalCompositeOperation='destination-out';v.beginPath();v.ellipse(803,714,62,29,-.12,0,Math.PI*2);v.fill();v.restore();}
  measure(){const r=this.canvas.getBoundingClientRect();if(!r.width||!r.height)return;this.vw=r.width;this.vh=r.height;this.w=360;this.h=576;this.camera?.resize(r.width,r.height);const d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.max(1,r.width*d);this.canvas.height=Math.max(1,r.height*d);this.ctx.setTransform(d,0,0,d,0,0);this.cameraChanged();}
@@ -50,7 +55,9 @@ class ForestScene {
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves + compost) on the ground.
  drawFallenLeaf(x,y,rot,size,idx,alpha=1){const c=this.ctx,shapes=this.leafShapes,pts=shapes[idx%shapes.length],cx=pts.reduce((v,q)=>v+q[0],0)/pts.length,cy=pts.reduce((v,q)=>v+q[1],0)/pts.length;
   c.save();c.globalAlpha*=alpha;c.translate(x,y);c.scale(1,.62);c.rotate(rot);c.scale(size/512,size/512);c.translate(-cx,-cy);const shape=()=>{c.beginPath();pts.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();};
-  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.assets.terrain,0,0);c.restore();}
+  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.assets.terrain,0,0);const au=this.autumnLeaf();if(au>0){c.globalCompositeOperation='multiply';c.globalAlpha*=au;c.fillStyle=['#E0773A','#D9532E','#E8A23C','#B8562E'][idx%4];c.fillRect(-64,-64,640,640);}c.restore();}
+ // 0.8.0: in autumn the fallen leaves turn orange, rust and amber (render only); fades in and out with the season
+ autumnLeaf(){const E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state();if(!E||!s?.environment)return 0;const c=E.calendar(s);return c.id==='autumn'?.55*c.blend:c.prev==='autumn'&&c.blend<1?.55*(1-c.blend):0;}
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves heaped in a low mound, compost beneath).
  drawFallen(){const s=this.state(),L=s.objects?.litter;if(!L)return;const c=this.ctx,w=this.w,h=this.h,size=.23*w*.62;
   for(const l of L.leaves)this.drawFallenLeaf(l.x*w,l.y*h,l.rot,size,l.id);
@@ -110,8 +117,8 @@ class ForestScene {
  const leaves=()=>{c.moveTo(-64,-64);c.lineTo(640,-64);c.lineTo(640,300);c.lineTo(236,300);c.lineTo(228,262);c.lineTo(-64,262);c.closePath();};
  const a=Math.sin(t*2.25)*(s.weather.wind>=60?13:s.weather.wind>=40?7:2)*Math.PI/180;
  c.save();c.translate(x-size/2,y-size*.75);c.scale(size/512,size/512);
- if(part==='base'){c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();c.rect(-64,-64,704,704);leaves();c.clip('evenodd');c.drawImage(this.assets.shadePlant,0,0);c.restore();c.drawImage(this.assets.shadeGround,0,0);c.restore();return;}
- c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();leaves();c.clip();c.drawImage(this.assets.shadePlant,0,0);ForestEffects.snow(c,this.assets.shadePlant,(p.roofSnow||0)/(12*p.exposure),0,0);
+ if(part==='base'){c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();c.rect(-64,-64,704,704);leaves();c.clip('evenodd');this.seasonal('shadePlant',f=>c.drawImage(f,0,0));c.restore();c.drawImage(this.assets.shadeGround,0,0);c.restore();return;}
+ c.save();c.translate(204,395);c.rotate(a);c.translate(-204,-395);c.beginPath();leaves();c.clip();this.seasonal('shadePlant',f=>c.drawImage(f,0,0));ForestEffects.snow(c,this.assets.shadePlant,(p.roofSnow||0)/(12*p.exposure),0,0);
  const wet=Math.max(0,Math.min(1,p.film||0)),rain=s.weather.kind==='rain';
  if(wet>.01){for(const [i,q]of [[42,303],[430,340]].entries()){const cycle=(t*.9+i*.4)%1;c.fillStyle='rgba(143,185,184,'+wet+')';c.beginPath();c.ellipse(q[0],q[1]+3,1.5+cycle*2,2+cycle*3,0,0,Math.PI*2);c.fill();if(rain&&cycle>.7){c.strokeStyle='#a9c9c3';c.lineWidth=1.5;c.beginPath();c.moveTo(q[0],q[1]+5);c.lineTo(q[0],q[1]+8+(cycle-.7)*60);c.stroke();}}}
  c.restore();c.restore();
@@ -193,11 +200,11 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
  // clumps on the new ground. Without the wide floor (old asset set) the garden floor is drawn as before.
  drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest;
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
-   for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);c.restore();}}
+   for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);this.seasonal('fern'+i,f=>c.drawImage(f,-dw/2,-dh,dw,dh));c.restore();}}
   else{this.prepareShelter();c.drawImage(this.shelterPaper,0,0,w,h);}}
  // the fern frame: fixed to the screen edges at today's size (where the garden's edge ferns sat in the default view),
  // drawn over the floor and under every object and friend. It does not move or scale with the camera.
- drawFrame(c,base){const im=this.assets.frame;if(!im)return;const cam=this.camera,fw=360*cam.fit,fh=576*cam.fit;c.save();c.setTransform(base);c.drawImage(im,(this.vw-fw)/2,(cam.visibleHeight-fh)/2,fw,fh);c.restore();}
+ drawFrame(c,base){const im=this.assets.frame;if(!im)return;const cam=this.camera,fw=360*cam.fit,fh=576*cam.fit;c.save();c.setTransform(base);this.seasonal('frame',f=>c.drawImage(f,(this.vw-fw)/2,(cam.visibleHeight-fh)/2,fw,fh));c.restore();}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.4,paper.height*.04,paper.width*.2,paper.height*.14,0,0,this.vw,this.vh);const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();

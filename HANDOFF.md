@@ -569,3 +569,24 @@
   - 화면 `docs/qa-0.7.1/runtime/ant-day-night.png`(렌더 전후 상태 동일). Android 실기기 미검증.
 - 문서: `docs/Forest-Ant-Colonies-SRS-v2.30.md`·`.pdf`(3쪽), `docs/Forest-0.7.1-Release.md`.
 - 남은 일: 빈 새 땅 산책(군락이 가운데에 몰림), 지역 해금 뒤 지역별 3군락 판정, 실기기.
+- 병합·릴리스: PR #42(https://github.com/sia080808-lgtm/Forest-of-Space/pull/42) main 병합 `76963db2fbdf73e77bc1a5b9817b3a9607a3b54a`(사용자 "ㄱㄱ"; head `46ac7b2` 기준 simulation·CodeQL 성공). 프리릴리스 v0.7.1 `Forest-of-Space-0.7.1.apk` 47,182,627 bytes, SHA-256 `47b2942b5b0731b142dfef213756d6da9affbde6abf5e43202fbae220ddc69c4` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode57/0.7.1, APK 안 engine.js VERSION 0.7.1·creatures.js `antArrivals`/`colonyStay` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### SEASONS-DRAFT-20261119 — 사계절 기획 초안 (문서만, 구현 전)
+
+- 담당: Claude Code. 요청: 사용자 "굶지마 투게더 앎?" → "계절순환, 지역별 특색 이런 거 가져오고 싶음" → 선택(계절당 3일, 기후 위에 계절, 계절 먼저·지역은 다음). 장르의 시스템만 참고하고 다른 게임의 캐릭터·그림·이름은 쓰지 않는다.
+- 문서: `docs/Forest-Seasons-SRS-v2.31-DRAFT.md`·`.pdf`(3쪽). 달력(3,600초 계절·14,400초 한 해, 기존 저장은 불러온 순간 봄), 기후 4종 × 계절 4종 기온·비·눈 표, 낙엽 계절 배율, 작은 이웃 겨울잠·겨울 톡토기·봄 깨어남, 친구 성장, 화면(계절 표시·계절 색), 지역으로 잇는 구조, 수락 기준.
+- 코드 변경 없음. 결정 대기: 친구 성장 계절 차이, 계절 그림 깊이(색만/새 그림), 겨울 난이도.
+
+### SEASONS-0.8.0-20261119 — 사계절 (SRS v2.31)
+
+- 담당: Claude Code. 요청: 사계절 초안(`SEASONS-DRAFT-20261119`) → 사용자 "1 적용, 2 계절별 그림 따로, 3 표대로 ㄱㄱ". 기준 main `76963db`(0.7.1 병합) + 작업 브랜치 `9390ab2`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경:
+  - `environment.js`: 달력 `calendar`·`seasonFx`(기후 × 계절 표, 120초 섞임)·`weights`·기온·바람·여름 폭풍·계절 기록·`seasonProfile`(계절 색). 숨은 철 대체. 저장 `environment.calendar.start`.
+  - `objects.js`: 하루 낙엽 계절 배율(올림), 검증 값 확장. `engine.js`: 성장 봄 1.25·겨울 0.75.
+  - `creatures.js`: 겨울 개미 겨울잠·떠남 멈춤, 해충·천적 새 출현 없음, 겨울 톡토기(T 20·45%), 봄 깨어남.
+  - `scene.js`: `seasonFiles`·`seasonal`(액자·덤불·잎 그늘 계절 그림, 120초 교차), 가을 낙엽 색. `index.html`·`forest-app.js`·`forest.css`: 계절 표시·설명.
+  - 그림 `tools/build-season-art.py` → `assets/forest/seasons/*.png` 24장(원본 픽셀에서 잎 색만 바꿈, 겨울 눈 가장자리).
+  - 버전 0.8.0 / versionCode 58. SRS `docs/Forest-Seasons-SRS-v2.31.md`·`.pdf`(초안에서 확정), 릴리스 노트.
+- 검증: `npm test` 314/314(`seasons.test.cjs` 8, 기존 6건 조정), `npm run test:ui` PASS. 화면 `docs/qa-0.8.0/runtime`(상태 불변). 한 해 측정 `docs/qa-0.8.0/seasons*.json`. Android 실기기 미검증.
+- 판단: 서늘한 숲 겨울 기분 평균 20(사용자 "표대로"로 유지). 바닥·쉼터 등은 계절 색만.
+- 남은 일: 지역 해금·지역별 계절(v2.32), 바닥 계절 그림, 실기기.

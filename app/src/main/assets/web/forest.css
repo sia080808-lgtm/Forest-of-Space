@@ -31,3 +31,6 @@
 
 /* SRS v2.28 species traits */
 .traits h3{margin:0 0 6px;font-size:15px}.trait-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}.trait-cols small{display:block;opacity:.7;margin-bottom:2px}.trait-cols ul{margin:0;padding-left:16px}.trait-cols li{margin:2px 0;font-size:13px;line-height:1.4}
+
+/* 0.8.0 season chip */
+.season-chip{margin-left:8px;margin-right:auto;align-self:center;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px;padding:3px 10px;min-height:28px}.season-chip[data-season=spring]{background:#eef5e1}.season-chip[data-season=summer]{background:#fbf1d9}.season-chip[data-season=autumn]{background:#f8e2cc}.season-chip[data-season=winter]{background:#e7eef4}

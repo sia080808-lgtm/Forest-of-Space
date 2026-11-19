@@ -3,7 +3,15 @@
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
-const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},daily=[45,68,90],OLD_DAILY=[20,30,40];// 0.7.0: leaves per day grow with the forest area (x2.25)
+const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
+// 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
+// quota is fixed by the season at the start of that day. None of these values is 20/30/40, so the 0.6.x mapping never
+// touches them.
+const LITTER_SEASON={spring:.6,summer:.8,autumn:2,winter:.3};
+const seasonDaily=(base,id)=>Math.ceil(base*(LITTER_SEASON[id]??1)-1e-9);
+const daily=[...new Set([...BASE_DAILY,...BASE_DAILY.flatMap(b=>Object.keys(LITTER_SEASON).map(k=>seasonDaily(b,k)))])];
+const envSeason=s=>{const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return s.environment&&E?.season?E.season(s):null;};
+const quota=s=>seasonDaily(BASE_DAILY[level(s,'litter')-1],envSeason(s));// 0.7.0: leaves per day grow with the forest area (x2.25)
 const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:4};
 const names={moss:'이끼 자리',spring:'샘터',litter:'낙엽 자리',rock:'햇살 바위',shade:'잎 그늘',crevice:'바위틈',shelter:'쉼터'};
 const isPile=id=>typeof id==='string'&&id.startsWith('pile:');
@@ -16,8 +24,8 @@ const capacity=(s,id)=>(capacities[id]||[0])[level(s,id)-1];
 const scale=(s,id)=>capacities[id]?1+(level(s,id)-1)*.15:1;
 const moist=z=>z?.cap?100*z.S/z.cap:0;
 function init(s){
- if(!s.objects)s.objects={version:1,nextSession:1,dayIndex:Math.floor(s.worldTick/1200),dayQuota:daily[level(s,'litter')-1],arrivedToday:0,playBoostUntil:0,decomposedTotal:0,upgrades:{},ledger:{leafInput:0,absorbed:0},lastResourceTick:-1};
- {const o=s.objects,k=OLD_DAILY.indexOf(o.dayQuota);if(k>=0)o.dayQuota=daily[k];}
+ if(!s.objects)s.objects={version:1,nextSession:1,dayIndex:Math.floor(s.worldTick/1200),dayQuota:quota(s),arrivedToday:0,playBoostUntil:0,decomposedTotal:0,upgrades:{},ledger:{leafInput:0,absorbed:0},lastResourceTick:-1};
+ {const o=s.objects,k=OLD_DAILY.indexOf(o.dayQuota);if(k>=0)o.dayQuota=BASE_DAILY[k];}
  for(const id of ['moss','spring','litter'])s.objects.upgrades[id]??={level:1,useSeconds:0,stageUseSeconds:0,pressureSeconds:0,pressureEvidence:false,unlocked:1};
  s.spring.capacity=capacity(s,'spring');s.spring.snowWater??=0;
  const m=patch(s,'moss');m.cap=capacity(s,'moss');m.pool=0;m.drain=0;
@@ -56,7 +64,7 @@ function springWater(s){
 }
 function resources(s){
  const st=s.objects;if(st.lastResourceTick===s.worldTick)return;springWater(s);
- const day=Math.floor(s.worldTick/1200);if(day!==st.dayIndex){st.dayIndex=day;st.arrivedToday=0;st.dayQuota=daily[level(s,'litter')-1];}
+ const day=Math.floor(s.worldTick/1200);if(day!==st.dayIndex){st.dayIndex=day;st.arrivedToday=0;st.dayQuota=quota(s);}
  // v2.24 step 1: leaves fall one at a time into world sectors; only floor leaves gate the fall (not compost).
  if(!st.litter)dep('litter').init(s);dep('litter').step(s);
  st.lastResourceTick=s.worldTick;
@@ -290,5 +298,5 @@ function validate(s){
  if(st.litter)dep('litter').validate(s);if(st.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=daily[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });
