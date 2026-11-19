@@ -34,3 +34,11 @@ test('0.6.35 crevice: a tired friend of every species rests right in front of th
   a.ok(o.y-z.y>0&&o.y-z.y<.05&&Math.abs(o.x-z.x)<.08,species+' '+JSON.stringify({dx:o.x-z.x,dy:o.y-z.y}));
   a.equal(S.walkable(s,{x:o.x,y:o.y},p.id),true,species+' spot is outside the padded stones');}
 });
+
+test('0.6.37 the crevice takes one friend at a time: while 코로나 rests there 베이치 is not sent toward it, and goes once 코로나 leaves',()=>{
+ const s=game(),z=s.patches.find(q=>q.id==='crevice'),base=s.individuals[0];for(const q of s.patches)if(q.id==='crevice')q.W=0;s.weather.kind='sun';s.weather.wind=5;
+ const cor={...F.clone(base),id:'c',species:'jureong',name:'코로나',energy:30,active:true},bei={...F.clone(base),id:'b',species:'bosong',name:'베이치',energy:30,active:true,x:z.x+.1,y:z.y+.1};s.individuals.splice(0,1,cor,bei);
+ const oc=O.option(s,cor,'crevice','rest','energy');a.ok(oc&&!oc.fail,JSON.stringify(oc));Object.assign(cor,{x:oc.x,y:oc.y,objectTask:{...oc,serial:1,since:0,grade:1,remaining:500,stalled:0,deadline:s.worldTick+30,reason:'energy',arrived:true}});
+ a.equal(O.option(s,bei,'crevice','rest','energy').fail,'capacity','busy crevice: no spot for a second friend');
+ cor.objectTask=null;cor.x+=.2;const ob=O.option(s,bei,'crevice','rest','energy');a.ok(ob&&!ob.fail,'free again: '+JSON.stringify(ob));
+});

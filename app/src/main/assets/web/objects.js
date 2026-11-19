@@ -124,7 +124,11 @@ function points(s,p,id,kind){
  return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
 }
 function option(s,p,id,kind,reason,free=false){
- const Space=dep('spatial'),Sh=dep('shelter');if(id!=='shelter'&&used(s,id,p.id)+Sh.units(p)>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};
+ const Space=dep('spatial'),Sh=dep('shelter');
+ // 0.6.37: the crevice gap holds one friend at a time (its rest spot is a narrow strip right in front of the stones since
+ // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
+ // body on the way, gave up and chose the crevice again, so it looked frozen "heading to the crevice".
+ if(id==='crevice'&&s.individuals.some(z=>z.id!==p.id&&z.active&&z.objectTask?.object==='crevice'))return {fail:'capacity',object:id,kind};if(id!=='shelter'&&used(s,id,p.id)+Sh.units(p)>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};
  let fail='shape';
  for(const q of points(s,p,id,kind)){
   const t={...q,object:id,kind,reason,free};
@@ -200,6 +204,11 @@ function move(s,p){
  const t=p.objectTask;if(!t)return null;const Space=dep('spatial');if(t.object==='shelter')return null;
  const m=Space.travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled++;
  if(!m.arrived&&(t.stalled>=3||s.worldTick>t.deadline)){t.replans=(t.replans||0)+1;t.stalled=0;t.deadline=s.worldTick+15;if(t.replans>1){release(s,p,'blocked');p.objectWait={reason:'blocked_path',object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;}}
+ // 0.6.37: a friend that reaches its spot while the spot has become unusable (the crevice turned wet or windy, the spring
+ // ran dry, ...) used to count as arrived, so the stuck timeout above never fired and it stood there for good, still
+ // "heading to" the object. After 5 s it now lets the task go and waits with the real reason, then chooses again.
+ if(m.arrived&&p.objectTask===t&&!at(s,p)){t.unfit=(t.unfit||0)+1;if(t.unfit>=5){const why=!effectsValid(s,p,t)?(t.object==='spring'&&s.spring.water<=eps?'empty_water':'unsafe_weather'):'shape';release(s,p,'blocked');p.objectWait={reason:why,object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;}}
+ else if(t.unfit)t.unfit=0;
  return m;
 }
 function grant(requests){
