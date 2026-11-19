@@ -1,7 +1,7 @@
 {
-  "version": "0.8.1",
-  "versionCode": 59,
-  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25+superbum-v2.26+small-neighbours-v2.27+world-motion-v2.27+species-traits-v2.28+map-expansion-v2.29+ant-colonies-v2.30+seasons-v2.31+seasonal-landscape-v2.31-SE16",
+  "version": "0.8.2",
+  "versionCode": 60,
+  "spec": "2.22+ellisii-v2.23-draft+ecosystem-v2.24-L1+small-neighbours-v2.25+superbum-v2.26+small-neighbours-v2.27+world-motion-v2.27+species-traits-v2.28+map-expansion-v2.29+ant-colonies-v2.30+seasons-v2.31+seasonal-landscape-v2.31-SE16+ui-0.8.2",
   "rules": "SRS-2.19-objects",
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
@@ -9,7 +9,7 @@
   "full_suite_passed": 317,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
-  "render": "native Canvas: docs/qa-0.8.1/runtime (four seasons default/wide, winter footprints)",
+  "render": "Chromium app UI: docs/qa-0.8.2/runtime (hint at bottom centre, view icons, friends page)",
   "device_install": "not_run",
   "android_webview_review": "not_run",
   "device_performance": "not_run",
@@ -33,7 +33,7 @@
   "zipalign": "not_run",
   "github_release": "Pending actions build and prerelease publishing",
   "previous_release": {
-    "version": "0.6.27",
-    "versionCode": 44
+    "version": "0.8.1",
+    "versionCode": 59
   }
 }

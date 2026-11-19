@@ -604,3 +604,11 @@
 - 겨울 강수 모두 눈(`SEASON_FX` 겨울 snow 1, 마른 숲 rain 0; 사용자 "1번"), 겨울 몸 물 측정 이전과 같음(평균 44~55, 30 미만 0%). 봄·가을 비바람 잎 날림 `gust()`와 불규칙한 비(`world-effects.js` rain), 사용자 "정갈하게 떨어지지 말고". 영상 `docs/qa-0.8.1/runtime/rain-wind.mp4`. CodeQL 지적(안 쓰는 흩뿌리기 루프) 제거.
 - 남은 일: 지역 해금·지역별 계절(v2.32), 실기기 성능·APK 용량, 곡 실제 청취 피드백.
 - 병합·릴리스: PR #44(https://github.com/sia080808-lgtm/Forest-of-Space/pull/44) main 병합 `bbfc27578baf4ccb87cb66569a41e0a45b4ab296`(사용자 "좋네, 이대로 ㄱㄱ"; head `d1fbef0` 기준 simulation·CodeQL 성공. 기능 테스트가 5분 제한에 걸려 취소돼 `tests.yml` 제한을 10분으로 늘림). 프리릴리스 v0.8.1 `Forest-of-Space-0.8.1.apk` 68,278,580 bytes, SHA-256 `c304d4c852b0bee505c23b64b3ba1804e323899b4e59d6aaf9fb63b82a67b4f7` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode59/0.8.1, APK 안 engine.js VERSION 0.8.1·계절 그림·소품(`bloom-1` 등)·계절 곡 6개·`gust`/`leafRing` 포함, 벚꽃 가지 그림 없음 확인. APK는 사용자에게 파일로 전달.
+
+### UI-0.8.2-20261119 — 화면 정리: 조경 모드 삭제, 보기 아이콘, 잠깐 뜨는 안내, 친구 수
+
+- 담당: Claude Code. 기준 main `bbfc275`(0.8.1 병합) + 작업 브랜치 `f67fc5e`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 0.8.1 실기기 화면 제보 6건(계절 칩 안 보임, 조경 모드 삭제, 작은 투명 아이콘으로 전체 보기·기본 배율, '6/5', 함께 지낼 명단 필요성, 안내 문구 5초·하단 가운데).
+- 변경: `index.html`(모드 버튼 삭제, `.view-buttons` 두 아이콘), `forest-app.js`(`viewButtons`, `home-view`, 불러올 때 조경→게임, 안내 `hintMsg`/`hintUntil` 5초, 'n명', 명단 칸·`plan-roster` 처리 삭제), `forest.css`(계절 칩 글자색, 아이콘, 안내 하단 가운데·사라짐), `shelter.js` `projectedNeed`(정원 친구 전원 + 예전 명단). 버전 0.8.2 / versionCode 60.
+- 판단: 함께 지낼 예정 명단은 쉼터 확장 판단에만 쓰였다. 친구 수 제한이 없어진 뒤로는 정원 친구 전원을 다 자란 크기로 세는 쪽이 맞아 화면을 없앴다(저장 값은 그대로 두고 계산에 함께 넣음). 엔진의 조경 모드 처리(`s.mode==='landscape'`)는 저장 호환을 위해 남겨 두고, 앱에서 불러올 때 게임으로 바꾼다.
+- 검증: `npm test` 317/317, `npm run test:ui` PASS(`tools/ui-smoke.mjs` 보기 아이콘·조경 버튼 없음·명단 칸 없음으로 갱신), Chromium 화면 `docs/qa-0.8.2/runtime`. Android 실기기 미검증.
