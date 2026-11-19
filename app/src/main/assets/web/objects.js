@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -121,8 +121,14 @@ function needs(p){
  return n;
 }
 function urgency(s,p){if(dep('weather-care').wind(s,p)>=60||p.burden>=60)return 0;if(p.B<20||p.energy<20||p.nutrition<20)return 1;return 2;}
+// 0.8.3 (user: "케릭들 쉼터에 쉬러 잘 안 가던데" → 밤 잠·비 피하기): at night (from 'night' to 'dawn' of the game day) a friend
+// without an urgent need goes to sleep, in the shelter if there is room, otherwise on moss / in leaf shade / by the stones,
+// and stays until dawn; while it rains or snows it shelters there until it stops.
+function sleepTime(s){const t=((s.worldTick%1200)+1200)%1200;return t>=620&&t<1150;}
+function rainy(s){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
 function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)return t.remaining<=0;
  if(t.reason==='safety')return dep('weather-care').wind(s,{...p,shelter:{phase:'outside'}})<50&&!p.wetRecovery&&!p.leafRecovery&&p.burden<40&&p.damage<10&&s.weather.wind<50;
+ if(t.reason==='sleep')return !sleepTime(s);if(t.reason==='shelterRain')return !rainy(s);
  if(t.reason==='water')return !n.water;if(t.reason==='nutrition')return !n.nutrition;
  if(t.object==='moss')return !n.energy&&!n.mood;
  return t.reason==='energy'?!n.energy:t.reason==='mood'?!n.mood:false;
@@ -151,7 +157,7 @@ function option(s,p,id,kind,reason,free=false){
   const target={water:65,energy:75,nutrition:70,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
-  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:-30;
+  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
@@ -164,6 +170,9 @@ function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
+ // 0.8.3: a friend waiting outside a full shelter (seats taken while it walked there) gives it up after 8 s and rests
+ // elsewhere instead of waiting all night (sleep, rain, a free visit); a tired friend or one sheltering from a storm keeps waiting.
+ {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free'].includes(c.reason)&&p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){release(s,p,'full');p.restCooldown=s.worldTick+120;p.nextObjectChoice=0;}}}
  const current=p.objectTask,danger=(Sh.inside(s,p)?s.weather.wind:W.wind(s,p))>=60||p.burden>=40||p.wetRecovery||((p.leafRecovery||p.damage>=10)&&p.B>=40&&p.nutrition>=40);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
@@ -179,16 +188,17 @@ function choose(s,p,rng){
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
  else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
  else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
+ else if(sleepTime(s)||rainy(s)&&p.species!=='neolbi'&&p.species!=='superbum'&&(dep('traits').of(p.species).rain<=0||dep('environment').precipitation(s,'rain')+dep('environment').precipitation(s,'snow')>=.6)&&!s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&Math.hypot(z.x-p.x,z.y-p.y)<.3)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
  else if(n.energy){for(const id of ['shelter','moss','shade','rock','crevice'])add(id,id==='moss'?'moss':'rest','energy');}
  else if(n.mood){add('moss','moss','mood');for(const id of clean(litterSpots(s,'O',p)))add(id,'litterPlay','mood');add('spring','splash','mood');}
  else if(!current&&p.action==='rest'&&p.target==='shelter'){add('shelter','rest','free',true);}
  else {
   // Free visits preserve species expression without competing with actual needs.
   const roll=rng(s,'behavior');if(roll<(P.leaf?.55:.25)&&!current){p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],['shelter','rest']];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
+  const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],...(Math.floor(roll*1000)%2?[]:[['shelter','rest']])];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
- const options=[];for(const d of definitions){const o=option(s,p,...d);options.push(o);if(d[3]&&!o.fail)break;}p.objectDebug=options.map(o=>({object:o.object,kind:o.kind,score:o.score,reason:o.fail||'eligible'}));
+ const options=[];for(const d of definitions){const o=option(s,p,...d);options.push(o);if(d[3]&&!o.fail)break;}p.objectDebug=options.map(o=>({object:o.object,kind:o.kind,...(o.score!=null?{score:o.score}:{}),reason:o.fail||'eligible'}));
  const candidates=options.filter(o=>!o.fail);if(!definitions[0]?.[3])candidates.sort((a,b)=>b.score-a.score||a.object.localeCompare(b.object));
  let next=candidates[0];
  if(valid&&!emergencyChange&&next&&current.reason===next.reason&&((s.worldTick-current.since<3)||next.score<(current.score??-1e3)+15))next=null;

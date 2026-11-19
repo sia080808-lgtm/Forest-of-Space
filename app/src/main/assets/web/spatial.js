@@ -27,8 +27,8 @@ function socket(s,id,individual){const p=id==='spring'?s.spring:s.patches.find(p
  const active=s.individuals.filter(p=>p.active).sort((a,b)=>a.id.localeCompare(b.id));if(!individual||active.length<2)return q;const i=active.findIndex(p=>p.id===individual),offset=[0,-1,1,-2,2][Math.max(0,i)];
  const candidate={x:q.x+offset*GU*.92,y:q.y+(Math.abs(offset)>1?.035:0)};return walkable(s,candidate)?candidate:q;
 }
-function walkable(s,p,id,skip,obs,w=pad(s,id)){
- if(Shelter.blocked(s,p,id))return false;
+function walkable(s,p,id,skip,obs,w=pad(s,id),walls=true){
+ if(walls&&Shelter.blocked(s,p,id))return false;
  if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p))return false;
  const top=onRock(s,p);
  return !(obs||obstacles(s)).some(z=>skip&&skip.has(z.id)||z.id==='rock'&&top?false:z.id==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:solid(z,p,w));
@@ -37,9 +37,10 @@ function segment(s,a,b,id,obs=obstacles(s)){
  // Climbing on/off the sun rock ignores its body. A start already inside a stone (old save, drop) may walk out of it,
  // but once outside the segment must not enter it again.
  // Obstacles are built once per segment (not per sample point): 0.6.15 rebuilt them for every sample.
- const w=pad(s,id),all=obs.filter(z=>['rock','crevice','shade'].includes(z.id)),skip=new Set(onRock(s,a)||onRock(s,b)?['rock']:[]),escape=all.filter(z=>!skip.has(z.id)&&solid(z,a,w));escape.forEach(z=>skip.add(z.id));
- const n=Math.ceil(distance(a,b)/.012),out=escape.map(()=>false);
- for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(!walkable(s,q,id,skip,obs,w))return false;
+ const w=pad(s,id),all=obs   /* 0.8.3: a friend standing inside any footprint (the spring's stones, Elephan's spread leaf, a stone) may walk out of it; before only stones and the shade stem allowed this and a friend left inside the spring basin could not find any route */,skip=new Set(onRock(s,a)||onRock(s,b)?['rock']:[]),escape=all.filter(z=>!skip.has(z.id)&&solid(z,a,w));escape.forEach(z=>skip.add(z.id));
+ // 0.8.3: the same for a start inside the shelter's walls (a friend dropped or left there): walk out, never back in.
+ const n=Math.ceil(distance(a,b)/.012),out=escape.map(()=>false);let walls=Shelter.blocked(s,a,id);
+ for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(walls&&!Shelter.blocked(s,q,id))walls=false;if(!walkable(s,q,id,skip,obs,w,!walls))return false;
   for(let k=0;k<escape.length;k++){const inz=solid(escape[k],q,w);if(inz&&out[k])return false;if(!inz)out[k]=true;}}
  return true;}
 function clearFriends(s,p,a,b){
