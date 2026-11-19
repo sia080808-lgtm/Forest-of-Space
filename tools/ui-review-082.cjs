@@ -7,10 +7,11 @@ const srv=http.createServer((q,r)=>{const f=path.join(web,decodeURIComponent(q.u
  for(const [sp,x,y] of [['bonbon',.6,.55],['neolbi',.3,.78],['bosong',.7,.4],['jureong',.52,.42],['superbum',.25,.7]])s.individuals.push({...F.clone(s.individuals[0]),id:'p-'+sp,species:sp,name:sp,x,y,active:true});
  const b=await chromium.launch(),pg=await b.newPage({viewport:{width:393,height:800},deviceScaleFactor:2});
  await pg.addInitScript(t=>{localStorage.setItem('forest-of-space-v1',t);},JSON.stringify(s));
- await pg.goto('http://localhost:8765/index.html');await pg.waitForTimeout(2500);
+ await pg.goto('http://localhost:8765/index.html');await pg.waitForTimeout(2500);await pg.click('#garden',{position:{x:200,y:300}}).catch(()=>{});
  await pg.screenshot({path:out+'/world-hint.png'});await pg.waitForTimeout(6000);await pg.screenshot({path:out+'/world-after-5s.png'});
  await pg.click('#overview');await pg.waitForTimeout(600);await pg.screenshot({path:out+'/world-overview.png'});
- await pg.click('#home-view');await pg.waitForTimeout(400);
+ {const [dl]=await Promise.all([pg.waitForEvent('download'),pg.click('#photo')]);await dl.saveAs(out+'/photo-overview.png');}await pg.waitForTimeout(200);await pg.screenshot({path:out+'/photo-flash.png'});
+ await pg.click('#overview');await pg.waitForTimeout(400);{const [dl]=await Promise.all([pg.waitForEvent('download'),pg.click('#photo')]);await dl.saveAs(out+'/photo-default.png');}await pg.waitForTimeout(600);await pg.screenshot({path:out+'/world-default.png'});
  await pg.click('nav button:nth-child(2)');await pg.waitForTimeout(600);await pg.screenshot({path:out+'/friends.png',fullPage:false});
  await pg.evaluate(()=>{const p=document.getElementById('page');p.scrollTop=p.scrollHeight;window.scrollTo(0,1e5);});await pg.waitForTimeout(300);await pg.screenshot({path:out+'/friends-bottom.png'});
  const errs=[];pg.on('pageerror',e=>errs.push(e.message));console.log('mode button:',await pg.$('#mode'),'errors',errs);
