@@ -613,3 +613,12 @@
 - 판단: 함께 지낼 예정 명단은 쉼터 확장 판단에만 쓰였다. 친구 수 제한이 없어진 뒤로는 정원 친구 전원을 다 자란 크기로 세는 쪽이 맞아 화면을 없앴다(저장 값은 그대로 두고 계산에 함께 넣음). 엔진의 조경 모드 처리(`s.mode==='landscape'`)는 저장 호환을 위해 남겨 두고, 앱에서 불러올 때 게임으로 바꾼다.
 - 추가 요청("확대 축소 버튼은 한 개로", "봄 1일째는 타이틀 옆으로", "스크린샷 카메라 버튼 … 버튼들은 안 찍히게"): 보기 버튼 하나(전체 보기↔기본 배율, `viewButtons`), 계절 칩을 `.title-row`로, 사진 `takePhoto`(캔버스만 PNG, 찍는 순간 선택 링 제외, 셔터 번쩍임), Android `LocalBridge.savePhoto`(MediaStore `Pictures/여백의 숲`, 권한 없음, 실패 시 항목 삭제, 이름 검사).
 - 검증: `npm test` 317/317, `npm run test:ui` PASS(`tools/ui-smoke.mjs` 보기 버튼 하나·사진이 상태와 선택을 바꾸지 않음·조경 버튼 없음·명단 칸 없음으로 갱신), `MainActivity.java` javac(Android 15 API) 컴파일 확인, Chromium 화면·실제 저장된 사진 `docs/qa-0.8.2/runtime`(`tools/ui-review-082.cjs`). Android 실기기(갤러리 저장 포함) 미검증.
+- 병합·릴리스: PR #45(https://github.com/sia080808-lgtm/Forest-of-Space/pull/45) main 병합 `9c24cc50365ac9b208ce34c1d9847f0eb164ea7a`(사용자 "ㄱㄱ"; head `a6a1829` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.2 `Forest-of-Space-0.8.2.apk` 68,278,580 bytes, SHA-256 `7a5e6e6240ad811f0c3b07e31e30b4caf750c7c3fd7b7416db5785463eb8c0d9` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode60/0.8.2, APK 안 engine.js VERSION 0.8.2·index.html 사진 버튼(조경 버튼 없음)·classes.dex `savePhoto` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### SHELTER-SLEEP-0.8.3-20261119 — 밤 잠·비 피하기, 길을 못 찾고 멈추던 문제
+
+- 담당: Claude Code. 기준 main `9c24cc5`(0.8.2 병합) + 작업 브랜치 `a1bbfc2`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: "케릭들 쉼터에 쉬러 잘 안 가던데 이유가 있음?" → 측정(쉼터 안 17%, 밤 18%; 지쳐서 쉬는 경우 0, 강풍 23번, 나머지는 자유 방문) → 방안 1~3 "ㄱㄱ". 실기기 화면 "애들 길 못 찾아서 멍하게 있음" → "분석 끝나고 디버깅해".
+- 변경: `objects.js`(`sleepTime`·`rainy`, 선택 분기 sleep/shelterRain·쉼터 +40·종 특성 rain>0은 큰비만·슈퍼범/엘레판 곁 제외, 꽉 찬 쉼터 8초 뒤 포기·`restCooldown` 120, 자유 방문 쉼터 절반, `objectDebug` 빈 점수 제외, `dep` traits), `spatial.js`(모든 장애물 안에서 걸어 나오기, 쉼터 벽 안에서 걸어 나오기 `walkable(...,walls)`), `shelter.js`(자고 있어요·비를 피하고 있어요 문구). 버전 0.8.3 / versionCode 61.
+- 판단: 샘터 돌 테두리·쉼터 벽 판정·엘레판 잎 둘레 안에 선 친구는 출발점이 막혀 모든 길이 실패했다(바위·바위틈·잎 그늘 줄기만 탈출 규칙이 있었음). 사용자 화면(엘리시, 잎 그늘 옆)과 똑같은 저장은 재현하지 못했고, 같은 상태 문구가 나오는 경로를 시뮬레이션으로 찾아 고쳤다. 비를 좋아하는 종이 비마다 쉼터에 들어가면 리들리 곁 개미 군락이 줄어서(8시드 중 5) 종 특성으로 보슬비는 맞게 했다(6/8, 변경 전과 같음).
+- 검증: `npm test` 321/321(`shelter-sleep.test.cjs` 4 추가, `creatures` 시드·개미 간격 분리, `shelter` SH-AC05 낮 시간), `npm run test:ui` PASS. 측정 `tools/shelter-sleep-review.cjs`(쉼터 안 17→31%, 밤 18→53%), `tools/blocked-path-review.cjs`(멈춤 2~3%→0.04%, 최대 850→21초). Android 실기기 미검증.
