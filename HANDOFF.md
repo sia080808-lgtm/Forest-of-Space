@@ -570,3 +570,9 @@
 - 문서: `docs/Forest-Ant-Colonies-SRS-v2.30.md`·`.pdf`(3쪽), `docs/Forest-0.7.1-Release.md`.
 - 남은 일: 빈 새 땅 산책(군락이 가운데에 몰림), 지역 해금 뒤 지역별 3군락 판정, 실기기.
 - 병합·릴리스: PR #42(https://github.com/sia080808-lgtm/Forest-of-Space/pull/42) main 병합 `76963db2fbdf73e77bc1a5b9817b3a9607a3b54a`(사용자 "ㄱㄱ"; head `46ac7b2` 기준 simulation·CodeQL 성공). 프리릴리스 v0.7.1 `Forest-of-Space-0.7.1.apk` 47,182,627 bytes, SHA-256 `47b2942b5b0731b142dfef213756d6da9affbde6abf5e43202fbae220ddc69c4` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode57/0.7.1, APK 안 engine.js VERSION 0.7.1·creatures.js `antArrivals`/`colonyStay` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### SEASONS-DRAFT-20261119 — 사계절 기획 초안 (문서만, 구현 전)
+
+- 담당: Claude Code. 요청: 사용자 "굶지마 투게더 앎?" → "계절순환, 지역별 특색 이런 거 가져오고 싶음" → 선택(계절당 3일, 기후 위에 계절, 계절 먼저·지역은 다음). 장르의 시스템만 참고하고 다른 게임의 캐릭터·그림·이름은 쓰지 않는다.
+- 문서: `docs/Forest-Seasons-SRS-v2.31-DRAFT.md`·`.pdf`(3쪽). 달력(3,600초 계절·14,400초 한 해, 기존 저장은 불러온 순간 봄), 기후 4종 × 계절 4종 기온·비·눈 표, 낙엽 계절 배율, 작은 이웃 겨울잠·겨울 톡토기·봄 깨어남, 친구 성장, 화면(계절 표시·계절 색), 지역으로 잇는 구조, 수락 기준.
+- 코드 변경 없음. 결정 대기: 친구 성장 계절 차이, 계절 그림 깊이(색만/새 그림), 겨울 난이도.
