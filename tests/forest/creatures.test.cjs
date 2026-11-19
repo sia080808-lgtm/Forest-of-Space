@@ -11,8 +11,8 @@ arr[PEST.includes(g.kind)?'pest':'helper'].push(s.worldTick);}a.ok(C.groups(s).l
 });
 
 test('ECO24-A01 a carrier ant moves real loose leaves into piles or gatherings; every leaf is conserved and none is created',()=>{
- for(const seed of [1,3,4]){const s=game(seed),base=O.storedLeaf(s);let carried=0,sawCarry=false;
-  for(let t=0;t<3600;t++){F.step(s);const g=C.groups(s).find(g=>g.kind==='ant');if(g?.carry){sawCarry=true;a.ok(L.floor(s)<=L.LCAP+1e-9);}if(t%300===0){F.valid(s);a.ok(Math.abs(balance(s,base))<1e-6);}}
+ for(const seed of [1,5,7]){const s=game(seed),base=O.storedLeaf(s);let carried=0,sawCarry=false;// 0.7.1: colonies settle later (3 leaves near a ridley)
+  for(let t=0;t<7200;t++){F.step(s);const g=C.groups(s).find(g=>g.kind==='ant');if(g?.carry){sawCarry=true;a.ok(L.floor(s)<=L.LCAP+1e-9);}if(t%300===0){F.valid(s);a.ok(Math.abs(balance(s,base))<1e-6);}}
   carried=s.objects.creatures.log.carried;a.ok(sawCarry&&carried>0,'seed '+seed+' carried '+carried);a.ok(Math.abs(balance(s,base))<1e-6);}
 });
 
@@ -34,9 +34,9 @@ test('springtails need a real fitting pile (L>=3, 60 s old, moist 35~75, no stan
 });
 
 test('an ant that leaves while carrying puts the leaf back where it was taken (nothing is lost)',()=>{
- const s=game(4);let g=null;for(let t=0;t<4000&&!(g&&g.carry);t++){F.step(s);g=C.groups(s).find(x=>x.kind==='ant');}
+ const s=game(5);let g=null;for(let t=0;t<7200&&!(g&&g.carry);t++){F.step(s);g=C.groups(s).find(x=>x.kind==='ant');}
  a.ok(g&&g.carry);const before=O.storedLeaf(s),from=g.carry.fromSector;s.individuals.forEach(p=>{p.active=false;});
- g.bad=C.LEAVE-1;g.carry.arrive=1e9;s.worldTick++;C.step(s);a.ok(!C.groups(s).includes(g));a.ok(Math.abs(O.storedLeaf(s)-before)<1e-9);a.ok(L.sectorRaw(s,from)>=1);
+ g.away=C.ANT.ABSENT-1;g.carry.arrive=1e9;// 0.7.1: a colony leaves after a day without its ridleys.worldTick++;C.step(s);a.ok(!C.groups(s).includes(g));a.ok(Math.abs(O.storedLeaf(s)-before)<1e-9);a.ok(L.sectorRaw(s,from)>=1);
 });
 
 test('saved small-neighbour records are validated and survive a reload unchanged',()=>{

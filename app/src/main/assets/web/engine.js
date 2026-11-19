@@ -12,7 +12,7 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const VERSION='0.7.0', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.7.1', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},

@@ -553,3 +553,19 @@
   - Android 실기기 미검증.
 - 남은 일: 빈 땅 산책, 덤불 흔들림, 지역 해금(v2.30), 실기기 메모리·성능.
 - 병합·릴리스: PR #41(https://github.com/sia080808-lgtm/Forest-of-Space/pull/41) main 병합 `6f349ccd93d8ec403121ec8023a282189c128e16`(사용자 "rㄱ" = 한글 자판 "ㄱㄱ"; head `43cf663` 기준 simulation·CodeQL 성공). 프리릴리스 v0.7.0 `Forest-of-Space-0.7.0.apk` 47,182,627 bytes, SHA-256 `c5e300e2e67554f014b22e14625720dec4970b52c57bde4c0a6c1ea75a5f9e97` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode56/0.7.0, APK 안 engine.js VERSION 0.7.0·`world.js`·넓은 바닥·액자·덤불·쉼터 그림 포함, index.html에 world.js. APK는 사용자에게 파일로 전달.
+
+### ANT-COLONIES-0.7.1-20261119 — 짐꾼개미 군락 (SRS v2.30)
+
+- 담당: Claude Code. 기준 main `6f349cc`(0.7.0 병합) + 작업 브랜치 `471d4e5`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 사용자 "개미는 안 없어지나? 계속 있네" → 개선안 논의("2번은 좋은데", "리들리와의 연관성은 좋음", 리들리마다 군락·숲 3개) → "2번으로 ㄱㄱ"(둥지 간격 0.5).
+- 변경:
+  - `creatures.js`: `ANT` 상수, 군락(`host`·`away`·`hungry`), `antActive`(낮·비/눈 아님·바람 60 미만), `antSites`(건강한 리들리·자기 군락 없음·둥지 0.5 간격·떠난 자리 하루 제외·둘레 0.3 안 낱잎 3장), `antArrivals`(8무리 상한과 따로, 180초 20%, 600초에 하나), `colonyStay`(리들리 없음·먹이 없음 하루 뒤 떠남, `antPause`), 운반은 낮·둥지 0.3 안만, 감로는 가장 가까운 군락, 기존 저장 개미를 가까운 리들리에 연결, 검증.
+  - `scene.js`(쉬는 동안 일개미 숨김), `object-cards.js`(둥지 안에서 쉬는 중·군락 수), `forest-app.js`(도감 설명). 버전 0.7.1 / versionCode 57.
+- 판단: 준비 시간은 밤·비에 그대로 두고, 맞는 리들리가 없으면 10배 느리게 줄인다(처음 연속 120초 방식은 리들리가 걸어 다녀 8시드 중 4시드만 왔다). 리들리 건강 조건은 기존 코드대로 몸 물(B) 35·체력 40이다(이전 문서의 '기분 35'는 코드와 달랐음).
+- 검증:
+  - `npm test` 306/306(`ant-colonies.test.cjs` 6 추가, `creatures` 운반 시드 1·5·7과 7,200초·떠남 조건, `soil-and-mealy` X04 개미에 리들리 연결), `npm run test:ui` PASS.
+  - `engine` 12시간 검사: '몸 물 30 미만 10%'를 세 시드 평균으로 바꿨다. 시드 12가 0.189로 실패했다. 14시드 비교 0.7.0 평균 3.2%·0.7.1 6.7%, 0.7.1에 운반 규칙을 이전처럼 되돌린 실험에서도 시드 23·24가 22~30%라 개미 규칙이 아닌 시드 편차로 판단했다. 물 보존·최저 10 초과는 시드마다 유지.
+  - 측정 `docs/qa-0.7.1/ant-colonies.json`(8시드 × 3게임시간): 리들리 1명 첫 군락 1,620~8,460초·8/8, 리들리 3명은 둘째 군락 1/8시드. 낙엽 보존 오차 0.
+  - 화면 `docs/qa-0.7.1/runtime/ant-day-night.png`(렌더 전후 상태 동일). Android 실기기 미검증.
+- 문서: `docs/Forest-Ant-Colonies-SRS-v2.30.md`·`.pdf`(3쪽), `docs/Forest-0.7.1-Release.md`.
+- 남은 일: 빈 새 땅 산책(군락이 가운데에 몰림), 지역 해금 뒤 지역별 3군락 판정, 실기기.

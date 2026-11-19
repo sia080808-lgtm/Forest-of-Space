@@ -1,0 +1,230 @@
+{
+ "1 ridley": [
+  {
+   "seed": 1,
+   "first": 2700,
+   "most": 1,
+   "now": 1,
+   "arrived": 24,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 15,
+   "workShareOfDay": 0.62,
+   "balance": -8.4e-11
+  },
+  {
+   "seed": 2,
+   "first": 7560,
+   "most": 1,
+   "now": 1,
+   "arrived": 30,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 8,
+   "workShareOfDay": 0.6,
+   "balance": -5.7e-11
+  },
+  {
+   "seed": 3,
+   "first": 3960,
+   "most": 1,
+   "now": 1,
+   "arrived": 34,
+   "left": {
+    "absent": 0,
+    "hungry": 1
+   },
+   "carried": 12,
+   "workShareOfDay": 0.57,
+   "balance": -1.6e-10
+  },
+  {
+   "seed": 4,
+   "first": 8460,
+   "most": 1,
+   "now": 1,
+   "arrived": 30,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 4,
+   "workShareOfDay": 0.68,
+   "balance": -8.3e-11
+  },
+  {
+   "seed": 5,
+   "first": 1620,
+   "most": 1,
+   "now": 1,
+   "arrived": 27,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 18,
+   "workShareOfDay": 0.53,
+   "balance": -1.9e-10
+  },
+  {
+   "seed": 6,
+   "first": 5040,
+   "most": 1,
+   "now": 1,
+   "arrived": 22,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 12,
+   "workShareOfDay": 0.7,
+   "balance": -4.6e-11
+  },
+  {
+   "seed": 7,
+   "first": 2520,
+   "most": 1,
+   "now": 1,
+   "arrived": 31,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 13,
+   "workShareOfDay": 0.48,
+   "balance": -9.3e-11
+  },
+  {
+   "seed": 8,
+   "first": 3960,
+   "most": 1,
+   "now": 0,
+   "arrived": 25,
+   "left": {
+    "absent": 0,
+    "hungry": 1
+   },
+   "carried": 4,
+   "workShareOfDay": 0.71,
+   "balance": -5.2e-11
+  }
+ ],
+ "3 ridley": [
+  {
+   "seed": 1,
+   "first": null,
+   "most": 0,
+   "now": 0,
+   "arrived": 26,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 0,
+   "workShareOfDay": null,
+   "balance": -4e-11
+  },
+  {
+   "seed": 2,
+   "first": 6480,
+   "most": 2,
+   "now": 2,
+   "arrived": 28,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 20,
+   "workShareOfDay": 0.62,
+   "balance": -2.6e-11
+  },
+  {
+   "seed": 3,
+   "first": 7740,
+   "most": 1,
+   "now": 1,
+   "arrived": 33,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 4,
+   "workShareOfDay": 0.7,
+   "balance": -6.9e-11
+  },
+  {
+   "seed": 4,
+   "first": 6300,
+   "most": 1,
+   "now": 0,
+   "arrived": 26,
+   "left": {
+    "absent": 0,
+    "hungry": 1
+   },
+   "carried": 1,
+   "workShareOfDay": 0.48,
+   "balance": -1.1e-10
+  },
+  {
+   "seed": 5,
+   "first": 1620,
+   "most": 1,
+   "now": 1,
+   "arrived": 26,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 16,
+   "workShareOfDay": 0.53,
+   "balance": -1.6e-10
+  },
+  {
+   "seed": 6,
+   "first": 1620,
+   "most": 1,
+   "now": 1,
+   "arrived": 24,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 11,
+   "workShareOfDay": 0.68,
+   "balance": -4.6e-11
+  },
+  {
+   "seed": 7,
+   "first": 2520,
+   "most": 1,
+   "now": 1,
+   "arrived": 30,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 15,
+   "workShareOfDay": 0.48,
+   "balance": -3.1e-11
+  },
+  {
+   "seed": 8,
+   "first": 6120,
+   "most": 1,
+   "now": 1,
+   "arrived": 27,
+   "left": {
+    "absent": 0,
+    "hungry": 0
+   },
+   "carried": 13,
+   "workShareOfDay": 0.7,
+   "balance": -5.5e-11
+  }
+ ]
+}
