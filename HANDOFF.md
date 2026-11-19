@@ -500,3 +500,4 @@
 - 변경: `objects.js` `option()` 바위틈 한 친구씩(다른 친구의 바위틈 과제가 있으면 capacity), `move()` 도착했으나 쓸 수 없는 자리 5초 뒤 과제 내려놓기(`t.unfit`). 버전 0.6.37 / versionCode 54. SRS World-Motion W27-02 한 줄 추가.
 - 검증: `npm test` 287/287(`rest-spots` 바위틈 한 친구 검사), `npm run test:ui` PASS. 엔진 스캔(친구 5명·이끼를 바위틈 아래에 둔 배치·10시드×3게임일, 최종 코드) "향하고" 15초 정지 0건. 실기기 미검증.
 
+- 병합·릴리스: PR #38(https://github.com/sia080808-lgtm/Forest-of-Space/pull/38) main 병합 `4ea1ead6a326bb6519a9a3007b7d1f7a14a65ac3`(사용자 "ㄱㄱ"; head `5962ace` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.37 `Forest-of-Space-0.6.37.apk` 40,725,992 bytes, SHA-256 `28e930da4de9640baaf1803b744219da6992a82b768642096bbb265f5b1cda7e` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode54/0.6.37, APK 안 engine.js VERSION 0.6.37·objects.js `t.unfit` 포함 확인.
