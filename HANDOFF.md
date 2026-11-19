@@ -592,3 +592,11 @@
 - 남은 일: 지역 해금·지역별 계절(v2.32), 바닥 계절 그림, 실기기.
 - 병합·릴리스: PR #43(https://github.com/sia080808-lgtm/Forest-of-Space/pull/43) main 병합 `1d29a358d34e6c61ac7b9680b551fe8ff03cac2d`(사용자 "ㄱㄱ"; head `7c0e9d8` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.0 `Forest-of-Space-0.8.0.apk` 57,945,135 bytes, SHA-256 `4b65e658dc2d0d50969da98a625e9a6ef209955715630a4e2251287b696e5c89` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode58/0.8.0, APK 안 engine.js VERSION 0.8.0·계절 그림 24장·index.html 계절 표시 포함 확인. APK는 사용자에게 파일로 전달.
 - 사용자 후속 질문(병합 직후): "계절별 맵 풍경도 바뀌어야 하지 않음?" — 바닥·쉼터·이끼·바위·샘터는 아직 계절 색만 받음. 다음 작업 후보로 안내.
+
+### SEASON-LANDSCAPE-0.8.1-20261119 — 계절 풍경·발자국·계절 소리 (SRS v2.31 SE-16)
+
+- 담당: Claude Code. 기준 main `1d29a35`(0.8.0 병합), 브랜치 `claude/festive-curie-mjk5mw`(WIP 커밋 `e783225`·`1d22597`·`1d341f1`·`a9585df` 포함).
+- 요청 흐름: "계절별 맵 풍경도 바뀌어야" → 수묵화 색감·전체가 하나의 풍경 → "디폴트 배경 색 유지, 계절 느낌 구성(눈·새싹·단풍·은행)" → "지저분하지 않고 고요한 수묵화 힐링" → 봄 정리·겨울 새하얗게·오려 붙인 테두리 개선 → 겨울 숲 바깥도 흰색(방법1) → 겨울 발자국 → 눈·낙엽 발소리 → 계절별 배경음 → "ㄱㄱ".
+- 변경: `tools/build-season-art.py`(수묵 담채 팔레트, 물체 그림 전부, 종이색 유지·겨울 종이색→눈), `tools/draw-season-props.cjs`(새싹 3·매화·단풍 2·은행 2·눈 더미 2), `scene.js`(`sa`·`seasonProps`·`seasonFall`·`snowCover`·`springSeason`·`footprint`·`drawPrints`, 숲 바깥 겨울 흰색, 계절 발소리), `environment.js`(계절 색 0), `audio.js`(`musicFor`, 계절 곡 6개), `tools/synth-season-bgm.py`(곡 합성·음량 맞춤), `tools/season-review.cjs`. 버전 0.8.1 / versionCode 59.
+- 검증: `npm test` 317/317(`season-landscape.test.cjs` 3 추가, `seasons`·`lifecycle` 조정), `npm run test:ui` PASS. 화면 `docs/qa-0.8.1/runtime`, 음악 미리듣기 `docs/qa-0.8.1/season-music-preview.mp3`. 소리는 사람이 듣지 않음(음량·길이만). Android 실기기 미검증.
+- 남은 일: 지역 해금·지역별 계절(v2.32), 실기기 성능·APK 용량, 곡 실제 청취 피드백.
