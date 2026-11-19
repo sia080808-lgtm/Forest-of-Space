@@ -552,3 +552,4 @@
   - 렌더 `docs/qa-0.7.0/runtime`(상태 불변), 성능 `docs/qa-0.7.0/perf.md`(30명 평균 8.2ms, 50명 24.2ms).
   - Android 실기기 미검증.
 - 남은 일: 빈 땅 산책, 덤불 흔들림, 지역 해금(v2.30), 실기기 메모리·성능.
+- 병합·릴리스: PR #41(https://github.com/sia080808-lgtm/Forest-of-Space/pull/41) main 병합 `6f349ccd93d8ec403121ec8023a282189c128e16`(사용자 "rㄱ" = 한글 자판 "ㄱㄱ"; head `43cf663` 기준 simulation·CodeQL 성공). 프리릴리스 v0.7.0 `Forest-of-Space-0.7.0.apk` 47,182,627 bytes, SHA-256 `c5e300e2e67554f014b22e14625720dec4970b52c57bde4c0a6c1ea75a5f9e97` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode56/0.7.0, APK 안 engine.js VERSION 0.7.0·`world.js`·넓은 바닥·액자·덤불·쉼터 그림 포함, index.html에 world.js. APK는 사용자에게 파일로 전달.
