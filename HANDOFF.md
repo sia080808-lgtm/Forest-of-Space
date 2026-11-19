@@ -509,3 +509,4 @@
 - SRS: `docs/Forest-Species-Traits-SRS-v2.28.md`·`.pdf` ST-07b 추가·ST-08 갱신. `docs/Forest-World-Motion-SRS-v2.27.md`·`.pdf` 0.6.37(바위틈 한 친구, 도착했지만 쓸 수 없는 자리 5초 제한)·머리 버전 갱신.
 - 코드·앱 버전 변경 없음(APK 0.6.37 그대로). 제품 테스트는 새로 돌리지 않음(문서·도구만, 직전 0.6.37 결과 287/287).
 - 0.6.37 APK는 사용자에게 파일로 전달.
+- 병합: PR #39(https://github.com/sia080808-lgtm/Forest-of-Space/pull/39) main 병합 `c2e20c693de9e6086b44cfe2eaf929bf77f90db5`(사용자 "ㄱㄱ"; head `41be9ad` 기준 simulation·CodeQL 성공). 문서·도구만이라 앱 버전·APK는 0.6.37 그대로.
