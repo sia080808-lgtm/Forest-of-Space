@@ -115,23 +115,18 @@ def season(name, im, kind, se):
     if se == 'winter':
         # non-leaf colour also fades toward ink grey (stones, soil): low saturation
         g = res.mean(2, keepdims=True); res = res + (g - res) * (.45 * paperish)
-        if False:
-            # (0.8.1 draft) open ground became snow; the paper now stays and snow drifts are drawn by the game: large soft patches of paper, thinner where the painting has strokes
-            pat = noise((H, W), max(H, W) / 30, 3); pat = np.clip((pat - .3) / .3, 0, 1) * (1 - ink * .8)
-            res = res + (SNOW - res) * (pat[..., None] * .75)
-        else:
-            # (0.8.1) objects lie under a real layer of snow (user: "겨울에 오브젝트들에 눈 덮혀 있는 씬"): see heavy_snow
-            # surfaces are painted pixels only: the paper-coloured halo some pictures have around an object is not a surface
-            solid = (paperish[..., 0] > .6) & (al > (60 if kind == 'flora' else 200))   # opaque core only (sprites have a soft halo)
-            solid = ndimage.binary_opening(solid, iterations=1)
-            # light texture spots inside a stone or leaf are still part of its surface (otherwise the snow runs down in streaks)
-            solid = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2)) & (al > 30)
-            res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name), BIAS.get(name, 0.0))
-            if name == 'shelter-art':
-                # inside the arch: the warm light paper-brown becomes a cool pale shade (no cream hole on the snow)
-                Lm = res.mean(2); sat = (res.max(2) - res.min(2)) / np.maximum(res.max(2), 1)
-                inner = np.clip((Lm - 140) / 40, 0, 1) * np.clip((.32 - sat) / .12, 0, 1)
-                res = res + (np.array([226, 228, 228], np.float32) - res) * (inner[..., None] * .65)
+        # (0.8.1) objects lie under a real layer of snow (user: "겨울에 오브젝트들에 눈 덮혀 있는 씬"): see heavy_snow
+        # surfaces are painted pixels only: the paper-coloured halo some pictures have around an object is not a surface
+        solid = (paperish[..., 0] > .6) & (al > (60 if kind == 'flora' else 200))   # opaque core only (sprites have a soft halo)
+        solid = ndimage.binary_opening(solid, iterations=1)
+        # light texture spots inside a stone or leaf are still part of its surface (otherwise the snow runs down in streaks)
+        solid = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2)) & (al > 30)
+        res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name), BIAS.get(name, 0.0))
+        if name == 'shelter-art':
+            # inside the arch: the warm light paper-brown becomes a cool pale shade (no cream hole on the snow)
+            Lm = res.mean(2); sat = (res.max(2) - res.min(2)) / np.maximum(res.max(2), 1)
+            inner = np.clip((Lm - 140) / 40, 0, 1) * np.clip((.32 - sat) / .12, 0, 1)
+            res = res + (np.array([226, 228, 228], np.float32) - res) * (inner[..., None] * .65)
     if se == 'winter':
         # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
         # paper-coloured pixels become snow-white

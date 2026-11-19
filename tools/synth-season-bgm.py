@@ -106,7 +106,8 @@ def track(season, night, seed):
     rms = np.sqrt((buf ** 2).mean()); target = 10 ** ((-28 if night else -25) / 20)
     return buf * min(target / max(rms, 1e-9), .95 / np.abs(buf).max())
 
-manifest = json.loads(open(os.path.join(ROOT, 'manifest.json')).read())
+with open(os.path.join(ROOT, 'manifest.json')) as fh:
+    manifest = json.loads(fh.read())
 manifest = [r for r in manifest if not r['file'].startswith('bgm/BGM_SPRING') and not r['file'].startswith('bgm/BGM_AUTUMN') and not r['file'].startswith('bgm/BGM_WINTER')]
 for i, season in enumerate(['spring', 'autumn', 'winter']):
     for night in (False, True):
@@ -116,6 +117,9 @@ for i, season in enumerate(['spring', 'autumn', 'winter']):
         with wave.open(path, 'wb') as w:
             w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((y.T * 32767).astype('<i2').tobytes())
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', path, '-c:a', 'libvorbis', '-q:a', '3', dest], check=True); os.remove(path)
-        manifest.append({'file': name, 'sha256': hashlib.sha256(open(dest, 'rb').read()).hexdigest(), 'status': 'synthesized_draft_v0.8.1'})
+        with open(dest, 'rb') as fh:
+            digest = hashlib.sha256(fh.read()).hexdigest()
+        manifest.append({'file': name, 'sha256': digest, 'status': 'synthesized_draft_v0.8.1'})
         print(name, os.path.getsize(dest) // 1024, 'KB')
-open(os.path.join(ROOT, 'manifest.json'), 'w').write(json.dumps(manifest, indent=2))
+with open(os.path.join(ROOT, 'manifest.json'), 'w') as fh:
+    fh.write(json.dumps(manifest, indent=2))

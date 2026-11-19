@@ -14,7 +14,7 @@ let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const INK='rgba(58,52,44,.82)';
 function grain(c,W,H,amt=12){const g=c.getImageData(0,0,W,H),d=g.data;for(let i=0;i<d.length;i+=4){if(d[i+3]<6)continue;const n=(rnd()-.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}c.putImageData(g,0,0);}
 // a wash: the shape filled with a soft gradient, a little bleed (blur) and a slightly darker pooled edge, like watercolour
-function wash(c,shape,light,dark,blur=1.2){c.save();c.filter=`blur(${blur}px)`;shape();const b=c.getTransform();c.fillStyle=light;c.fill();c.restore();
+function wash(c,shape,light,dark,blur=1.2){c.save();c.filter=`blur(${blur}px)`;shape();c.fillStyle=light;c.fill();c.restore();
  c.save();shape();c.clip();c.globalAlpha=.55;c.lineWidth=6;c.strokeStyle=dark;c.filter='blur(2.5px)';shape();c.stroke();c.restore();}
 function stroke(c,pts,w,color=INK){c.save();c.lineCap='round';c.lineJoin='round';c.strokeStyle=color;for(let k=0;k<pts.length-1;k++){c.lineWidth=Math.max(.6,w*(1-k/pts.length*.7));c.beginPath();c.moveTo(...pts[k]);c.lineTo(...pts[k+1]);c.stroke();}c.restore();}
 function save(name,W,H,draw){seed=11+name.length*7;const cv=createCanvas(W,H),c=cv.getContext('2d');draw(c,W,H);grain(c,W,H);
@@ -24,7 +24,7 @@ const leafPath=(c,x,y,len,wid,ang)=>()=>{c.beginPath();c.save();c.translate(x,y)
 
 // 봄 새싹: two seed leaves
 save('sprout-1',120,120,c=>{stroke(c,[[60,104],[60,86],[61,68]],3.2,'rgba(84,92,58,.85)');
- for(const [ang,dir] of [[-2.55,1],[-.6,-1]]){const s=leafPath(c,61,68,30,11,ang);wash(c,s,'rgba(170,192,128,.92)','rgba(112,140,80,.9)');c.save();c.globalAlpha=.6;s();c.lineWidth=1;c.strokeStyle='rgba(70,80,50,.7)';c.stroke();c.restore();}
+ for(const ang of [-2.55,-.6]){const s=leafPath(c,61,68,30,11,ang);wash(c,s,'rgba(170,192,128,.92)','rgba(112,140,80,.9)');c.save();c.globalAlpha=.6;s();c.lineWidth=1;c.strokeStyle='rgba(70,80,50,.7)';c.stroke();c.restore();}
  c.save();c.globalAlpha=.25;c.filter='blur(3px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(60,106,16,4,0,0,Math.PI*2);c.fill();c.restore();});
 // 고사리 새순: a fiddlehead uncurling
 save('sprout-2',120,140,c=>{const pts=[];for(let t=0;t<=1;t+=.04){const y=128-t*80,x=58+Math.sin(t*1.4)*6;pts.push([x,y]);}
@@ -59,7 +59,7 @@ const ginkgo=(c,cx,cy,R,light,dark,notch)=>{const s=()=>{c.beginPath();c.moveTo(
 save('ginkgo-1',120,120,c=>ginkgo(c,60,74,46,'rgba(236,200,92,.95)','rgba(196,150,52,.9)',true));
 save('ginkgo-2',120,120,c=>ginkgo(c,60,74,42,'rgba(230,186,80,.95)','rgba(182,136,44,.9)',false));
 // 눈 더미: paper-white mound with a pale grey wash on its lower side (ink-wash snow)
-const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(const [x,y,r] of lumps)c.ellipse(x,H-14,r,r*.42,0,Math.PI,0);c.lineTo(W-4,H-14);c.quadraticCurveTo(W/2,H-6,4,H-14);c.closePath();};
+const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(const [x,,r] of lumps)c.ellipse(x,H-14,r,r*.42,0,Math.PI,0);c.lineTo(W-4,H-14);c.quadraticCurveTo(W/2,H-6,4,H-14);c.closePath();};
  c.save();c.filter='blur(2px)';s();c.fillStyle='rgba(250,249,245,.97)';c.fill();c.restore();
  c.save();s();c.clip();const g=c.createLinearGradient(0,H*.3,0,H);g.addColorStop(0,'rgba(170,176,180,0)');g.addColorStop(1,'rgba(150,158,164,.45)');c.fillStyle=g;c.fillRect(0,0,W,H);c.restore();
  c.save();c.globalAlpha=.35;s();c.lineWidth=1.2;c.strokeStyle='rgba(120,124,124,.8)';c.stroke();c.restore();
