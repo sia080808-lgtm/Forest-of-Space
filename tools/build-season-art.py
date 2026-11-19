@@ -73,7 +73,7 @@ def surface(res, solid, T, seed, bias=0.0, small_min=160):
     return a, run, frac, lit, solid
 
 FRESH = np.array([170, 198, 132], np.float32)
-BLOSSOM = np.array([240, 200, 204], np.float32); BLOSSOM_IN = np.array([200, 128, 138], np.float32)
+BLOSSOM = np.array([246, 214, 222], np.float32); BLOSSOM_IN = np.array([214, 140, 160], np.float32)   # 벚꽃
 
 def spring_growth(res, al, solid, T, seed, bias=0.0):
     """Spring on the same sky-facing surfaces: a pale fresh-green wash of new moss and leaves (light, see-through, the

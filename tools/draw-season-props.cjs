@@ -66,3 +66,11 @@ const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(cons
  c.save();c.globalAlpha=.18;c.filter='blur(4px)';c.fillStyle='#6d7276';c.beginPath();c.ellipse(W/2,H-12,W/2-6,6,0,0,Math.PI*2);c.fill();c.restore();};
 save('snow-1',240,70,(c,W,H)=>drift(c,W,H,[[40,0,30],[92,0,42],[150,0,34],[198,0,30]]));
 save('snow-2',170,64,(c,W,H)=>drift(c,W,H,[[40,0,30],[88,0,36],[132,0,30]]));
+// 벚꽃잎: a single cherry petal with the notch at its tip, pale pink wash, a faint darker base (also used for falling petals)
+const cherry=(c,cx,cy,R,rot)=>{c.save();c.translate(cx,cy);c.rotate(rot);const s=()=>{c.beginPath();c.moveTo(0,R*.95);c.bezierCurveTo(-R*.9,R*.4,-R*.75,-R*.75,-R*.18,-R*.95);c.lineTo(0,-R*.68);c.lineTo(R*.18,-R*.95);c.bezierCurveTo(R*.75,-R*.75,R*.9,R*.4,0,R*.95);c.closePath();};
+ wash(c,s,'rgba(246,218,224,.96)','rgba(226,170,184,.85)',.8);c.save();s();c.clip();const g=c.createRadialGradient(0,R*.9,0,0,R*.9,R*.8);g.addColorStop(0,'rgba(214,132,152,.55)');g.addColorStop(1,'rgba(214,132,152,0)');c.fillStyle=g;c.fillRect(-R,-R,2*R,2*R);c.restore();
+ c.save();c.globalAlpha=.45;s();c.lineWidth=.9;c.strokeStyle='rgba(170,110,120,.8)';c.stroke();c.restore();c.restore();};
+save('cherry-1',80,80,c=>cherry(c,40,40,24,.3));
+save('cherry-2',80,80,c=>cherry(c,40,40,22,-.5));
+// a few petals lying together on the ground
+save('cherry-pile',140,90,c=>{cherry(c,46,48,20,1.2);cherry(c,80,40,18,-.7);cherry(c,98,58,17,.4);});
