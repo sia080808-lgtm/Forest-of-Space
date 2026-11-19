@@ -569,3 +569,4 @@
   - 화면 `docs/qa-0.7.1/runtime/ant-day-night.png`(렌더 전후 상태 동일). Android 실기기 미검증.
 - 문서: `docs/Forest-Ant-Colonies-SRS-v2.30.md`·`.pdf`(3쪽), `docs/Forest-0.7.1-Release.md`.
 - 남은 일: 빈 새 땅 산책(군락이 가운데에 몰림), 지역 해금 뒤 지역별 3군락 판정, 실기기.
+- 병합·릴리스: PR #42(https://github.com/sia080808-lgtm/Forest-of-Space/pull/42) main 병합 `76963db2fbdf73e77bc1a5b9817b3a9607a3b54a`(사용자 "ㄱㄱ"; head `46ac7b2` 기준 simulation·CodeQL 성공). 프리릴리스 v0.7.1 `Forest-of-Space-0.7.1.apk` 47,182,627 bytes, SHA-256 `47b2942b5b0731b142dfef213756d6da9affbde6abf5e43202fbae220ddc69c4` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode57/0.7.1, APK 안 engine.js VERSION 0.7.1·creatures.js `antArrivals`/`colonyStay` 포함 확인. APK는 사용자에게 파일로 전달.
