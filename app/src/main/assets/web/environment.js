@@ -15,10 +15,10 @@ function timeKey(s){const t=((s.worldTick%1200)+1200)%1200;return t<180?'morning
 const SEASON_LEN=3600,YEAR=SEASON_LEN*4,SEASON_BLEND=120,SEASONS=['spring','summer','autumn','winter'],SEASON_NAMES={spring:'봄',summer:'여름',autumn:'가을',winter:'겨울'};
 const Z={T:0,rain:1,fog:1,wind:0,snow:0};
 const SEASON_FX={
- C01:{spring:{...Z,T:-5,rain:1.2},summer:{...Z,T:8,rain:1.6},autumn:{...Z,T:-5,rain:.8,wind:10},winter:{...Z,T:-22,rain:.8,snow:.4}},
- C02:{spring:{...Z,T:-3,rain:1.1},summer:{...Z,T:10},autumn:{...Z,T:-8,wind:10},winter:{...Z,T:-28,snow:.6}},
- C03:{spring:{...Z,fog:1.3},summer:{...Z,T:12},autumn:{...Z,T:-8,fog:1.2},winter:{...Z,T:-15,snow:.8}},
- C04:{spring:{...Z,T:-5,rain:1.5},summer:{...Z,T:10,rain:.5},autumn:{...Z,T:-5},winter:{...Z,T:-15,rain:.6}}};
+ C01:{spring:{...Z,T:-5,rain:1.2},summer:{...Z,T:8,rain:1.6},autumn:{...Z,T:-5,rain:.8,wind:10},winter:{...Z,T:-22,rain:.8,snow:1}},
+ C02:{spring:{...Z,T:-3,rain:1.1},summer:{...Z,T:10},autumn:{...Z,T:-8,wind:10},winter:{...Z,T:-28,snow:1}},
+ C03:{spring:{...Z,fog:1.3},summer:{...Z,T:12},autumn:{...Z,T:-8,fog:1.2},winter:{...Z,T:-15,snow:1}},
+ C04:{spring:{...Z,T:-5,rain:1.5},summer:{...Z,T:10,rain:.5},autumn:{...Z,T:-5},winter:{...Z,T:-15,rain:0}}};   /* 0.8.1: winter falls as snow; the dry forest has a dry winter (no rain, no snow) */
 function calendar(s){const e=s.environment||{},start=e.calendar?.start??0,el=Math.max(0,s.worldTick-start),n=Math.floor(el/SEASON_LEN),i=n%4,into=el-n*SEASON_LEN;
  return {index:i,id:SEASONS[i],name:SEASON_NAMES[SEASONS[i]],day:Math.floor(into/1200)+1,into,year:Math.floor(n/4)+1,prev:SEASONS[(i+3)%4],blend:n===0?1:Math.min(1,into/SEASON_BLEND)};}
 function season(s){return calendar(s).id;}
@@ -33,7 +33,9 @@ function lighting(s){const forced=s.previewTime||(s.settings.theme==='night'?'ni
  if(forced)t=profile(TIMES[forced]);else{const centers=[90,360,570,750,1020,1170],keys=['morning','noon','dusk','night','deep','dawn'],tick=s.worldTick%1200;let idx=centers.findIndex(c=>c>tick);if(idx<0)idx=0;const prev=(idx+5)%6;let a=centers[prev],b=centers[idx],x=tick;if(idx===0){b+=1200;if(x<a)x+=1200;}t=mix(profile(TIMES[keys[prev]]),profile(TIMES[keys[idx]]),clamp((x-a)/(b-a),0,1));}
  const w=weatherProfile(s),se=seasonProfile(s);return {brightness:clamp(t.brightness*w.brightness,.58,1.08),saturation:clamp(t.saturation*w.saturation*se.saturation,.65,1.05),tints:se.alpha>0?[t,w,se]:[t,w]};}
 // 0.8.0: a light seasonal colour over the world (render only): fresh green spring, warm summer, amber autumn, cool winter
-const SEASON_TINT={spring:[1,1.02,'#E4F2C8',.05],summer:[1,1.03,'#FFF0CF',.04],autumn:[1,1.02,'#F0B878',.07],winter:[1,.9,'#D6E2EE',.08]};
+// 0.8.1 (user: keep the default background colour): no seasonal colour over the world any more; the season shows in the
+// plants, the objects and the season props. Kept as neutral values so older callers still get a profile.
+const SEASON_TINT={spring:[1,1,'#FFFFFF',0],summer:[1,1,'#FFFFFF',0],autumn:[1,1,'#FFFFFF',0],winter:[1,1,'#FFFFFF',0]};
 function seasonProfile(s){if(!s.environment||s.previewTime)return profile([1,1,'#FFFFFF',0]);const c=calendar(s),a=profile(SEASON_TINT[c.prev]),b=profile(SEASON_TINT[c.id]);return c.blend>=1?b:mix(a,b,c.blend);}
 function precipitation(s,kind){const e=s.environment||{},w=s.weather,to=w.kind===kind?w.intensity/100:0;return e.precipFrom&&w.transition>0?(e.precipFrom[kind]||0)+(to-(e.precipFrom[kind]||0))*(1-w.transition/10):to;}
 function begin(s,kind,intensity,wind,event){const w=s.weather,e=s.environment,prev=w.kind,from=weatherProfile(s),precipFrom={rain:precipitation(s,'rain'),snow:precipitation(s,'snow'),fog:precipitation(s,'fog')};e.visualFrom=from;e.precipFrom=precipFrom;e.windFrom=w.wind;e.windTarget=wind;w.kind=kind;w.intensity=intensity;w.transition=10;w.strongSeconds=0;if(prev!=='rain'&&kind==='rain')w.rainEpoch=(w.rainEpoch||0)+1;if(prev==='rain'&&kind!=='rain'){w.lastRainEnd=s.worldTick;w.lastRainEpoch=w.rainEpoch;}event?.(s,'weather',NAMES[kind]+' 날씨로 천천히 바뀌어요.');}

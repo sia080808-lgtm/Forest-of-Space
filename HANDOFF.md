@@ -590,3 +590,16 @@
 - 검증: `npm test` 314/314(`seasons.test.cjs` 8, 기존 6건 조정), `npm run test:ui` PASS. 화면 `docs/qa-0.8.0/runtime`(상태 불변). 한 해 측정 `docs/qa-0.8.0/seasons*.json`. Android 실기기 미검증.
 - 판단: 서늘한 숲 겨울 기분 평균 20(사용자 "표대로"로 유지). 바닥·쉼터 등은 계절 색만.
 - 남은 일: 지역 해금·지역별 계절(v2.32), 바닥 계절 그림, 실기기.
+- 병합·릴리스: PR #43(https://github.com/sia080808-lgtm/Forest-of-Space/pull/43) main 병합 `1d29a358d34e6c61ac7b9680b551fe8ff03cac2d`(사용자 "ㄱㄱ"; head `7c0e9d8` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.0 `Forest-of-Space-0.8.0.apk` 57,945,135 bytes, SHA-256 `4b65e658dc2d0d50969da98a625e9a6ef209955715630a4e2251287b696e5c89` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode58/0.8.0, APK 안 engine.js VERSION 0.8.0·계절 그림 24장·index.html 계절 표시 포함 확인. APK는 사용자에게 파일로 전달.
+- 사용자 후속 질문(병합 직후): "계절별 맵 풍경도 바뀌어야 하지 않음?" — 바닥·쉼터·이끼·바위·샘터는 아직 계절 색만 받음. 다음 작업 후보로 안내.
+
+### SEASON-LANDSCAPE-0.8.1-20261119 — 계절 풍경·발자국·계절 소리 (SRS v2.31 SE-16)
+
+- 담당: Claude Code. 기준 main `1d29a35`(0.8.0 병합), 브랜치 `claude/festive-curie-mjk5mw`(WIP 커밋 `e783225`·`1d22597`·`1d341f1`·`a9585df` 포함).
+- 요청 흐름: "계절별 맵 풍경도 바뀌어야" → 수묵화 색감·전체가 하나의 풍경 → "디폴트 배경 색 유지, 계절 느낌 구성(눈·새싹·단풍·은행)" → "지저분하지 않고 고요한 수묵화 힐링" → 봄 정리·겨울 새하얗게·오려 붙인 테두리 개선 → 겨울 숲 바깥도 흰색(방법1) → 겨울 발자국 → 눈·낙엽 발소리 → 계절별 배경음 → "ㄱㄱ".
+- 변경: `tools/build-season-art.py`(수묵 담채 팔레트, 물체 그림 전부, 종이색 유지·겨울 종이색→눈), `tools/draw-season-props.cjs`(새싹 3·매화·단풍 2·은행 2·눈 더미 2), `scene.js`(`sa`·`seasonProps`·`seasonFall`·`snowCover`·`springSeason`·`footprint`·`drawPrints`, 숲 바깥 겨울 흰색, 계절 발소리), `environment.js`(계절 색 0), `audio.js`(`musicFor`, 계절 곡 6개), `tools/synth-season-bgm.py`(곡 합성·음량 맞춤), `tools/season-review.cjs`. 버전 0.8.1 / versionCode 59.
+- 검증: `npm test` 317/317(`season-landscape.test.cjs` 3 추가, `seasons`·`lifecycle` 조정), `npm run test:ui` PASS. 화면 `docs/qa-0.8.1/runtime`, 음악 미리듣기 `docs/qa-0.8.1/season-music-preview.mp3`. 소리는 사람이 듣지 않음(음량·길이만). Android 실기기 미검증.
+- 봄 다듬기(사용자 "수묵화 벚꽃", "저 벚꽃나뭇가지 없애", "고사리 너무 형광색", "벚꽃잎이 너무 많아·너무 큰 것", "분홍 점을 응용해 꽃이 군데군데 핀 느낌", "쉘터 위 분홍 점 지우고 꽃더미가 핀 것처럼", "다른 오브젝트들도 퍼스펙티브 고려해서 벚꽃이 덮혔으면"): 화면 고정 벚꽃 가지 삭제, 봄 팔레트 쑥색(색상 80·채도 ≤0.2·밝기 0.95), 벚꽃잎을 윤곽선 없는 번진 담채로 다시 그림, 흩날리는 꽃잎 14→5장·바닥은 낙엽 자리 셋 중 하나·크기 축소, 고사리 액자처럼 분홍 점이 핀 풀포기(`bloom-1~3`)를 물체 밑동 둘레에(`bloomSpots`, 사용자 "잡초들은 오브젝트들 주위에 자연스럽게"), 물체 그림의 봄 꽃 점 대신 겨울 눈과 같은 원근 판정(`surface`)으로 하늘을 향한 면에 윤곽선 없는 벚꽃잎을 적당히 덮음(쉼터 지붕 테두리 꽃 덤불은 사용자 "테두리만 꽃 두름"으로 뺌).
+- 가을 다듬기(사용자 "봄은 킾, 가을 보자" → 제안 1~4 "ㅇㅇ"): 물체 하늘 면에 원근 판정으로 가을 잎(`spring_growth(autumn=True)`, 봄보다 적게, 주홍·적갈·황토·은행 노랑), 바닥 흩뿌림 없애고 물체 밑동 둘레 타원(`leafRing`, 사용자 "오브젝트들 주위로")에 7~9장, 떨어지는 잎 7→4장, 단풍·은행잎을 윤곽선·잎맥 없는 담채로, 게임 낙엽 색조 낮춤, 쉼터 풀 황토·적갈(색상 39 이상 진한 풀), 액자 고사리 색상 24~42(분홍기 없음).
+- 겨울 강수 모두 눈(`SEASON_FX` 겨울 snow 1, 마른 숲 rain 0; 사용자 "1번"), 겨울 몸 물 측정 이전과 같음(평균 44~55, 30 미만 0%). 봄·가을 비바람 잎 날림 `gust()`와 불규칙한 비(`world-effects.js` rain), 사용자 "정갈하게 떨어지지 말고". 영상 `docs/qa-0.8.1/runtime/rain-wind.mp4`. CodeQL 지적(안 쓰는 흩뿌리기 루프) 제거.
+- 남은 일: 지역 해금·지역별 계절(v2.32), 실기기 성능·APK 용량, 곡 실제 청취 피드백.

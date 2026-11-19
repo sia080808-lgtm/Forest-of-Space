@@ -1,0 +1,100 @@
+// 0.8.1 사계절 풍경: small seasonal props in the ink-wash (수묵 담채) style of the game (soft low-saturation washes, ink
+// strokes of varying weight, paper grain). Render only; the game scatters them over the ground and around the objects.
+//  sprout-1   two round seed leaves on a short stem (봄 새싹)
+//  sprout-2   a fern fiddlehead uncurling (고사리 새순)
+//  sprout-3   a tuft of new grass blades
+//  blossom    a plum-blossom petal cluster (매화 꽃잎), also used for falling petals
+//  maple-1/2  maple leaves (단풍잎), muted vermilion / crimson wash with ink veins
+//  ginkgo-1/2 ginkgo leaves (은행잎), ochre-yellow fans
+//  snow-1/2   soft snow drifts: paper-white with a pale grey ink-wash shadow (snow is left as paper)
+// Output: app/src/main/assets/web/assets/forest/seasons/props/*.png. Usage: node tools/draw-season-props.cjs
+const fs=require('node:fs'),path=require('node:path');const {createCanvas}=require('@napi-rs/canvas');
+const out=path.resolve(__dirname,'../app/src/main/assets/web/assets/forest/seasons/props');fs.mkdirSync(out,{recursive:true});
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const INK='rgba(58,52,44,.82)';
+function grain(c,W,H,amt=12){const g=c.getImageData(0,0,W,H),d=g.data;for(let i=0;i<d.length;i+=4){if(d[i+3]<6)continue;const n=(rnd()-.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}c.putImageData(g,0,0);}
+// a wash: the shape filled with a soft gradient, a little bleed (blur) and a slightly darker pooled edge, like watercolour
+function wash(c,shape,light,dark,blur=1.2){c.save();c.filter=`blur(${blur}px)`;shape();c.fillStyle=light;c.fill();c.restore();
+ c.save();shape();c.clip();c.globalAlpha=.55;c.lineWidth=6;c.strokeStyle=dark;c.filter='blur(2.5px)';shape();c.stroke();c.restore();}
+function stroke(c,pts,w,color=INK){c.save();c.lineCap='round';c.lineJoin='round';c.strokeStyle=color;for(let k=0;k<pts.length-1;k++){c.lineWidth=Math.max(.6,w*(1-k/pts.length*.7));c.beginPath();c.moveTo(...pts[k]);c.lineTo(...pts[k+1]);c.stroke();}c.restore();}
+function save(name,W,H,draw){seed=11+name.length*7;const cv=createCanvas(W,H),c=cv.getContext('2d');draw(c,W,H);grain(c,W,H);
+ const d=c.getImageData(0,0,W,H).data;let x0=W,y0=H,x1=0,y1=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>6){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}
+ const pad=2,w=x1-x0+1+pad*2,h=y1-y0+1+pad*2,o=createCanvas(w,h);o.getContext('2d').drawImage(cv,x0-pad,y0-pad,w,h,0,0,w,h);fs.writeFileSync(path.join(out,name+'.png'),o.toBuffer('image/png'));console.log(name,w,h);}
+const leafPath=(c,x,y,len,wid,ang)=>()=>{c.beginPath();c.save();c.translate(x,y);c.rotate(ang);c.moveTo(0,0);c.bezierCurveTo(len*.3,-wid,len*.8,-wid*.8,len,0);c.bezierCurveTo(len*.8,wid*.8,len*.3,wid,0,0);c.restore();};
+
+// 봄 새싹: two seed leaves
+save('sprout-1',120,120,c=>{stroke(c,[[60,104],[60,86],[61,68]],3.2,'rgba(84,92,58,.85)');
+ for(const ang of [-2.55,-.6]){const s=leafPath(c,61,68,30,11,ang);wash(c,s,'rgba(170,192,128,.92)','rgba(112,140,80,.9)');c.save();c.globalAlpha=.6;s();c.lineWidth=1;c.strokeStyle='rgba(70,80,50,.7)';c.stroke();c.restore();}
+ c.save();c.globalAlpha=.25;c.filter='blur(3px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(60,106,16,4,0,0,Math.PI*2);c.fill();c.restore();});
+// 고사리 새순: a fiddlehead uncurling
+save('sprout-2',120,140,c=>{const pts=[];for(let t=0;t<=1;t+=.04){const y=128-t*80,x=58+Math.sin(t*1.4)*6;pts.push([x,y]);}
+ const cx=pts.at(-1)[0]+8,cy=pts.at(-1)[1];for(let a=0;a<=Math.PI*1.7;a+=.15){const r=11*(1-a/(Math.PI*2.2));pts.push([cx-Math.cos(a)*r,cy-Math.sin(a)*r]);}
+ c.save();c.lineCap='round';c.strokeStyle='rgba(150,176,110,.9)';c.lineWidth=7;c.filter='blur(1px)';c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();c.restore();
+ stroke(c,pts,2.6,'rgba(66,74,46,.85)');
+ for(const [t,s] of [[.35,1],[.55,-1],[.7,1]]){const p=pts[Math.round(t*20)];const l=leafPath(c,p[0],p[1],14,5,s>0?-.5:-2.6);wash(c,l,'rgba(178,198,136,.85)','rgba(120,146,86,.8)',.8);}
+ c.save();c.globalAlpha=.22;c.filter='blur(3px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(58,130,14,4,0,0,Math.PI*2);c.fill();c.restore();});
+// 새 풀
+save('sprout-3',140,110,c=>{for(let i=0;i<7;i++){const x=40+i*10+rnd()*4,h=40+rnd()*36,bend=(rnd()-.5)*30;const pts=[[x,100],[x+bend*.3,100-h*.5],[x+bend,100-h]];
+ c.save();c.lineCap='round';c.strokeStyle=`rgba(${150+rnd()*20},${178+rnd()*14},${112+rnd()*14},.85)`;c.lineWidth=5;c.filter='blur(.8px)';c.beginPath();c.moveTo(...pts[0]);c.quadraticCurveTo(...pts[1],...pts[2]);c.stroke();c.restore();
+ c.save();c.lineCap='round';c.strokeStyle='rgba(74,84,52,.6)';c.lineWidth=1.2;c.beginPath();c.moveTo(...pts[0]);c.quadraticCurveTo(...pts[1],...pts[2]);c.stroke();c.restore();}
+ c.save();c.globalAlpha=.2;c.filter='blur(3px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(70,102,34,5,0,0,Math.PI*2);c.fill();c.restore();});
+// 매화 꽃잎
+save('blossom',90,90,c=>{for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2,x=45+Math.cos(a)*15,y=45+Math.sin(a)*15;const s=()=>{c.beginPath();c.ellipse(x,y,12,10,a,0,Math.PI*2);};wash(c,s,'rgba(240,206,204,.95)','rgba(214,150,152,.85)',1);}
+ c.fillStyle='rgba(150,84,70,.8)';for(let k=0;k<8;k++){const a=k/8*Math.PI*2;c.beginPath();c.arc(45+Math.cos(a)*6,45+Math.sin(a)*6,1.3,0,Math.PI*2);c.fill();}
+ c.fillStyle='rgba(206,160,72,.9)';c.beginPath();c.arc(45,45,3.2,0,Math.PI*2);c.fill();});
+// 가을 잎 (수묵 담채, 몰골법): no outline, no drawn veins. One bled wash of muted colour, pooled a little darker at the rim
+// and deeper toward the stalk; the stalk is a single fine ink touch.
+const fall=(c,shape,light,dark,base,bx,by,R)=>{c.save();c.filter=`blur(${R*.04}px)`;shape();c.fillStyle=light;c.fill();c.restore();
+ c.save();shape();c.clip();c.filter=`blur(${R*.07}px)`;c.lineWidth=R*.14;c.strokeStyle=dark;shape();c.stroke();c.filter='none';
+ const g=c.createRadialGradient(bx,by,0,bx,by,R*1.1);g.addColorStop(0,base);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(bx-R*2,by-R*2,R*4,R*4);c.restore();};
+// 단풍잎: five pointed lobes
+const maple=(c,cx,cy,R,light,dark,base)=>{const pts=[];for(let k=0;k<5;k++){const a=-Math.PI/2+(k-2)*.62,ra=R*(k===2?1:k===1||k===3?.9:.62);
+  const tipx=cx+Math.cos(a)*ra,tipy=cy+Math.sin(a)*ra,b1=a-.3,b2=a+.3;pts.push([cx+Math.cos(b1)*ra*.45,cy+Math.sin(b1)*ra*.45],[cx+Math.cos(a-.1)*ra*.8,cy+Math.sin(a-.1)*ra*.8],[tipx,tipy],[cx+Math.cos(a+.1)*ra*.8,cy+Math.sin(a+.1)*ra*.8],[cx+Math.cos(b2)*ra*.45,cy+Math.sin(b2)*ra*.45]);}
+ const s=()=>{c.beginPath();c.moveTo(cx,cy+R*.18);pts.forEach(p=>c.lineTo(...p));c.closePath();};fall(c,s,light,dark,base,cx,cy+R*.1,R);
+ stroke(c,[[cx,cy+R*.15],[cx+2,cy+R*.5]],1.6,'rgba(96,60,44,.6)');};
+save('maple-1',120,120,c=>maple(c,60,58,42,'rgba(196,118,86,.8)','rgba(160,82,60,.35)','rgba(150,70,52,.4)'));
+save('maple-2',120,120,c=>maple(c,60,58,40,'rgba(206,150,96,.8)','rgba(172,108,68,.35)','rgba(160,92,58,.35)'));
+// 은행잎: a fan with a notch
+const ginkgo=(c,cx,cy,R,light,dark,base,notch)=>{const s=()=>{c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R,-Math.PI*.82,-Math.PI*.18);c.closePath();};
+ fall(c,s,light,dark,base,cx,cy,R*.9);if(notch){c.save();c.globalCompositeOperation='destination-out';c.filter='blur(1px)';c.beginPath();c.moveTo(cx,cy-R*.55);c.lineTo(cx-4,cy-R-2);c.lineTo(cx+4,cy-R-2);c.closePath();c.fill();c.restore();}
+ stroke(c,[[cx,cy],[cx-2,cy+20]],1.6,'rgba(110,90,46,.6)');};
+save('ginkgo-1',120,120,c=>ginkgo(c,60,74,46,'rgba(220,186,110,.82)','rgba(184,146,72,.35)','rgba(170,130,60,.35)',true));
+save('ginkgo-2',120,120,c=>ginkgo(c,60,74,42,'rgba(212,174,100,.82)','rgba(176,136,64,.35)','rgba(160,120,56,.35)',false));
+// 눈 더미: paper-white mound with a pale grey wash on its lower side (ink-wash snow)
+const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(const [x,,r] of lumps)c.ellipse(x,H-14,r,r*.42,0,Math.PI,0);c.lineTo(W-4,H-14);c.quadraticCurveTo(W/2,H-6,4,H-14);c.closePath();};
+ c.save();c.filter='blur(2px)';s();c.fillStyle='rgba(250,249,245,.97)';c.fill();c.restore();
+ c.save();s();c.clip();const g=c.createLinearGradient(0,H*.3,0,H);g.addColorStop(0,'rgba(170,176,180,0)');g.addColorStop(1,'rgba(150,158,164,.45)');c.fillStyle=g;c.fillRect(0,0,W,H);c.restore();
+ c.save();c.globalAlpha=.35;s();c.lineWidth=1.2;c.strokeStyle='rgba(120,124,124,.8)';c.stroke();c.restore();
+ c.save();c.globalAlpha=.18;c.filter='blur(4px)';c.fillStyle='#6d7276';c.beginPath();c.ellipse(W/2,H-12,W/2-6,6,0,0,Math.PI*2);c.fill();c.restore();};
+save('snow-1',240,70,(c,W,H)=>drift(c,W,H,[[40,0,30],[92,0,42],[150,0,34],[198,0,30]]));
+save('snow-2',170,64,(c,W,H)=>drift(c,W,H,[[40,0,30],[88,0,36],[132,0,30]]));
+// 벚꽃 (수묵 담채, 몰골법): no outlines. A petal is a pale, slightly muted pink wash laid with one touch of the brush: the
+// colour bleeds at the edge, pools a little darker along its rim and is deepest near the base. Used for the falling and
+// fallen petals.
+const PINK=[234,200,204],PINK_D=[206,150,160];
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const petal=(c,cx,cy,R,rot,a=1)=>{c.save();c.translate(cx,cy);c.rotate(rot);
+ const s=()=>{c.beginPath();c.moveTo(0,R);c.bezierCurveTo(-R*.95,R*.35,-R*.8,-R*.8,-R*.14,-R*.9);c.quadraticCurveTo(0,-R*.72,R*.14,-R*.9);c.bezierCurveTo(R*.8,-R*.8,R*.95,R*.35,0,R);c.closePath();};
+ c.save();c.filter=`blur(${Math.max(.6,R*.08)}px)`;s();c.fillStyle=rgba(PINK,.62*a);c.fill();c.restore();            // the wash, bled
+ c.save();s();c.clip();c.filter=`blur(${Math.max(1,R*.12)}px)`;c.lineWidth=R*.22;c.strokeStyle=rgba(PINK_D,.28*a);s();c.stroke();   // pooled rim
+ const g=c.createRadialGradient(0,R*.85,0,0,R*.85,R*1.1);g.addColorStop(0,rgba(PINK_D,.45*a));g.addColorStop(1,rgba(PINK_D,0));c.filter='none';c.fillStyle=g;c.fillRect(-R,-R,2*R,2*R);c.restore();
+ c.restore();};
+save('cherry-1',60,60,c=>petal(c,30,30,16,.3));
+save('cherry-2',60,60,c=>petal(c,30,30,14,-.6,.9));
+save('cherry-pile',90,60,c=>{petal(c,34,32,13,1.2);petal(c,58,28,11,-.7,.85);});
+// 꽃 핀 풀포기 (the spring idea of the fern frame applied to the ground, user: "군데 군데 이렇게 분홍 점들이 꽃이 핀 느낌"):
+// a low tuft of pale sage leaf touches with a few soft pink dabs on top, no outlines, like the frame's blossoming ferns.
+const tuft=(c,W,H,stems,dots)=>{const cx=W/2,by=H-8;
+ c.save();c.globalAlpha=.14;c.filter='blur(4px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(cx,by+2,W*.3,5,0,0,Math.PI*2);c.fill();c.restore();
+ const tips=[];
+ for(let k=0;k<stems;k++){const side=k/(stems-1)-.5,a=-Math.PI/2+side*1.1+(rnd()-.5)*.2,L=H*(.6+rnd()*.25)*(1-Math.abs(side)*.5),x0=cx+side*8;   // arching sprigs of small round leaflets
+  const bend=side*1.6+(rnd()-.5)*.3,P=[[x0,by]];let x=x0,y=by;for(let j=1;j<=8;j++){const u=j/8,ang=a+bend*u*u;x+=Math.cos(ang)*L/8;y+=Math.sin(ang)*L/8;P.push([x,y]);}
+  c.save();c.strokeStyle='rgba(116,126,88,.4)';c.lineWidth=.9;c.beginPath();P.forEach((q,i)=>i?c.lineTo(...q):c.moveTo(...q));c.stroke();c.restore();
+  for(let j=2;j<=8;j++){const u=j/8,[qx,qy]=P[j],ang=a+bend*u*u,r=(1-u*.45)*5.6;for(const sd of j<8?[-1,1]:[0]){const lx=qx+Math.cos(ang+sd*1.25)*r*.9,ly=qy+Math.sin(ang+sd*1.25)*r*.9;
+    c.save();c.filter='blur(.5px)';c.fillStyle=`rgba(${154+rnd()*18},${170+rnd()*14},${126+rnd()*14},${.5+rnd()*.25})`;c.beginPath();c.ellipse(lx,ly,r,r*.7,ang+sd*1.25,0,Math.PI*2);c.fill();c.restore();}
+   if(j>3)tips.push([qx,qy]);}}
+ for(let k=0;k<dots;k++){const [x,y]=tips[Math.floor(rnd()*tips.length)],r=6.5+rnd()*4.5;
+  const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(218,142,150,.9)');g.addColorStop(.6,'rgba(226,164,168,.75)');g.addColorStop(1,'rgba(232,180,182,0)');c.fillStyle=g;c.beginPath();c.arc(x+(rnd()-.5)*6,y+(rnd()-.5)*6,r,0,Math.PI*2);c.fill();}};
+save('bloom-1',130,110,(c,W,H)=>tuft(c,W,H,5,7));
+save('bloom-2',110,92,(c,W,H)=>tuft(c,W,H,4,5));
+save('bloom-3',150,120,(c,W,H)=>tuft(c,W,H,6,9));

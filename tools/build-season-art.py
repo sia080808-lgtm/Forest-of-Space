@@ -1,81 +1,226 @@
-# 0.8.0 사계절 (SRS v2.31 SE-08): seasonal versions of the fern frame, the fern clumps and the leaf-shade plant, made from
-# the original pixels of each picture (user: "계절별 그림 따로"). Summer is the original picture.
-#  spring: fresh yellow-green, the frond tips lighter (new growth)
-#  autumn: the greens turn ochre, orange and rust in soft patches (low-frequency noise), tips a little redder
-#  winter: the greens fade to a cool grey-green, and snow lies on the upward-facing edges (pixels with open sky above)
-# Brown stems, outlines and paper keep their colour; only green-ish pixels change. Alpha is unchanged.
-# Output: assets/forest/seasons/<name>-<season>.png. Usage: python3 tools/build-season-art.py
-import numpy as np, os, colorsys
+# 0.8.1 사계절 풍경 (수묵 담채): one seasonal palette applied to every landscape picture, so the whole map turns as one
+# landscape (user: "하나의 풍경 느낌이 나게 … 전체 맵이. 다만 수묵화라는 컨셉을 생각하며 색감을 설정"). Made from the
+# original pixels of each picture. Summer is the original picture.
+# User: "기존 우리 디폴트 화면 배경 색 … 유지하되 다양한 계절별 느낌이 나게 구성": the paper colour never changes; only the
+# plants, stones and soil take the season, and the season's scenery (sprouts, fallen leaves, snow) is added by the game.
+# Ink-wash rules: ink lines and dark strokes stay; colour is a light, low-saturation wash (saturation capped ~0.35);
+# snow is not painted white on top of the picture but left as paper (the picture fades toward the paper colour).
+#  spring: pale celadon new leaves, a few soft plum-blossom dabs on the ferns, airy light paper
+#  autumn: ochre / sienna washes in soft patches on the leaves, a slightly warmer paper
+#  winter: leaves fade to ink grey; upward edges and open ground turn to paper-white snow; cooler paper
+# Leaf pixels: hue 22~170 with some saturation (the painting's leaves are olive / yellow-green). Stems, outlines, stones
+# and water keep their hue and only take the paper/season grade.
+# Output: <out>/<name>-<season>.(png|jpg). Usage: python3 tools/build-season-art.py [outDir]
+import numpy as np, os, sys
 from PIL import Image
 from scipy import ndimage
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'app/src/main/assets/web/assets/forest')
-OUT = os.path.join(ROOT, 'seasons'); os.makedirs(OUT, exist_ok=True)
-SRC = {'frame': 'frame.png', 'shade-plant': 'shade-plant.png', **{f'fern-{i}': f'ferns/fern-{i}.png' for i in range(1, 7)}}
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'seasons'); os.makedirs(OUT, exist_ok=True)
+# name: (file, kind) kind: 'sprite' (alpha, objects drawn on the floor), 'floor' (opaque ground), 'flora' (ferns: blossoms)
+SRC = {'frame': ('frame.png', 'flora'), 'shade-plant': ('shade-plant.png', 'sprite'), 'shade-ground': ('shade-ground.png', 'sprite'),
+       'terrain': ('terrain.png', 'sprite'), 'shelter-art': ('shelter-art.png', 'sprite'),
+       'garden-dry': ('garden-dry.png', 'floor'),
+       **{f'fern-{i}': (f'ferns/fern-{i}.png', 'flora') for i in range(1, 7)}}
+PAPER = np.array([252, 239, 224], np.float32)
+SNOW = np.array([248, 247, 243], np.float32)        # paper white, a touch warm (rice paper, not blue)
 
 def hsv(rgb):
     r, g, b = [rgb[..., i] / 255 for i in range(3)]
     mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b); d = mx - mn
-    h = np.zeros_like(mx)
-    m = d > 1e-6
-    rc = np.where(m, (mx - r) / np.where(m, d, 1), 0); gc = np.where(m, (mx - g) / np.where(m, d, 1), 0); bc = np.where(m, (mx - b) / np.where(m, d, 1), 0)
+    m = d > 1e-6; dd = np.where(m, d, 1)
+    rc, gc, bc = (mx - r) / dd, (mx - g) / dd, (mx - b) / dd
     h = np.where(r == mx, bc - gc, np.where(g == mx, 2 + rc - bc, 4 + gc - rc)); h = (h / 6) % 1; h[~m] = 0
-    s = np.where(mx > 0, d / np.maximum(mx, 1e-6), 0)
-    return h, s, mx
+    return h, np.where(mx > 0, d / np.maximum(mx, 1e-6), 0), mx
 
 def rgb_of(h, s, v):
     i = np.floor(h * 6).astype(int) % 6; f = h * 6 - np.floor(h * 6)
     p, q, t = v * (1 - s), v * (1 - s * f), v * (1 - s * (1 - f))
-    r = np.choose(i, [v, q, p, p, t, v]); g = np.choose(i, [t, v, v, q, p, p]); b = np.choose(i, [p, p, t, v, v, q])
-    return np.dstack([r, g, b]) * 255
+    return np.dstack([np.choose(i, [v, q, p, p, t, v]), np.choose(i, [t, v, v, q, p, p]), np.choose(i, [p, p, t, v, v, q])]) * 255
 
 def noise(shape, scale, seed):
-    rng = np.random.default_rng(seed)
-    n = ndimage.gaussian_filter(rng.random(shape), scale)
+    n = ndimage.gaussian_filter(np.random.default_rng(seed).random(shape), scale)
     return (n - n.min()) / max(1e-6, n.max() - n.min())
 
-def season(name, im, se):
-    a = np.asarray(im).astype(np.float32); rgb, al = a[..., :3], a[..., 3]
-    h, s, v = hsv(rgb)
-    # leafy pixels: the painting's leaves are olive / yellow-green (hue about 40~60 degrees), so hue 22~170 with some
-    # saturation counts as leaf; brown stems (hue < 22) and paper keep their colour
-    hd = h * 360
-    green = np.clip((hd - 22) / 10, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .1) / .12, 0, 1) * (al > 8)
-    H, W = h.shape
-    dist = ndimage.distance_transform_edt(al > 40); tip = np.clip(1 - dist / 8, 0, 1)
+# snow depth (px of the source picture) per picture: deep on stones, roof and broad leaves, light on the fine fern fronds
+THICK = {'terrain': 34, 'shelter-art': 30, 'shade-plant': 18, 'shade-ground': 0, 'garden-dry': 12, 'frame': 12,
+         **{f'fern-{i}': 6 for i in range(1, 7)}}
+BIAS = {**{f'fern-{i}': -.25 for i in range(1, 7)}, 'frame': -.2}
+GREY = np.array([196, 202, 206], np.float32); RIM = np.array([128, 134, 140], np.float32)
+
+def solid_near(solid):
+    return ndimage.binary_dilation(solid, iterations=2).astype(np.float32)
+
+def surface(res, solid, T, seed, bias=0.0, small_min=160):
+    """How much each pixel belongs to a sky-facing surface of the perspective art (0..1): upper part of each object (by its
+    height in that column) and the parts the painting lights from above. Also returns run (depth below the top edge)."""
+    H, W = solid.shape
+    lab, n = ndimage.label(solid)
+    if n:
+        size = ndimage.sum(np.ones_like(lab), lab, index=np.arange(1, n + 1))
+        small = np.r_[False, size < max(small_min, T * T * .6)]; solid = solid & ~small[lab]; lab, n = ndimage.label(solid)
+    top = np.full((n + 1) * W, H, np.int64); bot = np.zeros((n + 1) * W, np.int64)
+    ys, xs = np.nonzero(lab); key = lab[ys, xs] * W + xs
+    np.minimum.at(top, key, ys); np.maximum.at(bot, key, ys)
+    run = np.zeros((H, W), np.float32); run[ys, xs] = ys - top[key] + 1
+    frac = np.zeros((H, W), np.float32); frac[ys, xs] = (ys - top[key]) / np.maximum(1, bot[key] - top[key] + 1)
+    L = res.mean(2); m = solid.astype(np.float32)
+    sig = max(4, T * .8); loc = ndimage.gaussian_filter(L * m, sig) / np.maximum(ndimage.gaussian_filter(m, sig), 1e-3)
+    lit = np.clip((L - loc) / 35, -1, 1)
+    nz = noise((H, W), max(3, T * .9), seed)
+    score = 1.05 + bias - frac * 1.75 + .45 * lit + .3 * (nz - .5)
+    a = np.clip((score - .38) / .22, 0, 1) * solid; a = ndimage.gaussian_filter(a, .7) * solid
+    return a, run, frac, lit, solid
+
+FRESH = np.array([178, 190, 150], np.float32)
+# 가을 잎 on the objects: muted vermilion, rust, sienna, ochre and ginkgo yellow (ink-wash, low saturation)
+AUTUMN_LEAVES = np.array([[200, 120, 88], [178, 96, 72], [190, 140, 92], [214, 176, 108], [168, 118, 80]], np.float32)
+BLOSSOM = np.array([244, 206, 204], np.float32); BLOSSOM_IN = np.array([214, 142, 146], np.float32)   # 벚꽃
+
+def spring_growth(res, al, solid, T, seed, bias=0.0, autumn=False):
+    """Spring on the sky-facing surfaces, found the same way as the winter snow (perspective, not the outline): a light
+    fresh wash of new moss, and cherry petals that have fallen on those surfaces (user: "다른 오브젝트들도 적당히 벚꽃잎들이
+    퍼스펙티브 고려해서 벚꽃이 덮혔으면"). The petals are small, outline-less pale-pink touches with a deeper base, lying
+    with the slant of the surface (flattened vertically), thicker where the surface faces the sky; here and there a whole
+    five-petal blossom. Moderate: the painting stays visible between them."""
+    if T <= 0:
+        return res, al
+    a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
+    w = (a * (0 if autumn else .35))[..., None]
+    out = res * (1 - w) + (res * .4 + FRESH * .6) * w   # (autumn: AUTUMN_LEAVES fall on the same surfaces, a little fewer)
+    H, W = solid.shape
+    rng = np.random.default_rng(seed + 7)
+    cand = np.argwhere(a > .3)
+    if not len(cand):
+        return out, al
+    r0 = max(3.0, T * (.36 if T > 20 else .22))                                              # petal half-length in pixels
+    n = int(len(cand) / (r0 * r0 * (7 if autumn else 4.5)))                                   # moderate cover
+    pa = a[cand[:, 0], cand[:, 1]]; pick = cand[rng.random(len(cand)) < np.clip(n / len(cand) * pa * 1.6, 0, 1)]
+    cov = np.zeros((H, W), np.float32); deep = np.zeros((H, W), np.float32); tint = np.zeros((H, W, 3), np.float32) + BLOSSOM
+    def petal(cy, cx, r, ang):
+        y0, y1, x0, x1 = max(0, int(cy - r - 2)), min(H, int(cy + r + 3)), max(0, int(cx - r - 2)), min(W, int(cx + r + 3))
+        if y0 >= y1 or x0 >= x1: return
+        yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32); dy, dx = (yy - cy) / .55, xx - cx      # lying on the slant
+        u = dx * np.cos(ang) + dy * np.sin(ang); v = -dx * np.sin(ang) + dy * np.cos(ang)
+        d = np.sqrt((u / r) ** 2 + (v / (r * .62)) ** 2)
+        if autumn:   # a pointed leaf: narrower toward its tip
+            d = np.sqrt((u / r) ** 2 + (v / (r * .5 * np.clip(1 - u / r * .55, .2, 1.4))) ** 2); m = np.clip((1 - d) * 3, 0, 1)
+            col = AUTUMN_LEAVES[rng.integers(len(AUTUMN_LEAVES))] * rng.uniform(.94, 1.04)
+            sel = m > cov[y0:y1, x0:x1]; tint[y0:y1, x0:x1][sel] = col
+        else:
+            m = np.clip((1 - d) * 3, 0, 1) * (1 - np.clip((u / r - .78) * 6, 0, 1) * np.clip(1 - np.abs(v) / (r * .18), 0, 1))  # notch
+        cov[y0:y1, x0:x1] = np.maximum(cov[y0:y1, x0:x1], m * rng.uniform(.8, 1.0))
+        deep[y0:y1, x0:x1] = np.maximum(deep[y0:y1, x0:x1], m * np.clip(-u / r, 0, 1) * .8)
+    for y, x in pick:
+        if not autumn and rng.random() < .1:                             # a whole blossom
+            R = r0 * 1.3
+            for k in range(5):
+                ang = k / 5 * 2 * np.pi + rng.uniform(0, 1)
+                petal(y + np.sin(ang) * R * .55 * .55, x + np.cos(ang) * R * .55, R * .6, ang)
+        else:
+            petal(y + rng.normal(0, 1), x + rng.normal(0, 1), r0 * rng.uniform(.75, 1.15), rng.uniform(0, 2 * np.pi))
+    cov *= solid; deep *= solid
+    shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)[..., None]
+    base = tint if autumn else BLOSSOM; inner = tint * .8 if autumn else BLOSSOM_IN
+    col = (base * (1 - deep[..., None]) + inner * deep[..., None]) * (1 - .1 * shade)
+    out = out * (1 - cov[..., None]) + col * cov[..., None]
+    return out, al
+
+def heavy_snow(res, al, solid, T, seed, bias=0.0):
+    """Snow lying on the surfaces that face the sky. The pictures are drawn from above at an angle, so the top of a stone,
+    the roof of the shelter or the face of a broad leaf is a whole visible plane, not just the silhouette's edge: the
+    snow covers the upper part of each object (by its height in that column) and, more, the parts the painting lights
+    from above; the sides and the shadowed faces keep their colour. Snow is blank paper with a faint cool shade on its
+    shadowed side, a soft grey ink line along its top and a faint one where it ends."""
+    if T <= 0:
+        return res, al
+    a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
+    shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)                  # shadowed / lower snow a touch grey
+    col = SNOW * (1 - .22 * shade[..., None]) + GREY * (.22 * shade[..., None])
+    out = res * (1 - a[..., None]) + col * a[..., None]
+    rim = ndimage.gaussian_filter(a * (1 - a) * 4 * solid, .6) * .7
+    edge = ndimage.gaussian_filter(((run == 1) & (a > .5)).astype(np.float32), .7) * 1.5
+    rim = np.clip(rim + edge, 0, 1)
+    out = out * (1 - .3 * rim[..., None]) + RIM * (.3 * rim[..., None])
+    return out, al
+
+def season(name, im, kind, se):
+    a = np.asarray(im.convert('RGBA')).astype(np.float32); rgb, al = a[..., :3].copy(), a[..., 3].copy()
+    H, W = al.shape
+    h, s, v = hsv(rgb); hd = h * 360
+    if kind == 'flora':   # the fern art is olive (hue ~43) and pale
+        leaf = np.clip((hd - 22) / 10, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .08) / .12, 0, 1) * (al > 8)
+    else:                 # elsewhere straw, paper and stone sit at hue 25~45 / low saturation: only real greens are leaves
+        leaf = np.clip((hd - 46) / 10, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .16) / .12, 0, 1) * (al > 8)
+    if se == 'autumn' and name == 'shelter-art':   # the shelter's plants are olive-yellow (hue 40~55, saturated), the straw is hue 30~40
+        leaf = np.maximum(leaf, np.clip((hd - 39) / 4, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .38) / .08, 0, 1) * (al > 8))
+    ink = np.clip((.55 - v) / .35, 0, 1)                        # dark strokes: keep them (ink)
+    edge = np.clip(1 - ndimage.distance_transform_edt(al > 40) / 8, 0, 1)
     if se == 'spring':
-        # fresh green with lighter, yellower tips (new growth)
-        nh = (76 - 12 * tip) / 360 + 0 * h; ns = np.clip(s * 1.02, 0, 1); nv = np.clip(v * (1.02 + .06 * tip), 0, 1)
+        nh = np.full_like(h, 80 / 360); ns = np.minimum(s * .5, .2); nv = np.clip(v * .95, 0, 1)   # muted sage, not lime (user: "너무 형광색")
+        grade = lambda x: x + (PAPER - x) * .04            # airy
     elif se == 'autumn':
-        n = noise((H, W), max(H, W) / 16, 7 + len(name))
-        nh = (10 + 30 * n - 6 * tip) / 360                              # rust (4) .. amber (40), in soft patches
-        ns = np.clip(s * 1.5 + .12, 0, 1); nv = np.clip(v * (.97 - .05 * n), 0, 1)
+        n = noise((H, W), max(H, W) / 14, 7 + len(name))
+        nh = (24 + 18 * n - 4 * edge) / 360; ns = np.minimum(s * .95 + .04, .32); nv = np.clip(v * (.99 - .04 * n), 0, 1)   # ochre to rust, no pink (hue 20~42)
+        grade = lambda x: x * np.array([1.0, .985, .955], np.float32)
     elif se == 'winter':
-        nh = 175 / 360 + 0 * h; ns = s * .22; nv = np.clip(v * .96 + .05, 0, 1)
+        nh = h; ns = s * .12; nv = np.clip(v * 1.02 + .02, 0, 1)
+        grade = lambda x: x + (SNOW - x) * .10
     else:
         return im
-    out = rgb_of(nh % 1, ns, nv)
-    res = rgb * (1 - green[..., None]) + out * green[..., None]
+    wash = rgb_of(nh % 1, ns, nv)
+    k = (leaf * (1 - .6 * ink))[..., None]
+    # paper-coloured pixels keep the default background colour exactly
+    paperish = np.clip((np.abs(rgb - PAPER).max(2) - 10) / 30, 0, 1)[..., None]
+    mixed = rgb * (1 - k) + wash * k
+    res = mixed + (grade(mixed) - mixed) * paperish
     if se == 'winter':
-        # snow on upward-facing edges: an opaque pixel whose pixels just above are open sky gets white, a few px deep
-        solid = al > 60
-        up = np.zeros_like(solid); k = max(2, H // 300)
-        for dy in range(1, k + 3):
-            sh = np.zeros_like(solid); sh[dy:] = solid[:-dy]
-            up |= ~sh if dy <= 2 else False
-        cap = solid & up
-        depth = np.zeros_like(al)
-        for dy in range(0, k * 2):
-            sh = np.zeros_like(cap); sh[dy:] = cap[:H - dy] if dy else cap
-            depth = np.maximum(depth, sh * (1 - dy / (k * 2)))
-        depth = ndimage.gaussian_filter(depth * solid, 1.2) * (ndimage.gaussian_filter(noise((H, W), 3, 11), 1) > .35)
-        snow = np.array([246, 249, 252], np.float32)
-        res = res * (1 - depth[..., None] * .9) + snow * depth[..., None] * .9
-        al = np.maximum(al, depth * 235)
-    return Image.fromarray(np.dstack([np.clip(res, 0, 255), al]).astype(np.uint8), 'RGBA')
+        # non-leaf colour also fades toward ink grey (stones, soil): low saturation
+        g = res.mean(2, keepdims=True); res = res + (g - res) * (.45 * paperish)
+        # (0.8.1) objects lie under a real layer of snow (user: "겨울에 오브젝트들에 눈 덮혀 있는 씬"): see heavy_snow
+        # surfaces are painted pixels only: the paper-coloured halo some pictures have around an object is not a surface
+        solid = (paperish[..., 0] > .6) & (al > (60 if kind == 'flora' else 200))   # opaque core only (sprites have a soft halo)
+        solid = ndimage.binary_opening(solid, iterations=1)
+        # light texture spots inside a stone or leaf are still part of its surface (otherwise the snow runs down in streaks)
+        solid = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2)) & (al > 30)
+        res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name), BIAS.get(name, 0.0))
+        if name == 'shelter-art':
+            # inside the arch: the warm light paper-brown becomes a cool pale shade (no cream hole on the snow)
+            Lm = res.mean(2); sat = (res.max(2) - res.min(2)) / np.maximum(res.max(2), 1)
+            inner = np.clip((Lm - 140) / 40, 0, 1) * np.clip((.32 - sat) / .12, 0, 1)
+            res = res + (np.array([226, 228, 228], np.float32) - res) * (inner[..., None] * .65)
+    if se == 'winter':
+        # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
+        # paper-coloured pixels become snow-white
+        res = res + (SNOW - res) * (1 - paperish)
+    if se in ('spring', 'autumn') and kind != 'flora':
+        solid = (paperish[..., 0] > .6) & (al > 200)
+        solid = ndimage.binary_fill_holes(ndimage.binary_closing(ndimage.binary_opening(solid, iterations=1), iterations=2)) & (al > 30)
+        res, al = spring_growth(res, al, solid, THICK.get(name, 8), 31 + len(name), BIAS.get(name, 0.0), autumn=se == 'autumn')
+    if se == 'spring' and kind == 'flora':
+        # a few plum-blossom dabs at frond tips (soft, pale, like a light brush touch)
+        rng = np.random.default_rng(5 + len(name)); tips = np.argwhere((edge > .5) & (leaf > .5) & (al > 80))
+        if len(tips):
+            pick = tips[rng.random(len(tips)) < min(1, 90 / len(tips) * (H * W / 1.5e6))]
+            yy, xx = np.mgrid[0:H, 0:W]; blos = np.zeros((H, W), np.float32)
+            for y, x in pick[:400]:
+                r = rng.uniform(2.5, 5.5) * max(1, H / 800)
+                y0, y1, x0, x1 = max(0, int(y - r * 2)), min(H, int(y + r * 2) + 1), max(0, int(x - r * 2)), min(W, int(x + r * 2) + 1)
+                d = np.hypot(yy[y0:y1, x0:x1] - y, xx[y0:y1, x0:x1] - x)
+                blos[y0:y1, x0:x1] = np.maximum(blos[y0:y1, x0:x1], np.clip(1 - d / r, 0, 1) ** .6)
+            pink = np.array([228, 168, 166], np.float32)
+            res = res + (pink - res) * (blos[..., None] * .55); al = np.maximum(al, blos * 200)
+    out = np.clip(res, 0, 255)
+    if kind == 'floor':
+        return Image.fromarray(out.astype(np.uint8), 'RGB')
+    return Image.fromarray(np.dstack([out, al]).astype(np.uint8), 'RGBA')
 
-for name, f in SRC.items():
-    im = Image.open(os.path.join(ROOT, f)).convert('RGBA')
+for name, (f, kind) in SRC.items():
+    im = Image.open(os.path.join(ROOT, f))
     for se in ('spring', 'autumn', 'winter'):
-        season(name, im, se).save(os.path.join(OUT, f'{name}-{se}.png'), optimize=True)
-    print(name)
+        o = season(name, im, kind, se)
+        if kind == 'floor':
+            o.save(os.path.join(OUT, f'{name}-{se}.jpg'), quality=90)
+        else:
+            o.save(os.path.join(OUT, f'{name}-{se}.png'), optimize=True)
+    print(name, flush=True)

@@ -63,7 +63,7 @@ test('SE-06 spring wake-up: the helpers\' 600 s spacing is skipped once on the f
 
 test('SE-08 seasonal pictures exist for the frame, the six fern clumps and the leaf-shade plant; the season tint is render only',()=>{
  const dir=path.join(__dirname,'../../app/src/main/assets/web/assets/forest/seasons');
- for(const n of ['frame','shade-plant',...[1,2,3,4,5,6].map(i=>'fern-'+i)])for(const se of ['spring','autumn','winter'])a.ok(fs.statSync(path.join(dir,n+'-'+se+'.png')).size>1000,n+'-'+se);
- const s=game();for(const t of [600,4200,7800,11400]){s.worldTick=t;const before=JSON.stringify(s),g=E.lighting(s);a.equal(JSON.stringify(s),before);a.equal(g.tints.length,3);a.ok(g.saturation>=.65&&g.saturation<=1.05);}
+ for(const n of ['frame','shade-plant','terrain','shelter-art','shade-ground',...[1,2,3,4,5,6].map(i=>'fern-'+i)])for(const se of ['spring','autumn','winter'])a.ok(fs.statSync(path.join(dir,n+'-'+se+'.png')).size>1000,n+'-'+se);
+ const s=game();for(const t of [600,4200,7800,11400]){s.worldTick=t;const before=JSON.stringify(s),g=E.lighting(s);a.equal(JSON.stringify(s),before);a.equal(g.tints.length,2,'0.8.1: no seasonal colour over the world (the paper background stays)');a.ok(g.saturation>=.65&&g.saturation<=1.05);}
  const html=fs.readFileSync(path.join(__dirname,'../../app/src/main/assets/web/index.html'),'utf8');a.match(html,/id="season"/);
 });
