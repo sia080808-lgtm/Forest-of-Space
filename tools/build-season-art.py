@@ -42,6 +42,46 @@ def noise(shape, scale, seed):
     n = ndimage.gaussian_filter(np.random.default_rng(seed).random(shape), scale)
     return (n - n.min()) / max(1e-6, n.max() - n.min())
 
+# snow depth (px of the source picture) per picture: deep on stones, roof and broad leaves, light on the fine fern fronds
+THICK = {'terrain': 34, 'shelter-art': 30, 'shade-plant': 18, 'shade-ground': 0, 'garden-dry': 12, 'frame': 12,
+         **{f'fern-{i}': 6 for i in range(1, 7)}}
+GREY = np.array([196, 202, 206], np.float32); RIM = np.array([128, 134, 140], np.float32)
+
+def solid_near(solid):
+    return ndimage.binary_dilation(solid, iterations=2).astype(np.float32)
+
+def heavy_snow(res, al, solid, T, seed):
+    """A layer of snow on every upward-facing surface, as blank paper: from the top edge down to a depth that varies
+    softly (0.55~1.45 x T), heaped a little above the edge (rounded), the lower part in a faint cool grey wash and a thin
+    grey ink line where the snow ends."""
+    if T <= 0:
+        return res, al
+    H, W = solid.shape
+    # depth below the object's own top edge in this column (per connected part, so light texture inside a stone or a gap
+    # between strokes does not restart the snow and make streaks)
+    lab, n = ndimage.label(solid)
+    top = np.full((n + 1) * W, H, np.int64); ys, xs = np.nonzero(lab); key = lab[ys, xs] * W + xs
+    np.minimum.at(top, key, ys)
+    run = np.zeros((H, W), np.float32); run[ys, xs] = ys - top[key] + 1
+    below = np.full((H, W), 1e4, np.float32)               # for open pixels: distance down to the surface
+    for y in range(H - 2, -1, -1):
+        below[y] = np.where(solid[y], 0, np.where(solid[y + 1], 1, below[y + 1] + 1))
+    nz = noise((H, W), max(3, T * 1.4), seed); teff = T * (.55 + .9 * nz)
+    cap = np.clip((teff - run) / 2.5, 0, 1) * solid
+    heap = T * .12 * (.4 + .9 * noise((H, W), max(3, T * 2), seed + 1))   # only a slight swell above the edge
+    bulge = np.clip((heap - below) / 1.5, 0, 1) * (~solid)
+    bulge = ndimage.gaussian_filter(bulge, (T * .08, T * .35)) > .45   # round the heaps sideways
+    a = np.maximum(cap, bulge.astype(np.float32) * solid_near(solid)); a = ndimage.gaussian_filter(a, .6)
+    f = np.clip(run / np.maximum(teff, 1), 0, 1) * solid               # 0 at the top of the snow, 1 at its lower edge
+    col = SNOW * (1 - .28 * f[..., None]) + GREY * (.28 * f[..., None])
+    out = res * (1 - a[..., None]) + col * a[..., None]
+    rim = (cap * (1 - cap) * 4 * solid); rim = ndimage.gaussian_filter(rim, .6)
+    # the snow's top edge as a thin, soft ink line (snow is blank paper; the line gives it its shape on white ground)
+    edge = ((run == 1) & (cap > .5)).astype(np.float32); edge = ndimage.gaussian_filter(edge, .7) * 1.6
+    rim = np.clip(rim + edge, 0, 1)
+    out = out * (1 - .3 * rim[..., None]) + RIM * (.3 * rim[..., None])
+    return out, np.maximum(al, a * 242)
+
 def season(name, im, kind, se):
     a = np.asarray(im.convert('RGBA')).astype(np.float32); rgb, al = a[..., :3].copy(), a[..., 3].copy()
     H, W = al.shape
@@ -78,16 +118,13 @@ def season(name, im, kind, se):
             pat = noise((H, W), max(H, W) / 30, 3); pat = np.clip((pat - .3) / .3, 0, 1) * (1 - ink * .8)
             res = res + (SNOW - res) * (pat[..., None] * .75)
         else:
-            # snow on upward-facing edges, as paper left blank
-            solid = al > 60; up = np.zeros_like(solid)
-            for dy in (1, 2):
-                sh = np.zeros_like(solid); sh[dy:] = solid[:-dy]; up |= ~sh
-            cap = (solid & up).astype(np.float32); kk = max(3, H // 220)
-            depth = np.zeros_like(al)
-            for dy in range(kk):
-                sh = np.zeros_like(cap); sh[dy:] = cap[:H - dy] if dy else cap; depth = np.maximum(depth, sh * (1 - dy / kk))
-            depth = ndimage.gaussian_filter(depth * solid, 1.2) * (noise((H, W), 3, 11) > .3)
-            res = res + (SNOW - res) * (depth[..., None] * .92); al = np.maximum(al, depth * 230)
+            # (0.8.1) objects lie under a real layer of snow (user: "겨울에 오브젝트들에 눈 덮혀 있는 씬"): see heavy_snow
+            # surfaces are painted pixels only: the paper-coloured halo some pictures have around an object is not a surface
+            solid = (paperish[..., 0] > .6) & (al > (60 if kind == 'flora' else 200))   # opaque core only (sprites have a soft halo)
+            solid = ndimage.binary_opening(solid, iterations=1)
+            # light texture spots inside a stone or leaf are still part of its surface (otherwise the snow runs down in streaks)
+            solid = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2)) & (al > 30)
+            res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name))
     if se == 'winter':
         # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
         # paper-coloured pixels become snow-white
