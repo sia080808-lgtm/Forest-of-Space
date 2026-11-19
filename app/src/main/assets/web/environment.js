@@ -15,10 +15,10 @@ function timeKey(s){const t=((s.worldTick%1200)+1200)%1200;return t<180?'morning
 const SEASON_LEN=3600,YEAR=SEASON_LEN*4,SEASON_BLEND=120,SEASONS=['spring','summer','autumn','winter'],SEASON_NAMES={spring:'봄',summer:'여름',autumn:'가을',winter:'겨울'};
 const Z={T:0,rain:1,fog:1,wind:0,snow:0};
 const SEASON_FX={
- C01:{spring:{...Z,T:-5,rain:1.2},summer:{...Z,T:8,rain:1.6},autumn:{...Z,T:-5,rain:.8,wind:10},winter:{...Z,T:-22,rain:.8,snow:.4}},
- C02:{spring:{...Z,T:-3,rain:1.1},summer:{...Z,T:10},autumn:{...Z,T:-8,wind:10},winter:{...Z,T:-28,snow:.6}},
- C03:{spring:{...Z,fog:1.3},summer:{...Z,T:12},autumn:{...Z,T:-8,fog:1.2},winter:{...Z,T:-15,snow:.8}},
- C04:{spring:{...Z,T:-5,rain:1.5},summer:{...Z,T:10,rain:.5},autumn:{...Z,T:-5},winter:{...Z,T:-15,rain:.6}}};
+ C01:{spring:{...Z,T:-5,rain:1.2},summer:{...Z,T:8,rain:1.6},autumn:{...Z,T:-5,rain:.8,wind:10},winter:{...Z,T:-22,rain:.8,snow:1}},
+ C02:{spring:{...Z,T:-3,rain:1.1},summer:{...Z,T:10},autumn:{...Z,T:-8,wind:10},winter:{...Z,T:-28,snow:1}},
+ C03:{spring:{...Z,fog:1.3},summer:{...Z,T:12},autumn:{...Z,T:-8,fog:1.2},winter:{...Z,T:-15,snow:1}},
+ C04:{spring:{...Z,T:-5,rain:1.5},summer:{...Z,T:10,rain:.5},autumn:{...Z,T:-5},winter:{...Z,T:-15,rain:0}}};   /* 0.8.1: winter falls as snow; the dry forest has a dry winter (no rain, no snow) */
 function calendar(s){const e=s.environment||{},start=e.calendar?.start??0,el=Math.max(0,s.worldTick-start),n=Math.floor(el/SEASON_LEN),i=n%4,into=el-n*SEASON_LEN;
  return {index:i,id:SEASONS[i],name:SEASON_NAMES[SEASONS[i]],day:Math.floor(into/1200)+1,into,year:Math.floor(n/4)+1,prev:SEASONS[(i+3)%4],blend:n===0?1:Math.min(1,into/SEASON_BLEND)};}
 function season(s){return calendar(s).id;}
