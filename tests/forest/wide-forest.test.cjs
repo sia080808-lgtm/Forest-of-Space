@@ -34,7 +34,7 @@ test('MX-AC03 the new ground is walkable and can hold objects; beyond the forest
 });
 
 test('MX-AC04 leaves fall over the 6x5 sectors of the whole forest, up to 90 on the floor, 45 a day at level 1',()=>{
- a.equal(L.COLS*L.ROWS,30);a.equal(L.LCAP,90);const s=game(5);a.equal(s.objects.dayQuota,45);
+ a.equal(L.COLS*L.ROWS,30);a.equal(L.LCAP,90);const s=game(5);a.equal(s.objects.dayQuota,27);// 0.8.0: 45 a day at level 1, x0.6 in spring (a new game starts in spring)
  const seen=new Set();for(let t=0;t<3600;t++){F.step(s);for(const l of L.leaves(s))seen.add(l.sector);for(const p of L.piles(s))seen.add(p.sector);a.ok(L.floor(s)<=L.LCAP+1e-9);}
  a.ok([...seen].some(i=>{const b=L.bounds(i);return b.x0<0||b.x1>1||b.y0<0||b.y1>1;}),'leaves land on the new ground too');F.valid(s);
 });

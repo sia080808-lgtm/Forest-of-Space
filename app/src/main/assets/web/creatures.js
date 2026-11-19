@@ -3,7 +3,7 @@
 // v2.24 patch 6a (0.6.25): carrier ants and springtails. Small neighbours, not characters: they use no roster slot.
 // ECO24-B01 common arrival limit, B03 conditions, A01 real leaf carrying (one leaf, conserved), A02/N01 springtail
 // decomposition help (x1.25 on its pile only, never stacked). Own RNG stream `rng.creatures`; render reads state only.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits',world:'ForestWorld'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits',world:'ForestWorld',environment:'ForestEnvironment'}[n]];
 const trait=p=>dep('traits').of(p?.species);
 const PROTECT=600,CHECK=180,COOLDOWN=600,STABLE=120,LEAVE=120,MAXG=8,ANT_EVERY=90,CARRY_SECONDS=25,SPRING=1.25;
 // 0.7.1 짐꾼개미 군락 (SRS v2.30): like the real ant fern P. ridleyi, each healthy 리들리 can host one colony. Colonies keep
@@ -54,14 +54,21 @@ function antHost(s){return s.individuals.find(antHealthy)||null;}
 const colonies=s=>groups(s).filter(g=>g.kind==='ant');
 const small=st=>st.groups.filter(g=>g.kind!=='ant').length;
 // ants are out only by day (the first half of each 1200 s game day, as the screen and sound use), dry and calm
-function antActive(s){const k=s.weather.kind;return Math.floor(s.worldTick/600)%2===0&&k!=='rain'&&k!=='snow'&&s.weather.wind<60;}
+function antActive(s){const k=s.weather.kind;return !winter(s)&&Math.floor(s.worldTick/600)%2===0&&k!=='rain'&&k!=='snow'&&s.weather.wind<60;}
 const looseNear=(s,q,r=ANT.RANGE)=>dep('litter').leaves(s).filter(l=>Math.hypot(l.x-q.x,l.y-q.y)<r).length;
 // a ridley that could host a new colony now (none of its own, far enough from every nest, not near an abandoned one)
 function antSites(s){const st=state(s),W=dep('world');const cs=colonies(s);if(cs.length>=ANT.COLONIES)return [];
  return [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)).filter(p=>antHealthy(p)&&!cs.some(g=>g.host===p.id)&&cs.every(g=>Math.hypot(g.nest.x-p.x,g.nest.y-p.y)>=ANT.SPACING)&&!(st.antPause||[]).some(z=>z.until>s.worldTick&&Math.hypot(z.x-p.x,z.y-p.y)<ANT.SPACING)&&looseNear(s,p)>=ANT.LEAVES&&W.inside(s,p));}
 function antOk(s){return antActive(s)&&s.climate.T>=ANT.T_MIN&&antSites(s).length>0;}
 function pileM(p){return p.cap?100*p.S/p.cap:0;}
-function springOk(s,p){const T=s.climate.T,M=pileM(p);return p.O>=3&&s.worldTick-p.born>=60&&M>=35&&M<=75&&p.W<=1&&T>=40&&T<=75;}
+// 0.8.0 사계절 (SRS v2.31 SE-06): in winter the ant colonies sleep in their nests (no work, no new colony, and the days
+// without their ridley or food do not count), and no pest or natural enemy newly arrives. Some springtails are active on
+// snow in winter: on a winter day (T 20+) a springtail fits a pile from T 20 and comes with 45%. On the first day of spring
+// the helpers' 600 s arrival spacing is skipped once so the ants and springtails come back soon.
+const SEASONAL={WINTER_SPRING_T:20,WINTER_SPRING_CHANCE:.45};
+const seasonOf=s=>s.environment?dep('environment').season(s):null;
+const winter=s=>seasonOf(s)==='winter';
+function springOk(s,p){const T=s.climate.T,M=pileM(p);return p.O>=3&&s.worldTick-p.born>=60&&M>=35&&M<=75&&p.W<=1&&T>=(winter(s)?SEASONAL.WINTER_SPRING_T:40)&&T<=75;}
 function ellisiiNear(s,p){return s.individuals.some(q=>q.active&&!q.mounted&&q.species==='bonbon'&&q.B>=35&&q.energy>=40&&Math.hypot(q.x-p.x,q.y-p.y)<.2);}
 // 엘레판's spread leaf is a real shade for the friends under it (same as the shade plant for leaf drying)
 function canopy(s,p){const N=dep('neolbi');return s.individuals.some(q=>q!==p&&q.active&&!q.mounted&&q.species==='neolbi'&&q.canopyProgress>0&&(()=>{const g=N.geometry(q);return ((p.x-g.cx)/g.rx)**2+((p.y-g.cy)/g.ry)**2<=1;})());}
@@ -101,11 +108,11 @@ function mealyFit(s,p){const T=s.climate.T;return live(p)&&!dep('shelter').insid
 const mealyOn=(s,host)=>groups(s).find(g=>g.kind==='mealy'&&g.host===host)||null;
 // ----- arrival (B01: 600 s protection, a check every 180 s, at most one new group per 600 s, 8 groups max) ----------
 function candidates(s){const st=state(s),out=[];
- if(groups(s).filter(g=>g.kind==='springtail').length<2)for(const p of [...dep('litter').piles(s)].sort((a,b)=>a.id.localeCompare(b.id)))if(!springOn(s,p.id)&&(st.pileReady[p.id]||0)>=STABLE)out.push({kind:'springtail',pile:p.id,chance:ellisiiNear(s,p)?.4:.3});
+ if(groups(s).filter(g=>g.kind==='springtail').length<2)for(const p of [...dep('litter').piles(s)].sort((a,b)=>a.id.localeCompare(b.id)))if(!springOn(s,p.id)&&(st.pileReady[p.id]||0)>=STABLE)out.push({kind:'springtail',pile:p.id,chance:winter(s)?SEASONAL.WINTER_SPRING_CHANCE:ellisiiNear(s,p)?.4:.3});
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!miteOn(s,p.id)&&!(st.pause[p.id]>s.worldTick)&&(st.miteReady[p.id]||0)>=STABLE&&pestRoom(s,'mite'))out.push({kind:'mite',host:p.id,chance:.2*trait(p).mite});
  if(groups(s).filter(g=>g.kind==='gnat').length<2)for(const z of sites(s))if(!gnatAt(s,z.id)&&!(st.pause['site:'+z.id]>s.worldTick)&&(st.gnatReady[z.id]||0)>=STABLE&&pestRoom(s,'gnat'))out.push({kind:'gnat',site:z.id,chance:.2});
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!mealyOn(s,p.id)&&!(st.pause['mealy:'+p.id]>s.worldTick)&&(st.mealyReady[p.id]||0)>=STABLE&&pestRoom(s,'mealy'))out.push({kind:'mealy',host:p.id,chance:.2*trait(p).mealy});
- return out;}
+ return winter(s)?out.filter(c=>!PESTS.includes(c.kind)):out;}
 // a nest spot near the host ridley (within 0.15), at least 0.5 from every other nest
 function nestSpot(s,host){const L=dep('litter'),others=colonies(s);const ks=[...Array(L.COLS*L.ROWS).keys()].map(k=>{const b=L.bounds(k);return {k,d:Math.hypot((b.x0+b.x1)/2-host.x,(b.y0+b.y1)/2-host.y)};}).sort((a,b)=>a.d-b.d||a.k-b.k).slice(0,4);
  for(const {k} of ks){const q=L.spot(s,k,10);if(q&&Math.hypot(q.x-host.x,q.y-host.y)<=.15&&others.every(g=>Math.hypot(g.nest.x-q.x,g.nest.y-q.y)>=ANT.SPACING))return q;}return null;}
@@ -150,7 +157,7 @@ function keeperStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===
  if(!p){st.groups=st.groups.filter(x=>x!==g);return;}if(!live(p))return;const ok=keeperFit(s,p);
  if(ok&&m&&m.density>0){const bite=Math.min(m.density,KEEPER.EAT/60);m.density-=bite;g.eaten=(g.eaten||0)+bite;st.log.eaten+=bite;}
  g.bad=ok&&m&&m.density>=1?0:g.bad+1;if(g.bad>=LEAVE){st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature',m?'잎지기가 더 알맞은 잎을 찾아 떠났어요.':'잎지기가 먹이를 다 찾아 먹고 떠났어요.');}}
-function keeperArrivals(s,event){const st=state(s);
+function keeperArrivals(s,event){const st=state(s);if(winter(s))return;
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){const m=miteOn(s,p.id),has=groups(s).some(g=>g.kind==='keeper'&&g.host===p.id);
   if(has||!m||m.density<KEEPER.MIN_PREY||!keeperFit(s,p)){if(!has)st.keeperReady[p.id]=0;continue;}
   const r=st.keeperReady[p.id]=(st.keeperReady[p.id]||0)+1;if(small(st)>=MAXG||r<KEEPER.READY)continue;
@@ -193,11 +200,11 @@ function ladyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.
  if(g.stage==='larva'&&!(m&&m.density>=1)){const Sp=dep('spatial'),Sh=dep('shelter'),next=s.individuals.filter(q=>q.id!==g.host&&live(q)&&!Sh.inside?.(s,q)&&Sp.distance(p,q)<LADY.HOP&&(mealyOn(s,q.id)?.density||0)>=MEALY.GONE&&!groups(s).some(x=>x.kind==='lady'&&x.host===q.id)).sort((a,b)=>Sp.distance(p,a)-Sp.distance(p,b)||a.id.localeCompare(b.id))[0];
   if(next){event?.(s,'creature',`점박이 유충이 ${p.name}에게서 ${next.name}의 잎으로 옮겨 갔어요.`);g.host=next.id;g.hops=(g.hops||0)+1;g.bad=0;return;}}
  g.bad=m&&m.density>=1?0:g.bad+1;if(g.bad>=LEAVE){st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature','점박이가 먹이를 다 찾아 먹고 떠났어요.');}}
-function predatorArrivals(s,event,kind,readyKey,prey,fit,make,msg){const st=state(s);
+function predatorArrivals(s,event,kind,readyKey,prey,fit,make,msg){const st=state(s);if(winter(s))return;
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){const has=groups(s).some(g=>g.kind===kind&&g.host===p.id);if(has||!prey(p)||!fit(p)){if(!has)st[readyKey][p.id]=0;continue;}
   const r=st[readyKey][p.id]=(st[readyKey][p.id]||0)+1;if(small(st)>=MAXG||r<KEEPER.READY)continue;
   if(r>=KEEPER.SURE||((r-KEEPER.READY)%KEEPER.EVERY===0&&rnd(s)<KEEPER.CHANCE)){st.groups.push({id:'cr:'+st.nextId++,kind,host:p.id,since:s.worldTick,bad:0,eaten:0,lastWork:s.worldTick,carry:null,...make()});st[readyKey][p.id]=0;st.log.arrived++;event?.(s,'creature',msg(p));}}}
-function soilArrivals(s,event){const st=state(s);
+function soilArrivals(s,event){const st=state(s);if(winter(s))return;
  for(const z of sites(s)){const has=groups(s).some(g=>g.kind==='soilmite'&&g.site===z.id),f=gnatAt(s,z.id);if(has||!f||f.larvae+f.eggs<SOIL.MIN_PREY||!soilFit(s,z)){if(!has)st.soilReady[z.id]=0;continue;}
   const r=st.soilReady[z.id]=(st.soilReady[z.id]||0)+1;if(small(st)>=MAXG||r<KEEPER.READY)continue;
   if(r>=KEEPER.SURE||((r-KEEPER.READY)%KEEPER.EVERY===0&&rnd(s)<KEEPER.CHANCE)){st.groups.push({id:'cr:'+st.nextId++,kind:'soilmite',site:z.id,since:s.worldTick,bad:0,eaten:0,lastWork:s.worldTick,carry:null});st.soilReady[z.id]=0;st.log.arrived++;event?.(s,'creature','흙지기가 젖은 흙 속 뿌리날파리 유충을 찾기 시작했어요.');}}}
@@ -205,7 +212,7 @@ function roveStep(s,g,event){const st=state(s),z=site(s,g.site),f=z&&gnatAt(s,g.
  let ate=0;if(f&&soilFit(s,z)){let bite=zoneBite(s,g.site,ROVE.EAT/60);const a=Math.min(f.larvae,bite);f.larvae-=a;bite-=a;const b=Math.min(f.eggs,bite);f.eggs-=b;ate=a+b;}
  if(ate>0){g.eaten=(g.eaten||0)+ate;st.log.eaten+=ate;}
  g.bad=ate>0||(f&&f.larvae+f.eggs>=1&&soilFit(s,z))?0:g.bad+1;if(g.bad>=LEAVE){st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature','쏙쏙이가 바위 뒤로 쏙 숨더니 다른 틈으로 떠났어요.');}}
-function roveArrivals(s,event){const st=state(s);
+function roveArrivals(s,event){const st=state(s);if(winter(s))return;
  for(const z of sites(s)){const has=groups(s).some(g=>g.kind==='rove'&&g.site===z.id),f=gnatAt(s,z.id);if(has||!f||f.larvae+f.eggs<ROVE.MIN_PREY||!roveFit(s,z)||groups(s).filter(g=>g.kind==='rove').length>=2){if(!has)st.roveReady[z.id]=0;continue;}
   const r=st.roveReady[z.id]=(st.roveReady[z.id]||0)+1;if(small(st)>=MAXG||r<KEEPER.READY)continue;
   if(r>=KEEPER.SURE||((r-KEEPER.READY)%KEEPER.EVERY===0&&rnd(s)<KEEPER.CHANCE)){const h=hideout(s,z);st.groups.push({id:'cr:'+st.nextId++,kind:'rove',site:z.id,hide:h.id,since:s.worldTick,bad:0,eaten:0,lastWork:s.worldTick,carry:null});st.roveReady[z.id]=0;st.log.arrived++;event?.(s,'creature',(h.id==='crevice'?'바위틈':'햇살 바위')+' 뒤에서 쏙쏙이가 나와 뿌리날파리 유충을 찾기 시작했어요.');}}}
@@ -222,6 +229,7 @@ function tendStep(s,event){const st=state(s),cs=colonies(s);if(!cs.length)return
 // 0.7.1 colony stays while its ridley lives in the garden and there is food in its range (loose leaves within 0.3, a leaf
 // on the way, or honeydew it tends); a whole game day without either and it leaves; nothing settles there for a day
 function colonyStay(s,g,event){const st=state(s),host=s.individuals.find(p=>p.id===g.host);
+ if(winter(s))return;// asleep for the winter: the days without ridley or food do not count
  g.away=host&&host.active?0:g.away+1;g.hungry=g.carry||g.tend||looseNear(s,g.nest)>0?0:g.hungry+1;
  if(g.away<ANT.ABSENT&&g.hungry<ANT.HUNGRY)return;
  drop(s,g);st.groups=st.groups.filter(x=>x!==g);st.log.left++;st.antPause.push({x:g.nest.x,y:g.nest.y,until:s.worldTick+ANT.RETURN});
@@ -252,6 +260,7 @@ function flyStep(s,event){const st=state(s);
 function step(s,event){if(!s.objects)return;init(s);const st=state(s),L=dep('litter');
  // readiness grows on good days, holds through a night or a shower (the ants wait), and fades slowly (10x slower) while no
  // ridley can host (leaves drift in and out of range as friends walk)
+ {const E=s.environment&&dep('environment');if(E){const c=E.calendar(s);if(c.id==='spring'&&c.into===0&&s.worldTick>(s.environment.calendar?.start??0))st.lastArrival=-1e9;}}
  st.ready.ant=s.climate.T>=ANT.T_MIN&&antSites(s).length?Math.min(600,st.ready.ant+(antActive(s)?1:0)):Math.max(0,st.ready.ant-.1);st.antPause=(st.antPause||[]).filter(z=>z.until>s.worldTick);
  const ids=new Set(L.piles(s).map(p=>p.id));for(const id of Object.keys(st.pileReady))if(!ids.has(id))delete st.pileReady[id];
  for(const p of L.piles(s))st.pileReady[p.id]=springOk(s,p)?(st.pileReady[p.id]||0)+1:0;
@@ -306,5 +315,5 @@ function pressure(s,p){const g=groups(s);return {leaf:g.some(x=>(x.kind==='mite'
 function onLeaf(s,host){const g=groups(s);return {mite:miteOn(s,host),keeper:g.find(x=>x.kind==='keeper'&&x.host===host)||null,mealy:mealyOn(s,host),lady:g.find(x=>x.kind==='lady'&&x.host===host)||null,ant:g.find(x=>x.kind==='ant'&&x.tend===host)||null};}
 function inSoil(s,siteId){const g=groups(s);return {gnat:gnatAt(s,siteId),soilmite:g.find(x=>x.kind==='soilmite'&&x.site===siteId)||null,rove:g.find(x=>x.kind==='rove'&&x.site===siteId)||null};}
 function rootsNear(s,p){return sites(s).map(z=>({z,g:gnatAt(s,z.id)})).find(o=>o.g&&Math.hypot(p.x-o.z.x,p.y-o.z.y)<GNAT.NEAR)||null;}
-return {ANT,antActive,antSites,colonies,nestSpot,candidates,harm,TOUCH,FLY,contactStep,flyStep,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
+return {SEASONAL,winter,ANT,antActive,antSites,colonies,nestSpot,candidates,harm,TOUCH,FLY,contactStep,flyStep,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
 });
