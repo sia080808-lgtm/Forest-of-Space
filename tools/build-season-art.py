@@ -72,35 +72,50 @@ def surface(res, solid, T, seed, bias=0.0, small_min=160):
     a = np.clip((score - .38) / .22, 0, 1) * solid; a = ndimage.gaussian_filter(a, .7) * solid
     return a, run, frac, lit, solid
 
-FRESH = np.array([170, 198, 132], np.float32)
-BLOSSOM = np.array([246, 214, 222], np.float32); BLOSSOM_IN = np.array([214, 140, 160], np.float32)   # 벚꽃
+FRESH = np.array([178, 190, 150], np.float32)
+BLOSSOM = np.array([244, 206, 204], np.float32); BLOSSOM_IN = np.array([214, 142, 146], np.float32)   # 벚꽃
 
 def spring_growth(res, al, solid, T, seed, bias=0.0):
-    """Spring on the same sky-facing surfaces: a pale fresh-green wash of new moss and leaves (light, see-through, the
-    painting stays visible) and a few small plum-blossom clusters, sparse, in soft pale pink with a darker heart."""
+    """Spring on the sky-facing surfaces, found the same way as the winter snow (perspective, not the outline): a light
+    fresh wash of new moss, and cherry petals that have fallen on those surfaces (user: "다른 오브젝트들도 적당히 벚꽃잎들이
+    퍼스펙티브 고려해서 벚꽃이 덮혔으면"). The petals are small, outline-less pale-pink touches with a deeper base, lying
+    with the slant of the surface (flattened vertically), thicker where the surface faces the sky; here and there a whole
+    five-petal blossom. Moderate: the painting stays visible between them."""
     if T <= 0:
         return res, al
     a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
-    w = (a * .6)[..., None]
-    out = res * (1 - w) + (res * .3 + FRESH * .7) * w
+    w = (a * .35)[..., None]
+    out = res * (1 - w) + (res * .4 + FRESH * .6) * w
     H, W = solid.shape
-    rng = np.random.default_rng(seed + 7); cand = np.argwhere(a > .7)
-    if len(cand):
-        k = max(1, int(len(cand) / (T * T * 4)))                       # a few per object
-        pick = cand[rng.choice(len(cand), size=min(k, 40), replace=False)]
-        yy, xx = np.mgrid[0:H, 0:W]; petal = np.zeros((H, W), np.float32); heart = np.zeros((H, W), np.float32)
-        r = max(2.6, T * .3)
-        for y, x in pick:
-            for j in range(rng.integers(2, 4)):                         # a small cluster of 2~3 blossoms
-                cy, cx = y + rng.normal(0, r * 1.4), x + rng.normal(0, r * 1.8)
-                y0, y1, x0, x1 = max(0, int(cy - r * 2)), min(H, int(cy + r * 2) + 1), max(0, int(cx - r * 2)), min(W, int(cx + r * 2) + 1)
-                if y0 >= y1 or x0 >= x1: continue
-                d = np.hypot(yy[y0:y1, x0:x1] - cy, (xx[y0:y1, x0:x1] - cx) * .9)
-                petal[y0:y1, x0:x1] = np.maximum(petal[y0:y1, x0:x1], np.clip(1 - d / r, 0, 1) ** .5)
-                heart[y0:y1, x0:x1] = np.maximum(heart[y0:y1, x0:x1], np.clip(1 - d / (r * .35), 0, 1))
-        petal *= solid; heart *= solid
-        out = out * (1 - petal[..., None] * .85) + BLOSSOM * (petal[..., None] * .85)
-        out = out * (1 - heart[..., None] * .6) + BLOSSOM_IN * (heart[..., None] * .6)
+    rng = np.random.default_rng(seed + 7)
+    cand = np.argwhere(a > .3)
+    if not len(cand):
+        return out, al
+    r0 = max(3.0, T * (.36 if T > 20 else .22))                                              # petal half-length in pixels
+    n = int(len(cand) / (r0 * r0 * 4.5))                                   # moderate cover
+    pa = a[cand[:, 0], cand[:, 1]]; pick = cand[rng.random(len(cand)) < np.clip(n / len(cand) * pa * 1.6, 0, 1)]
+    cov = np.zeros((H, W), np.float32); deep = np.zeros((H, W), np.float32)
+    def petal(cy, cx, r, ang):
+        y0, y1, x0, x1 = max(0, int(cy - r - 2)), min(H, int(cy + r + 3)), max(0, int(cx - r - 2)), min(W, int(cx + r + 3))
+        if y0 >= y1 or x0 >= x1: return
+        yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32); dy, dx = (yy - cy) / .55, xx - cx      # lying on the slant
+        u = dx * np.cos(ang) + dy * np.sin(ang); v = -dx * np.sin(ang) + dy * np.cos(ang)
+        d = np.sqrt((u / r) ** 2 + (v / (r * .62)) ** 2)
+        m = np.clip((1 - d) * 3, 0, 1) * (1 - np.clip((u / r - .78) * 6, 0, 1) * np.clip(1 - np.abs(v) / (r * .18), 0, 1))  # notch
+        cov[y0:y1, x0:x1] = np.maximum(cov[y0:y1, x0:x1], m * rng.uniform(.8, 1.0))
+        deep[y0:y1, x0:x1] = np.maximum(deep[y0:y1, x0:x1], m * np.clip(-u / r, 0, 1) * .8)
+    for y, x in pick:
+        if rng.random() < .1:                                            # a whole blossom
+            R = r0 * 1.3
+            for k in range(5):
+                ang = k / 5 * 2 * np.pi + rng.uniform(0, 1)
+                petal(y + np.sin(ang) * R * .55 * .55, x + np.cos(ang) * R * .55, R * .6, ang)
+        else:
+            petal(y + rng.normal(0, 1), x + rng.normal(0, 1), r0 * rng.uniform(.75, 1.15), rng.uniform(0, 2 * np.pi))
+    cov *= solid; deep *= solid
+    shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)[..., None]
+    col = (BLOSSOM * (1 - deep[..., None]) + BLOSSOM_IN * deep[..., None]) * (1 - .1 * shade)
+    out = out * (1 - cov[..., None]) + col * cov[..., None]
     return out, al
 
 def heavy_snow(res, al, solid, T, seed, bias=0.0):
@@ -132,7 +147,7 @@ def season(name, im, kind, se):
     ink = np.clip((.55 - v) / .35, 0, 1)                        # dark strokes: keep them (ink)
     edge = np.clip(1 - ndimage.distance_transform_edt(al > 40) / 8, 0, 1)
     if se == 'spring':
-        nh = np.full_like(h, 84 / 360); ns = np.minimum(s * .8, .32); nv = np.clip(v * 1.04 + .02, 0, 1)
+        nh = np.full_like(h, 80 / 360); ns = np.minimum(s * .5, .2); nv = np.clip(v * .95, 0, 1)   # muted sage, not lime (user: "너무 형광색")
         grade = lambda x: x + (PAPER - x) * .04            # airy
     elif se == 'autumn':
         n = noise((H, W), max(H, W) / 14, 7 + len(name))

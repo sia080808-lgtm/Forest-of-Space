@@ -66,35 +66,33 @@ const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(cons
  c.save();c.globalAlpha=.18;c.filter='blur(4px)';c.fillStyle='#6d7276';c.beginPath();c.ellipse(W/2,H-12,W/2-6,6,0,0,Math.PI*2);c.fill();c.restore();};
 save('snow-1',240,70,(c,W,H)=>drift(c,W,H,[[40,0,30],[92,0,42],[150,0,34],[198,0,30]]));
 save('snow-2',170,64,(c,W,H)=>drift(c,W,H,[[40,0,30],[88,0,36],[132,0,30]]));
-// 벚꽃잎: a single cherry petal with the notch at its tip, pale pink wash, a faint darker base (also used for falling petals)
-const cherry=(c,cx,cy,R,rot)=>{c.save();c.translate(cx,cy);c.rotate(rot);const s=()=>{c.beginPath();c.moveTo(0,R*.95);c.bezierCurveTo(-R*.9,R*.4,-R*.75,-R*.75,-R*.18,-R*.95);c.lineTo(0,-R*.68);c.lineTo(R*.18,-R*.95);c.bezierCurveTo(R*.75,-R*.75,R*.9,R*.4,0,R*.95);c.closePath();};
- wash(c,s,'rgba(246,218,224,.96)','rgba(226,170,184,.85)',.8);c.save();s();c.clip();const g=c.createRadialGradient(0,R*.9,0,0,R*.9,R*.8);g.addColorStop(0,'rgba(214,132,152,.55)');g.addColorStop(1,'rgba(214,132,152,0)');c.fillStyle=g;c.fillRect(-R,-R,2*R,2*R);c.restore();
- c.save();c.globalAlpha=.45;s();c.lineWidth=.9;c.strokeStyle='rgba(170,110,120,.8)';c.stroke();c.restore();c.restore();};
-save('cherry-1',80,80,c=>cherry(c,40,40,24,.3));
-save('cherry-2',80,80,c=>cherry(c,40,40,22,-.5));
-// a few petals lying together on the ground
-save('cherry-pile',140,90,c=>{cherry(c,46,48,20,1.2);cherry(c,80,40,18,-.7);cherry(c,98,58,17,.4);});
-// 벚꽃 가지 (spring corner of the screen frame): an ink branch entering from the top-left, dry-brush ink strokes that
-// thin toward the twigs, with a few cherry-blossom clusters (five notched petals, pale pink wash, darker heart, ink
-// stamens) and buds. Drawn like the branch in an ink painting coming in from outside the picture.
-const flower=(c,x,y,R,rot,open=1)=>{for(let k=0;k<5;k++){const a=rot+k/5*Math.PI*2;c.save();c.translate(x+Math.cos(a)*R*.55*open,y+Math.sin(a)*R*.55*open);c.rotate(a+Math.PI/2);cherry(c,0,0,R*.55,0);c.restore();}
- c.save();c.fillStyle='rgba(200,110,130,.75)';c.beginPath();c.arc(x,y,R*.2,0,Math.PI*2);c.fill();c.restore();
- c.save();c.strokeStyle='rgba(120,70,70,.7)';c.lineWidth=1;for(let k=0;k<7;k++){const a=k/7*Math.PI*2+rot;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*R*.42,y+Math.sin(a)*R*.42);c.stroke();c.fillStyle='rgba(150,90,60,.8)';c.beginPath();c.arc(x+Math.cos(a)*R*.42,y+Math.sin(a)*R*.42,1.2,0,Math.PI*2);c.fill();}c.restore();};
-const bud=(c,x,y,R,rot)=>{c.save();c.translate(x,y);c.rotate(rot);const s=()=>{c.beginPath();c.ellipse(0,0,R*.38,R*.55,0,0,Math.PI*2);};wash(c,s,'rgba(236,170,186,.95)','rgba(200,120,140,.85)',.6);c.restore();};
-// dry-brush ink: a smooth curve through the points, drawn as many thin bristle strokes with varying ink, thinning toward
-// the tip, with gaps where the brush runs dry and a few darker knots
-const branch=(c,pts,w0)=>{const P=[];for(let k=0;k<pts.length-1;k++)for(let u=0;u<1;u+=.05){const p0=pts[Math.max(0,k-1)],p1=pts[k],p2=pts[k+1],p3=pts[Math.min(pts.length-1,k+2)],uu=u*u,uuu=uu*u;
-  P.push([.5*((2*p1[0])+(-p0[0]+p2[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*uu+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*uuu),.5*((2*p1[1])+(-p0[1]+p2[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*uu+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*uuu)]);}P.push(pts.at(-1));
- c.save();c.lineCap='round';const n=P.length,B=9;
- c.save();c.globalAlpha=.18;c.filter='blur(3px)';c.strokeStyle='rgb(90,80,70)';c.lineWidth=w0*1.2;c.beginPath();P.forEach((q,i)=>i?c.lineTo(...q):c.moveTo(...q));c.stroke();c.restore();
- for(let b=0;b<B;b++){const off=(b/(B-1)-.5);c.beginPath();let on=false;for(let i=0;i<n;i++){const f=1-i/n,wv=w0*(.25+.75*f),q=P[i],q2=P[Math.min(n-1,i+1)],dx=q2[0]-q[0],dy=q2[1]-q[1],L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,x=q[0]+nx*off*wv,y=q[1]+ny*off*wv;
-   const dry=Math.abs(off)>.32&&Math.sin(i*.11+b*2.3)>.62-(1-f)*.5;if(dry){if(on){c.stroke();c.beginPath();on=false;}continue;}if(!on){c.moveTo(x,y);on=true;}else c.lineTo(x,y);}
-  c.strokeStyle=`rgba(${56+b%3*10},${48+b%3*8},${42+b%3*6},${.32+.25*(1-Math.abs(off)*1.6)})`;c.lineWidth=w0/B*1.9;c.stroke();}
- for(let i=6;i<n-4;i+=17+Math.floor(rnd()*9)){c.fillStyle='rgba(40,34,30,.55)';c.beginPath();c.ellipse(P[i][0],P[i][1],w0*.18*(1-i/n)+1,w0*.3*(1-i/n)+1,rnd()*3,0,Math.PI*2);c.fill();}
+// 벚꽃 (수묵 담채, 몰골법): no outlines. A petal is a pale, slightly muted pink wash laid with one touch of the brush: the
+// colour bleeds at the edge, pools a little darker along its rim and is deepest near the base. Used for the falling and
+// fallen petals.
+const PINK=[234,200,204],PINK_D=[206,150,160];
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const petal=(c,cx,cy,R,rot,a=1)=>{c.save();c.translate(cx,cy);c.rotate(rot);
+ const s=()=>{c.beginPath();c.moveTo(0,R);c.bezierCurveTo(-R*.95,R*.35,-R*.8,-R*.8,-R*.14,-R*.9);c.quadraticCurveTo(0,-R*.72,R*.14,-R*.9);c.bezierCurveTo(R*.8,-R*.8,R*.95,R*.35,0,R);c.closePath();};
+ c.save();c.filter=`blur(${Math.max(.6,R*.08)}px)`;s();c.fillStyle=rgba(PINK,.62*a);c.fill();c.restore();            // the wash, bled
+ c.save();s();c.clip();c.filter=`blur(${Math.max(1,R*.12)}px)`;c.lineWidth=R*.22;c.strokeStyle=rgba(PINK_D,.28*a);s();c.stroke();   // pooled rim
+ const g=c.createRadialGradient(0,R*.85,0,0,R*.85,R*1.1);g.addColorStop(0,rgba(PINK_D,.45*a));g.addColorStop(1,rgba(PINK_D,0));c.filter='none';c.fillStyle=g;c.fillRect(-R,-R,2*R,2*R);c.restore();
  c.restore();};
-save('cherry-branch',760,520,c=>{
- branch(c,[[-20,40],[90,70],[200,92],[300,130],[400,160],[500,178],[600,190]],22);
- branch(c,[[200,92],[250,40],[300,18]],9);branch(c,[[300,130],[350,200],[380,260],[400,300]],10);branch(c,[[400,160],[460,120],[530,105]],7);
- branch(c,[[500,178],[560,240],[590,290]],6);branch(c,[[90,70],[120,140],[160,200]],9);branch(c,[[120,140],[70,190]],5);
- for(const [x,y,r,o] of [[300,18,26,1],[262,48,22,.9],[530,105,24,1],[600,190,26,1],[400,300,25,1],[378,258,20,.8],[160,200,26,1],[70,190,22,.9],[590,290,22,1],[455,128,18,.7],[340,150,20,.85],[210,86,18,.8]])flower(c,x,y,r,x*.03,o);
- for(const [x,y,r,a] of [[320,8,14,.4],[555,98,13,-.3],[620,200,13,.5],[410,318,13,.2],[178,222,13,-.4],[96,206,12,.6],[598,310,12,.1]])bud(c,x,y,r,a);});
+save('cherry-1',60,60,c=>petal(c,30,30,16,.3));
+save('cherry-2',60,60,c=>petal(c,30,30,14,-.6,.9));
+save('cherry-pile',90,60,c=>{petal(c,34,32,13,1.2);petal(c,58,28,11,-.7,.85);});
+// 꽃 핀 풀포기 (the spring idea of the fern frame applied to the ground, user: "군데 군데 이렇게 분홍 점들이 꽃이 핀 느낌"):
+// a low tuft of pale sage leaf touches with a few soft pink dabs on top, no outlines, like the frame's blossoming ferns.
+const tuft=(c,W,H,stems,dots)=>{const cx=W/2,by=H-8;
+ c.save();c.globalAlpha=.14;c.filter='blur(4px)';c.fillStyle='#6b6048';c.beginPath();c.ellipse(cx,by+2,W*.3,5,0,0,Math.PI*2);c.fill();c.restore();
+ const tips=[];
+ for(let k=0;k<stems;k++){const side=k/(stems-1)-.5,a=-Math.PI/2+side*1.1+(rnd()-.5)*.2,L=H*(.6+rnd()*.25)*(1-Math.abs(side)*.5),x0=cx+side*8;   // arching sprigs of small round leaflets
+  const bend=side*1.6+(rnd()-.5)*.3,P=[[x0,by]];let x=x0,y=by;for(let j=1;j<=8;j++){const u=j/8,ang=a+bend*u*u;x+=Math.cos(ang)*L/8;y+=Math.sin(ang)*L/8;P.push([x,y]);}
+  c.save();c.strokeStyle='rgba(116,126,88,.4)';c.lineWidth=.9;c.beginPath();P.forEach((q,i)=>i?c.lineTo(...q):c.moveTo(...q));c.stroke();c.restore();
+  for(let j=2;j<=8;j++){const u=j/8,[qx,qy]=P[j],ang=a+bend*u*u,r=(1-u*.45)*5.6;for(const sd of j<8?[-1,1]:[0]){const lx=qx+Math.cos(ang+sd*1.25)*r*.9,ly=qy+Math.sin(ang+sd*1.25)*r*.9;
+    c.save();c.filter='blur(.5px)';c.fillStyle=`rgba(${154+rnd()*18},${170+rnd()*14},${126+rnd()*14},${.5+rnd()*.25})`;c.beginPath();c.ellipse(lx,ly,r,r*.7,ang+sd*1.25,0,Math.PI*2);c.fill();c.restore();}
+   if(j>3)tips.push([qx,qy]);}}
+ for(let k=0;k<dots;k++){const [x,y]=tips[Math.floor(rnd()*tips.length)],r=6.5+rnd()*4.5;
+  const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(218,142,150,.9)');g.addColorStop(.6,'rgba(226,164,168,.75)');g.addColorStop(1,'rgba(232,180,182,0)');c.fillStyle=g;c.beginPath();c.arc(x+(rnd()-.5)*6,y+(rnd()-.5)*6,r,0,Math.PI*2);c.fill();}};
+save('bloom-1',130,110,(c,W,H)=>tuft(c,W,H,5,7));
+save('bloom-2',110,92,(c,W,H)=>tuft(c,W,H,4,5));
+save('bloom-3',150,120,(c,W,H)=>tuft(c,W,H,6,9));
