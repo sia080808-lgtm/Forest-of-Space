@@ -511,3 +511,17 @@
 - 0.6.37 APK는 사용자에게 파일로 전달.
 - 병합: PR #39(https://github.com/sia080808-lgtm/Forest-of-Space/pull/39) main 병합 `c2e20c693de9e6086b44cfe2eaf929bf77f90db5`(사용자 "ㄱㄱ"; head `41be9ad` 기준 simulation·CodeQL 성공). 문서·도구만이라 앱 버전·APK는 0.6.37 그대로.
 - 사용자 결정(2026-11-19): 서늘한 숲(C03)에서 엘레판 기분이 떨어지는 추위 약점은 그대로 둔다("약점 하나정도는 있어야지"). 추위 배율 −1.5 유지.
+
+### NEIGHBOURS-SHELTER-0.6.38-20261119 — 슈퍼범 쉼터, ECO-13 옮겨 붙기·공중 전이, 어린 단계 그림, 돌돌이 말림
+
+- 담당: Claude Code. 요청: 사용자 "1. 수퍼범도 쉼터 들어갈 수 있음. 자리차지는 엘레판이랑 같음. 2. 두리는 차차 하도록 하고 3. 3번부터 6번까지 하도록 하자". 기준 main `c2e20c6`(PR #39 병합) + 작업 브랜치 `fb94cc6`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경:
+  - `shelter.js`: 슈퍼범 점유 4/5/6/8·예상치 8, 쉼터 윤곽은 `PROFILES.superbumHuddle`(웅크린 자세 실제 렌더에서 굽기, `tools/bake-superbum-profile.cjs --huddle`).
+  - `superbum.js` `huddle`(둥지잎 0.85배·10px 내림, 옆잎 오므림, 옆잎 위 끝 잘라 그리기), `rig.js` 전달, `scene.js` 쉼터 단계(entering/restingInside/exiting)에서 0.6초 전환.
+  - `creatures.js`: `contactStep`(ECO-13 잎응애·솜깍지, 30초 접촉→60초마다 20%×특성, 최대 2, 같은 짝 120초), `flyStep`(성충 16 이상·300초마다 20%·0.45 안·최대 2), 날아온 무리 270초 유예, 검증·저장(`touch`·`touchRest`·`from`·`flyAt`).
+  - `creature-art.js`·`scene.js`: 어린 단계 그림 5종 표시, `pillbugCurl`(돌돌이 0.7초 말림). 그림 `tools/draw-immature.cjs`.
+  - 버전 0.6.38 / versionCode 55. SRS: `Forest-Superbum-SRS-v2.26` SB-06·AC, `Forest-SmallNeighbours-SRS-v2.27` NB-11(·PDF).
+- 판단: 공중 전이 처음 값(성충 8·120초)은 친구 1명 12시간에 6~13번 퍼져 리들리 평균 몸 물이 1~4 낮아져서 16·300초로 줄였다(0~2번, 몸 물 이전과 비슷). ECO-13 "같은 짝 120초 재판정 안 함"은 '성공 뒤 120초'로 해석.
+- 한계: 웅크린 슈퍼범도 엘레판보다 넓어 기본 쉼터에서 다 자란 리들리와 함께 들어가지 못함(넓힌 쉼터부터). 기존 테스트 3건은 의도 유지 조정(superbum EC02·제자리 쉼, creatures 출현 간격에서 옮겨 붙은 무리 제외).
+- 검증: `npm test` 295/295, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.38/runtime`(상태 불변 확인), 측정 `docs/qa-0.6.38/pest-spread.json`. Android 실기기 미검증.
+- 대기: 두리 전용 그림(사용자 "차차").

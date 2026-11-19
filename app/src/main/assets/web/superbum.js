@@ -4,6 +4,7 @@
 // tools/rig-superbum.py), one full set per state: 'dry' (마른 둥지) and 'wet' (물 고인 둥지, the nest frond holds rain).
 // Layers share one 480x420 canvas, feet on the ground at ANCHOR. No arms: the pendant antler leaves (skirt) are the limbs.
 const SIZE=1.7,ANCHOR=[240,404],HEIGHT=382,RIDLEY_H=38.5;
+const HUDDLE={crown:.15,lift:10,skirt:-.15};
 const LAYERS=['body','foot-left','foot-right','skirt-left','skirt-right','crown'];
 const files={};for(const st of ['dry','wet'])for(const k of LAYERS)files['superbum_'+st+'_'+k]='assets/forest/species/superbum-'+st+'-'+k+'.png';
 const META={
@@ -22,7 +23,7 @@ function pose(kind,t,opt={}){
  const reduced=!!opt.reduced,full=(opt.water??0)>=WET_ON,moving=MOVING.includes(kind),run=kind==='run'||kind==='hurry';
  const speed=(run?11:kind==='slow'?5.5:7.5)*(full?.8:1),step=t*speed,beat=Math.sin(step);
  const p={bob:0,sink:0,tilt:0,squash:1,crown:0,crownLift:0,crownScale:1,skirt:[0,0],skirtLift:[0,0],feet:[{dx:0,dy:0,rot:0},{dx:0,dy:0,rot:0}],eyes:opt.expression||'neutral',look:0,pour:0,drips:0,shimmer:full?1:0};
- if(reduced){if(kind==='rest'||kind==='sleep'||kind==='moss'){p.sink=6;p.eyes='sleepy';}return p;}
+ if(reduced){if(kind==='rest'||kind==='sleep'||kind==='moss'){p.sink=6;p.eyes='sleepy';}return huddle(p,opt);}
  const breathe=Math.sin(t*1.3);
  p.bob=breathe*1.2;p.skirt=[Math.sin(t*1.1)*.02,-Math.sin(t*1.1+.6)*.02];p.crown=Math.sin(t*.9)*.012;
  if(moving){
@@ -44,8 +45,11 @@ function pose(kind,t,opt={}){
  if(kind==='collect'){p.crownScale=1.025+Math.sin(t*2)*.008;p.eyes=opt.expression||'happy';p.look=-1;}
  // 물 나눔: the nest tips toward the friend and pours a thin stream from its rim.
  if(kind==='share'){const side=opt.side||1,q=ease(Math.min(1,(t%6)/1.2))*(1-ease(((t%6)-4.8)/1.2));p.crown=side*.12*q;p.tilt=side*.05*q;p.pour=full?q:0;p.skirt=[side*.08*q,side*.08*q];p.eyes=opt.expression||'happy';}
- return p;
+ return huddle(p,opt);
 }
+// 0.6.38: inside a shelter 슈퍼범 folds its nest leaf down and draws its side leaves in (opt.huddle 0..1), so a grown
+// 슈퍼범 takes 엘레판's room. The shelter outline (PROFILES.superbumHuddle) is baked from this real pose, not a shrunk body.
+function huddle(p,opt){const h=Math.max(0,Math.min(1,opt.huddle||0));if(!h)return p;p.huddled=h;p.crownScale*=1-HUDDLE.crown*h;p.crownLift+=HUDDLE.lift*h;p.crown*=1-h;p.skirt=[p.skirt[0]+HUDDLE.skirt*h,p.skirt[1]-HUDDLE.skirt*h];return p;}
 function eyes(c,set,m,p,a,opt,t){
  const blink=!opt.reduced&&p.eyes==='neutral'&&(t+(opt.seed||0))%5.3<.13,e=blink?'sleepy':p.eyes;
  if(e==='neutral'&&!p.look)return;
@@ -82,8 +86,12 @@ function drawSet(c,a,set,p,opt,t){
  for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink);c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
  c.save();lift();
  // each side's leaves hang over its cheek
+ // huddled (0.6.38): the outer tips at the top of the side leaves sit under the nest brim; once the nest folds down they
+ // would stick out, so they are clipped away (only the leaf top outside x 90..390 above y 240)
+ const hc=p.huddled>.01;if(hc){c.save();c.beginPath();c.rect(-60,240,600,300);c.rect(90,-60,300,300);c.clip();}
  bend('skirt-left',m.skirt[0][1],p.skirt[0],p.skirtLift[0],true);
  bend('skirt-right',m.skirt[1][1],p.skirt[1],p.skirtLift[1],true);
+ if(hc)c.restore();
  const [cx,cy]=m.crown;c.save();c.translate(cx,cy);c.rotate(p.crown);c.scale(p.crownScale,p.crownScale);c.translate(-cx,-cy+p.crownLift);img('crown',true);const M=c.getTransform();c.restore();
  c.restore();return M;
 }
@@ -111,5 +119,5 @@ function drawLocal(c,a,opt={}){
 let buffer=null;function layerBuffer(){if(!buffer){buffer=typeof document!=='undefined'?document.createElement('canvas'):require('@napi-rs/canvas').createCanvas(480,540);buffer.width=480;buffer.height=540;}return buffer;}
 // draw in the common 1254-px rig frame (feet at 627,1065.9), the same frame every friend uses
 function draw(c,a,opt={}){c.save();c.translate(627,1065.9);c.scale(K,K);drawLocal(c,a,opt);c.restore();}
-return {SIZE,K,files,META,LAYERS,WET_ON,WET_FULL,pose,wetness,draw,drawLocal};
+return {SIZE,K,HUDDLE,files,META,LAYERS,WET_ON,WET_FULL,pose,wetness,draw,drawLocal};
 });
