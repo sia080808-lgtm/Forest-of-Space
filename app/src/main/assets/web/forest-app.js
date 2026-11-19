@@ -60,7 +60,7 @@ function renderPage(){const page=$('page'),p=state.individuals[0];
   else if(dex==='neighbors'){const seen=state.objects?.creatures?.seen||{};
    // SRS NAM-03: say the current relationship, never 'good/bad bug'; ECO-09: name, class, role, why it is here, food, when it leaves
    const N=[['돌돌이','Armadillidium vulgare · 육상 등각류(갑각류)','비 갠 뒤 촉촉한 이끼 곁, 물이 고이지 않은 바위틈에 쉬러 와요. 머무는 동안 바위틈 근처 낙엽 분해를 조금(×1.1) 도와요. 친구가 가까이 오면 공처럼 말려요.',!!state.discoveries.neighbor],
-    ['짐꾼개미','개미 · 곤충','리들리 곁 흙더미 둥지에서 지내며 흩어진 낙엽을 낙엽더미로 날라요. 솜깍지의 감로가 많으면 그 곁을 지키며 운반을 쉬어요.',!!seen.ant],
+    ['짐꾼개미','개미 · 곤충','리들리마다 곁 흙더미에 군락을 이뤄(숲에 3군락까지) 낮에 둥지 둘레의 흩어진 낙엽을 낙엽더미로 날라요. 밤이나 비·눈·강풍에는 둥지에서 쉬고, 솜깍지의 감로가 많으면 그 곁을 지켜요.',!!seen.ant],
     ['톡토기','Collembola · 톡토기류','촉촉한 낙엽더미에 머물며 그 더미의 분해를 1.25배 도와요. 엘리시가 가까이 있으면 더 잘 찾아와요.',!!seen.springtail],
     ['잎응애','Tetranychus 계열 · 진드기류','덥고 마른 잎(뜨거운 햇살 바위, 목마름)에 자리를 잡고 늘어나면 잎이 지쳐요. 잎이 촉촉해지거나 친구가 잎을 정돈하면 줄어요.',!!seen.mite],
     ['잎지기','Phytoseiulus persimilis · 진드기류','잎응애가 실제로 있고 잎이 적당히 촉촉할 때 찾아와 잎응애를 먹어요. 먹이가 없으면 떠나요.',!!seen.keeper],

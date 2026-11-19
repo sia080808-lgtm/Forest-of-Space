@@ -95,8 +95,8 @@ class ForestScene {
      if(x!=null)Art.neighbour(c,A,'roveBeetle',{x,y,size:w*.028,dir,phase:t,still});}
     continue;}
    if(g.kind==='ant'){const n=g.nest;Art.nestSprite(c,A,{x:n.x*w,y:n.y*h,size:w*.11});
-    // two workers patrol around the nest
-    for(let k=0;k<2;k++){const a=t*.35+k*Math.PI,x=n.x*w+Math.cos(a)*w*.06,y=n.y*h+w*.006+Math.sin(a)*w*.02,dir=-Math.sin(a)>=0?1:-1;Art.antSprite(c,A,{x,y,size:w*.03,dir,phase:t+k*.4,still:s.settings.reducedMotion});}
+    // two workers patrol around the nest by day in dry, calm weather; at night, in rain, snow or strong wind they stay inside (0.7.1)
+    if(Forest.Creatures?.antActive?.(s)!==false)for(let k=0;k<2;k++){const a=t*.35+k*Math.PI,x=n.x*w+Math.cos(a)*w*.06,y=n.y*h+w*.006+Math.sin(a)*w*.02,dir=-Math.sin(a)>=0?1:-1;Art.antSprite(c,A,{x,y,size:w*.03,dir,phase:t+k*.4,still:s.settings.reducedMotion});}
     if(g.carry){// walk out from the nest to the leaf (the leaf still lies there), then carry it to the destination
      const q=g.carry,u=Math.min(1,Math.max(0,(s.worldTick-q.start+frac)/Math.max(1,q.arrive-q.start))),d1=Math.hypot(q.fromX-n.x,q.fromY-n.y),d2=Math.hypot(q.to.x-q.fromX,q.to.y-q.fromY),split=d1/Math.max(1e-6,d1+d2);
      if(u<split){const v=u/split,x=(n.x+(q.fromX-n.x)*v)*w,y=(n.y+(q.fromY-n.y)*v)*h;this.drawFallenLeaf(q.fromX*w,q.fromY*h,q.rot,.23*w*.62,q.leafId);Art.antSprite(c,A,{x,y,size:w*.03,dir:q.fromX>=n.x?1:-1,phase:t,still:s.settings.reducedMotion});}
