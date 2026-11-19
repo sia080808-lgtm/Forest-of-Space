@@ -11,7 +11,8 @@ const Rec=typeof module==='object'?require('./recruitment.js'):globalThis.Forest
 const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
-const VERSION='0.6.38', RULES='SRS-2.19-objects', SCHEMA=1;
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
+const VERSION='0.7.0', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -30,13 +31,13 @@ function seedInt(str){let h=2166136261;for(const c of str)h=Math.imul(h^c.charCo
 function rng(s,key){let x=s.rng[key]>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng[key]=x>>>0;return (x>>>0)/4294967296;}
 function personality(id){let h=seedInt(id);return {version:1,a:h%3-1,c:Math.floor(h/3)%3-1,e:Math.floor(h/9)%3-1};}
 function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
- return Obj.init(Env.init(Rec.init(Sh.init(Social.init({schema:SCHEMA,app:'ForestOfSpace',version:VERSION,rules:RULES,createdAt:now,savedAt:now,deviceId:uid(),mode:'game',started:false,worldTick:0,layoutRevision:0,
+ return World.init(Obj.init(Env.init(Rec.init(Sh.init(Social.init({schema:SCHEMA,app:'ForestOfSpace',version:VERSION,rules:RULES,createdAt:now,savedAt:now,deviceId:uid(),mode:'game',started:false,worldTick:0,layoutRevision:0,
   rng:{weather:seedInt(seed+'weather'),behavior:seedInt(seed+'behavior'),neighbor:seedInt(seed+'neighbor')},
   weather:{kind:'sun',remaining:120,streak:1,intensity:35,wind:20,strongSeconds:0,transition:0,lastRainEnd:-9999,rainEpoch:0,lastRainEpoch:0},climate:{T:65,H:70,L:80},
   patches:PATCHES.map(p=>({...p,S:({moss:2,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:0,U:p.id==='litter'?10:0,rainTotal:0,film:0})),spring:{x:.20,y:.72,water:60},
   individuals:[{id,species:'ridley',name:'리들리',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
   settings:{audio:{master:.65,music:.35,environment:.45,effects:.55},reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,theme:'auto'},
-  ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{observed:0,validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null})))));
+  ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{observed:0,validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null}))))));
 }
 function level(p){let n=1;LEVELS.forEach((x,i)=>{if(p.xp>=x)n=i+1;});return n;}
 function health(p){return p.active&&!p.mounted&&p.B>=35&&p.B<=80&&p.energy>=40&&p.nutrition>=40&&p.burden<60&&p.damage<30;}
@@ -146,8 +147,8 @@ function resume(s,now=Date.now()){
  const result={seconds:s.offline.mode==='game'&&s.started?seconds:0,xp:s.individuals.reduce((n,p)=>n+p.xp,0)-start};s.offline=null;Sh.rebuild(s);s.savedAt=Math.max(s.savedAt,now);return result;
 }
 function validateLayout(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
- if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||spring.x<.14||spring.x>.86||spring.y<.18||spring.y>.84)throw Error('샘터를 정원 안쪽에 놓아주세요.');
- for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<.12||p.x>.88||p.y<.16||p.y>.88)throw Error('정원 가장자리 안쪽에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
+ if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');
+ for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
  for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
  const world={...s,patches:next,spring};
  for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
@@ -159,6 +160,7 @@ function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(
 function valid(s){
  if(!s||s.schema!==1||s.app!=='ForestOfSpace'||s.rules!==RULES)throw Error('이 버전에서 읽을 수 있는 여백의 숲 백업이 아니에요.');
  const finite=(v,min=0,max=1e15)=>Number.isFinite(v)&&v>=min&&v<=max;
+ World.validate(s);const wb=World.bounds(s);
  if(!finite(s.savedAt)||!finite(s.worldTick)||!Number.isInteger(s.worldTick)||!finite(s.layoutRevision)||!['game','landscape'].includes(s.mode)||typeof s.started!=='boolean')throw Error('시계 또는 모드 기록이 올바르지 않아요.');
  if(!s.weather||!['sun','cloud','rain','fog','snow'].includes(s.weather.kind)||!finite(s.weather.remaining,0,240)||!finite(s.weather.streak,1,2)||!finite(s.weather.intensity,0,100)||!finite(s.weather.wind,0,100)||!finite(s.weather.strongSeconds)||!finite(s.weather.transition,0,10)||!Number.isFinite(s.weather.lastRainEnd))throw Error('날씨 기록을 확인해 주세요.');
  if(!s.climate||['T','H','L'].some(k=>!finite(s.climate[k],0,100)))throw Error('기후 기록을 확인해 주세요.');
@@ -168,7 +170,7 @@ function valid(s){
  if(!s.spring||!finite(s.spring.x,.14,.86)||!finite(s.spring.y,.18,.84)||!finite(s.spring.water,0,Obj.capacity(s,'spring')))throw Error('샘터 기록을 확인해 주세요.');
  validateLayout(s,{});
  if(!Array.isArray(s.individuals)||s.individuals.length<1||s.individuals.length>50||s.individuals.filter(p=>p.active).length>50||new Set(s.individuals.map(p=>p.id)).size!==s.individuals.length)throw Error('친구의 식별 기록이 올바르지 않아요.');
- for(const p of s.individuals){if(typeof p.id!=='string'||!/^[-A-Za-z0-9_]{1,100}$/.test(p.id)||typeof p.name!=='string'||p.name.length>40||!Social.supported.includes(p.species)||typeof p.active!=='boolean'||typeof p.mounted!=='boolean'||typeof p.drinkCycle!=='boolean'||!['wander','drink','rest','groom','feed','play'].includes(p.action)||!finite(p.x,0,1)||!finite(p.y,0,1)||!finite(p.actionSeconds,-10,1000)||!finite(p.wetSeconds)||!p.first)throw Error('친구 기록을 확인해 주세요.');
+ for(const p of s.individuals){if(typeof p.id!=='string'||!/^[-A-Za-z0-9_]{1,100}$/.test(p.id)||typeof p.name!=='string'||p.name.length>40||!Social.supported.includes(p.species)||typeof p.active!=='boolean'||typeof p.mounted!=='boolean'||typeof p.drinkCycle!=='boolean'||!['wander','drink','rest','groom','feed','play'].includes(p.action)||!finite(p.x,wb.x0,wb.x1)||!finite(p.y,wb.y0,wb.y1)||!finite(p.actionSeconds,-10,1000)||!finite(p.wetSeconds)||!p.first)throw Error('친구 기록을 확인해 주세요.');
   if(p.target!==null&&p.target!=='spring'&&!PATCHES.some(z=>z.id===p.target)&&!(Obj.isPile(p.target)&&Obj.patch(s,p.target)))throw Error('이동 목적지가 올바르지 않아요.');
   for(const k of ['B','energy','mood','nutrition','damage','burden'])if(!finite(p[k],0,100))throw Error('생활 상태가 범위를 벗어났어요.');
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
@@ -184,7 +186,7 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&!Space.walkable(s,p,p.id)){const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}Obj.litterInit(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
+ if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&!Space.walkable(s,p,p.id)){const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}World.init(s);Obj.litterInit(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}
@@ -202,5 +204,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
+return {World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist};
 });

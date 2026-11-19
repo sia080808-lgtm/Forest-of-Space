@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestRecruitment=api;})(globalThis,function(){
 'use strict';
+const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;return w+(c>=0&&c<11172&&c%28?a:b);};
 const ids=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'],names=['리들리','엘리시','엘레판','베이치','코로나','두리','슈퍼범'];
 const needs={ridley:'쉼터와 주울 낙엽 1개',bonbon:'촉촉하고 물이 고이지 않는 이끼와 바위 틈',neolbi:'가까이 이어진 밝은 자리와 넓은 그늘',bosong:'건조하고 고요한 자리, 마실 물',jureong:'주울 낙엽과 마른 정리 자리',duri:'통로가 열린 조용한 쉼터',superbum:'물이 3할 넘게 찬 샘터와 그곳으로 가는 길'};
@@ -17,7 +18,7 @@ function init(s){s.recruitment??={version:1,serial:0,target:null,visitor:null,pr
 const routeCache=new Map();
 function route(s,Space,a,b){const key=JSON.stringify([s.layoutRevision,s.patches.map(p=>[p.x,p.y]),s.shelters.facilities,s.spring.x,s.spring.y,Space.obstacles(s).map(o=>[o.id,o.x,o.y,o.rx,o.ry]),a,b]);if(routeCache.has(key))return routeCache.get(key);const result=Space.route(s,a,b);if(routeCache.size>128)routeCache.clear();routeCache.set(key,result);return result;}
 const rawLeaves=s=>(typeof module==='object'?require('./litter.js'):globalThis.ForestLitter).floor(s,true);
-function conditions(s,id,Space,Social){const litter=s.patches.find(p=>p.id==='litter'),shade=s.patches.find(p=>p.id==='shade'),dry=s.patches.find(p=>100*p.S/p.cap<60&&p.W<1),water=s.spring.water>=1||s.patches.some(p=>p.W>=1),start={x:.50,y:.90};const accessible=q=>q&&route(s,Space,start,Space.socket(s,q.id||'spring'));
+function conditions(s,id,Space,Social){const litter=s.patches.find(p=>p.id==='litter'),shade=s.patches.find(p=>p.id==='shade'),dry=s.patches.find(p=>100*p.S/p.cap<60&&p.W<1),water=s.spring.water>=1||s.patches.some(p=>p.W>=1),start=World.entrance(s);const accessible=q=>q&&route(s,Space,start,Space.socket(s,q.id||'spring'));
  const safe=s.weather.wind<60&&!s.environment?.storm,base=safe&&accessible({id:'shelter'});let habitat=false;
  if(id==='ridley')habitat=rawLeaves(s)>=1&&!!accessible(litter);
  if(id==='duri')habitat=s.shelters.facilities.some(f=>s.individuals.filter(p=>p.shelter?.facilityId===f.id&&p.active).length===0);
