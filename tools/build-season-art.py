@@ -45,42 +45,44 @@ def noise(shape, scale, seed):
 # snow depth (px of the source picture) per picture: deep on stones, roof and broad leaves, light on the fine fern fronds
 THICK = {'terrain': 34, 'shelter-art': 30, 'shade-plant': 18, 'shade-ground': 0, 'garden-dry': 12, 'frame': 12,
          **{f'fern-{i}': 6 for i in range(1, 7)}}
+BIAS = {**{f'fern-{i}': -.25 for i in range(1, 7)}, 'frame': -.2}
 GREY = np.array([196, 202, 206], np.float32); RIM = np.array([128, 134, 140], np.float32)
 
 def solid_near(solid):
     return ndimage.binary_dilation(solid, iterations=2).astype(np.float32)
 
-def heavy_snow(res, al, solid, T, seed):
-    """A layer of snow on every upward-facing surface, as blank paper: from the top edge down to a depth that varies
-    softly (0.55~1.45 x T), heaped a little above the edge (rounded), the lower part in a faint cool grey wash and a thin
-    grey ink line where the snow ends."""
+def heavy_snow(res, al, solid, T, seed, bias=0.0):
+    """Snow lying on the surfaces that face the sky. The pictures are drawn from above at an angle, so the top of a stone,
+    the roof of the shelter or the face of a broad leaf is a whole visible plane, not just the silhouette's edge: the
+    snow covers the upper part of each object (by its height in that column) and, more, the parts the painting lights
+    from above; the sides and the shadowed faces keep their colour. Snow is blank paper with a faint cool shade on its
+    shadowed side, a soft grey ink line along its top and a faint one where it ends."""
     if T <= 0:
         return res, al
     H, W = solid.shape
-    # depth below the object's own top edge in this column (per connected part, so light texture inside a stone or a gap
-    # between strokes does not restart the snow and make streaks)
     lab, n = ndimage.label(solid)
-    top = np.full((n + 1) * W, H, np.int64); ys, xs = np.nonzero(lab); key = lab[ys, xs] * W + xs
-    np.minimum.at(top, key, ys)
+    if n:                                                   # tiny pieces (sprout tips, specks) get no snow
+        size = ndimage.sum(np.ones_like(lab), lab, index=np.arange(1, n + 1))
+        small = np.r_[False, size < max(160, T * T * .6)]; solid = solid & ~small[lab]; lab, n = ndimage.label(solid)
+    top = np.full((n + 1) * W, H, np.int64); bot = np.zeros((n + 1) * W, np.int64)
+    ys, xs = np.nonzero(lab); key = lab[ys, xs] * W + xs
+    np.minimum.at(top, key, ys); np.maximum.at(bot, key, ys)
     run = np.zeros((H, W), np.float32); run[ys, xs] = ys - top[key] + 1
-    below = np.full((H, W), 1e4, np.float32)               # for open pixels: distance down to the surface
-    for y in range(H - 2, -1, -1):
-        below[y] = np.where(solid[y], 0, np.where(solid[y + 1], 1, below[y + 1] + 1))
-    nz = noise((H, W), max(3, T * 1.4), seed); teff = T * (.55 + .9 * nz)
-    cap = np.clip((teff - run) / 2.5, 0, 1) * solid
-    heap = T * .12 * (.4 + .9 * noise((H, W), max(3, T * 2), seed + 1))   # only a slight swell above the edge
-    bulge = np.clip((heap - below) / 1.5, 0, 1) * (~solid)
-    bulge = ndimage.gaussian_filter(bulge, (T * .08, T * .35)) > .45   # round the heaps sideways
-    a = np.maximum(cap, bulge.astype(np.float32) * solid_near(solid)); a = ndimage.gaussian_filter(a, .6)
-    f = np.clip(run / np.maximum(teff, 1), 0, 1) * solid               # 0 at the top of the snow, 1 at its lower edge
-    col = SNOW * (1 - .28 * f[..., None]) + GREY * (.28 * f[..., None])
+    frac = np.zeros((H, W), np.float32); frac[ys, xs] = (ys - top[key]) / np.maximum(1, bot[key] - top[key] + 1)
+    L = res.mean(2); m = solid.astype(np.float32)
+    sig = max(4, T * .8); loc = ndimage.gaussian_filter(L * m, sig) / np.maximum(ndimage.gaussian_filter(m, sig), 1e-3)
+    lit = np.clip((L - loc) / 35, -1, 1)
+    nz = noise((H, W), max(3, T * .9), seed)
+    score = 1.05 + bias - frac * 1.75 + .45 * lit + .3 * (nz - .5)
+    a = np.clip((score - .38) / .22, 0, 1) * solid; a = ndimage.gaussian_filter(a, .7) * solid
+    shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)                  # shadowed / lower snow a touch grey
+    col = SNOW * (1 - .22 * shade[..., None]) + GREY * (.22 * shade[..., None])
     out = res * (1 - a[..., None]) + col * a[..., None]
-    rim = (cap * (1 - cap) * 4 * solid); rim = ndimage.gaussian_filter(rim, .6)
-    # the snow's top edge as a thin, soft ink line (snow is blank paper; the line gives it its shape on white ground)
-    edge = ((run == 1) & (cap > .5)).astype(np.float32); edge = ndimage.gaussian_filter(edge, .7) * 1.6
+    rim = ndimage.gaussian_filter(a * (1 - a) * 4 * solid, .6) * .7
+    edge = ndimage.gaussian_filter(((run == 1) & (a > .5)).astype(np.float32), .7) * 1.5
     rim = np.clip(rim + edge, 0, 1)
     out = out * (1 - .3 * rim[..., None]) + RIM * (.3 * rim[..., None])
-    return out, np.maximum(al, a * 242)
+    return out, al
 
 def season(name, im, kind, se):
     a = np.asarray(im.convert('RGBA')).astype(np.float32); rgb, al = a[..., :3].copy(), a[..., 3].copy()
@@ -124,7 +126,12 @@ def season(name, im, kind, se):
             solid = ndimage.binary_opening(solid, iterations=1)
             # light texture spots inside a stone or leaf are still part of its surface (otherwise the snow runs down in streaks)
             solid = ndimage.binary_fill_holes(ndimage.binary_closing(solid, iterations=2)) & (al > 30)
-            res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name))
+            res, al = heavy_snow(res, al, solid, THICK.get(name, 8), 21 + len(name), BIAS.get(name, 0.0))
+            if name == 'shelter-art':
+                # inside the arch: the warm light paper-brown becomes a cool pale shade (no cream hole on the snow)
+                Lm = res.mean(2); sat = (res.max(2) - res.min(2)) / np.maximum(res.max(2), 1)
+                inner = np.clip((Lm - 140) / 40, 0, 1) * np.clip((.32 - sat) / .12, 0, 1)
+                res = res + (np.array([226, 228, 228], np.float32) - res) * (inner[..., None] * .65)
     if se == 'winter':
         # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
         # paper-coloured pixels become snow-white

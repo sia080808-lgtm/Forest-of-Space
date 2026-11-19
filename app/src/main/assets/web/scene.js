@@ -28,7 +28,10 @@ class ForestScene {
  // winter: one continuous snow cover over most of the ground (cached), the paper showing through in thawing patches;
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
  // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
- snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);c.restore();}
+ snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);
+  // a few very faint, broad grey washes: the gentle rise and fall of the snow (barely visible, no clutter)
+  for(let i=0;i<9;i++){const x=(W.x0+((i*.618034+.21)%1)*(W.x1-W.x0))*w,y=(W.y0+((i*.381966+.13)%1)*(W.y1-W.y0))*h,r=(.18+.08*(i%3))*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,178,184,.07)');g.addColorStop(1,'rgba(170,178,184,0)');c.save();c.translate(x,y);c.scale(1,.38);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}
+  c.restore();}
  // winter footprints (render only, not saved): a pair of soft grey ink dabs per step, fading over 30 s
  footprint(key,pos,p){this._prints??=[];this._printKeys??=new Set();if(this._printKeys.has(key))return;this._printKeys.add(key);if(this._printKeys.size>600)this._printKeys.delete(this._printKeys.values().next().value);
   const big=['neolbi','superbum'].includes(p.species)?1.4:1,side=this._prints.length%2?1:-1;this._prints.push({x:pos.x,y:pos.y,side,big,at:performance.now()/1000});if(this._prints.length>240)this._prints.shift();}
@@ -90,8 +93,9 @@ class ForestScene {
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves + compost) on the ground.
  drawFallenLeaf(x,y,rot,size,idx,alpha=1){const c=this.ctx,shapes=this.leafShapes,pts=shapes[idx%shapes.length],cx=pts.reduce((v,q)=>v+q[0],0)/pts.length,cy=pts.reduce((v,q)=>v+q[1],0)/pts.length;
   c.save();c.globalAlpha*=alpha;c.translate(x,y);c.scale(1,.62);c.rotate(rot);c.scale(size/512,size/512);c.translate(-cx,-cy);const shape=()=>{c.beginPath();pts.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();};
-  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.sa('terrain'),0,0);const au=this.autumnLeaf();if(au>0){c.globalCompositeOperation='multiply';c.globalAlpha*=au;c.fillStyle=['#E0773A','#D9532E','#E8A23C','#B8562E'][idx%4];c.fillRect(-64,-64,640,640);}c.restore();}
+  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.sa('terrain'),0,0);const wi=this.winterAmt();if(wi>0){c.save();c.globalAlpha*=.6*wi;c.fillStyle='rgb(248,248,245)';c.fillRect(-64,-64,640,640);c.restore();}const au=this.autumnLeaf();if(au>0){c.globalCompositeOperation='multiply';c.globalAlpha*=au;c.fillStyle=['#E0773A','#D9532E','#E8A23C','#B8562E'][idx%4];c.fillRect(-64,-64,640,640);}c.restore();}
  // 0.8.0: in autumn the fallen leaves turn orange, rust and amber (render only); fades in and out with the season
+ winterAmt(){const c=this.cal();return !c?0:c.id==='winter'?c.blend:c.prev==='winter'?1-c.blend:0;}
  autumnLeaf(){const E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state();if(!E||!s?.environment)return 0;const c=E.calendar(s);return c.id==='autumn'?.55*c.blend:c.prev==='autumn'&&c.blend<1?.55*(1-c.blend):0;}
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves heaped in a low mound, compost beneath).
  drawFallen(){const s=this.state(),L=s.objects?.litter;if(!L)return;const c=this.ctx,w=this.w,h=this.h,size=.23*w*.62;
