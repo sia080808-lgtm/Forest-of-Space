@@ -1,10 +1,14 @@
 package com.ridleydesk.mobile;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.AtomicFile;
 import android.view.View;
 import android.view.WindowInsets;
@@ -148,6 +152,34 @@ public final class MainActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
                 try { startActivityForResult(i, IMPORT); } catch (Exception e) { message("파일 선택 앱을 열 수 없습니다."); }
             } });
+        }
+        /** 0.8.2: save a photo of the world (PNG from the game canvas) to Pictures/여백의 숲. MediaStore needs no permission on API 29+. */
+        @JavascriptInterface public boolean savePhoto(String dataUrl, String name) {
+            final String head = "data:image/png;base64,";
+            if (dataUrl == null || !dataUrl.startsWith(head) || dataUrl.length() > 4 * MAX_BYTES) return false;
+            String file = (name == null || !name.matches("[\\p{L}\\p{N}._-]{1,80}\\.png")) ? "Forest-of-Space.png" : name;
+            Uri uri = null;
+            try {
+                byte[] png = Base64.decode(dataUrl.substring(head.length()), Base64.DEFAULT);
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Images.Media.DISPLAY_NAME, file);
+                v.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+                v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/여백의 숲");
+                v.put(MediaStore.Images.Media.IS_PENDING, 1);
+                uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) return false;
+                try (OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+                    if (out == null) throw new IllegalStateException();
+                    out.write(png);
+                }
+                v.clear();
+                v.put(MediaStore.Images.Media.IS_PENDING, 0);
+                getContentResolver().update(uri, v, null, null);
+                return true;
+            } catch (Exception e) {
+                if (uri != null) { try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { } }
+                return false;
+            }
         }
         @JavascriptInterface public void theme(final boolean dark) {
             runOnUiThread(new Runnable() { @Override public void run() {
