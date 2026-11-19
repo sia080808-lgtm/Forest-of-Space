@@ -73,9 +73,11 @@ def surface(res, solid, T, seed, bias=0.0, small_min=160):
     return a, run, frac, lit, solid
 
 FRESH = np.array([178, 190, 150], np.float32)
+# 가을 잎 on the objects: muted vermilion, rust, sienna, ochre and ginkgo yellow (ink-wash, low saturation)
+AUTUMN_LEAVES = np.array([[200, 120, 88], [178, 96, 72], [190, 140, 92], [214, 176, 108], [168, 118, 80]], np.float32)
 BLOSSOM = np.array([244, 206, 204], np.float32); BLOSSOM_IN = np.array([214, 142, 146], np.float32)   # 벚꽃
 
-def spring_growth(res, al, solid, T, seed, bias=0.0):
+def spring_growth(res, al, solid, T, seed, bias=0.0, autumn=False):
     """Spring on the sky-facing surfaces, found the same way as the winter snow (perspective, not the outline): a light
     fresh wash of new moss, and cherry petals that have fallen on those surfaces (user: "다른 오브젝트들도 적당히 벚꽃잎들이
     퍼스펙티브 고려해서 벚꽃이 덮혔으면"). The petals are small, outline-less pale-pink touches with a deeper base, lying
@@ -84,28 +86,33 @@ def spring_growth(res, al, solid, T, seed, bias=0.0):
     if T <= 0:
         return res, al
     a, run, frac, lit, solid = surface(res, solid, T, seed, bias)
-    w = (a * .35)[..., None]
-    out = res * (1 - w) + (res * .4 + FRESH * .6) * w
+    w = (a * (0 if autumn else .35))[..., None]
+    out = res * (1 - w) + (res * .4 + FRESH * .6) * w   # (autumn: AUTUMN_LEAVES fall on the same surfaces, a little fewer)
     H, W = solid.shape
     rng = np.random.default_rng(seed + 7)
     cand = np.argwhere(a > .3)
     if not len(cand):
         return out, al
     r0 = max(3.0, T * (.36 if T > 20 else .22))                                              # petal half-length in pixels
-    n = int(len(cand) / (r0 * r0 * 4.5))                                   # moderate cover
+    n = int(len(cand) / (r0 * r0 * (7 if autumn else 4.5)))                                   # moderate cover
     pa = a[cand[:, 0], cand[:, 1]]; pick = cand[rng.random(len(cand)) < np.clip(n / len(cand) * pa * 1.6, 0, 1)]
-    cov = np.zeros((H, W), np.float32); deep = np.zeros((H, W), np.float32)
+    cov = np.zeros((H, W), np.float32); deep = np.zeros((H, W), np.float32); tint = np.zeros((H, W, 3), np.float32) + BLOSSOM
     def petal(cy, cx, r, ang):
         y0, y1, x0, x1 = max(0, int(cy - r - 2)), min(H, int(cy + r + 3)), max(0, int(cx - r - 2)), min(W, int(cx + r + 3))
         if y0 >= y1 or x0 >= x1: return
         yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32); dy, dx = (yy - cy) / .55, xx - cx      # lying on the slant
         u = dx * np.cos(ang) + dy * np.sin(ang); v = -dx * np.sin(ang) + dy * np.cos(ang)
         d = np.sqrt((u / r) ** 2 + (v / (r * .62)) ** 2)
-        m = np.clip((1 - d) * 3, 0, 1) * (1 - np.clip((u / r - .78) * 6, 0, 1) * np.clip(1 - np.abs(v) / (r * .18), 0, 1))  # notch
+        if autumn:   # a pointed leaf: narrower toward its tip
+            d = np.sqrt((u / r) ** 2 + (v / (r * .5 * np.clip(1 - u / r * .55, .2, 1.4))) ** 2); m = np.clip((1 - d) * 3, 0, 1)
+            col = AUTUMN_LEAVES[rng.integers(len(AUTUMN_LEAVES))] * rng.uniform(.94, 1.04)
+            sel = m > cov[y0:y1, x0:x1]; tint[y0:y1, x0:x1][sel] = col
+        else:
+            m = np.clip((1 - d) * 3, 0, 1) * (1 - np.clip((u / r - .78) * 6, 0, 1) * np.clip(1 - np.abs(v) / (r * .18), 0, 1))  # notch
         cov[y0:y1, x0:x1] = np.maximum(cov[y0:y1, x0:x1], m * rng.uniform(.8, 1.0))
         deep[y0:y1, x0:x1] = np.maximum(deep[y0:y1, x0:x1], m * np.clip(-u / r, 0, 1) * .8)
     for y, x in pick:
-        if rng.random() < .1:                                            # a whole blossom
+        if not autumn and rng.random() < .1:                             # a whole blossom
             R = r0 * 1.3
             for k in range(5):
                 ang = k / 5 * 2 * np.pi + rng.uniform(0, 1)
@@ -114,7 +121,8 @@ def spring_growth(res, al, solid, T, seed, bias=0.0):
             petal(y + rng.normal(0, 1), x + rng.normal(0, 1), r0 * rng.uniform(.75, 1.15), rng.uniform(0, 2 * np.pi))
     cov *= solid; deep *= solid
     shade = np.clip(.5 - lit * .5 + frac * .4, 0, 1)[..., None]
-    col = (BLOSSOM * (1 - deep[..., None]) + BLOSSOM_IN * deep[..., None]) * (1 - .1 * shade)
+    base = tint if autumn else BLOSSOM; inner = tint * .8 if autumn else BLOSSOM_IN
+    col = (base * (1 - deep[..., None]) + inner * deep[..., None]) * (1 - .1 * shade)
     out = out * (1 - cov[..., None]) + col * cov[..., None]
     return out, al
 
@@ -144,6 +152,8 @@ def season(name, im, kind, se):
         leaf = np.clip((hd - 22) / 10, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .08) / .12, 0, 1) * (al > 8)
     else:                 # elsewhere straw, paper and stone sit at hue 25~45 / low saturation: only real greens are leaves
         leaf = np.clip((hd - 46) / 10, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .16) / .12, 0, 1) * (al > 8)
+    if se == 'autumn' and name == 'shelter-art':   # the shelter's plants are olive-yellow (hue 40~55, saturated), the straw is hue 30~40
+        leaf = np.maximum(leaf, np.clip((hd - 39) / 4, 0, 1) * np.clip((170 - hd) / 20, 0, 1) * np.clip((s - .38) / .08, 0, 1) * (al > 8))
     ink = np.clip((.55 - v) / .35, 0, 1)                        # dark strokes: keep them (ink)
     edge = np.clip(1 - ndimage.distance_transform_edt(al > 40) / 8, 0, 1)
     if se == 'spring':
@@ -151,7 +161,7 @@ def season(name, im, kind, se):
         grade = lambda x: x + (PAPER - x) * .04            # airy
     elif se == 'autumn':
         n = noise((H, W), max(H, W) / 14, 7 + len(name))
-        nh = (16 + 26 * n - 4 * edge) / 360; ns = np.minimum(s * 1.1 + .06, .38); nv = np.clip(v * (.99 - .04 * n), 0, 1)
+        nh = (24 + 18 * n - 4 * edge) / 360; ns = np.minimum(s * .95 + .04, .32); nv = np.clip(v * (.99 - .04 * n), 0, 1)   # ochre to rust, no pink (hue 20~42)
         grade = lambda x: x * np.array([1.0, .985, .955], np.float32)
     elif se == 'winter':
         nh = h; ns = s * .12; nv = np.clip(v * 1.02 + .02, 0, 1)
@@ -183,10 +193,10 @@ def season(name, im, kind, se):
         # on the white snow the picture's own paper (soft edges, gaps between strokes) must not show as a cream cut-out:
         # paper-coloured pixels become snow-white
         res = res + (SNOW - res) * (1 - paperish)
-    if se == 'spring' and kind != 'flora':
+    if se in ('spring', 'autumn') and kind != 'flora':
         solid = (paperish[..., 0] > .6) & (al > 200)
         solid = ndimage.binary_fill_holes(ndimage.binary_closing(ndimage.binary_opening(solid, iterations=1), iterations=2)) & (al > 30)
-        res, al = spring_growth(res, al, solid, THICK.get(name, 8), 31 + len(name), BIAS.get(name, 0.0))
+        res, al = spring_growth(res, al, solid, THICK.get(name, 8), 31 + len(name), BIAS.get(name, 0.0), autumn=se == 'autumn')
     if se == 'spring' and kind == 'flora':
         # a few plum-blossom dabs at frond tips (soft, pale, like a light brush touch)
         rng = np.random.default_rng(5 + len(name)); tips = np.argwhere((edge > .5) & (leaf > .5) & (al > 80))

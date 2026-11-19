@@ -27,9 +27,10 @@ class ForestScene {
   return o.sort((a,b)=>a.y-b.y);}
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
   for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}if(se==='spring'){for(const p of [...(s.patches||[]),...(s.spring?[{x:s.spring.x,y:s.spring.y}]:[])]){const x=p.x*w,y=(p.y+.012)*h,r=.1*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,198,132,.13)');g.addColorStop(1,'rgba(170,198,132,0)');c.save();c.translate(x,y);c.scale(1,.42);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}for(const q of this.bloomSpots(s)){const im=A['prop_bloom-'+q.v];if(!im)continue;const dw=q.size*w,dh=dw*im.height/im.width;c.save();c.translate(q.x*w,q.y*h);if(q.flip)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);c.restore();}}
+   if(se==='autumn'){const L=['maple-1','ginkgo-1','maple-2','ginkgo-2'];for(const [j,q] of this.bloomSpots(s).entries())for(let k=0;k<2+j%2;k++){const im=A['prop_'+L[(j*3+k)%4]];if(!im)continue;const sz=(.032+.006*((j+k)%3))*w,kk=sz/Math.max(im.width,im.height),a=j*2.4+k*2.2,x=q.x*w+Math.cos(a)*sz*.38*(q.flip?-1:1),y=q.y*h-sz*.12+Math.sin(a)*sz*.16;c.save();c.translate(x,y);c.scale(1,.6);c.rotate(j*2.1+k*1.9);c.drawImage(im,-im.width*kk/2,-im.height*kk/2,im.width*kk,im.height*kk);c.restore();}}
    for(const q of this.propSpots(s)){let name,size,rot=0;
     if(se==='spring'){continue;}   /* spring tufts: bloomSpots (around the objects) */
-    else if(se==='autumn'){if(q.near?q.k%2:q.k%3)continue;name=['maple-1','ginkgo-1','maple-2','ginkgo-2'][q.i%4];size=.036*w;rot=q.i*2.3;}
+    else if(se==='autumn'){continue;}   /* autumn: leaves gather at the feet of the objects (below), open ground stays empty */
     else continue;
     const im=A['prop_'+name];if(!im)continue;const k=size/Math.max(im.width,im.height),dw=im.width*k,dh=im.height*k;c.save();c.translate(q.x*w,q.y*h);if(rot){c.scale(1,.62);c.rotate(rot);c.drawImage(im,-dw/2,-dh/2,dw,dh);}else{if(q.i%2)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);}c.restore();}
    c.restore();}}
@@ -52,8 +53,8 @@ class ForestScene {
   c.restore();}
  // falling maple/ginkgo leaves in autumn and plum petals in spring (render only; still when motion is reduced)
  seasonFall(c,w,h,base){if(base&&this.springAmt()>0)this.petalsFromBranch(c,base);const cal=this.cal(),s=this.state();if(!cal||s.settings.reducedMotion)return;const al=cal.id==='autumn'||cal.id==='spring'?cal.blend:cal.prev==='autumn'||cal.prev==='spring'?1-cal.blend:0,se=cal.blend<.5?cal.prev:cal.id;if(al<=0||se!=='autumn')return;
-  const A=this.assets,t=this.phase||0,W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},n=se==='autumn'?7:14;c.save();c.globalAlpha*=al*.8;
-  for(let i=0;i<n;i++){const name=se==='autumn'?['maple-1','ginkgo-1','maple-2','ginkgo-2'][i%4]:i%2?'cherry-1':'cherry-2',im=A['prop_'+name];if(!im)continue;const span=(W.y1-W.y0)*h,fall=((t*(7+i%4*2)+i*211)%span),x=(W.x0+((i*.618034+.1)%1)*(W.x1-W.x0))*w+Math.sin(t*.6+i)*w*.03,y=W.y0*h+fall,size=(se==='autumn'?.038:.02)*w,k=size/Math.max(im.width,im.height);
+  const A=this.assets,t=this.phase||0,W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},n=se==='autumn'?4:14;c.save();c.globalAlpha*=al*.8;
+  for(let i=0;i<n;i++){const name=se==='autumn'?['maple-1','ginkgo-1','maple-2','ginkgo-2'][i%4]:i%2?'cherry-1':'cherry-2',im=A['prop_'+name];if(!im)continue;const span=(W.y1-W.y0)*h,fall=((t*(7+i%4*2)+i*211)%span),x=(W.x0+((i*.618034+.1)%1)*(W.x1-W.x0))*w+Math.sin(t*.6+i)*w*.03,y=W.y0*h+fall,size=(se==='autumn'?.03:.02)*w,k=size/Math.max(im.width,im.height);
    c.save();c.translate(x,y);c.rotate(Math.sin(t*1.3+i)*1.2+i);c.scale(1,.5+.5*Math.abs(Math.cos(t*1.7+i)));c.drawImage(im,-im.width*k/2,-im.height*k/2,im.width*k,im.height*k);c.restore();}
   c.restore();}
  static FERNS=[[-.17,.06,1,.5,0],[1.15,.22,2,.55,1],[-.15,.55,3,.6,0],[1.17,.62,6,.7,1],[.18,-.13,5,.5,0],[.78,-.15,4,.55,1],[.25,1.17,2,.5,1],[.88,1.15,3,.55,0],[-.12,1.05,6,.6,1],[1.12,1.02,1,.45,0],[.5,-.17,6,.55,0]];
@@ -105,11 +106,11 @@ class ForestScene {
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves + compost) on the ground.
  drawFallenLeaf(x,y,rot,size,idx,alpha=1){const sp=this.springAmt();if(sp>0){const im=idx%3?null:this.assets[idx%2?'prop_cherry-1':'prop_cherry-2'];if(im){const c=this.ctx,k=size*.36/Math.max(im.width,im.height);c.save();c.globalAlpha*=alpha*sp;c.translate(x,y);c.scale(1,.7);c.rotate(rot);c.drawImage(im,-im.width*k/2,-im.height*k/2,im.width*k,im.height*k);c.restore();}if(sp>=1)return;alpha*=1-sp;}const c=this.ctx,shapes=this.leafShapes,pts=shapes[idx%shapes.length],cx=pts.reduce((v,q)=>v+q[0],0)/pts.length,cy=pts.reduce((v,q)=>v+q[1],0)/pts.length;
   c.save();c.globalAlpha*=alpha;c.translate(x,y);c.scale(1,.62);c.rotate(rot);c.scale(size/512,size/512);c.translate(-cx,-cy);const shape=()=>{c.beginPath();pts.forEach(([x,y],j)=>j?c.lineTo(x,y):c.moveTo(x,y));c.closePath();};
-  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.sa('terrain'),0,0);const wi=this.winterAmt();if(wi>0){c.save();c.globalAlpha*=.6*wi;c.fillStyle='rgb(248,248,245)';c.fillRect(-64,-64,640,640);c.restore();}const au=this.autumnLeaf();if(au>0){c.globalCompositeOperation='multiply';c.globalAlpha*=au;c.fillStyle=['#E0773A','#D9532E','#E8A23C','#B8562E'][idx%4];c.fillRect(-64,-64,640,640);}c.restore();}
+  c.save();c.translate(0,4);c.filter='blur(3px)';shape();c.fillStyle='rgba(62,48,27,.2)';c.fill();c.restore();shape();c.clip();c.drawImage(this.sa('terrain'),0,0);const wi=this.winterAmt();if(wi>0){c.save();c.globalAlpha*=.6*wi;c.fillStyle='rgb(248,248,245)';c.fillRect(-64,-64,640,640);c.restore();}const au=this.autumnLeaf();if(au>0){c.globalCompositeOperation='multiply';c.globalAlpha*=au;c.fillStyle=['#C98C66','#B8735A','#D2AC72','#A87A5C'][idx%4];c.fillRect(-64,-64,640,640);}c.restore();}
  // 0.8.0: in autumn the fallen leaves turn orange, rust and amber (render only); fades in and out with the season
  springAmt(){const c=this.cal();return !c?0:c.id==='spring'?c.blend:c.prev==='spring'?1-c.blend:0;}
  winterAmt(){const c=this.cal();return !c?0:c.id==='winter'?c.blend:c.prev==='winter'?1-c.blend:0;}
- autumnLeaf(){const E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state();if(!E||!s?.environment)return 0;const c=E.calendar(s);return c.id==='autumn'?.55*c.blend:c.prev==='autumn'&&c.blend<1?.55*(1-c.blend):0;}
+ autumnLeaf(){const E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state();if(!E||!s?.environment)return 0;const c=E.calendar(s);return c.id==='autumn'?.45*c.blend:c.prev==='autumn'&&c.blend<1?.45*(1-c.blend):0;}
  // v2.24 sectors: loose leaves (one each, no compost) and piles (5~12 raw leaves heaped in a low mound, compost beneath).
  drawFallen(){const s=this.state(),L=s.objects?.litter;if(!L)return;const c=this.ctx,w=this.w,h=this.h,size=.23*w*.62;
   for(const l of L.leaves)this.drawFallenLeaf(l.x*w,l.y*h,l.rot,size,l.id);

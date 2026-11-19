@@ -42,22 +42,24 @@ save('sprout-3',140,110,c=>{for(let i=0;i<7;i++){const x=40+i*10+rnd()*4,h=40+rn
 save('blossom',90,90,c=>{for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2,x=45+Math.cos(a)*15,y=45+Math.sin(a)*15;const s=()=>{c.beginPath();c.ellipse(x,y,12,10,a,0,Math.PI*2);};wash(c,s,'rgba(240,206,204,.95)','rgba(214,150,152,.85)',1);}
  c.fillStyle='rgba(150,84,70,.8)';for(let k=0;k<8;k++){const a=k/8*Math.PI*2;c.beginPath();c.arc(45+Math.cos(a)*6,45+Math.sin(a)*6,1.3,0,Math.PI*2);c.fill();}
  c.fillStyle='rgba(206,160,72,.9)';c.beginPath();c.arc(45,45,3.2,0,Math.PI*2);c.fill();});
+// 가을 잎 (수묵 담채, 몰골법): no outline, no drawn veins. One bled wash of muted colour, pooled a little darker at the rim
+// and deeper toward the stalk; the stalk is a single fine ink touch.
+const fall=(c,shape,light,dark,base,bx,by,R)=>{c.save();c.filter=`blur(${R*.04}px)`;shape();c.fillStyle=light;c.fill();c.restore();
+ c.save();shape();c.clip();c.filter=`blur(${R*.07}px)`;c.lineWidth=R*.14;c.strokeStyle=dark;shape();c.stroke();c.filter='none';
+ const g=c.createRadialGradient(bx,by,0,bx,by,R*1.1);g.addColorStop(0,base);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(bx-R*2,by-R*2,R*4,R*4);c.restore();};
 // 단풍잎: five pointed lobes
-const maple=(c,cx,cy,R,light,dark)=>{const pts=[];for(let k=0;k<5;k++){const a=-Math.PI/2+(k-2)*.62,ra=R*(k===2?1:k===1||k===3?.9:.62);
-  const tipx=cx+Math.cos(a)*ra,tipy=cy+Math.sin(a)*ra,b1=a-.3,b2=a+.3;pts.push([cx+Math.cos(b1)*ra*.42,cy+Math.sin(b1)*ra*.42],[cx+Math.cos(a-.12)*ra*.8,cy+Math.sin(a-.12)*ra*.8],[tipx,tipy],[cx+Math.cos(a+.12)*ra*.8,cy+Math.sin(a+.12)*ra*.8],[cx+Math.cos(b2)*ra*.42,cy+Math.sin(b2)*ra*.42]);}
- const s=()=>{c.beginPath();c.moveTo(cx,cy+R*.18);pts.forEach(p=>c.lineTo(...p));c.closePath();};wash(c,s,light,dark,1);
- c.save();c.globalAlpha=.55;s();c.lineWidth=1.1;c.strokeStyle='rgba(90,40,30,.75)';c.stroke();c.restore();
- for(let k=0;k<5;k++){const a=-Math.PI/2+(k-2)*.62;stroke(c,[[cx,cy+R*.1],[cx+Math.cos(a)*R*.7,cy+Math.sin(a)*R*.7]],1.4,'rgba(110,46,34,.6)');}
- stroke(c,[[cx,cy+R*.15],[cx+2,cy+R*.55]],2.2,'rgba(96,52,38,.8)');};
-save('maple-1',120,120,c=>maple(c,60,58,42,'rgba(212,104,74,.95)','rgba(168,62,46,.9)'));
-save('maple-2',120,120,c=>maple(c,60,58,40,'rgba(222,140,70,.95)','rgba(186,92,48,.9)'));
-// 은행잎: a fan with a notch, fine parallel veins
-const ginkgo=(c,cx,cy,R,light,dark,notch)=>{const s=()=>{c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R,-Math.PI*.82,-Math.PI*.18);c.closePath();};
- c.save();wash(c,s,light,dark,1);c.restore();if(notch){c.save();c.globalCompositeOperation='destination-out';c.beginPath();c.moveTo(cx,cy-R*.55);c.lineTo(cx-4,cy-R-2);c.lineTo(cx+4,cy-R-2);c.closePath();c.fill();c.restore();}
- for(let k=0;k<11;k++){const a=-Math.PI*.8+k/10*Math.PI*.6;stroke(c,[[cx,cy-2],[cx+Math.cos(a)*R*.92,cy+Math.sin(a)*R*.92]],.7,'rgba(140,110,40,.45)');}
- c.save();c.globalAlpha=.5;s();c.lineWidth=1;c.strokeStyle='rgba(110,86,30,.7)';c.stroke();c.restore();stroke(c,[[cx,cy],[cx-2,cy+22]],2,'rgba(110,86,40,.8)');};
-save('ginkgo-1',120,120,c=>ginkgo(c,60,74,46,'rgba(236,200,92,.95)','rgba(196,150,52,.9)',true));
-save('ginkgo-2',120,120,c=>ginkgo(c,60,74,42,'rgba(230,186,80,.95)','rgba(182,136,44,.9)',false));
+const maple=(c,cx,cy,R,light,dark,base)=>{const pts=[];for(let k=0;k<5;k++){const a=-Math.PI/2+(k-2)*.62,ra=R*(k===2?1:k===1||k===3?.9:.62);
+  const tipx=cx+Math.cos(a)*ra,tipy=cy+Math.sin(a)*ra,b1=a-.3,b2=a+.3;pts.push([cx+Math.cos(b1)*ra*.45,cy+Math.sin(b1)*ra*.45],[cx+Math.cos(a-.1)*ra*.8,cy+Math.sin(a-.1)*ra*.8],[tipx,tipy],[cx+Math.cos(a+.1)*ra*.8,cy+Math.sin(a+.1)*ra*.8],[cx+Math.cos(b2)*ra*.45,cy+Math.sin(b2)*ra*.45]);}
+ const s=()=>{c.beginPath();c.moveTo(cx,cy+R*.18);pts.forEach(p=>c.lineTo(...p));c.closePath();};fall(c,s,light,dark,base,cx,cy+R*.1,R);
+ stroke(c,[[cx,cy+R*.15],[cx+2,cy+R*.5]],1.6,'rgba(96,60,44,.6)');};
+save('maple-1',120,120,c=>maple(c,60,58,42,'rgba(196,118,86,.8)','rgba(160,82,60,.35)','rgba(150,70,52,.4)'));
+save('maple-2',120,120,c=>maple(c,60,58,40,'rgba(206,150,96,.8)','rgba(172,108,68,.35)','rgba(160,92,58,.35)'));
+// 은행잎: a fan with a notch
+const ginkgo=(c,cx,cy,R,light,dark,base,notch)=>{const s=()=>{c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R,-Math.PI*.82,-Math.PI*.18);c.closePath();};
+ fall(c,s,light,dark,base,cx,cy,R*.9);if(notch){c.save();c.globalCompositeOperation='destination-out';c.filter='blur(1px)';c.beginPath();c.moveTo(cx,cy-R*.55);c.lineTo(cx-4,cy-R-2);c.lineTo(cx+4,cy-R-2);c.closePath();c.fill();c.restore();}
+ stroke(c,[[cx,cy],[cx-2,cy+20]],1.6,'rgba(110,90,46,.6)');};
+save('ginkgo-1',120,120,c=>ginkgo(c,60,74,46,'rgba(220,186,110,.82)','rgba(184,146,72,.35)','rgba(170,130,60,.35)',true));
+save('ginkgo-2',120,120,c=>ginkgo(c,60,74,42,'rgba(212,174,100,.82)','rgba(176,136,64,.35)','rgba(160,120,56,.35)',false));
 // 눈 더미: paper-white mound with a pale grey wash on its lower side (ink-wash snow)
 const drift=(c,W,H,lumps)=>{const s=()=>{c.beginPath();c.moveTo(4,H-14);for(const [x,,r] of lumps)c.ellipse(x,H-14,r,r*.42,0,Math.PI,0);c.lineTo(W-4,H-14);c.quadraticCurveTo(W/2,H-6,4,H-14);c.closePath();};
  c.save();c.filter='blur(2px)';s();c.fillStyle='rgba(250,249,245,.97)';c.fill();c.restore();
