@@ -25,9 +25,15 @@ class ForestScene {
    if(h!==2)o.push({x:p.x+hw*(.8+.12*((h+1)%2)),y:p.y+dy+.004,size:.052+.01*((h+1)%3),v:1+(h+1)%3,flip:!(h%2)});
    if(h%2===0)o.push({x:p.x-hw*.4,y:p.y+dy+.012,size:.04,v:2,flip:true});}
   return o.sort((a,b)=>a.y-b.y);}
+ // 0.8.1 가을: fallen leaves lie around each object (user: "떨어진 단풍잎 … 오브젝트들 주위로"): scattered on an ellipse round
+ // its foot, a little uneven, the ones at the back half hidden by the object; open ground stays empty.
+ leafRing(s){const RING={rock:[.07,.006,.016],crevice:[.068,.008,.016],moss:[.072,.02,.018],shade:[.045,.014,.014],spring:[.085,.034,.02]},o=[];
+  for(const [j,p] of [...(s.patches||[]),...(s.spring?[{id:'spring',kind:'spring',x:s.spring.x,y:s.spring.y}]:[])].entries()){const f=RING[p.kind||p.id];if(!f)continue;const [rx,dy,ry]=f,n=7+j%3;
+   for(let k=0;k<n;k++){const r=(j*37+k*53)%97/97,a=(k+r*.7)/n*Math.PI*2+j,d=.8+.35*((j*13+k*29)%11)/11;o.push({x:p.x+Math.cos(a)*rx*d,y:p.y+dy+Math.sin(a)*ry*d,size:.026+.008*((j+k)%3),v:(j*3+k)%4,rot:a*1.7+k});}}
+  return o.sort((a,b)=>a.y-b.y);}
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
   for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}if(se==='spring'){for(const p of [...(s.patches||[]),...(s.spring?[{x:s.spring.x,y:s.spring.y}]:[])]){const x=p.x*w,y=(p.y+.012)*h,r=.1*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,198,132,.13)');g.addColorStop(1,'rgba(170,198,132,0)');c.save();c.translate(x,y);c.scale(1,.42);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}for(const q of this.bloomSpots(s)){const im=A['prop_bloom-'+q.v];if(!im)continue;const dw=q.size*w,dh=dw*im.height/im.width;c.save();c.translate(q.x*w,q.y*h);if(q.flip)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);c.restore();}}
-   if(se==='autumn'){const L=['maple-1','ginkgo-1','maple-2','ginkgo-2'];for(const [j,q] of this.bloomSpots(s).entries())for(let k=0;k<2+j%2;k++){const im=A['prop_'+L[(j*3+k)%4]];if(!im)continue;const sz=(.032+.006*((j+k)%3))*w,kk=sz/Math.max(im.width,im.height),a=j*2.4+k*2.2,x=q.x*w+Math.cos(a)*sz*.38*(q.flip?-1:1),y=q.y*h-sz*.12+Math.sin(a)*sz*.16;c.save();c.translate(x,y);c.scale(1,.6);c.rotate(j*2.1+k*1.9);c.drawImage(im,-im.width*kk/2,-im.height*kk/2,im.width*kk,im.height*kk);c.restore();}}
+   if(se==='autumn'){const L=['maple-1','ginkgo-1','maple-2','ginkgo-2'];for(const q of this.leafRing(s)){const im=A['prop_'+L[q.v]];if(!im)continue;const sz=q.size*w,kk=sz/Math.max(im.width,im.height);c.save();c.translate(q.x*w,q.y*h);c.scale(1,.6);c.rotate(q.rot);c.drawImage(im,-im.width*kk/2,-im.height*kk/2,im.width*kk,im.height*kk);c.restore();}}
    for(const q of this.propSpots(s)){let name,size,rot=0;
     if(se==='spring'){continue;}   /* spring tufts: bloomSpots (around the objects) */
     else if(se==='autumn'){continue;}   /* autumn: leaves gather at the feet of the objects (below), open ground stays empty */
