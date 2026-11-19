@@ -1,0 +1,38 @@
+{
+ "C01": {
+  "arrivals": 12,
+  "mite": 0,
+  "mealy": 4,
+  "gnat": 0,
+  "stuck": 2,
+  "seeds": 3,
+  "days": 3
+ },
+ "C02": {
+  "arrivals": 13,
+  "mite": 0,
+  "mealy": 6,
+  "gnat": 0,
+  "stuck": 2,
+  "seeds": 3,
+  "days": 3
+ },
+ "C03": {
+  "arrivals": 0,
+  "mite": 0,
+  "mealy": 0,
+  "gnat": 0,
+  "stuck": 0,
+  "seeds": 3,
+  "days": 3
+ },
+ "C04": {
+  "arrivals": 12,
+  "mite": 6,
+  "mealy": 4,
+  "gnat": 0,
+  "stuck": 3,
+  "seeds": 3,
+  "days": 3
+ }
+}

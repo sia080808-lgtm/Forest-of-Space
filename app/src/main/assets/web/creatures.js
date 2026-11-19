@@ -23,11 +23,21 @@ const PESTS=['mite','gnat','mealy'];
 // 8/min; at one site 흙지기 + 쏙쏙이 share 12/min (ECO-08 zone total). No substitute food (ECO-12): leaves after 120 s
 // without prey. 돌돌이 (pillbug, a detritivore) helps decompose the litter near the crevice x1.1 while it visits.
 const ROVE={MIN_PREY:5,EAT:8,HIDE:.3},ZONE_EAT=12,PILL={NEAR:.25,BOOST:1.1};
+// 0.6.38 ECO-13: leaf pests (spider mite, mealybug) pass between two friends whose leaves touch (within .08, both out in the
+// garden) for 30 s in a row. Then every 60 s a 20% check (x the new host's own trait), and after a move the same pair waits
+// 120 s. A move takes up to 2 from the old group to a friend that has none of that pest yet; it never creates pests. A small
+// new group (2) fades below 5 within 60 s unless the leaf suits it, so most moves only stick on dry/warm leaves.
+const TOUCH={NEAR:.08,HOLD:30,EVERY:60,CHANCE:.2,MOVE:2,REST:120};
+// 0.6.38 ECO-13 air: only root-fly adults fly (eggs and larvae never move). A site with at least 16 adults sends up to 2 of
+// them to another wet-litter site within .45 that has suited them for 120 s and has no root flies yet: one 20% check every
+// 300 s per source site, still at most 2 root-fly sites and 8 groups. The move takes adults away; it never creates any.
+const FLY={MIN_ADULTS:16,MOVE:2,EVERY:300,CHANCE:.2,RANGE:.45};
 function rnd(s){let x=s.rng.creatures>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.creatures=x>>>0;return (x>>>0)/4294967296;}
 const state=s=>s.objects.creatures;
 const groups=s=>state(s)?.groups||[];
 function init(s){if(!s.objects)return s;s.rng.creatures??=((s.rng.weather^0x2b7e1516)>>>0)||1;
- s.objects.creatures??={version:1,nextId:1,groups:[],lastArrival:-1e9,ready:{ant:0},pileReady:{},log:{arrived:0,left:0,carried:0}};const st=s.objects.creatures;st.miteReady??={};st.keeperReady??={};st.pause??={};st.log.eaten??=0;st.log.cleared??=0;st.gnatReady??={};st.soilReady??={};st.mealyReady??={};st.ladyReady??={};st.honeyHigh??=0;st.honeyLow??=0;st.roveReady??={};st.seen??={};return s;}
+ s.objects.creatures??={version:1,nextId:1,groups:[],lastArrival:-1e9,ready:{ant:0},pileReady:{},log:{arrived:0,left:0,carried:0}};const st=s.objects.creatures;st.miteReady??={};st.keeperReady??={};st.pause??={};st.log.eaten??=0;st.log.cleared??=0;st.gnatReady??={};st.soilReady??={};st.mealyReady??={};st.ladyReady??={};st.honeyHigh??=0;st.honeyLow??=0;st.roveReady??={};st.seen??={};st.touch??={};st.touchRest??={};return s;}
+
 // ----- conditions -------------------------------------------------------------------------------------------------
 function antHost(s){return s.individuals.find(p=>p.active&&!p.mounted&&p.species==='ridley'&&p.B>=35&&p.energy>=40)||null;}
 function antOk(s){return !!antHost(s)&&dep('litter').leaves(s).length>=1&&s.weather.wind<60;}
@@ -129,7 +139,8 @@ function gnatStep(s,g,event){const st=state(s),z=site(s,g.site);if(!z){st.groups
  const e2l=g.eggs/GNAT.EGG,l2a=g.larvae/GNAT.LARVA;g.eggs-=e2l;g.larvae+=e2l-l2a;g.adults+=l2a-g.adults/GNAT.ADULT_LIFE;
  if(down){const tot=gnatTotal(g);if(tot>0){const k=Math.max(0,1-GNAT.DECLINE/60/tot);g.eggs*=k;g.larvae*=k;g.adults*=k;}}
  for(const p of s.individuals)if(live(p)&&Math.hypot(p.x-z.x,p.y-z.y)<GNAT.NEAR)harm(s,p,'burden',Math.min(GNAT.HURT,GNAT.HURT*g.larvae/100)/60);
- g.low=gnatTotal(g)<GNAT.GONE?g.low+1:0;if(g.low>=GNAT.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause['site:'+g.site]=s.worldTick+GNAT.PAUSE;st.log.cleared++;event?.(s,'creature','낙엽 자리가 말라 뿌리날파리가 거의 사라졌어요.');}}
+ // a group that flew in (0.6.38) gets one egg-to-adult cycle (270 s) before the 'almost gone' check counts
+ g.low=gnatTotal(g)<GNAT.GONE&&!(g.from&&s.worldTick-g.since<GNAT.EGG+GNAT.LARVA)?g.low+1:0;if(g.low>=GNAT.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause['site:'+g.site]=s.worldTick+GNAT.PAUSE;st.log.cleared++;event?.(s,'creature','낙엽 자리가 말라 뿌리날파리가 거의 사라졌어요.');}}
 // ----- 흙지기 (ECO-07/08/12): root-fly larvae (or eggs) >= 5 at a site whose soil is moist but drained (M 35~65, W<10)
 // for 120 s; 30% every 60 s, sure at 300 s. Eats up to 8/min of real larvae then eggs while the soil is drained; with no
 // prey it may stay on leftover nutrient U (up to 1/min, moved to the soil ledger). Leaves after 120 s without either.
@@ -180,6 +191,27 @@ function tendStep(s,event){const st=state(s),ant=groups(s).find(g=>g.kind==='ant
  else{const m=mealyOn(s,ant.tend);st.honeyLow=!m||m.honey<TEND.OFF?st.honeyLow+1:0;if(st.honeyLow>=TEND.OFF_SECONDS){ant.tend=null;st.honeyHigh=0;ant.lastWork=s.worldTick;event?.(s,'creature','감로가 줄어 짐꾼개미가 다시 낙엽을 나르기 시작했어요.');}}}
 function drop(s,g){if(!g.carry)return;const L=dep('litter');L.land(s,g.carry.fromSector,{x:g.carry.fromX,y:g.carry.fromY});g.carry=null;}
 // ----- step -------------------------------------------------------------------------------------------------------
+const pairKey=(a,b)=>a.id<b.id?a.id+'|'+b.id:b.id+'|'+a.id;
+function touching(s,a,b){const Sh=dep('shelter');return live(a)&&live(b)&&!Sh.inside?.(s,a)&&!Sh.inside?.(s,b)&&Math.hypot(a.x-b.x,a.y-b.y)<TOUCH.NEAR;}
+function contactStep(s,event){const st=state(s),ps=s.individuals.filter(live),keep={};
+ for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const a=ps[i],b=ps[j];if(!touching(s,a,b))continue;const k=pairKey(a,b),n=(st.touch[k]||0)+1;keep[k]=n;
+  if(n<TOUCH.HOLD||(n-TOUCH.HOLD)%TOUCH.EVERY||(st.touchRest[k]||0)>s.worldTick)continue;
+  for(const kind of ['mite','mealy'])for(const [from,to] of [[a,b],[b,a]]){const src=groups(s).find(g=>g.kind===kind&&g.host===from.id);
+   if(!src||src.density<TOUCH.MOVE||groups(s).some(g=>g.kind===kind&&g.host===to.id)||st.groups.length>=MAXG)continue;
+   if((kind==='mite'?st.pause[to.id]:st.pause['mealy:'+to.id])>s.worldTick)continue;
+   if(rnd(s)>=TOUCH.CHANCE*trait(to)[kind])continue;
+   const moved=Math.min(TOUCH.MOVE,src.density);src.density-=moved;
+   st.groups.push({id:'cr:'+st.nextId++,kind,since:s.worldTick,bad:0,lastWork:s.worldTick,carry:null,host:to.id,density:moved,low:0,...(kind==='mealy'?{honey:0}:{}),from:from.id});
+   st.touchRest[k]=s.worldTick+TOUCH.REST;st.log.spread=(st.log.spread||0)+1;
+   event?.(s,'creature',`${kind==='mite'?'잎응애':'솜깍지'}가 ${from.name}의 잎에서 맞닿은 ${to.name}의 잎으로 옮겨 붙었어요.`,{kind,from:from.id,to:to.id,amount:moved});}}
+ st.touch=keep;for(const k of Object.keys(st.touchRest))if(st.touchRest[k]<=s.worldTick)delete st.touchRest[k];}
+function flyStep(s,event){const st=state(s);
+ for(const g of groups(s).filter(g=>g.kind==='gnat')){g.flyAt??=g.since+FLY.EVERY;if(s.worldTick<g.flyAt)continue;g.flyAt=s.worldTick+FLY.EVERY;
+  if(g.adults<FLY.MIN_ADULTS||groups(s).filter(x=>x.kind==='gnat').length>=2||st.groups.length>=MAXG)continue;const from=site(s,g.site);if(!from)continue;
+  const to=sites(s).filter(z=>z.id!==g.site&&!gnatAt(s,z.id)&&!(st.pause['site:'+z.id]>s.worldTick)&&(st.gnatReady[z.id]||0)>=STABLE&&Math.hypot(z.x-from.x,z.y-from.y)<FLY.RANGE).sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y))[0];
+  if(!to||rnd(s)>=FLY.CHANCE)continue;const moved=Math.min(FLY.MOVE,g.adults);g.adults-=moved;
+  st.groups.push({id:'cr:'+st.nextId++,kind:'gnat',since:s.worldTick,bad:0,lastWork:s.worldTick,carry:null,site:to.id,adults:moved,eggs:0,larvae:0,low:0,fit:STABLE,from:g.site,flyAt:s.worldTick+FLY.EVERY});st.log.spread=(st.log.spread||0)+1;
+  event?.(s,'creature','뿌리날파리 성충 몇 마리가 가까운 젖은 낙엽 자리로 날아갔어요.',{kind:'gnat',from:g.site,to:to.id,amount:moved});}}
 function step(s,event){if(!s.objects)return;init(s);const st=state(s),L=dep('litter');
  st.ready.ant=antOk(s)?st.ready.ant+1:0;
  const ids=new Set(L.piles(s).map(p=>p.id));for(const id of Object.keys(st.pileReady))if(!ids.has(id))delete st.pileReady[id];
@@ -198,6 +230,7 @@ function step(s,event){if(!s.objects)return;init(s);const st=state(s),L=dep('lit
   if(g.kind==='springtail'&&!L.pile(s,g.pile))g.bad=LEAVE;
   if(g.bad>=LEAVE){drop(s,g);st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature',g.kind==='ant'?'짐꾼개미가 먹이를 찾아 떠났어요.':'톡토기가 더 촉촉한 곳을 찾아 떠났어요.');}}
  for(const g of st.groups)if(g.kind==='ant')antStep(s,g);
+ contactStep(s,event);flyStep(s,event);
  keeperArrivals(s,event);soilArrivals(s,event);roveArrivals(s,event);tendStep(s,event);
  predatorArrivals(s,event,'lady','ladyReady',p=>(mealyOn(s,p.id)?.density||0)>=LADY.MIN_PREY,p=>live(p)&&!dep('shelter').inside?.(s,p),()=>({stage:'adult'}),p=>`점박이가 ${p.name}의 솜깍지 알주머니를 찾아왔어요.`);
  delete st._harm;delete st._zone;for(const g of st.groups)st.seen[g.kind]=1;
@@ -212,6 +245,7 @@ function pillNear(s,z){if(s.neighbor?.stage!=='visiting')return false;const c=s.
 function decomposeBoost(s,pileId){const z=site(s,pileId);return (springOn(s,pileId)?SPRING:1)*(pillNear(s,z)?PILL.BOOST:1);}
 function relocate(s){const L=dep('litter');for(const g of groups(s))if(g.nest&&!dep('spatial').walkable(s,g.nest)){const q=L.spot(s,L.sectorOf(g.nest),12);if(q)g.nest=q;}}
 function validate(s){const st=state(s);if(!st)return;const f=v=>Number.isFinite(v);
+ for(const k of ['touch','touchRest'])if(st[k]!==undefined&&(typeof st[k]!=='object'||Array.isArray(st[k])||Object.values(st[k]).some(v=>!f(v)||v<0)))throw Error('작은 이웃 기록을 확인해 주세요.');
  if(st.version!==1||!Array.isArray(st.groups)||st.groups.length>MAXG||!Number.isSafeInteger(st.nextId)||!Number.isInteger(s.rng.creatures))throw Error('작은 이웃 기록을 확인해 주세요.');
  if(st.groups.filter(g=>g.kind==='ant').length>1||st.groups.filter(g=>g.kind==='springtail').length>2||['mite','keeper','mealy','lady'].some(k=>{const h=st.groups.filter(g=>g.kind===k).map(g=>g.host);return new Set(h).size!==h.length;})||['gnat','soilmite','rove'].some(k=>{const h=st.groups.filter(g=>g.kind===k).map(g=>g.site);return new Set(h).size!==h.length;})||st.groups.filter(g=>g.kind==='rove').length>2||pestKinds(s).size>PEST_TYPES||st.groups.filter(g=>g.kind==='gnat').length>2)throw Error('작은 이웃 기록을 확인해 주세요.');
  for(const g of st.groups){if(!['ant','springtail','mite','keeper','gnat','soilmite','mealy','lady','rove'].includes(g.kind)||typeof g.id!=='string'||!f(g.since)||!f(g.bad))throw Error('작은 이웃 기록을 확인해 주세요.');
@@ -224,6 +258,7 @@ function validate(s){const st=state(s);if(!st)return;const f=v=>Number.isFinite(
   if(g.kind==='gnat'&&(['eggs','larvae','adults','low','fit'].some(k=>!f(g[k])||g[k]<0)||gnatTotal(g)>GNAT.MAX+1e-6))throw Error('뿌리날파리 기록을 확인해 주세요.');
   if(g.kind==='mealy'&&(!f(g.density)||g.density<0||g.density>MEALY.MAX||!f(g.honey)||g.honey<0||g.honey>MEALY.HONEY_MAX||!f(g.low)))throw Error('솜깍지 기록을 확인해 주세요.');
   if(g.kind==='lady'&&!['adult','larva'].includes(g.stage))throw Error('점박이 기록을 확인해 주세요.');
+  if(g.flyAt!==undefined&&!f(g.flyAt))throw Error('뿌리날파리 기록을 확인해 주세요.');
   if(g.kind==='ant'&&g.tend!=null&&typeof g.tend!=='string')throw Error('개미 기록을 확인해 주세요.');}}
 function info(s,pileId){const g=groups(s);return {ant:g.find(x=>x.kind==='ant')||null,springtail:pileId?g.find(x=>x.kind==='springtail'&&x.pile===pileId)||null:null,count:g.length};}
 // what pests a friend feels right now (for its own choices): leaf pests on it, root-fly larvae at sites it might use
@@ -231,5 +266,5 @@ function pressure(s,p){const g=groups(s);return {leaf:g.some(x=>(x.kind==='mite'
 function onLeaf(s,host){const g=groups(s);return {mite:miteOn(s,host),keeper:g.find(x=>x.kind==='keeper'&&x.host===host)||null,mealy:mealyOn(s,host),lady:g.find(x=>x.kind==='lady'&&x.host===host)||null,ant:g.find(x=>x.kind==='ant'&&x.tend===host)||null};}
 function inSoil(s,siteId){const g=groups(s);return {gnat:gnatAt(s,siteId),soilmite:g.find(x=>x.kind==='soilmite'&&x.site===siteId)||null,rove:g.find(x=>x.kind==='rove'&&x.site===siteId)||null};}
 function rootsNear(s,p){return sites(s).map(z=>({z,g:gnatAt(s,z.id)})).find(o=>o.g&&Math.hypot(p.x-o.z.x,p.y-o.z.y)<GNAT.NEAR)||null;}
-return {candidates,harm,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
+return {candidates,harm,TOUCH,FLY,contactStep,flyStep,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
 });

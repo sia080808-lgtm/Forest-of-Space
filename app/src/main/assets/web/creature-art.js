@@ -50,6 +50,8 @@ function nest(c,{x=0,y=0,size=14}={}){c.save();c.translate(x,y);c.scale(size,siz
 // SRS v2.22 D04.20 NB-02 carrier ant, cut from the approved 'small neighbours' sheet (faces left, 305x203 px).
 // Whole-sprite motion: step bob and slight rocking; the carried leaf sways on its stalk. Flipped to face +x.
 const ANT_FILES={antBody:'assets/forest/creatures/ant-body.png',antLeaf:'assets/forest/creatures/ant-leaf.png',springtailRest:'assets/forest/creatures/springtail-rest.png',springtailJump:'assets/forest/creatures/springtail-jump.png',antNest:'assets/forest/creatures/ant-nest.png',spiderMite:'assets/forest/creatures/spidermite.png',predatoryMite:'assets/forest/creatures/predatory-mite.png',ladybird:'assets/forest/creatures/ladybird.png',soilMite:'assets/forest/creatures/soil-mite.png',rootGnat:'assets/forest/creatures/root-gnat.png',rootGnatLarva:'assets/forest/creatures/root-gnat-larva.png',mealybug:'assets/forest/creatures/mealybug.png',mealybugSac:'assets/forest/creatures/mealybug-eggsac.png',pillbug:'assets/forest/creatures/pillbug.png',pillbugBall:'assets/forest/creatures/pillbug-ball.png',roveBeetle:'assets/forest/creatures/rove-beetle.png'};
+// 0.6.38 young stages (tools/draw-immature.cjs, SRS sheet style)
+Object.assign(ANT_FILES,{spiderMiteEggs:'assets/forest/creatures/spidermite-eggs.png',spiderMiteNymph:'assets/forest/creatures/spidermite-nymph.png',rootGnatEggs:'assets/forest/creatures/root-gnat-eggs.png',mealybugCrawler:'assets/forest/creatures/mealybug-crawler.png',ladybirdLarva:'assets/forest/creatures/ladybird-larva.png'});
 // rigged sprites: body layer + moving parts (tools/rig-neighbours.py). Key -> sprite name.
 const RIGNAME={spiderMite:'spidermite',predatoryMite:'predatory-mite',ladybird:'ladybird',soilMite:'soil-mite',rootGnat:'root-gnat',mealybug:'mealybug',pillbug:'pillbug',roveBeetle:'rove-beetle'};
 for(const [k,n] of Object.entries(RIGNAME)){ANT_FILES[k+'Body']='assets/forest/creatures/'+n+'-body.png';ANT_FILES[k+'Parts']='assets/forest/creatures/'+n+'-parts.png';}
@@ -92,11 +94,24 @@ function leafMite(c,assets,{x=0,y=0,size=4,kind='spider',dir=1,phase=0,still=fal
 function silk(c,pts,alpha=.35){if(pts.length<2)return;c.save();c.strokeStyle=`rgba(255,255,250,${alpha})`;c.lineWidth=.35;c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];c.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-.4,b.x,b.y);}c.stroke();c.restore();}
 // Other SRS sheet neighbours (D04.20~24: 03 점박이, 04 흙지기, 07 뿌리날파리 성충·유충, 09 솜깍지·알주머니), cut with
 // tools/cut-srs-neighbour.py. All face left in the sheet. size = body length in world px; anchor = feet / lowest point.
-const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:251,foot:.97},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:236,foot:.95},mealybugSac:{w:105,foot:.9},pillbug:{w:298,foot:.97},pillbugBall:{w:109,foot:.97},roveBeetle:{w:291,foot:.95}};
+const SHEET={ladybird:{w:253,foot:.92},soilMite:{w:251,foot:.97},rootGnat:{w:249,foot:.97},rootGnatLarva:{w:174,foot:.9},mealybug:{w:236,foot:.95},mealybugSac:{w:105,foot:.9},pillbug:{w:298,foot:.97},pillbugBall:{w:109,foot:.97},roveBeetle:{w:291,foot:.95},spiderMiteEggs:{w:122,foot:.9},spiderMiteNymph:{w:192,foot:.95},rootGnatEggs:{w:78,foot:.9},mealybugCrawler:{w:163,foot:.95},ladybirdLarva:{w:247,foot:.95}};
 function neighbour(c,assets,key,{x=0,y=0,size=6,dir=1,phase=0,still=false,lift=0,alpha=1}={}){const im=assets[key],m=SHEET[key];if(!im||!m)return;const k=size/m.w,bob=still?0:Math.sin(phase*9)*size*.03;
  c.save();if(alpha<1)c.globalAlpha*=alpha;c.translate(x,y+bob-lift);c.scale(-dir*k,k);c.translate(-im.width/2,-im.height*m.foot);
  if(key==='rootGnatLarva')wriggle(c,im,phase,still);else if(!drawRig(c,assets,key,phase,still,key==='rootGnat'?'fly':'walk'))c.drawImage(im,0,0);c.restore();}
+// 0.6.38 돌돌이 curling (render only): r 0 = walking, 1 = a closed ball. The walking sprite is bent in thin vertical strips
+// along an arc that tightens with r (back up, head and tail tuck under), shrinking a little; from r .7 the sheet's ball
+// fades in over it, so it rolls up instead of switching pictures.
+function pillbugCurl(c,assets,{x=0,y=0,size=10,ball=5,dir=1,r=0}={}){const full=assets.pillbug,bodyIm=assets.pillbugBody||full,bl=assets.pillbugBall;if(!full)return;const e=r*r*(3-2*r);
+ // legs fold in first (the full sprite with legs fades out by r .3, leaving the plated back), then the back curls
+ const fade=Math.max(0,Math.min(1,(r-.7)/.3)),body=1-fade*fade,legs=Math.max(0,1-r/.3);
+ const strips=(im,alpha)=>{const m=SHEET.pillbug,k=size*(1-.15*e)/m.w,W=im.width,H=im.height,bend=e*Math.PI*.85,R=bend>1e-3?W/bend:1e9,sw=3;
+  c.save();c.globalAlpha*=alpha;c.translate(x,y);c.scale(-dir*k,k);c.translate(0,-H*m.foot);
+  for(let sx=0;sx<W;sx+=sw){const u=(sx+sw/2-W/2),a=u/R,px=bend>1e-3?R*Math.sin(a):u,py=bend>1e-3?R*(1-Math.cos(a)):0;
+   c.save();c.translate(px,py-e*H*.18);c.rotate(a);c.drawImage(im,sx,0,Math.min(sw,W-sx),H,-sw/2,0,Math.min(sw,W-sx)+.6,H);c.restore();}
+  c.restore();};
+ if(body>.01){strips(bodyIm,body);if(legs>.01&&bodyIm!==full)strips(full,legs*body);}
+ if(fade>.01&&bl)neighbour(c,assets,'pillbugBall',{x,y,size:ball*(1.12-.12*fade),still:true,alpha:fade});}
 // honeydew: a few glossy drops where many mealybugs feed (only drawn when honeydew is real)
 function honeydew(c,x,y,size,amount){const n=Math.min(4,Math.ceil(amount/25));c.save();for(let i=0;i<n;i++){const dx=(i-1.5)*size*.5,dy=(i%2)*size*.25;const g=c.createRadialGradient(x+dx-size*.06,y+dy-size*.06,0,x+dx,y+dy,size*.18);g.addColorStop(0,'rgba(255,248,214,.85)');g.addColorStop(1,'rgba(196,140,52,.3)');c.fillStyle=g;c.beginPath();c.arc(x+dx,y+dy,size*.16,0,Math.PI*2);c.fill();}c.restore();}
-return {ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,neighbour,honeydew,drawRig,wriggle,SHEET,ANT_FILES,RIG};
+return {pillbugCurl,ant,antSprite,springtail,springtailSprite,nest,nestSprite,leafMite,silk,neighbour,honeydew,drawRig,wriggle,SHEET,ANT_FILES,RIG};
 });
