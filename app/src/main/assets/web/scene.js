@@ -6,7 +6,7 @@ class ForestScene {
  // 0.8.1: the same seasonal palette also on the object atlas (moss, rocks, crevice, litter), the shelter, the leaf-shade
  // ground and the spring's stone basin; the paper background never changes. Season props (sprouts, fallen maple and ginkgo
  // leaves, snow drifts, plum petals) are drawn by seasonProps / seasonFall below.
- static PROPS=['sprout-1','sprout-2','sprout-3','blossom','cherry-1','cherry-2','cherry-pile','maple-1','maple-2','ginkgo-1','ginkgo-2','snow-1','snow-2'];
+ static PROPS=['sprout-1','sprout-2','sprout-3','blossom','cherry-1','cherry-2','cherry-pile','cherry-branch','maple-1','maple-2','ginkgo-1','ginkgo-2','snow-1','snow-2'];
  static seasonFiles(){const o={},file={frame:'frame',shadePlant:'shade-plant',terrain:'terrain',shelterArt:'shelter-art',shadeGround:'shade-ground'};for(let i=1;i<=6;i++)file['fern'+i]='fern-'+i;for(const [k,f] of Object.entries(file))for(const se of ['spring','autumn','winter'])o[k+'_'+se]='assets/forest/seasons/'+f+'-'+se+'.png';
   for(const se of ['spring','autumn','winter'])o['basin_'+se]='assets/forest/seasons/garden-dry-'+se+'.jpg';for(const n of ForestScene.PROPS)o['prop_'+n]='assets/forest/seasons/props/'+n+'.png';return o;}
  cal(){const E=typeof ForestEnvironment!=='undefined'?ForestEnvironment:null,s=this.state();return E&&s?.environment?E.calendar(s):null;}
@@ -20,7 +20,7 @@ class ForestScene {
  seasonProps(c,w,h){const cal=this.cal();if(!cal)return;const s=this.state(),A=this.assets,sets=cal.blend<1?[[cal.prev,1-cal.blend],[cal.id,cal.blend]]:[[cal.id,1]];
   for(const [se,al] of sets){if(se==='summer'||al<=0)continue;c.save();c.globalAlpha*=al;if(se==='winter'){this.snowCover(c,w,h,s);this.drawPrints(c,w,h);}if(se==='spring'){for(const p of [...(s.patches||[]),...(s.spring?[{x:s.spring.x,y:s.spring.y}]:[])]){const x=p.x*w,y=(p.y+.012)*h,r=.1*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,198,132,.13)');g.addColorStop(1,'rgba(170,198,132,0)');c.save();c.translate(x,y);c.scale(1,.42);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}}
    for(const q of this.propSpots(s)){let name,size,rot=0;
-    if(se==='spring'){if(q.near?q.k%2:q.k%5)continue;name=q.k%3?'cherry-pile':q.k%2?'cherry-1':'cherry-2';size=(name==='cherry-pile'?.05:.026)*w;rot=q.i*1.7;}
+    if(se==='spring'){if(q.near?q.k%2:!(q.i%11<3&&q.i<66))continue;name=q.k%3?'cherry-pile':q.k%2?'cherry-1':'cherry-2';size=(name==='cherry-pile'?.05:.026)*w;rot=q.i*1.7;}
     else if(se==='autumn'){if(q.near?q.k%2:q.k%3)continue;name=['maple-1','ginkgo-1','maple-2','ginkgo-2'][q.i%4];size=.036*w;rot=q.i*2.3;}
     else continue;
     const im=A['prop_'+name];if(!im)continue;const k=size/Math.max(im.width,im.height),dw=im.width*k,dh=im.height*k;c.save();c.translate(q.x*w,q.y*h);if(rot){c.scale(1,.62);c.rotate(rot);c.drawImage(im,-dw/2,-dh/2,dw,dh);}else{if(q.i%2)c.scale(-1,1);c.drawImage(im,-dw/2,-dh,dw,dh);}c.restore();}
@@ -38,8 +38,12 @@ class ForestScene {
  drawPrints(c,w,h){const ps=this._prints;if(!ps?.length)return;const now=performance.now()/1000,LIFE=30;this._prints=ps.filter(q=>now-q.at<LIFE);c.save();for(const q of this._prints){const a=1-(now-q.at)/LIFE;c.globalAlpha=.4*a*a;c.fillStyle='rgb(140,147,152)';const x=q.x*w+q.side*2.6*q.big,y=q.y*h+1;c.beginPath();c.ellipse(x,y,2.1*q.big,1.3*q.big,0,0,Math.PI*2);c.fill();}c.restore();}
  // a soft patch of lying snow on open ground: paper-white wash with a faint cool grey ink edge (irregular, 3 lobes)
  snowPatch(c,x,y,r,i){c.save();for(let k=0;k<3;k++){const ox=Math.cos(i*1.7+k*2.1)*r*.45,oy=Math.sin(i*2.3+k*1.3)*r*.12,rr=r*(.55+.25*((i+k)%3)/2),g=c.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,rr);g.addColorStop(0,'rgba(251,251,248,.92)');g.addColorStop(.72,'rgba(246,247,245,.78)');g.addColorStop(.9,'rgba(200,206,210,.22)');g.addColorStop(1,'rgba(200,206,210,0)');c.save();c.translate(x+ox,y+oy);c.scale(1,.34);c.translate(-x-ox,-y-oy);c.fillStyle=g;c.beginPath();c.arc(x+ox,y+oy,rr,0,Math.PI*2);c.fill();c.restore();}c.restore();}
+ petalsFromBranch(c,base){const s=this.state(),sp=this.springAmt(),A=this.assets;if(s.settings.reducedMotion||sp<=0)return;const t=this.phase||0,W=this.vw,H=this.camera.visibleHeight,bw=Math.min(W*.78,330);c.save();c.setTransform(base);c.globalAlpha*=sp*.9;
+  for(let i=0;i<14;i++){const im=A['prop_'+(i%2?'cherry-1':'cherry-2')];if(!im)continue;const life=9+i%5*1.6,u=((t/life+i*.137)%1),x0=bw*(.15+((i*.618034)%1)*.75),y0=bw*.08+((i*.381966)%1)*bw*.3,x=x0+u*W*(.35+.25*((i*.29)%1))+Math.sin(t*.9+i)*14,y=y0+u*u*H*.95+u*H*.15,size=9+(i%3)*2.5,k=size/Math.max(im.width,im.height);
+   c.save();c.globalAlpha*=Math.min(1,u*6)*(1-Math.max(0,u-.85)/.15);c.translate(x,y);c.rotate(t*(.6+i%3*.3)+i);c.scale(1,.45+.55*Math.abs(Math.cos(t*1.5+i)));c.drawImage(im,-im.width*k/2,-im.height*k/2,im.width*k,im.height*k);c.restore();}
+  c.restore();}
  // falling maple/ginkgo leaves in autumn and plum petals in spring (render only; still when motion is reduced)
- seasonFall(c,w,h){const cal=this.cal(),s=this.state();if(!cal||s.settings.reducedMotion)return;const al=cal.id==='autumn'||cal.id==='spring'?cal.blend:cal.prev==='autumn'||cal.prev==='spring'?1-cal.blend:0,se=cal.blend<.5?cal.prev:cal.id;if(al<=0||(se!=='autumn'&&se!=='spring'))return;
+ seasonFall(c,w,h,base){if(base&&this.springAmt()>0)this.petalsFromBranch(c,base);const cal=this.cal(),s=this.state();if(!cal||s.settings.reducedMotion)return;const al=cal.id==='autumn'||cal.id==='spring'?cal.blend:cal.prev==='autumn'||cal.prev==='spring'?1-cal.blend:0,se=cal.blend<.5?cal.prev:cal.id;if(al<=0||se!=='autumn')return;
   const A=this.assets,t=this.phase||0,W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},n=se==='autumn'?7:14;c.save();c.globalAlpha*=al*.8;
   for(let i=0;i<n;i++){const name=se==='autumn'?['maple-1','ginkgo-1','maple-2','ginkgo-2'][i%4]:i%2?'cherry-1':'cherry-2',im=A['prop_'+name];if(!im)continue;const span=(W.y1-W.y0)*h,fall=((t*(7+i%4*2)+i*211)%span),x=(W.x0+((i*.618034+.1)%1)*(W.x1-W.x0))*w+Math.sin(t*.6+i)*w*.03,y=W.y0*h+fall,size=(se==='autumn'?.038:.02)*w,k=size/Math.max(im.width,im.height);
    c.save();c.translate(x,y);c.rotate(Math.sin(t*1.3+i)*1.2+i);c.scale(1,.5+.5*Math.abs(Math.cos(t*1.7+i)));c.drawImage(im,-im.width*k/2,-im.height*k/2,im.width*k,im.height*k);c.restore();}
@@ -249,6 +253,9 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
  // the fern frame: fixed to the screen edges at today's size (where the garden's edge ferns sat in the default view),
  // drawn over the floor and under every object and friend. It does not move or scale with the camera.
  drawFrame(c,base){const im=this.assets.frame;if(!im)return;const cam=this.camera,fw=360*cam.fit,fh=576*cam.fit;c.save();c.setTransform(base);this.seasonal('frame',f=>c.drawImage(f,(this.vw-fw)/2,(cam.visibleHeight-fh)/2,fw,fh));c.restore();}
+ // 0.8.1 spring: a cherry branch comes into the picture from the top-left corner (screen-fixed like the fern frame); the
+ // falling petals come from it
+ cherryBranch(c,base){const sp=this.springAmt(),im=this.assets['prop_cherry-branch'];if(sp<=0||!im)return;const bw=Math.min(this.vw*.78,330),bh=bw*im.height/im.width;c.save();c.setTransform(base);c.globalAlpha*=sp;c.drawImage(im,-bw*.04,-bh*.12,bw,bh);c.restore();}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.4,paper.height*.04,paper.width*.2,paper.height*.14,0,0,this.vw,this.vh);{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
@@ -309,6 +316,6 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(this.carry){const q=this.carry.result||this.carry.origin,p=q.ok?q:(this.carry.pointerPoint||this.carry.origin);c.strokeStyle=q.ok?'#638361':'#b56950';c.fillStyle=q.ok?'#91ab7926':'#b5695026';c.lineWidth=2;c.setLineDash([4,3]);c.beginPath();c.ellipse(p.x*w,p.y*h,22,8,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);}
   if(this.carry?.mode==='drag'){const pet=s.individuals.find(p=>p.id===this.carry.id);if(pet)this.pet(pet,this.carry.hover,'held',phase,night,true);}
   if(this.editing){for(const p of [...patches,{...s.spring,...this.preview.spring,id:'spring',name:'샘터'}]){if(p.id==='shelter')continue;const selected=p.id===this.selectedPatch;c.strokeStyle=selected?'#526443':'#7c866e88';c.fillStyle=selected?'#aab78c28':'#ffffff15';c.lineWidth=selected?2:1;c.setLineDash(selected?[]:[3,4]);c.beginPath();c.ellipse(p.x*w,p.y*h,w*.08,h*.025,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);c.fillStyle='#fffcf5ee';const textw=c.measureText(p.name).width+16;c.fillRect(p.x*w-textw/2,p.y*h+10,textw,20);c.fillStyle='#43513b';c.font=(11/this.camera.scale)+'px Pretendard';c.textAlign='center';c.fillText(p.name,p.x*w,p.y*h+24);if(selected){c.fillStyle='#526443';c.beginPath();c.arc(p.x*w,p.y*h,6/this.camera.scale,0,Math.PI*2);c.fill();}}}
-  this.seasonFall(c,w,h);ForestEffects.particles(c,s,w,h,phase,this.assets);this.shelterDebug();c.restore();ForestEffects.rain(c,s,this.vw,this.vh,phase);
+  this.seasonFall(c,w,h,base);ForestEffects.particles(c,s,w,h,phase,this.assets);this.cherryBranch(c,base);this.shelterDebug();c.restore();ForestEffects.rain(c,s,this.vw,this.vh,phase);
  }
 }

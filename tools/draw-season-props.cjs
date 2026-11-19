@@ -74,3 +74,27 @@ save('cherry-1',80,80,c=>cherry(c,40,40,24,.3));
 save('cherry-2',80,80,c=>cherry(c,40,40,22,-.5));
 // a few petals lying together on the ground
 save('cherry-pile',140,90,c=>{cherry(c,46,48,20,1.2);cherry(c,80,40,18,-.7);cherry(c,98,58,17,.4);});
+// 벚꽃 가지 (spring corner of the screen frame): an ink branch entering from the top-left, dry-brush ink strokes that
+// thin toward the twigs, with a few cherry-blossom clusters (five notched petals, pale pink wash, darker heart, ink
+// stamens) and buds. Drawn like the branch in an ink painting coming in from outside the picture.
+const flower=(c,x,y,R,rot,open=1)=>{for(let k=0;k<5;k++){const a=rot+k/5*Math.PI*2;c.save();c.translate(x+Math.cos(a)*R*.55*open,y+Math.sin(a)*R*.55*open);c.rotate(a+Math.PI/2);cherry(c,0,0,R*.55,0);c.restore();}
+ c.save();c.fillStyle='rgba(200,110,130,.75)';c.beginPath();c.arc(x,y,R*.2,0,Math.PI*2);c.fill();c.restore();
+ c.save();c.strokeStyle='rgba(120,70,70,.7)';c.lineWidth=1;for(let k=0;k<7;k++){const a=k/7*Math.PI*2+rot;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*R*.42,y+Math.sin(a)*R*.42);c.stroke();c.fillStyle='rgba(150,90,60,.8)';c.beginPath();c.arc(x+Math.cos(a)*R*.42,y+Math.sin(a)*R*.42,1.2,0,Math.PI*2);c.fill();}c.restore();};
+const bud=(c,x,y,R,rot)=>{c.save();c.translate(x,y);c.rotate(rot);const s=()=>{c.beginPath();c.ellipse(0,0,R*.38,R*.55,0,0,Math.PI*2);};wash(c,s,'rgba(236,170,186,.95)','rgba(200,120,140,.85)',.6);c.restore();};
+// dry-brush ink: a smooth curve through the points, drawn as many thin bristle strokes with varying ink, thinning toward
+// the tip, with gaps where the brush runs dry and a few darker knots
+const branch=(c,pts,w0)=>{const P=[];for(let k=0;k<pts.length-1;k++)for(let u=0;u<1;u+=.05){const p0=pts[Math.max(0,k-1)],p1=pts[k],p2=pts[k+1],p3=pts[Math.min(pts.length-1,k+2)],uu=u*u,uuu=uu*u;
+  P.push([.5*((2*p1[0])+(-p0[0]+p2[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*uu+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*uuu),.5*((2*p1[1])+(-p0[1]+p2[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*uu+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*uuu)]);}P.push(pts.at(-1));
+ c.save();c.lineCap='round';const n=P.length,B=9;
+ c.save();c.globalAlpha=.18;c.filter='blur(3px)';c.strokeStyle='rgb(90,80,70)';c.lineWidth=w0*1.2;c.beginPath();P.forEach((q,i)=>i?c.lineTo(...q):c.moveTo(...q));c.stroke();c.restore();
+ for(let b=0;b<B;b++){const off=(b/(B-1)-.5);c.beginPath();let on=false;for(let i=0;i<n;i++){const f=1-i/n,wv=w0*(.25+.75*f),q=P[i],q2=P[Math.min(n-1,i+1)],dx=q2[0]-q[0],dy=q2[1]-q[1],L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,x=q[0]+nx*off*wv,y=q[1]+ny*off*wv;
+   const dry=Math.abs(off)>.32&&Math.sin(i*.11+b*2.3)>.62-(1-f)*.5;if(dry){if(on){c.stroke();c.beginPath();on=false;}continue;}if(!on){c.moveTo(x,y);on=true;}else c.lineTo(x,y);}
+  c.strokeStyle=`rgba(${56+b%3*10},${48+b%3*8},${42+b%3*6},${.32+.25*(1-Math.abs(off)*1.6)})`;c.lineWidth=w0/B*1.9;c.stroke();}
+ for(let i=6;i<n-4;i+=17+Math.floor(rnd()*9)){c.fillStyle='rgba(40,34,30,.55)';c.beginPath();c.ellipse(P[i][0],P[i][1],w0*.18*(1-i/n)+1,w0*.3*(1-i/n)+1,rnd()*3,0,Math.PI*2);c.fill();}
+ c.restore();};
+save('cherry-branch',760,520,c=>{
+ branch(c,[[-20,40],[90,70],[200,92],[300,130],[400,160],[500,178],[600,190]],22);
+ branch(c,[[200,92],[250,40],[300,18]],9);branch(c,[[300,130],[350,200],[380,260],[400,300]],10);branch(c,[[400,160],[460,120],[530,105]],7);
+ branch(c,[[500,178],[560,240],[590,290]],6);branch(c,[[90,70],[120,140],[160,200]],9);branch(c,[[120,140],[70,190]],5);
+ for(const [x,y,r,o] of [[300,18,26,1],[262,48,22,.9],[530,105,24,1],[600,190,26,1],[400,300,25,1],[378,258,20,.8],[160,200,26,1],[70,190,22,.9],[590,290,22,1],[455,128,18,.7],[340,150,20,.85],[210,86,18,.8]])flower(c,x,y,r,x*.03,o);
+ for(const [x,y,r,a] of [[320,8,14,.4],[555,98,13,-.3],[620,200,13,.5],[410,318,13,.2],[178,222,13,-.4],[96,206,12,.6],[598,310,12,.1]])bud(c,x,y,r,a);});
