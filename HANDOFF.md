@@ -475,3 +475,18 @@
 - 추가(사용자 "바위 틈에 쉬는 연출 저게 맞음?" → 선택 "틈에 쏙 들어가기"): `scene.js` `nookPos`·`creviceFront`·`creviceGeom` — 도착해 쉬는 친구를 틈 입구로 0.6초에 걸쳐 옮겨 그리고 앞 작은 돌(타원)을 다시 그림. 렌더 전용. `rock-rider.test.cjs`에 검사 추가. `npm test` 278/278.
 - 추가 2: 작은 돌 다시 그리기를 실제 윤곽 다각형(`nookStone`)으로, 틈에 있는 친구는 작은 돌 영역·그 아래를 잘라 그림(`nookClip`) — 사용자 제보 "검정색 조각"(돌 아래 발 끝, 경계의 틈 그늘 줄).
 - 추가 3: 슈퍼범 둥지 물 증발(샘물과 같은 식, 비·안개·눈·쉼터 안 제외, `ledger.evaporation`)과 몸 물 45 미만일 때 스스로 마시기(분당 3, 55까지) — `social.js` `nest`, 사용자 선택 "증발 + 스스로 마시기". SRS `Forest-Superbum-SRS-v2.26.md` SB-04a. `npm test` 279/279, UI PASS. 엔진 측정 2시드·6게임일: 기본 기후에서는 비가 다시 채워 마른 그림까지는 내려가지 않음.
+- 병합·릴리스: PR #36(https://github.com/sia080808-lgtm/Forest-of-Space/pull/36) main 병합 `3267551f5190f99c97c64b22ddaf5cf7efda367f`(사용자 "ㄱㄱ"; head `0a0e911` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.35 `Forest-of-Space-0.6.35.apk` 40,721,830 bytes, SHA-256 `7946528de4d84971cee6e4dcdf0ab6f7a4fed6cd7ff443fd5c371471b80751e8` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode52/0.6.35, APK 안 engine.js VERSION 0.6.35·바위틈 `nookStone`·둥지 물 `NEST_EVAP` 포함 확인.
+
+### TRAITS-DRAFT-20261118 — 친구별 종 특성표 초안 (문서만, 구현 전)
+
+- 담당: Claude Code. 요청: 사용자 "엘리시의 경우 대가리에 누가 놀러옴?" → "ㅇㅇ 그리고 각 케릭터의 모티프 박쥐란의 특성에 맞게 … 특성표를 만들자". 브랜치 `claude/festive-curie-mjk5mw`(main `3267551` 이후).
+- 문서: `docs/Forest-Species-Traits-SRS-v2.28-DRAFT.md`·`.pdf`(3쪽). 실제 박쥐란 7종 특징 근거, 배율 표(잎응애·솜깍지 붙음/늘어남, 물 흡수·보관·강한 햇빛, 잎 손상, 과습, 바람, 추위·비 기분, 맑은 날 체력), 카드 문구, 연결 위치, AC 계획.
+- 코드 변경 없음. 사용자 확인(배율 값, 날씨 기분 새 규칙 여부, 카드 표시 위치) 뒤 구현.
+
+### TRAITS-0.6.36-20261118 — 친구별 종 특성 구현 (SRS v2.28)
+
+- 담당: Claude Code. 요청: 특성표 초안 → 사용자 "엘레판은 탱커 역할인데 너무 약골"(탱커로 수정) → "ㄱㄱ". 기준 main `3267551`(0.6.35 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: 새 `traits.js`(배율표·문구, 저장 안 함), `creatures.js`(잎응애·솜깍지 출현 확률, 잎응애 증가, `harm` 잎 부담; `candidates`·`harm` 내보냄), `engine.js`(물 소모·강한 햇빛·흡수, 추위·비 기분, 맑은 날 체력, 엘레판 탱커 기분), `weather-care.js`(과습·바람), `forest-app.js`·`forest.css`(타고난 특성 칸·도감 대화 상자), `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`(스크립트). 버전 0.6.36 / versionCode 53. SRS 초안 → `docs/Forest-Species-Traits-SRS-v2.28.md`·`.pdf`(ST-07 측정 추가).
+- 검증: `npm test` 286/286(`traits.test.cjs` 7, `weather-care` 2건 기대값을 리들리 배율로), `npm run test:ui` PASS. `tools/traits-review.cjs` 전후 비교(`docs/qa-0.6.36`). 실기기 미검증.
+- 남은 일: 친구 여럿·거친 날씨 장기 측정, 날씨 기분 크기 체감 조정.
+

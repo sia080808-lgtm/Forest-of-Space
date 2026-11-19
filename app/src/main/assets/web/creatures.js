@@ -3,7 +3,8 @@
 // v2.24 patch 6a (0.6.25): carrier ants and springtails. Small neighbours, not characters: they use no roster slot.
 // ECO24-B01 common arrival limit, B03 conditions, A01 real leaf carrying (one leaf, conserved), A02/N01 springtail
 // decomposition help (x1.25 on its pile only, never stacked). Own RNG stream `rng.creatures`; render reads state only.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits'}[n]];
+const trait=p=>dep('traits').of(p?.species);
 const PROTECT=600,CHECK=180,COOLDOWN=600,STABLE=120,LEAVE=120,MAXG=8,ANT_EVERY=90,CARRY_SECONDS=25,SPRING=1.25;
 // 0.6.26 patch 6b: spider mite P02 (pest on a friend's leaves) and its predator 잎지기 (Phytoseiulus). SRS v2.22 S05.05·S05.09
 // ECO-05/07/08/11/12/14 with the v2.24 user decision: they can also appear in the default climate on locally dry leaves.
@@ -49,7 +50,7 @@ function keeperFit(s,p){const l=leaf(s,p);return live(p)&&l.H>=KEEPER.H_MIN&&l.H
 const miteOn=(s,host)=>groups(s).find(g=>g.kind==='mite'&&g.host===host)||null;
 const springOn=(s,pileId)=>groups(s).some(g=>g.kind==='springtail'&&g.pile===pileId);
 // one shared pest-harm budget per friend per second (ECO-05: extra burden from pests at most 2/min in total)
-function harm(s,p,key,amount){const st=state(s),used=st._harm?.[p.id]||0,room=Math.max(0,HARM_MAX/60-used),a=Math.min(room,Math.max(0,amount));if(!a)return 0;(st._harm??={})[p.id]=used+a;p[key]=Math.min(100,Math.max(0,p[key]+(key==='nutrition'?-a:a)));return a;}
+function harm(s,p,key,amount){if(key==='damage')amount*=trait(p).leaf;const st=state(s),used=st._harm?.[p.id]||0,room=Math.max(0,HARM_MAX/60-used),a=Math.min(room,Math.max(0,amount));if(!a)return 0;(st._harm??={})[p.id]=used+a;p[key]=Math.min(100,Math.max(0,p[key]+(key==='nutrition'?-a:a)));return a;}
 const pestKinds=s=>new Set(groups(s).filter(g=>PESTS.includes(g.kind)).map(g=>g.kind));
 const pestRoom=(s,kind)=>{const k=pestKinds(s);return k.has(kind)||k.size<PEST_TYPES;};
 // root-fly sites: the old litter spot and leaf piles (wet decaying leaves). Moisture is the litter soil M/W (0.6.25).
@@ -73,9 +74,9 @@ const mealyOn=(s,host)=>groups(s).find(g=>g.kind==='mealy'&&g.host===host)||null
 function candidates(s){const st=state(s),out=[];
  if(!groups(s).some(g=>g.kind==='ant')&&st.ready.ant>=STABLE)out.push({kind:'ant',chance:.2});
  if(groups(s).filter(g=>g.kind==='springtail').length<2)for(const p of [...dep('litter').piles(s)].sort((a,b)=>a.id.localeCompare(b.id)))if(!springOn(s,p.id)&&(st.pileReady[p.id]||0)>=STABLE)out.push({kind:'springtail',pile:p.id,chance:ellisiiNear(s,p)?.4:.3});
- for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!miteOn(s,p.id)&&!(st.pause[p.id]>s.worldTick)&&(st.miteReady[p.id]||0)>=STABLE&&pestRoom(s,'mite'))out.push({kind:'mite',host:p.id,chance:.2});
+ for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!miteOn(s,p.id)&&!(st.pause[p.id]>s.worldTick)&&(st.miteReady[p.id]||0)>=STABLE&&pestRoom(s,'mite'))out.push({kind:'mite',host:p.id,chance:.2*trait(p).mite});
  if(groups(s).filter(g=>g.kind==='gnat').length<2)for(const z of sites(s))if(!gnatAt(s,z.id)&&!(st.pause['site:'+z.id]>s.worldTick)&&(st.gnatReady[z.id]||0)>=STABLE&&pestRoom(s,'gnat'))out.push({kind:'gnat',site:z.id,chance:.2});
- for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!mealyOn(s,p.id)&&!(st.pause['mealy:'+p.id]>s.worldTick)&&(st.mealyReady[p.id]||0)>=STABLE&&pestRoom(s,'mealy'))out.push({kind:'mealy',host:p.id,chance:.2});
+ for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id)))if(live(p)&&!mealyOn(s,p.id)&&!(st.pause['mealy:'+p.id]>s.worldTick)&&(st.mealyReady[p.id]||0)>=STABLE&&pestRoom(s,'mealy'))out.push({kind:'mealy',host:p.id,chance:.2*trait(p).mealy});
  return out;}
 function nestSpot(s,host){const L=dep('litter'),i=L.sectorOf(host);for(const k of [i,...[...Array(L.COLS*L.ROWS).keys()].filter(x=>x!==i)]){const q=L.spot(s,k,10);if(q)return q;}return null;}
 function arrive(s,c,event){const st=state(s),g={id:'cr:'+st.nextId++,kind:c.kind,since:s.worldTick,bad:0,lastWork:s.worldTick,carry:null};
@@ -103,7 +104,7 @@ function antStep(s,g){const L=dep('litter'),st=state(s);
 // leaf is moist again; -4/min while the friend tidies its leaves or rests in the shelter (no growth there). Leaf burden
 // 2/min x density/100 (ECO-14). Under 5 for 60 s = recovered; that friend gets 300 s before a new arrival.
 function miteStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host);if(!p||!live(p))return;const l=leaf(s,p);
- let d=g.density;if(l.inside)d-=MITE.CLEAN/60;else if(!l.wet&&l.T>=MITE.FIT_T&&l.H<=MITE.FIT_H)d+=MITE.GROW/60;else if(l.wet||l.H>MITE.HOLD_H)d-=MITE.DECLINE/60;
+ let d=g.density;if(l.inside)d-=MITE.CLEAN/60;else if(!l.wet&&l.T>=MITE.FIT_T&&l.H<=MITE.FIT_H)d+=MITE.GROW/60*trait(p).miteGrow;else if(l.wet||l.H>MITE.HOLD_H)d-=MITE.DECLINE/60;
  if(p.action==='groom')d-=MITE.CLEAN/60;g.density=Math.max(0,Math.min(MITE.MAX,d));
  harm(s,p,'damage',Math.min(MITE.HURT,MITE.HURT*g.density/100)/60);
  g.low=g.density<MITE.GONE?g.low+1:0;if(g.low>=MITE.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause[p.id]=s.worldTick+MITE.PAUSE;st.log.cleared++;event?.(s,'creature',`${p.name}의 잎이 다시 건강해졌어요. 잎응애가 거의 사라졌어요.`);}}
@@ -230,5 +231,5 @@ function pressure(s,p){const g=groups(s);return {leaf:g.some(x=>(x.kind==='mite'
 function onLeaf(s,host){const g=groups(s);return {mite:miteOn(s,host),keeper:g.find(x=>x.kind==='keeper'&&x.host===host)||null,mealy:mealyOn(s,host),lady:g.find(x=>x.kind==='lady'&&x.host===host)||null,ant:g.find(x=>x.kind==='ant'&&x.tend===host)||null};}
 function inSoil(s,siteId){const g=groups(s);return {gnat:gnatAt(s,siteId),soilmite:g.find(x=>x.kind==='soilmite'&&x.site===siteId)||null,rove:g.find(x=>x.kind==='rove'&&x.site===siteId)||null};}
 function rootsNear(s,p){return sites(s).map(z=>({z,g:gnatAt(s,z.id)})).find(o=>o.g&&Math.hypot(p.x-o.z.x,p.y-o.z.y)<GNAT.NEAR)||null;}
-return {PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
+return {candidates,harm,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
 });
