@@ -490,3 +490,13 @@
 - 검증: `npm test` 286/286(`traits.test.cjs` 7, `weather-care` 2건 기대값을 리들리 배율로), `npm run test:ui` PASS. `tools/traits-review.cjs` 전후 비교(`docs/qa-0.6.36`). 실기기 미검증.
 - 남은 일: 친구 여럿·거친 날씨 장기 측정, 날씨 기분 크기 체감 조정.
 
+- 0.6.36 병합·릴리스: PR #37(https://github.com/sia080808-lgtm/Forest-of-Space/pull/37) main 병합 `b83a5f45b2a47145fd9f6de9b1a35b55fef02e5f`(사용자 "ㄱㄱ"; head `bf1a1d9` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.36 `Forest-of-Space-0.6.36.apk` 40,725,992 bytes, SHA-256 `cf7631ac1cc68f5c601e6f35daa719d60d5ef0bbfc894c76d183208ae301cc15` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode53/0.6.36, APK 안 `traits.js` 포함.
+
+### CREVICE-ONE-0.6.37-20261119 — 바위틈 한 친구씩, 쓸 수 없게 된 자리 5초 제한
+
+- 담당: Claude Code. 기준 main `b83a5f4`(0.6.36 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 사용자 제보 "베이치가 바위틈으로 향하고 있어요 상태로 가만히 있음(바위틈엔 코로나) … 코로나가 나오니 엘리시가 바위틈으로 감, 베이치는 그대로".
+- 원인 판단(코드 경로): 0.6.35의 좁은 바위틈 자리에 두 친구가 동시에 배정되면 서로 몸으로 길을 막아 뒤 친구가 멈추고, 포기 후 다시 바위틈을 고르는 반복. 사용자 장면을 엔진에서 그대로 재현하지는 못함.
+- 변경: `objects.js` `option()` 바위틈 한 친구씩(다른 친구의 바위틈 과제가 있으면 capacity), `move()` 도착했으나 쓸 수 없는 자리 5초 뒤 과제 내려놓기(`t.unfit`). 버전 0.6.37 / versionCode 54. SRS World-Motion W27-02 한 줄 추가.
+- 검증: `npm test` 287/287(`rest-spots` 바위틈 한 친구 검사), `npm run test:ui` PASS. 엔진 스캔(친구 5명·이끼를 바위틈 아래에 둔 배치·10시드×3게임일, 최종 코드) "향하고" 15초 정지 0건. 실기기 미검증.
+
