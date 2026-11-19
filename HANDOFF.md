@@ -501,3 +501,11 @@
 - 검증: `npm test` 287/287(`rest-spots` 바위틈 한 친구 검사), `npm run test:ui` PASS. 엔진 스캔(친구 5명·이끼를 바위틈 아래에 둔 배치·10시드×3게임일, 최종 코드) "향하고" 15초 정지 0건. 실기기 미검증.
 
 - 병합·릴리스: PR #38(https://github.com/sia080808-lgtm/Forest-of-Space/pull/38) main 병합 `4ea1ead6a326bb6519a9a3007b7d1f7a14a65ac3`(사용자 "ㄱㄱ"; head `5962ace` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.37 `Forest-of-Space-0.6.37.apk` 40,725,992 bytes, SHA-256 `28e930da4de9640baaf1803b744219da6992a82b768642096bbb265f5b1cda7e` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode54/0.6.37, APK 안 engine.js VERSION 0.6.37·objects.js `t.unfit` 포함 확인.
+
+### TRAITS-GROUP-SRS-20261119 — 친구 6명 특성 측정·SRS 정리 (문서·도구만)
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(남은 일: 친구 여럿 측정) → "관련내용 SRS도 정리해줘". 기준 `ee2ab1e`(0.6.37 병합 후), 브랜치 `claude/festive-curie-mjk5mw`.
+- 측정: `tools/traits-group-review.cjs`(6종 한 정원, 기후 C01~C04 × 3시드 × 3게임일, 날씨 기분을 끈 비교) → `docs/qa-traits-group/*.json`. 지침 0, 엘레판은 서늘한 숲(C03)에서 기분 −15(최저 51), 추위는 C03에서만 발생, 마른 숲에서 물 보관 차이 뚜렷. 수치는 바꾸지 않음.
+- SRS: `docs/Forest-Species-Traits-SRS-v2.28.md`·`.pdf` ST-07b 추가·ST-08 갱신. `docs/Forest-World-Motion-SRS-v2.27.md`·`.pdf` 0.6.37(바위틈 한 친구, 도착했지만 쓸 수 없는 자리 5초 제한)·머리 버전 갱신.
+- 코드·앱 버전 변경 없음(APK 0.6.37 그대로). 제품 테스트는 새로 돌리지 않음(문서·도구만, 직전 0.6.37 결과 287/287).
+- 0.6.37 APK는 사용자에게 파일로 전달.
