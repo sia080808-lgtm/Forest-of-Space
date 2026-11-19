@@ -525,3 +525,4 @@
 - 한계: 웅크린 슈퍼범도 엘레판보다 넓어 기본 쉼터에서 다 자란 리들리와 함께 들어가지 못함(넓힌 쉼터부터). 기존 테스트 3건은 의도 유지 조정(superbum EC02·제자리 쉼, creatures 출현 간격에서 옮겨 붙은 무리 제외).
 - 검증: `npm test` 295/295, `npm run test:ui` PASS. 렌더 `docs/qa-0.6.38/runtime`(상태 불변 확인), 측정 `docs/qa-0.6.38/pest-spread.json`. Android 실기기 미검증.
 - 대기: 두리 전용 그림(사용자 "차차").
+- 병합·릴리스: PR #40(https://github.com/sia080808-lgtm/Forest-of-Space/pull/40) main 병합 `dd21c137507722d4c82fe9f3e87e58aff1672ea4`(사용자 "ㄱㄱ"; head `a2572f8` 기준 simulation·CodeQL 성공). 프리릴리스 v0.6.38 `Forest-of-Space-0.6.38.apk` 40,849,372 bytes, SHA-256 `3251e8c1abc6ea81e009851b7ca976204cedbdd0fbc5e336ae4d228e2dfe8646` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode55/0.6.38, APK 안 engine.js VERSION 0.6.38·creatures.js `contactStep`/`flyStep`·어린 단계 PNG 5개 포함 확인. APK는 사용자에게 파일로 전달.
