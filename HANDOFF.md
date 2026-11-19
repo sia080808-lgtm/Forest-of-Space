@@ -590,3 +590,5 @@
 - 검증: `npm test` 314/314(`seasons.test.cjs` 8, 기존 6건 조정), `npm run test:ui` PASS. 화면 `docs/qa-0.8.0/runtime`(상태 불변). 한 해 측정 `docs/qa-0.8.0/seasons*.json`. Android 실기기 미검증.
 - 판단: 서늘한 숲 겨울 기분 평균 20(사용자 "표대로"로 유지). 바닥·쉼터 등은 계절 색만.
 - 남은 일: 지역 해금·지역별 계절(v2.32), 바닥 계절 그림, 실기기.
+- 병합·릴리스: PR #43(https://github.com/sia080808-lgtm/Forest-of-Space/pull/43) main 병합 `1d29a358d34e6c61ac7b9680b551fe8ff03cac2d`(사용자 "ㄱㄱ"; head `7c0e9d8` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.0 `Forest-of-Space-0.8.0.apk` 57,945,135 bytes, SHA-256 `4b65e658dc2d0d50969da98a625e9a6ef209955715630a4e2251287b696e5c89` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode58/0.8.0, APK 안 engine.js VERSION 0.8.0·계절 그림 24장·index.html 계절 표시 포함 확인. APK는 사용자에게 파일로 전달.
+- 사용자 후속 질문(병합 직후): "계절별 맵 풍경도 바뀌어야 하지 않음?" — 바닥·쉼터·이끼·바위·샘터는 아직 계절 색만 받음. 다음 작업 후보로 안내.
