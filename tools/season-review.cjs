@@ -1,15 +1,15 @@
 // 0.8.0 review: the four seasons in the real scene.js (native Canvas, not Android WebView): seasonal fern frame, fern
 // clumps and leaf-shade plant, seasonal colour, autumn leaves, and a cross-fade at a season change. The default view and the
-// zoomed-out forest. Render must not change the state. Output: docs/qa-0.8.0/runtime/*.png
+// zoomed-out forest. Render must not change the state. Output: docs/qa-0.8.1/runtime/*.png
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');const {createCanvas,loadImage}=require('@napi-rs/canvas');
-const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.8.0/runtime');fs.mkdirSync(out,{recursive:true});
+const web=path.resolve(__dirname,'../app/src/main/assets/web'),out=path.resolve(__dirname,'../docs/qa-0.8.1/runtime');fs.mkdirSync(out,{recursive:true});
 const F=require(web+'/engine'),Rig=require(web+'/rig');
 (async()=>{const A={};for(const n of ['garden','ridley','terrain','basin'])A[n]=await loadImage(web+'/assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png');
  for(const n of ['shadePlant','shadeGround'])A[n]=await loadImage(web+'/assets/forest/'+(n==='shadePlant'?'shade-plant':'shade-ground')+'.png');for(const [k,v]of Object.entries(Rig.files))A[k]=await loadImage(web+'/'+v);
  A.gardenWide=await loadImage(web+'/assets/forest/garden-wide.png');A.shelterArt=await loadImage(web+'/assets/forest/shelter-art.png');A.frame=await loadImage(web+'/assets/forest/frame.png');for(let i=1;i<=6;i++)A['fern'+i]=await loadImage(web+'/assets/forest/ferns/fern-'+i+'.png');
  const vw=393,vh=690,canvas=createCanvas(vw*2,vh*2);canvas.getBoundingClientRect=()=>({width:vw,height:vh,left:0,top:0});
  const ctx={ForestNeolbi:require(web+'/neolbi'),ForestSuperbum:require(web+'/superbum'),Forest:F,ForestRig:Rig,ForestCreatureArt:require(web+'/creature-art'),ForestEffects:require(web+'/world-effects'),ForestCamera:require(web+'/camera'),ForestSurfaces:require(web+'/surfaces'),ForestEnvironment:require(web+'/environment'),ResizeObserver:class{observe(){}},devicePixelRatio:2,document:{querySelector:()=>null,createElement:()=>createCanvas(512,512)},requestAnimationFrame:()=>{},localStorage:{getItem:()=>null,setItem:()=>{}}};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene;',ctx);for(const [k,f] of Object.entries(ctx.Scene.seasonFiles()))A[k]=await loadImage(web+'/'+f);
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene;',ctx);for(const [k,f] of Object.entries(ctx.Scene.seasonFiles()))A[k]=await loadImage(web+'/'+f);ctx.ForestWorld=F.World;
  const s=F.create(0,5);s.started=true;s.mode='game';s.environment.tutorialDone=true;s.environment.timeOfDay=.5;s.weather.kind='sun';s.weather.intensity=0;s.weather.wind=10;
  const base=s.individuals[0];Object.assign(base,{x:.42,y:.62,xp:115,visualStage:3});
  for(const [sp,x,y] of [['bonbon',.6,.55],['neolbi',.3,.78],['bosong',-.1,.95],['jureong',.52,.42],['superbum',1.1,.4]])s.individuals.push({...F.clone(base),id:sp,species:sp,name:sp,x,y,active:true,sources:{rain:0,other:0,unknown:0},V:0});
@@ -17,5 +17,5 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');
  F.valid(s);const before=JSON.stringify(s);
  const sc=new ctx.Scene(canvas,()=>s);sc.assets=A;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.dt=.1;
  const shot=(name,set)=>{set(sc.camera);for(let i=0;i<4;i++){sc.phase=2+i*.1;sc.draw();}fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));};
- const E=F.Environment;const at=(tick)=>{s.worldTick=tick;};const names=[];for(const [i,se] of ['spring','summer','autumn','winter'].entries()){shot('season-'+se,c=>{at(i*3600+300);c.reset();});names.push('season-'+se);}shot('season-autumn-zoomed-out',c=>{at(2*3600+300);c.zoom(0);});shot('season-change-winter-60s',c=>{at(3*3600+60);c.reset();});s.worldTick=0;
+ const E=F.Environment;const at=(tick)=>{s.worldTick=tick;};const names=[];for(const [i,se] of ['spring','summer','autumn','winter'].entries()){shot('season-'+se,c=>{at(i*3600+300);c.reset();});shot('season-'+se+'-wide',c=>{at(i*3600+300);c.zoom(0);});names.push('season-'+se);}shot('season-autumn-zoomed-out',c=>{at(2*3600+300);c.zoom(0);});shot('season-change-winter-60s',c=>{at(3*3600+60);c.reset();});s.worldTick=0;
  if(JSON.stringify(s)!==before)throw Error('render changed state');console.log('ok, state unchanged; zMin',sc.camera.zMin.toFixed(3));})().catch(e=>{console.error(e);process.exit(1);});
