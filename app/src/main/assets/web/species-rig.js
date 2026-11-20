@@ -97,7 +97,7 @@ function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||
   if(e==='sleepy'){c.moveTo(x-17*S,y);c.quadraticCurveTo(x,y+16*S,x+17*S,y);}
   else if(e==='happy'){c.moveTo(x-16*S,y+3*S);c.quadraticCurveTo(x,y-18*S,x+16*S,y+3*S);}
   else if(e==='sad'&&k!=='bosong'&&k!=='jureong'){const sd=q===E[0]?-1:1;c.moveTo(x-15*S,y+(sd<0?-4:4)*S);c.lineTo(x+15*S,y+(sd<0?4:-4)*S);}
-  else if(k==='jureong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?26:22)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#2e241d';c.beginPath();c.arc(x+4*S,y-6*S,6*S,0,7);c.fill();c.fillStyle='#efe4c7';continue;}   // 코로나: big round eyes ("큰 동그라미 눈")
+  else if(k==='jureong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?26:22)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#efe4c7';continue;}   // 코로나 (눈동자 없음): big round eyes ("큰 동그라미 눈")
   else if(k==='bosong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?17:14)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#efe4c7';continue;}   // 베이치: round white eyes, as the user drew them ("눈 땡그랗게")
   else {c.moveTo(x,y-(e==='surprised'?22:18)*S);c.lineTo(x,y+(e==='surprised'?20:18)*S);}
   c.stroke();}
