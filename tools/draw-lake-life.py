@@ -49,12 +49,16 @@ def strider(t):
     fill(im,E(80,80,20,5),(96,80,62),seed=1); fill(im,E(100,79,6,4.5),(104,86,66),seed=2); eye(im,103,77,1.6)
     line(im,[(104,76),(118,66+k)],.9);line(im,[(104,77),(119,70-k)],.9); return im
 def snail(t):
-    im=canvas(); k=math.sin(t*TAU)
-    fill(im,P([(46,104),(112,104),(124,100+k),(118,92),(60,94)]),(150,140,118),seed=3)
-    line(im,[(114,96),(126,84+2*k)],1.1);line(im,[(118,97),(130,90-2*k)],1.1)
-    fill(im,E(80+k*.8,84,26,22),(170,128,82),seed=4)
+    """crawling: the foot stretches forward (head and tentacles reach out), then the tail draws up and the shell follows
+    (user: "물달팽이도 기어다닐 때 몸통 길어졌다 짧아졌다")"""
+    im=canvas(); st=(1-math.cos(t*TAU))/2          # 0 = short, 1 = stretched
+    head=108+st*26; tail=52+st*3; shell=76+st*7
+    fill(im,P([(tail,104),(tail+6,98),(head-6,94),(head,96),(head+10,101),(head+6,104)]),(150,140,118),seed=3)
+    line(im,[(head+2,96),(head+12,84-st*3)],1.1);line(im,[(head+5,97),(head+16,90-st*2)],1.1)
     d=ImageDraw.Draw(im)
-    for r in (18,11,5): d.arc([(80+k*.8-r)*K,(84-r)*K,(80+k*.8+r)*K,(84+r)*K],40,340,fill=OUTLINE,width=int(1.4*K))
+    for x,y in [(head+12,84-st*3),(head+16,90-st*2)]: d.ellipse([(x-1.2)*K,(y-1.2)*K,(x+1.2)*K,(y+1.2)*K],fill=(46,34,26,255))
+    fill(im,E(shell,84,26,22),(170,128,82),seed=4)
+    for r in (18,11,5): d.arc([(shell-r)*K,(84-r)*K,(shell+r)*K,(84+r)*K],40,340,fill=OUTLINE,width=int(1.4*K))
     return im
 def eggs(t):
     im=canvas(); rng=np.random.default_rng(5); k=math.sin(t*TAU)
@@ -135,7 +139,7 @@ def larva(t):
     line(im,[(80,70),(80+k*4,84),(84-k*7,98),(90+k*7,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
     line(im,[(90+k*7,106),(96+k*7,102)],1); line(im,[(90+k*7,106),(94+k*7,110)],1); ripple(im,80,64,10); return im
 CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
-STILL={'eggs','snail'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
+STILL={'eggs'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
 frames={}
 for name,fn in CRE:
     n=1 if name in STILL else N
