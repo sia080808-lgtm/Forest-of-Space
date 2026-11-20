@@ -108,8 +108,8 @@ def nymph(t):
     fill(im,E(80,84+y,9,20),(118,104,78),seed=14); fill(im,E(80,62+y,8,7),(124,110,82),seed=15); eye(im,76,60+y,1.6); eye(im,84,60+y,1.6)
     # six legs gripping the reed, stepping up and down in two alternating sets (user: "잠잠이도 다리 여섯개 위 아래로")
     for j,dy in enumerate((0,10,20)):
-        a=k*7*(1 if j%2==0 else -1)
-        line(im,[(72,76+dy+y),(64,74+dy+y+a),(60,70+dy+y+a)],1.1); line(im,[(88,76+dy+y),(96,74+dy+y-a),(100,70+dy+y-a)],1.1)
+        a=k*7   # all six legs up together, then down together (user: "6개 다리 모두 같이 위로, 아래로")
+        line(im,[(72,76+dy+y),(64,74+dy+y+a),(60,70+dy+y+a)],1.1); line(im,[(88,76+dy+y),(96,74+dy+y+a),(100,70+dy+y+a)],1.1)
     return im
 def dragonfly(t):
     im=canvas(); k=math.sin(t*TAU*2)      # wings beat twice per cycle
