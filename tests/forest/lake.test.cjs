@@ -42,3 +42,14 @@ test('LK-04 water lilies appear at random on open water from late spring, grow t
 test('LK-05 the admin switch opens the shore at once (no growth conditions, no walks) and only once',()=>{
  const s=game();a.equal(W.openLake(s),true);a.equal(W.lakeOpen(s),true);a.equal(s.world.lake.scents,3);a.equal(W.openLake(s),false);a.equal(s.world.regions.filter(r=>r==='lakeshore').length,1);F.valid(s);
 });
+test('LK-06 lake neighbours: spring eggs grow into tadpoles and frogs, summer brings the pest and those that eat it, winter clears them',()=>{
+ const s=game(3);s.world.regions=[...s.world.regions,'lakeshore'];const c0=s.environment.calendar?.start??0,kinds=new Set();
+ for(let t=0;t<7200;t++){s.worldTick=c0+t;s.weather.wind=5;s.weather.kind='sun';W.lakeStep(s);for(const o of s.world.lake.life)kinds.add(o.kind);}
+ for(const k of ['eggs','tadpole','frog','strider','snail','medaka','larva','dragonfly'])a.ok(kinds.has(k),'saw '+k+' ('+[...kinds]+')');
+ for(const o of s.world.lake.life){if(['frog','nymph','dragonfly'].includes(o.kind))continue;a.ok(W.inWater(s,o),o.kind+' on the water');}
+ for(const [k,n] of Object.entries(W.LIFE.cap))a.ok(s.world.lake.life.filter(o=>o.kind===k).length<=n,k+' cap');F.valid(s);
+ // the pest bothers a friend standing next to it
+ const p=s.individuals[0];s.world.lake.life.push({id:'lifeX',kind:'larva',x:1.45,y:.5,born:s.worldTick});p.x=1.45;p.y=.5;p.mood=50;p.active=true;W.lakeStep(s);a.ok(p.mood<50);
+ s.worldTick=c0+10800+5;s.world.lake.nextLife=0;W.lakeStep(s);a.equal(s.world.lake.life.length,0,'winter clears them');
+ const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,life:[{id:'x',kind:'shark',x:1.5,y:.5,born:0}]};a.throws(()=>F.valid(bad),/호수/);
+});
