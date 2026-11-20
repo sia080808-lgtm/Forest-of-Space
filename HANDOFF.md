@@ -689,3 +689,5 @@
 - 판단: 물 모양을 세계 좌표 식 하나로 두어 그림·판정이 같고, 더 동쪽 지역을 열면 그대로 이어진다. 그림은 처음부터 x 1.05~2.2를 덮는다.
 - 검증: `lake.test.cjs` 3개, 관련 `wide-forest`·`stroll`·`package` 통과(전체는 CI). 측정: 친구 4명 시드 3개, 준비 3,600초 → 열림 3,813~4,032초. 화면 `docs/qa-0.9.0/runtime`(`tools/lake-review.cjs`). Android 실기기 미검증.
 - 다음: 수련(무작위 생성·생애주기), 물가 이웃 7종, 상호작용·이벤트 4개, 물 마시기, 더 동쪽 호수 지역.
+- 병합·릴리스: PR #51(https://github.com/sia080808-lgtm/Forest-of-Space/pull/51) main 병합 `1c4b770288509a4f6f1c3e856d546670f819b4ca`(사용자 "ㄱㄱ", 맵만; head `814913d` 기준 simulation·CodeQL 성공, CodeQL 안 쓰는 변수 9건 같은 PR에서 정리). 프리릴리스 v0.9.0 `Forest-of-Space-0.9.0.apk` 71,696,998 bytes, SHA-256 `c5ef9aac0260fefaf21ed83cf4524fa2cfdc794d4b6ed34171f5bb98232694ca` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode66/0.9.0. APK는 사용자에게 파일로 전달.
+- 사용자 지시(2026-11-20): "진짜 필요한 테스트만해라" — 로컬은 바꾼 부분에 직접 닿는 테스트만, 전체는 CI, UI 검사는 화면 코드 변경 시만, APK 확인은 체크섬·인증서·버전만.
