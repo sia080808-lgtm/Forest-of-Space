@@ -81,9 +81,9 @@ function drawSet(c,a,set,p,opt,t){
   for(let y=top;y<420;y+=STRIP){const h=Math.min(STRIP,420-y),f=Math.max(0,(y+h/2-py)/span),w=f*f*(3-2*f),dx=-ang*span*w,dy=-lift*span*.35*w;c.save();c.beginPath();c.rect(-60,y+dy-.75,600,h+1.5);c.clip();c.drawImage(im,dx,dy,480,420);c.restore();}
   if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // body (round face) first; the feet are attached in front of its lower edge (they move with the body and step on their own); leaves and crown move with the body
- const lift=()=>{c.translate(0,p.bob+p.sink);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
+ const sit=opt.sit||0,lift=()=>{c.translate(0,p.bob+p.sink+sit*10);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
  c.save();lift();img('body');eyes(c,set,m,p,a,opt,t);c.restore();
- for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink);c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
+ for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink*(1-sit));c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
  c.save();lift();
  // each side's leaves hang over its cheek
  // huddled (0.6.38): the outer tips at the top of the side leaves sit under the nest brim; once the nest folds down they

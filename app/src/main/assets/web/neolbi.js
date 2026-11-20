@@ -20,9 +20,9 @@ function turn(c,im,x,y,angle,snow=0){c.save();c.translate(x,y);c.rotate(angle);c
 function drawLocal(c,a,opt={}){
  const raw=opt.clip||opt.kind;const kind=raw==='idle'&&!(opt.canopy>0)&&((opt.phase||0)%18)<5?'hoodpeek':raw;
  const p=Motion.pose(kind,opt.phase||0,opt),t=opt.reduced?0:opt.phase||0;
- c.save();c.translate(0,p.bob+p.sink);c.translate(127,164);c.rotate(p.body);c.translate(-127,-164);
+ const sit=(opt.sit||0)*16;c.save();c.translate(0,p.bob+p.sink+sit);c.translate(127,164);c.rotate(p.body);c.translate(-127,-164);
  const leafFilter=!(opt.wetFilm||opt.damage)?c.filter:(c.filter&&c.filter!=='none'?c.filter+' ':'')+'brightness('+(1-.10*(opt.wetFilm||0))+') saturate('+(1-.22*Math.min(1,(opt.damage||0)/30))+')';p.front=Math.min(21*Math.PI/180,p.front+(!p.open?.06*Math.min(1,(opt.burden||0)/40):0));c.save();c.filter=leafFilter;turn(c,a.neolbiRear,140,73,p.rear,opt.snow||0);c.restore();
- for(let j=0;j<2;j++){const x=j?181:89;c.save();c.translate(x,177);c.rotate(j?p.right:p.left);c.translate(-x,-177);c.drawImage(a.neolbiLegs,j?510:0,0,510,832,j?127.5:0,0,127.5,208);c.restore();}
+ for(let j=0;j<2;j++){const x=j?181:89;c.save();c.translate(0,-sit);c.translate(x,177);c.rotate(j?p.right:p.left);c.translate(-x,-177);c.drawImage(a.neolbiLegs,j?510:0,0,510,832,j?127.5:0,0,127.5,208);c.restore();}
  c.drawImage(a.neolbiBody,0,0,255,208);
  const blink=!opt.reduced&&t%4.7<.12;
  if(p.eyes==='neutral'&&!blink&&p.look===0)c.drawImage(a.neolbiEyes,0,0,255,208);
