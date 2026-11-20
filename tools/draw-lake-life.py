@@ -129,10 +129,10 @@ def medaka(t):
     eye(im,108,b(108)-1,2.2); return im
 def larva(t):
     im=canvas(); k=math.sin(t*TAU)
-    line(im,[(80,70),(80+k*3,86),(84-k*4,100),(88+k*3,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
-    line(im,[(88+k*3,106),(94,102)],1); line(im,[(88+k*3,106),(92,110)],1); ripple(im,80,64,10); return im
+    line(im,[(80,70),(80+k*4,84),(84-k*7,98),(90+k*7,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
+    line(im,[(90+k*7,106),(96+k*7,102)],1); line(im,[(90+k*7,106),(94+k*7,110)],1); ripple(im,80,64,10); return im
 CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
-STILL={'eggs','snail','nymph','larva'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
+STILL={'eggs','snail','nymph'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
 frames={}
 for name,fn in CRE:
     n=1 if name in STILL else N
