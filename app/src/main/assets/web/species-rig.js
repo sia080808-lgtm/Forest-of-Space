@@ -81,7 +81,7 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
 // The painted eyes (and 코로나's painted mouth) are covered with the body texture just below them. 베이치's face sits lower
 // on its body, clear of the head leaf (user: "베이치 얼굴을 여기다 이렇게 배치"). (베이치 redraws its body over its arms, so
 // this runs after that.)
-const FACE={bosong:{eyes:[[.37,.55],[.65,.55]],mouth:[.51,.6],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.34,.53],[.57,.53]],mouth:[.455,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16],scale:1.5}};
+const FACE={bosong:{eyes:[[.37,.63],[.65,.63]],mouth:[.51,.68],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.34,.53],[.57,.53]],mouth:[.455,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16],scale:1.5}};
 function cover(c,d,cx,cy,rx,ry,tx,ty,tw,th){c.save();c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,7);c.clip();img(c,d,[tx-tw*.8,ty+th*1.1,tw*1.6,th*2],cx-rx*1.1,cy-ry*1.1,rx*2.2,ry*2.2);c.restore();}
 function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');
  const P=(e)=>({x:-d.w/2+e[0]*d.w,y:-d.h-1.5+e[1]*d.h});
@@ -103,8 +103,8 @@ function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||
  c.beginPath();
  if(e==='surprised'){c.ellipse(M.x,M.y,13*S,17*S,0,0,7);c.fill();}
  else if(e==='sad'){c.moveTo(M.x-12*S,M.y+5*S);c.quadraticCurveTo(M.x,M.y-6*S,M.x+12*S,M.y+5*S);c.stroke();}
- else if(e==='happy'){c.moveTo(M.x-14*S,M.y-4*S);c.quadraticCurveTo(M.x,M.y+12*S,M.x+14*S,M.y-4*S);c.stroke();}
- else if(e!=='sleepy'){c.moveTo(M.x-13*S,M.y);c.lineTo(M.x+13*S,M.y);c.stroke();}
+ // 웃을 때는 입 없음 (사용자 "웃을 땐 입 없애")
+ else if(e!=='sleepy'&&e!=='happy'){c.moveTo(M.x-13*S,M.y);c.lineTo(M.x+13*S,M.y);c.stroke();}
  c.restore();}
 function actor(c,k,x,y,t,p={}){if(k==='bonbon')return ellisiiActor(c,x,y,t,p);if(!data[k])return duriActor(c,k,x,y,t,p);const d=data[k],g=p.growth??.65,m=p.mode||'idle',walk=['walk','run','slow'].includes(m),beat=Math.sin(t*d.tempo*(m==='run'?12:8)),rest=p.rest??(['sleep','rest','moss'].includes(m)?1:0),bob=walk?-Math.abs(beat)*.65:m==='held'?Math.sin(t*7)*.22:Math.sin(t*1.4)*.09;
 const sit=p.sit||0,sd=k==='bosong'?1.3:1.4,sink=sit*(rest*.7+sd);c.save();c.translate(x,y);c.scale(g,g);c.translate(0,bob+rest*.7+sit*sd-(p.lift||0));c.rotate((p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:0));if(d.hat)hatLayer(c,d,t,p,true);
