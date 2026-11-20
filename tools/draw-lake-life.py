@@ -44,7 +44,7 @@ TAU=2*math.pi
 def strider(t):
     im=canvas(); k=math.sin(t*TAU)
     for (x0,y0,x1,y1,ph) in [(80,82,30,104,0),(84,82,134,104,0),(78,80,40,62,1),(86,80,124,64,1)]:
-        dx=(k if ph==0 else -k)*4; line(im,[(x0,y0),((x0+x1)/2+dx/2,(y0+y1)/2-6),(x1+dx,y1)],1.3); ripple(im,x1+dx,y1+2,5+abs(k)*1.5)
+        dx=(k if ph==0 else -k)*9; line(im,[(x0,y0),((x0+x1)/2+dx/2,(y0+y1)/2-6),(x1+dx,y1)],1.3); ripple(im,x1+dx,y1+2,5+abs(k)*1.5)
     line(im,[(96,78),(110,72),(116,74)],1.1);line(im,[(96,82),(108,86),(112,90)],1.1)
     fill(im,E(80,80,20,5),(96,80,62),seed=1); fill(im,E(100,79,6,4.5),(104,86,66),seed=2); eye(im,103,77,1.6)
     line(im,[(104,76),(118,66+k)],.9);line(im,[(104,77),(119,70-k)],.9); return im
@@ -69,19 +69,34 @@ def tadpole(t):
     line(im,pts,4,(78,70,58,220)); line(im,pts,1.4)
     fill(im,E(86,80,15,12),(82,74,60),seed=6); eye(im,92,76,1.8); return im
 def frog(t):
-    """sit, crouch, leap, splash-down: one jump per cycle"""
-    im=canvas(); ph=t; hop=math.sin(min(1,max(0,(ph-.3)/.5))*math.pi) if .3<=ph<=.8 else 0
-    crouch=.6 if .15<ph<.3 else 0; dy=-hop*26+crouch*3; stretch=1+hop*.35
-    def body(oy):
-        fill(im,P([(52,106+oy),(60,90+oy),(78,80+oy),(102,80+oy),(116,92+oy),(118,106+oy)]),(126,166,96),seed=7)
-        fill(im,E(106,82+oy,16,12),(132,172,100),seed=9); fill(im,E(110,72+oy,7,7),(140,176,104),seed=10); eye(im,111,72+oy,3.2)
-        line(im,[(102,88+oy),(120,88+oy)],1.0)
-    if hop>0:
-        line(im,[(56,100+dy),(40,108+dy+hop*6),(30,112+dy+hop*8)],3.4,(116,156,88,235)); line(im,[(56,100+dy),(40,108+dy+hop*6),(30,112+dy+hop*8)],1)
-        body(dy); fill(im,E(126,96+dy,8,4),(116,156,88),seed=11)
-    else:
-        fill(im,E(64,104+crouch*2,14,7),(116,156,88),seed=8); body(dy); fill(im,E(122,104,9,4),(116,156,88),seed=11)
-    if ph>.8: ripple(im,80,112,18+(ph-.8)*60)
+    """one leap per cycle: sit, crouch, push off, stretched in the air, front feet land, settle with a ripple"""
+    im=canvas(); i=int(round(t*N))%N
+    G=(126,166,96); D=(116,156,88); L=(132,172,100)
+    def leg(pts,w=3.6): line(im,pts,w,D+(240,)); line(im,pts,1.0)
+    def head(x,y,rot=0):
+        fill(im,E(x,y,16,12),L,seed=9); fill(im,E(x+4,y-10,7,7),(140,176,104),seed=10); eye(im,x+5,y-10,3.2)
+        line(im,[(x-4,y+6),(x+14,y+6+rot)],1.0)
+    if i in (0,5):       # sitting (5: just landed, ripple)
+        fill(im,E(64,104,14,7),D,seed=8)
+        fill(im,P([(52,106),(60,90),(78,80),(102,80),(116,92),(118,106)]),G,seed=7); head(106,82)
+        leg([(108,96),(118,104),(126,106)])
+        if i==5: ripple(im,80,110,30)
+    elif i==1:           # crouch: body low, haunches up
+        fill(im,E(62,104,16,8),D,seed=8)
+        fill(im,P([(50,108),(58,94),(78,86),(104,86),(118,98),(120,108)]),G,seed=7); head(108,90)
+        leg([(110,100),(122,106),(130,108)])
+    elif i==2:           # push off: body tilted up, hind legs straightening behind
+        leg([(62,92),(46,102),(34,110)],4)
+        fill(im,P([(56,96),(66,80),(86,66),(106,62),(116,72),(100,90)]),G,seed=7); head(110,64,-2)
+        leg([(108,76),(122,72),(132,66)])
+    elif i==3:           # in the air: fully stretched, hind legs trailing straight, front legs reaching
+        leg([(58,70),(38,74),(20,78)],4); leg([(60,74),(42,82),(26,88)],3.4)
+        fill(im,P([(54,72),(70,58),(96,52),(114,56),(116,66),(96,74)]),G,seed=7); head(116,56,-1)
+        leg([(116,62),(132,62),(142,66)]); leg([(112,66),(128,70),(136,74)],3)
+    else:                # i==4 landing: front feet down first, hind legs folding in
+        leg([(60,88),(46,90),(40,98)],4)
+        fill(im,P([(54,92),(66,80),(88,74),(108,78),(118,92),(98,98)]),G,seed=7); head(110,82,1)
+        leg([(112,92),(122,104),(130,108)]); ripple(im,124,110,10)
     return im
 def nymph(t):
     im=canvas(); k=math.sin(t*TAU); line(im,[(80,140),(80,30)],3,(110,122,82,235))
@@ -117,10 +132,12 @@ def larva(t):
     line(im,[(80,70),(80+k*3,86),(84-k*4,100),(88+k*3,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
     line(im,[(88+k*3,106),(94,102)],1); line(im,[(88+k*3,106),(92,110)],1); ripple(im,80,64,10); return im
 CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
+STILL={'eggs','snail','nymph','larva'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
 frames={}
 for name,fn in CRE:
-    fr=[small(fn(i/N)) for i in range(N)]; frames[name]=fr
-    strip=Image.new('RGBA',(S*N,S),(0,0,0,0))
+    n=1 if name in STILL else N
+    fr=[small(fn(i/N)) for i in range(n)]; frames[name]=fr
+    strip=Image.new('RGBA',(S*n,S),(0,0,0,0))
     for i,f in enumerate(fr): strip.alpha_composite(f,(i*S,0))
     strip.save(os.path.join(OUT,'life-'+name+'.png'),optimize=True)
 if len(sys.argv)>1:
