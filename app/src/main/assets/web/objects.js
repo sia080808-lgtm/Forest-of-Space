@@ -174,6 +174,12 @@ const STROLL=Object.freeze({chance:.3,min:.25,linger:15,lingerSpread:16,deadline
 function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.walk(s),G=W.GARDEN;
  for(let i=0;i<8;i++){const q={x:b.x0+(b.x1-b.x0)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};const outer=q.x<G.x0+.05||q.x>G.x1-.05||q.y<G.y0+.05||q.y>G.y1-.05;
   if(i<6&&!outer||Math.hypot(q.x-p.x,q.y-p.y)<STROLL.min)continue;if(Space.walkable(s,q,p.id))return q;}return null;}
+// 0.8.7 산책 동작 (user: "산책할 때 가벼운 모션들 먼저"): while it lingers at the walk's end the friend looks around (turning
+// this way and that), bends to smell the grass, sits down for a little while and gets up again before walking on. Pure
+// function of the stroll record and the clock: the scene draws it and the card text follows it; no state or RNG changes.
+function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null||p.objectTask)return null;const e=t-r.arrivedAt,L=r.linger,sit=Math.max(7,L-7);
+ if(e<0||e>=L-1)return {pose:'idle'};if(e<4)return {pose:'look',face:Math.floor(e/1.3)%2?1:-1};if(e<6.5)return {pose:'sniff'};if(e>=sit)return {pose:'sit'};
+ return {pose:'look',face:Math.floor(e/1.8)%2?-1:1};}
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
  if(t.arrivedAt==null){const m=dep('spatial').travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
   if(m.arrived)t.arrivedAt=s.worldTick;else if(t.stalled>=3||s.worldTick>t.deadline){delete p.stroll;p.nextObjectChoice=s.worldTick;}return m;}
@@ -306,7 +312,7 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
- if(p.stroll&&!t)return p.stroll.arrivedAt==null?'숲 가장자리로 산책 가고 있어요':'숲 가장자리를 천천히 둘러보고 있어요';
+ if(p.stroll&&!t){if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
  if(t.object==='moss')return patch(s,'moss').S<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';
@@ -323,5 +329,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,STROLL,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,STROLL,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });

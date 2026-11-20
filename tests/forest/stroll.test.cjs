@@ -10,7 +10,7 @@ test('ST-01 a free friend sometimes walks out to the open ground, lingers there 
  s.worldTick=200;for(let t=0;t<410;t++){fed(s);calm(s);F.step(s);const r=p.stroll;
   if(r&&(!prev||prev.since!==r.since)){started++;a.ok(outer(r)||Math.hypot(r.x-.5,r.y-.5)>.3,'target on the open ground '+JSON.stringify(r));a.equal(p.objectTask,undefined);}
   if(r&&r.arrivedAt!=null&&(!prev||prev.arrivedAt==null))arrived++;if(prev&&!r)ended++;if(r?.arrivedAt!=null&&outer(p))out++;
-  if(r)a.match(O.reason?O.reason(s,p)||'':'',/산책|둘러보고/);prev=r?{...r}:null;}
+  if(r)a.match(O.reason?O.reason(s,p)||'':'',/산책|둘러보고|두리번|냄새|앉아 쉬고/);prev=r?{...r}:null;}
  a.ok(started>=2&&arrived>=1&&ended>=1,`started ${started} arrived ${arrived} ended ${ended}`);a.ok(out>0,'stood on the open ground');F.valid(s);
  const back=F.migrate(JSON.parse(JSON.stringify(s)));F.valid(back);
 });
@@ -31,4 +31,11 @@ test('ST-03 snow and wind-blown leaves fill the whole wide forest (scaled to its
 test('ST-04 the fern frame can be turned off and on (a setting; old saves keep it on)',()=>{
  const s=game();a.equal(s.settings.showFrame,true);delete s.settings.showFrame;F.valid(s);s.settings.showFrame=false;F.valid(s);s.settings.showFrame='no';a.throws(()=>F.valid(s));
  const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/drawFrame\(c,base\)\{const im=this\.assets\.frame;if\(!im\|\|this\.state\(\)\.settings\?\.showFrame===false\)return;/);
+});
+test('ST-05 0.8.7 light stroll poses: look around (turning), smell the grass, sit, stand up; card text follows; state untouched',()=>{
+ const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=200;p.x=-.1;p.y=.5;p.stroll={x:-.1,y:.5,since:190,deadline:280,linger:20,arrivedAt:200};p.nextObjectChoice=1e9;
+ const at=e=>O.strollPose(s,p,200+e);a.equal(at(1).pose,'look');a.notEqual(at(1).face,at(1.5).face,'turns this way and that');a.equal(at(5).pose,'sniff');a.equal(at(15).pose,'sit');a.equal(at(19.5).pose,'idle');
+ const before=JSON.stringify(s);for(const e of [1,5,15])O.strollPose(s,p,200+e);a.equal(JSON.stringify(s),before,'pure');
+ s.worldTick=205;a.match(O.reason(s,p),/냄새/);s.worldTick=215;a.match(O.reason(s,p),/앉아 쉬고/);s.worldTick=201;a.match(O.reason(s,p),/두리번/);
+ const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/strollPose\?\.\(s,p,s\.worldTick\+fraction\)/);a.match(src,/kind==='sniff'\?'drink':kind/);
 });
