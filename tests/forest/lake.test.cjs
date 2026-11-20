@@ -6,9 +6,9 @@ const fed=s=>{for(const p of s.individuals)Object.assign(p,{B:60,energy:80,nutri
 const calm=s=>{s.weather.kind='sun';s.weather.intensity=0;s.weather.wind=5;s.weather.remaining=200;};
 const three=s=>{const b=JSON.stringify(s.individuals[0]);while(s.individuals.filter(p=>p.active).length<3){const q=JSON.parse(b);q.id='lk'+s.individuals.length;q.x=.3+.1*s.individuals.length;q.y=.6;s.individuals.push(q);}};
 
-test('LK-01 a save without the lake keeps the forest only; the shore adds x 1.25..1.75 and walking stops at the water',()=>{
+test('LK-01 a save without the lake keeps the forest only; the shore adds x 1.25..3.3 and walking stops at the water',()=>{
  const s=game();a.equal(W.lakeOpen(s),false);a.deepEqual(W.bounds(s),{x0:-.25,y0:-.25,x1:1.25,y1:1.25});a.equal(W.inWater(s,{x:1.7,y:.56}),false);
- s.world.regions=[...s.world.regions,'lakeshore'];a.equal(W.bounds(s).x1,1.75);
+ s.world.regions=[...s.world.regions,'lakeshore'];a.equal(W.bounds(s).x1,3.3);
  const id=s.individuals[0].id;a.ok(Sp.walkable(s,{x:1.35,y:.56},id),'the shore');a.equal(Sp.walkable(s,{x:1.65,y:.56},id),false,'the water');
  a.ok(W.inWater(s,{x:1.7,y:.56})&&!W.inWater(s,{x:1.35,y:.56}));F.valid(s);
  const back=F.migrate(JSON.parse(JSON.stringify(s)));F.valid(back);a.equal(W.lakeOpen(back),true);

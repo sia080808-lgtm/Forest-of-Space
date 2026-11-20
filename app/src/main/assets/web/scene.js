@@ -35,7 +35,7 @@ class ForestScene {
  // winter: one continuous snow cover over most of the ground (cached), the paper showing through in thawing patches;
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
  // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
- snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);if(this.assets.lakeIce&&(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.lakeOpen?.(s))c.drawImage(this.assets.lakeIce,1.05*w,-.25*h,1.15*w,1.5*h);   /* 0.9.0: the lake freezes under the snow */
+ snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);if(this.assets.lakeIce&&(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.lakeOpen?.(s))c.drawImage(this.assets.lakeIce,1.05*w,-.25*h,2.25*w,1.5*h);   /* 0.9.0: the lake freezes under the snow */
   // a few very faint, broad grey washes: the gentle rise and fall of the snow (barely visible, no clutter)
   for(let i=0;i<9;i++){const x=(W.x0+((i*.618034+.21)%1)*(W.x1-W.x0))*w,y=(W.y0+((i*.381966+.13)%1)*(W.y1-W.y0))*h,r=(.18+.08*(i%3))*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,178,184,.07)');g.addColorStop(1,'rgba(170,178,184,0)');c.save();c.translate(x,y);c.scale(1,.38);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}
   c.restore();}
@@ -284,7 +284,7 @@ class ForestScene {
  draw(){const target=this.ctx,d=this.canvas.width/this.vw;this.worldBuffer??=ForestEffects.canvas(this.canvas.width,this.canvas.height);if(this.worldBuffer.width!==this.canvas.width||this.worldBuffer.height!==this.canvas.height){this.worldBuffer.width=this.canvas.width;this.worldBuffer.height=this.canvas.height;}this.ctx=this.worldBuffer.getContext('2d');this.ctx.setTransform(d,0,0,d,0,0);this.ringPass=null;try{this.drawWorld();}finally{this.ctx=target;}target.save();target.setTransform(d,0,0,d,0,0);target.clearRect(0,0,this.vw,this.vh);ForestEffects.grade(target,this.worldBuffer,this.state(),this.vw,this.vh);const s=this.state(),night=['night','deep','dawn'].includes(Forest.Environment.timeKey(s));if(night){for(let i=0;i<(s.settings.reducedMotion?2:6);i++){target.fillStyle=`rgba(234,234,163,${.2+.4*Math.abs(Math.sin(this.phase*.5+i))})`;target.beginPath();const q=this.camera.screen({x:i%2?.94:.05,y:.2+(i*.139)%.7});target.arc(q.x,q.y,1.3*this.camera.scale,0,Math.PI*2);target.fill();}}this.fireflies(target);this.ringGlow(target);target.restore();}
 // 0.9.3 여름밤 반딧불: soft lights drifting over the lake shore, drawn after grading so they glow at night. Render only.
 fireflies(c){const s=this.state();if(!Forest.World?.fireflies?.(s))return;const t=s.settings.reducedMotion?0:this.phase||0,hs=q=>{const x=Math.sin(q*127.1+311.7)*43758.5453;return x-Math.floor(x);};c.save();
- for(let i=0;i<18;i++){const x=1.2+hs(i+1)*.42+Math.sin(t*.13+i)*.025,y=-.05+hs(i+7)*1.1+Math.sin(t*.17+i*2)*.03,q=this.camera.screen({x,y}),b=Math.max(0,Math.sin(t*(.6+hs(i+3)*.7)+i*1.9)),r=(2.4+b*2.2)*this.camera.scale;if(b<.05)continue;
+ for(let i=0;i<30;i++){const x=1.2+hs(i+1)*1.9+Math.sin(t*.13+i)*.025,y=-.05+hs(i+7)*1.1+Math.sin(t*.17+i*2)*.03,q=this.camera.screen({x,y}),b=Math.max(0,Math.sin(t*(.6+hs(i+3)*.7)+i*1.9)),r=(2.4+b*2.2)*this.camera.scale;if(b<.05)continue;
   const g=c.createRadialGradient(q.x,q.y,0,q.x,q.y,r*2.4);g.addColorStop(0,`rgba(246,240,170,${.9*b})`);g.addColorStop(.3,`rgba(226,232,140,${.35*b})`);g.addColorStop(1,'rgba(220,230,140,0)');c.fillStyle=g;c.beginPath();c.arc(q.x,q.y,r*2.4,0,Math.PI*2);c.fill();}
  c.restore();}
 ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.58))):0;if(!n)return;// Night: add light after grading, only on the near half of the ring so the body still covers the back half.
@@ -330,8 +330,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    c.save();c.translate(l.x*w,l.y*h+Math.sin(t*.8+hsh)*.35);if(flip)c.scale(-1,1);c.drawImage(im,-dw*160/320,-dh*130/220,dw,dh);c.restore();}}
  drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest;
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
-   // 0.9.0 동쪽 호수 물가: the lake art covers x 1.05..2.2 (fading in over the forest's east edge); only the open part shows (world clip)
-   if(A.lakeFloor&&Forest.World?.lakeOpen?.(this.state()))c.drawImage(A.lakeFloor,1.05*w,-.25*h,1.15*w,1.5*h);
+   // 0.9.0 동쪽 호수 물가 (0.9.5: the whole lake, art x 1.05..3.3) (fading in over the forest's east edge); only the open part shows (world clip)
+   if(A.lakeFloor&&Forest.World?.lakeOpen?.(this.state()))c.drawImage(A.lakeFloor,1.05*w,-.25*h,2.25*w,1.5*h);
    if(Forest.World?.lakeOpen?.(this.state())){this.drawLilies(c,w,h);this.drawLakeLife(c,w,h);}
    for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);this.seasonal('fern'+i,f=>c.drawImage(f,-dw/2,-dh,dw,dh));c.restore();}}
   else{this.prepareShelter();c.drawImage(this.shelterPaper,0,0,w,h);}}
