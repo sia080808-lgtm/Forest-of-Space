@@ -32,6 +32,17 @@ function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return
 // (light −15 for photosynthesis), so a hot dry summer is easier by the water. Pure read; nothing is saved.
 const COOL=Object.freeze({reach:1.2,light:15});
 function coolAt(s,p){const W=dep('world'),E=dep('environment');return !!(W&&isDay(s)&&E?.season?.(s)==='summer'&&W.lakeOpen(s)&&!W.frozen(s)&&p.x>1.15&&W.waterD(p.x,p.y)<COOL.reach);}
+// 1.0.1 새벽 이슬 (dew): on calm nights without rain or snow, dew gathers at dawn (day time 1000..1150, 150 seconds):
+// the spring gains 20% of its capacity, the moss fills, and a friend sleeping in the open takes up to 4 수분 through its
+// leaves (not past its warning line). Cloud gives half, wind 40+ none. It helps most in a dry season (마른 숲 겨울 건기).
+// Dew is water from the air, so it is booked with the rain inflow (ledger.rain) and also counted in ledger.dew.
+const DEW=Object.freeze({from:1000,to:1150,spring:.2,moss:1,leaf:4,wind:40});
+function dewRate(s){const t=dayTime(s),k=s.weather.kind;if(t<DEW.from||t>=DEW.to||k==='rain'||k==='snow'||s.weather.wind>=DEW.wind)return 0;return k==='cloud'?.5:1;}
+function dewStep(s,inside){const r=dewRate(s);if(!r)return;const len=DEW.to-DEW.from,L=s.ledger;let got=0;
+ const sp=s.spring;if(sp&&sp.capacity>0){const n=Math.max(0,Math.min(sp.capacity*DEW.spring*r/len,sp.capacity-sp.water));sp.water+=n;got+=n;}
+ const m=s.patches?.find(z=>z.id==='moss');if(m&&m.cap>0){const n=Math.max(0,Math.min(m.cap*DEW.moss*r/len,m.cap-m.S));m.S+=n;got+=n;}
+ for(const p of s.individuals){if(!p.active||p.mounted||inside(p)||restingAt(p,'crevice'))continue;const n=Math.max(0,Math.min(DEW.leaf*r/len,band(p).warnHi-p.B));p.B+=n;got+=n;}
+ L.rain+=got;L.dew=(L.dew||0)+got;}
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
@@ -65,5 +76,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  const r=s.patches?.find(z=>z.id==='rock');if(r&&r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,dewRate,dewStep,DEW,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });
