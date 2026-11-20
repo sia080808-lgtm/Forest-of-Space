@@ -32,11 +32,32 @@ function entrance(s){const b=bounds(s);return {x:(b.x0+b.x1)/2,y:b.y1-.10};}
 // the east edge 'smells of water'; each walk that ends near the east edge (x >= 1.08) counts a scent, and after 3 the
 // shore opens. The record lives in s.world.lake (absent in older saves: nothing ready yet).
 function lakeReady(s){const st=s?.world?.lake;return !!st?.ready&&!lakeOpen(s);}
-function lakeStep(s,event){if(!s.world||lakeOpen(s))return;const st=s.world.lake??={ready:false,scents:0};
+// 0.9.1 수련 (LK-04, user: "연꽃봉오리들이 서서히 피어나는 구조", "호수에서 랜덤으로 생성", "물 위에 피지 않음?"):
+// from the last day of spring through summer a lily may appear every 90 s (30%, at most 7) on open water away from the
+// shore and from other lilies; each one grows leaf -> bud -> half open -> full -> sinking -> withered by its own age, so
+// lilies at every stage mix. In autumn the ones still flowering sink and wither (staggered); winter's ice clears them.
+// Own RNG stream rng.lake; positions and ages are saved.
+const LILY=Object.freeze({check:90,chance:.3,max:7,gap:.08,len:3600,stages:Object.freeze([['leaf',400],['bud',900],['half',1300],['full',2500],['sink',2900],['wither',3300]]),fall:Object.freeze([400,800])});
+const ORDER=['leaf','bud','half','full','sink','wither'];
+function lrnd(s){s.rng.lake??=((s.rng.weather^0x6a09e667)>>>0)||1;let x=s.rng.lake>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.lake=x>>>0;return (x>>>0)/4294967296;}
+function seasonAt(s){const el=Math.max(0,s.worldTick-(s.environment?.calendar?.start??0)),n=Math.floor(el/LILY.len);return {i:n%4,into:el-n*LILY.len};}
+function lilyStage(s,l){const a=s.worldTick-l.born;let st=null;for(const [n,end] of LILY.stages)if(a<end){st=n;break;}if(!st)return null;
+ if(l.fall!=null&&s.worldTick>=l.fall&&ORDER.indexOf(st)<4){const f=s.worldTick-l.fall;return f<LILY.fall[0]?'sink':f<LILY.fall[1]?'wither':null;}return st;}
+function lilyStep(s){const st=s.world.lake??={ready:true,scents:LAKE.scents};st.lilies??=[];const c=seasonAt(s);
+ if(c.i===3){if(st.lilies.length)st.lilies=[];return;}
+ if(c.i===2)for(const l of st.lilies)if(l.fall==null)l.fall=s.worldTick+Math.floor(lrnd(s)*600);
+ st.lilies=st.lilies.filter(l=>lilyStage(s,l));
+ if(!(c.i===0&&c.into>=2400||c.i===1&&c.into<3000)||s.worldTick<(st.nextLily??0))return;st.nextLily=s.worldTick+LILY.check;
+ if(st.lilies.length>=LILY.max||lrnd(s)>=LILY.chance)return;
+ for(let k=0;k<10;k++){const x=1.3+lrnd(s)*.42,y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d<=.55||d>=.94||st.lilies.some(l=>Math.hypot(l.x-x,(l.y-y)*.62)<LILY.gap))continue;
+  st.nextId=(st.nextId||0)+1;st.lilies.push({id:'lily'+st.nextId,x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4,born:s.worldTick});return;}}
+function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);return;}const st=s.world.lake??={ready:false,scents:0};
  if(!st.ready&&s.individuals.filter(p=>p.active).length>=LAKE.friends&&s.worldTick-(s.environment?.calendar?.start??0)>=LAKE.season){st.ready=true;event?.(s,'world','숲 동쪽 끝에서 바람이 촉촉해졌어요.');}
  if(!st.ready)return;
  for(const p of s.individuals){const t=p.stroll;if(!p.active||!t||t.arrivedAt!==s.worldTick||t.scent||t.x<LAKE.east)continue;t.scent=true;st.scents++;event?.(s,'world',p.name+' · 동쪽에서 물 냄새가 나요.');
   if(st.scents>=LAKE.scents){s.world.regions=[...s.world.regions,'lakeshore'];st.openedAt=s.worldTick;event?.(s,'world','숲 동쪽에 물가가 열렸어요.');break;}}}
-function validate(s){if(s.world===undefined)return;{const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length)throw Error('숲 지역 기록을 확인해 주세요.');}
-return Object.freeze({REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep});
+// 관리자: open the shore at once, skipping the growth conditions and the three walks (settings > 개발 검수; user: "관리자 권한으로 해금 조건 푸는 설정")
+function openLake(s){if(!s.world||lakeOpen(s))return false;const st=s.world.lake??={ready:false,scents:0};st.ready=true;st.scents=Math.max(st.scents,LAKE.scents);st.openedAt=s.worldTick;s.world.regions=[...s.world.regions,'lakeshore'];return true;}
+function validate(s){if(s.world===undefined)return;{const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)||l.nextLily!=null&&!Number.isSafeInteger(l.nextLily)||l.nextId!=null&&!Number.isSafeInteger(l.nextId)||l.lilies!=null&&(!Array.isArray(l.lilies)||l.lilies.length>LILY.max||l.lilies.some(q=>!q||typeof q.id!=='string'||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.fall!=null&&!Number.isSafeInteger(q.fall)))))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length)throw Error('숲 지역 기록을 확인해 주세요.');}
+return Object.freeze({REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep,lilyStage,LILY,openLake});
 });

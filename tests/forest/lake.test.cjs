@@ -26,3 +26,19 @@ test('LK-03 nothing can be placed on the water; a bad lake record is refused',()
  const bad=game();bad.world.lake={ready:'yes',scents:0};a.throws(()=>F.valid(bad),/호수/);
  const bad2=game();bad2.world.regions=['forest','sea'];a.throws(()=>F.valid(bad2));
 });
+test('LK-04 water lilies appear at random on open water from late spring, grow through their stages, fade in autumn, clear in winter',()=>{
+ const run=seed=>{const s=game(seed);s.world.regions=[...s.world.regions,'lakeshore'];const c0=s.environment.calendar?.start??0;const stages=new Set();
+  for(let t=2400;t<7200;t++){s.worldTick=c0+t;W.lakeStep(s);for(const l of s.world.lake.lilies)stages.add(W.lilyStage(s,l));}
+  return {s,stages,c0};};
+ const {s,stages,c0}=run(2),L=s.world.lake.lilies;
+ a.ok(L.length>=1&&L.length<=W.LILY.max,'count '+L.length);
+ for(const l of L){a.ok(W.inWater(s,l)&&W.waterD(l.x,l.y)>.55&&W.waterD(l.x,l.y)<.94,'on open water');for(const m of L)if(m!==l)a.ok(Math.hypot(l.x-m.x,(l.y-m.y)*.62)>=W.LILY.gap);}
+ for(const st of ['leaf','bud','half','full'])a.ok(stages.has(st),'saw '+st);F.valid(s);
+ a.deepEqual(run(2).s.world.lake.lilies,L,'same seed, same lilies');
+ for(let t=7200;t<7200+1000;t++){s.worldTick=c0+t;W.lakeStep(s);}a.ok(s.world.lake.lilies.every(l=>['sink','wither'].includes(W.lilyStage(s,l))),'autumn: sinking or withered');
+ s.worldTick=c0+10800+5;W.lakeStep(s);a.equal(s.world.lake.lilies.length,0,'winter ice clears them');
+ const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,lilies:[{id:'x',x:'1',y:.5,born:0}]};a.throws(()=>F.valid(bad),/호수/);
+});
+test('LK-05 the admin switch opens the shore at once (no growth conditions, no walks) and only once',()=>{
+ const s=game();a.equal(W.openLake(s),true);a.equal(W.lakeOpen(s),true);a.equal(s.world.lake.scents,3);a.equal(W.openLake(s),false);a.equal(s.world.regions.filter(r=>r==='lakeshore').length,1);F.valid(s);
+});
