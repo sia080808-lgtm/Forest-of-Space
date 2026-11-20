@@ -10,7 +10,6 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');for(const f of fs.readdir
  for(const [k,v] of Object.entries(ctx.Scene.seasonFiles()))try{A[k]=await loadImage(web+'/'+v);}catch{}
  for(const n of ['shadePlant','shadeGround'])A[n]=await loadImage(web+'/assets/forest/'+(n==='shadePlant'?'shade-plant':'shade-ground')+'.png');for(const [k,v]of Object.entries(Rig.files))A[k]=await loadImage(web+'/'+v);
  A.gardenWide=await loadImage(web+'/assets/forest/garden-wide.png');for(let i=1;i<=6;i++)A['fern'+i]=await loadImage(web+'/assets/forest/ferns/fern-'+i+'.png');
- const SP=['ridley','bonbon','neolbi','bosong','jureong','superbum'],T=[[1,'두리번 (왼쪽)'],[2,'두리번 (오른쪽)'],[5,'냄새 맡기'],[15,'앉아 쉬기'],[19.4,'일어서기']],cw=150,ch=150;
  A.lakeFloor=await loadImage(web+'/assets/forest/lake/lake-floor.png');A.lakeIce=await loadImage(web+'/assets/forest/lake/lake-ice.png');
  const shot=async(name,{cx,cy,z,season,friends,overview})=>{const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;
   s.world.regions=['forest','lakeshore'];s.world.lake={ready:true,scents:3,openedAt:0};

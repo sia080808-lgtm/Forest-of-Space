@@ -15,7 +15,7 @@ test('LK-01 a save without the lake keeps the forest only; the shore adds x 1.25
 });
 test('LK-02 the shore opens after the forest has grown (3 friends, one season) and three walks smell water at the east edge',()=>{
  const s=game();three(s);fed(s);calm(s);s.worldTick=200;F.step(s);a.equal(s.world.lake?.ready,false,'too early');
- s.worldTick=(s.environment.calendar?.start??0)+3600;let opened=null;
+ s.worldTick=(s.environment.calendar?.start??0)+3600;
  for(let t=0;t<6000&&!W.lakeOpen(s);t++){fed(s);calm(s);const n=(s.environment.calendar?.start??0)+3600+t;s.worldTick=n;if(n%1200>=600)s.worldTick=n+600;F.step(s);}
  a.ok(s.world.lake.ready,'ready');a.equal(W.lakeOpen(s),true,'opened by walks; scents '+s.world.lake.scents);a.equal(s.world.lake.scents,3);a.ok(Number.isSafeInteger(s.world.lake.openedAt));
  a.ok(s.events.some(e=>e.type==='world'&&/물 냄새/.test(e.text))&&s.events.some(e=>/물가가 열렸어요/.test(e.text)));F.valid(s);

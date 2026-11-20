@@ -45,7 +45,7 @@ wc=wc+((np.sin(V*95+noise(40,3,1)*6)*.5+.5)**8*inner)[...,None]*22
 rgb=rgb*(1-.9*wm[...,None])+wc*(.9*wm[...,None])
 img=Image.fromarray(np.clip(rgb,0,255).astype(np.uint8)).convert('RGBA'); img.putalpha(Image.fromarray((alpha*255).astype(np.uint8)))
 ov=Image.new('RGBA',(W,H),(0,0,0,0)); dr=ImageDraw.Draw(ov)
-for i in range(16):
+for _ in range(16):
     u=random.uniform(1.62,2.15); v=random.uniform(.25,.95); x,y=P(u,v)
     if not water[int(y),int(x)]: continue
     L=random.uniform(30,70)*K/2; dr.arc([x-L,y-L*.18,x+L,y+L*.18],200,340,fill=(238,244,240,150),width=K)
@@ -60,7 +60,7 @@ def tuft(u,v,s=1.0):
     for k in range(random.randint(5,9)):
         a=random.uniform(-.7,.7); L=random.uniform(9,17)*K*s
         stroke(x+random.uniform(-3,3)*K,y,x+math.sin(a)*L,y-math.cos(a)*L,2.2*K*s,(random.randint(120,150),random.randint(140,160),random.randint(96,112),200),8)
-for i in range(260):
+for _ in range(260):
     u=random.uniform(1.12,2.18); v=random.uniform(-.2,1.2); x,y=P(u,v)
     if x<0 or y<0 or x>=W or y>=H: continue
     dd=d[int(y),int(x)]
@@ -81,11 +81,11 @@ ice=np.array([222,230,230],np.float32)*(1-inner[...,None])+np.array([206,218,220
 ice=ice*(0.98+0.03*noise(120,2,3)[...,None])
 ia=Image.fromarray(np.dstack([np.clip(ice,0,255),wm*.92*255]).astype(np.uint8),'RGBA')
 cd=ImageDraw.Draw(ia)
-for i in range(9):
+for _ in range(9):
     u=random.uniform(1.65,2.1); v=random.uniform(.25,.9); x,y=P(u,v)
     if not water[int(y),int(x)]: continue
     pts=[(x,y)]
-    for k in range(4): x+=random.uniform(-18,18)*K; y+=random.uniform(-8,8)*K; pts.append((x,y))
+    for _ in range(4): x+=random.uniform(-18,18)*K; y+=random.uniform(-8,8)*K; pts.append((x,y))
     cd.line(pts,fill=(178,192,196,150),width=1)
 ia.save(os.path.join(ROOT,'lake','lake-ice.png'),optimize=True)
 print(W,H)
