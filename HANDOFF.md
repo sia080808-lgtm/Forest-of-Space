@@ -681,3 +681,11 @@
 - 다음: 물가 이웃 그림 시안(SRS 시트 화풍), 결정 대기(해금 방법·처음부터 다 열지·새 친구·가칭 이름).
 - 호수 상호작용·이벤트 추가(사용자 "ㄱㄱ 4개 다 넣어줘"): LK-07에 기본 상호작용(물 마시기·발 담그기·수련 잎 그늘·바라보기·종별 반응·호수 주워 오기)과 이벤트 4개(개구리 깜짝·잠자리 날개돋이·여름밤 반딧불·겨울 얼음 놀이).
 - 호수 해금 결정(사용자 "3번 ㄱ"): 숲 성장 조건을 채운 뒤 동쪽 끝 산책에서 발견(LK-03). 남은 결정: 처음부터 다 열지, 새 친구 종.
+
+### LAKE-SHORE-0.9.0-20261120 — 동쪽 호수 물가 열기(1단계)
+
+- 담당: Claude Code. 요청: 사용자 "일단 물가만 열고, 나중을 대비해서 연장 영역은 염두해서 제작. 물가를 좋아하는 새 친구는 추후에 ㄱㄱ". 기준 main `02fe5bc`(0.8.7 병합) + 작업 브랜치 문서 커밋, 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `world.js`(`lakeshore` 지역, `waterD`/`inWater`/`lakeOpen`/`lakeReady`/`lakeStep`, `world.lake` 검증), `spatial.js`(물 위 걷기 금지), `engine.js`(배치 검사, 틱마다 `lakeStep`), `objects.js`(준비되면 산책 35% 동쪽 끝, 카드 문구), `scene.js`(호수 바닥·겨울 얼음), `forest-app.js`(안내), 그림 `tools/build-lake-floor.py` → `assets/forest/lake/lake-floor.png`·`lake-ice.png`. 버전 0.9.0 / versionCode 66.
+- 판단: 물 모양을 세계 좌표 식 하나로 두어 그림·판정이 같고, 더 동쪽 지역을 열면 그대로 이어진다. 그림은 처음부터 x 1.05~2.2를 덮는다.
+- 검증: `lake.test.cjs` 3개, 관련 `wide-forest`·`stroll`·`package` 통과(전체는 CI). 측정: 친구 4명 시드 3개, 준비 3,600초 → 열림 3,813~4,032초. 화면 `docs/qa-0.9.0/runtime`(`tools/lake-review.cjs`). Android 실기기 미검증.
+- 다음: 수련(무작위 생성·생애주기), 물가 이웃 7종, 상호작용·이벤트 4개, 물 마시기, 더 동쪽 호수 지역.
