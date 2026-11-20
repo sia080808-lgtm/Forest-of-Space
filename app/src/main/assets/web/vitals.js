@@ -32,6 +32,7 @@ function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return
 // (light −15 for photosynthesis), so a hot dry summer is easier by the water. Pure read; nothing is saved.
 const COOL=Object.freeze({reach:1.2,light:15});
 function coolAt(s,p){const W=dep('world'),E=dep('environment');return !!(W&&isDay(s)&&E?.season?.(s)==='summer'&&W.lakeOpen(s)&&!W.frozen(s)&&p.x>1.15&&W.waterD(p.x,p.y)<COOL.reach);}
+const SNOW_EAT=3/60;
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
@@ -55,6 +56,10 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
    if(R[2]){const fit=danger(zb)||danger(zn)?0:bad(zb)||bad(zn)?.5:1,en=p.energy>=70?1.2:p.energy<30?.5:1,season={spring:1.25,winter:.75}[E?.season?.(s)]??1;
     out.xp=R[2]*fit*en*season;if(p.xp<150){p.growthSeconds+=360*out.xp;while(p.growthSeconds>=360&&p.xp<150){p.growthSeconds-=360;p.xp=Math.min(150,p.xp+1);}if(p.xp>=150)p.growthSeconds=Math.min(p.growthSeconds,359);}}
    if(onRock){const r=s.patches.find(z=>z.id==='rock');r.sun=Math.max(0,r.sun-SUN.use);}}
+  // 1.0.1 눈 먹기 (user: "혹독한 겨울에도 눈 오지 않나? 눈 먹으면 되잖아"): snow lying on a friend's own leaves melts into
+  // its body at any temperature while it is below the middle of its band (3 a minute), so a cold winter with a frozen
+  // lake and an unmelted spring still has water. Water only moves from the leaf snow to the body (no new water).
+  if(p.snowWater>0&&p.B<b.mid){const n=Math.min(p.snowWater,SNOW_EAT,b.mid-p.B);p.snowWater-=n;p.B+=n;out.snow=n;}
   // over-wet friends dry out on the sun rock (while it holds sun or the sky is clear), in the shelter, or in the crevice
   if(p.B>b.hi){const rate=restingAt(p,'rock')&&(rockSun(s)>0||s.weather.kind==='sun')?2:inside?1.5:restingAt(p,'crevice')?1:0;if(rate){const w=Math.min(p.B-b.mid,rate/60);p.B-=w;ledger.evaporation+=w;}}
   // 영양 from compost: resting still beside rich compost for 5 minutes soaks it up by the roots (a cause of 과잉)

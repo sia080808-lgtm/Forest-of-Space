@@ -107,7 +107,7 @@ function effectsValid(s,p,t){
  const z=patch(s,t.object),W=dep('weather-care'),a=t.object==='shelter'?s.weather.wind*.2:windAt(s,p,t,t.object);
  if(t.object==='shelter')return true;
  if(t.object==='moss')return a<60&&dep('environment').precipitation(s,'rain')<.6&&p.burden<40&&!p.wetRecovery&&p.wet85Seconds<30&&!s.patches.some(z=>z.id!=='moss'&&z.W>1&&Math.hypot(p.x-z.x,p.y-z.y)<.06);
- if(t.kind==='drink'||t.kind==='edgeDrink')return s.spring.water>eps&&a<60;
+ if(t.kind==='drink'||t.kind==='edgeDrink')return (s.spring.water>eps||(s.spring.snowWater||0)>eps)&&a<60;
  if(t.kind==='splash')return s.spring.water>=s.spring.capacity*.2&&a<60&&p.energy>=30&&p.burden<40&&!p.wetRecovery;
  if(t.kind==='litterPlay')return (z.O>=.5||p.carriedLeaf?.amount>=.5)&&p.energy>=30&&p.burden<40&&!p.wetRecovery&&a<60&&z.W<=1;
  if(t.kind==='nutrition')return z.U>eps&&a<60&&z.W<=1;
@@ -151,7 +151,7 @@ function option(s,p,id,kind,reason,free=false){
  let fail='shape';
  for(const q of points(s,p,id,kind)){
   const t={...q,object:id,kind,reason,free};
-  if(!effectsValid(s,p,t)){fail=id==='spring'&&s.spring.water<=eps?'empty_water':kind==='litterPlay'&&patch(s,id).O<.5?'no_play_leaves':kind==='nutrition'&&patch(s,id).U<=eps?'no_nutrients':'unsafe_weather';continue;}
+  if(!effectsValid(s,p,t)){fail=id==='spring'&&s.spring.water<=eps&&!((s.spring.snowWater||0)>eps)?'empty_water':kind==='litterPlay'&&patch(s,id).O<.5?'no_play_leaves':kind==='nutrition'&&patch(s,id).U<=eps?'no_nutrients':'unsafe_weather';continue;}
   // 1.0: eating compost only needs the friend beside it, so a big friend (grown 슈퍼범) is not shut out of 영양
   if(id!=='shelter'&&kind!=='nutrition'&&!fits(s,p,id,q,kind))continue;
   if(id!=='shelter'&&s.individuals.some(z=>z.id!==p.id&&z.active&&(z.objectTask?.object===id&&Space.distance(z.objectTask,q)<.4*(Space.diameter(p)+Space.diameter(z))||Space.distance(z,q)<.4*(Space.diameter(p)+Space.diameter(z))))){fail='capacity';continue;}
@@ -161,7 +161,7 @@ function option(s,p,id,kind,reason,free=false){
   const target={water:50,energy:80,nutrition:50,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
-  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
+  if(reason==='energy')score+=(rates[id]||0)*8;/* 1.0.1: a friend that feels the cold rests in the warm shelter on a cold day */if(id==='shelter'&&['energy','sleep'].includes(reason)&&dep('traits').ofPet(p).cold<0&&(s.climate.T<35||s.weather.kind==='snow'))score+=60;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
@@ -301,7 +301,8 @@ function receive(s,p,requests){
  else if(t.kind==='drink'||t.kind==='edgeDrink'){
   // root water can lift 수분 past the target between ticks: finish the drink then too
   if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;(p.objectNeeds??=needs(p)).water=false;p.justDrank=true;}
-  else add(s.spring,'water',Math.min(10/60,50-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
+  // 1.0.1 눈 먹기: when the spring is empty but snow lies on it (too cold to melt), the friend eats the snow instead
+  else add(s.spring,s.spring.water<=eps&&(s.spring.snowWater||0)>eps?'snowWater':'water',Math.min(10/60,50-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
  }else if(t.kind==='splash'){
   recover('mood',2,80);p.energy=clamp(p.energy-1/60);p.motion.kind='splash';
   add(s.spring,'water',Math.min(6/60,50-p.B),n=>{p.B+=n;p.motion.water=n;if(n>0&&p.B>=50-eps){p.objectNeeds??=needs(p);p.objectNeeds.water=false;if(!t.hydrationComplete){t.hydrationComplete=true;p.justDrank=true;}}});
