@@ -100,9 +100,12 @@ def frog(t):
     return im
 def nymph(t):
     im=canvas(); k=math.sin(t*TAU); line(im,[(80,140),(80,30)],3,(110,122,82,235))
-    y=-k*3
+    y=-k*2
     fill(im,E(80,84+y,9,20),(118,104,78),seed=14); fill(im,E(80,62+y,8,7),(124,110,82),seed=15); eye(im,76,60+y,1.6); eye(im,84,60+y,1.6)
-    for dy in (0,10,20): line(im,[(72,76+dy+y),(64,72+dy+y+k)],1.0); line(im,[(88,76+dy+y),(96,72+dy+y-k)],1.0)
+    # six legs gripping the reed, stepping up and down in two alternating sets (user: "잠잠이도 다리 여섯개 위 아래로")
+    for j,dy in enumerate((0,10,20)):
+        a=k*7*(1 if j%2==0 else -1)
+        line(im,[(72,76+dy+y),(64,74+dy+y+a),(60,70+dy+y+a)],1.1); line(im,[(88,76+dy+y),(96,74+dy+y-a),(100,70+dy+y-a)],1.1)
     return im
 def dragonfly(t):
     im=canvas(); k=math.sin(t*TAU*2)      # wings beat twice per cycle
@@ -132,7 +135,7 @@ def larva(t):
     line(im,[(80,70),(80+k*4,84),(84-k*7,98),(90+k*7,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
     line(im,[(90+k*7,106),(96+k*7,102)],1); line(im,[(90+k*7,106),(94+k*7,110)],1); ripple(im,80,64,10); return im
 CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
-STILL={'eggs','snail','nymph'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
+STILL={'eggs','snail'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
 frames={}
 for name,fn in CRE:
     n=1 if name in STILL else N
