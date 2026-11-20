@@ -299,19 +299,28 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(this.landing?.id===p.id&&this.landing.until>this.phase)kind='land';
    // 0.6.35: a friend resting at the crevice tucks itself into the gap under the big stone (render only: the engine
    // keeps it on its rest spot just in front); it eases in over 0.6 s and the small front stone covers part of it
-   const nook=!(this.carry?.id===p.id)?this.nookPos(p):null;this.nookT??={};if(nook){const k=this.nookT[p.id]??=this.phase,e=Math.min(1,Math.max(0,(this.phase-k)/.6));pos={x:pos.x+(nook.x-pos.x)*e,y:pos.y+(nook.y-pos.y)*e};}else delete this.nookT[p.id];
+   // 0.8.6 (user: "바위틈으로 들어갈 때 … 휘리릭 달려가면서 … 네모 이미지가 생성"): it walks in and out at its slow resting pace
+   // (it used to glide the 0.04 in 0.6 s in its resting pose and pop straight back out), and the small front stone covers it only
+   // once its feet are behind the stone's lower edge; the band under the stone is cut away only when it sits in the gap (that
+   // cut used to slice the friend into a rectangle while it still stood in front of the stone)
+   const target=!(this.carry?.id===p.id)?this.nookPos(p):null;this.nookS??={};let ns=this.nookS[p.id],nook=null,seated=false,behind=false;
+   if(target||ns){if(!ns)ns=this.nookS[p.id]={e:0,last:this.phase,to:target};const dt=Math.max(0,Math.min(.25,this.phase-ns.last));ns.last=this.phase;if(target)ns.to=target;
+    const d=Forest.Space.distance(pos,ns.to),dur=s.settings.reducedMotion?0:Math.max(.6,d/(Forest.Space.GU*.6)),stp=dur?dt/dur:1,was=ns.e;ns.e=target?Math.min(1,ns.e+stp):Math.max(0,ns.e-stp);
+    if(ns.e<=0&&!target)delete this.nookS[p.id];else{const k=ns.e*ns.e*(3-2*ns.e);pos={x:pos.x+(ns.to.x-pos.x)*k,y:pos.y+(ns.to.y-pos.y)*k};nook=ns.to;seated=ns.e>=1;
+     if(ns.e!==was||(ns.e>0&&ns.e<1)){kind='slow';this.facing=this.facing||{};const dx=(ns.to.x-p.x)*(target?1:-1);if(Math.abs(dx)>.0005)this.facing[p.id]=dx<0?-1:1;}
+     const g=this.creviceGeom();behind=seated||!!g&&pos.y*this.h<g.px(0,352).y;}}
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}
    // 0.6.35: a friend tucked into the crevice is not drawn where the small front stone stands or below it (its feet and
    // hand used to peek out as dark bits under the stone's lower edge)
-   if(!carry&&nook)this.nookClip();
+   if(!carry&&seated)this.nookClip();
    if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&nook)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
    // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)
-   if(nook&&!carry)this.creviceFront();
+   if(behind&&!carry)this.creviceFront();
    if(!carry)for(const z of patches.filter(z=>['rock','crevice','shade'].includes(z.id)&&z.y>pos.y&&Math.abs(z.x-pos.x)<.22&&!(z.id==='rock'&&this.onRock(pos))&&!(nook&&z.id==='crevice'))){this.terrain(z);if(z.id==='rock')for(const [q,qpos,qkind,qphase] of riders)if(q!==p){this.pet(q,qpos,qkind,qphase,night,qkind==='held');this.leafNeighbours(q,qpos,qphase);}}
    const b=document.querySelector('[data-pet="'+p.id+'"]');if(b){const point=this.camera.screen(pos),size=this.petSize(p)*this.camera.scale;b.style.left=point.x+'px';b.style.top=point.y+'px';b.style.width=Math.max(48,size*.8)+'px';b.style.height=Math.max(48,size*.9)+'px';b.hidden=carry||point.x<0||point.x>this.vw||point.y<0||point.y>this.vh;}
    if(!carry&&s.mode==='game'&&motion?.tick===s.worldTick&&s.worldTick>(this.silentTick??-1)){const id=p.id+':'+s.worldTick;

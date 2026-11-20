@@ -23,8 +23,9 @@ test('0.6.35 a friend resting at the crevice is drawn tucked into the gap (rende
  vm.createContext(ctx);vm.runInContext(fs.readFileSync(web+'/scene.js','utf8')+'\nthis.Scene=ForestScene;',ctx);
  const s=F.create(0,5);s.started=true;s.mode='game';s.environment.tutorialDone=true;const p=s.individuals[0],z=s.patches.find(q=>q.id==='crevice');Object.assign(p,{xp:115,visualStage:3,energy:30});
  const o=F.Objects.option(s,p,'crevice','rest','energy');Object.assign(p,{x:o.x,y:o.y,action:'rest',motion:{kind:'rest',distance:0},objectTask:{...o,arrived:true}});const before=JSON.stringify(s);
- const sc=new ctx.Scene(canvas,()=>s);sc.assets=A;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.dt=.1;sc.camera.z=3;sc.camera.cx=z.x;sc.camera.cy=z.y;sc.camera.clamp();for(let i=0;i<10;i++){sc.phase=2+i*.1;sc.draw();}
+ const sc=new ctx.Scene(canvas,()=>s);sc.assets=A;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.dt=.1;sc.camera.z=3;sc.camera.cx=z.x;sc.camera.cy=z.y;sc.camera.clamp();let mid=null;for(let i=0;i<35;i++){sc.phase=2+i*.1;sc.draw();if(i===7)mid={...sc.display[p.id]};}   // 0.8.6: it walks in at its slow pace (about 1.7 s), not a 0.6 s glide
+ a.ok(mid.y>z.y-.012+.005&&mid.y<o.y-.005,'still on its way in after 0.7 s: '+JSON.stringify({mid:mid.y-z.y,spot:o.y-z.y}));
  const shown=sc.display[p.id];a.ok(shown.y<z.y&&z.y-shown.y<.05&&Math.abs(shown.x-z.x)<.03,'drawn in the gap above the anchor: '+JSON.stringify({dx:shown.x-z.x,dy:shown.y-z.y}));
  a.equal(JSON.stringify(s),before,'render leaves the state alone');
- p.objectTask=null;sc.phase=4;sc.draw();a.ok(sc.display[p.id].y>z.y,'without the crevice rest task it is drawn on its own spot');
+ p.objectTask=null;sc.phase=5.5;sc.draw();const out1=sc.display[p.id].y;a.ok(out1<z.y,'it walks back out instead of popping out at once');for(let i=1;i<=30;i++){sc.phase=5.5+i*.1;sc.draw();}a.ok(sc.display[p.id].y>z.y&&Math.abs(sc.display[p.id].y-o.y)<1e-9,'after walking out it is drawn on its own spot');a.equal(JSON.stringify(s.individuals[0].objectTask),'null');
 });
