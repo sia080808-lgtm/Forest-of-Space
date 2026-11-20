@@ -33,6 +33,11 @@ function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return
 const COOL=Object.freeze({reach:1.2,light:15});
 function coolAt(s,p){const W=dep('world'),E=dep('environment');return !!(W&&isDay(s)&&E?.season?.(s)==='summer'&&W.lakeOpen(s)&&!W.frozen(s)&&p.x>1.15&&W.waterD(p.x,p.y)<COOL.reach);}
 const SNOW_EAT=3/60;
+// 1.0.1 겨울의 따뜻한 자리 (user: "따듯하게 해주는 오브젝트"): on a cold day (temperature under 35 or snow) the cold costs
+// nothing on the sun rock while it still holds stored sun (and the stored sun gives 기운, see step), half beside a litter
+// pile or the litter spot rich in compost (rotting leaves are warm), and nothing in the shelter (engine; shelter rest is faster).
+const isCold=s=>s.climate.T<35||s.weather.kind==='snow';
+function chill(s,p){if(restingAt(p,'rock')&&rockSun(s)>0)return 0;const warm=[s.patches?.find(z=>z.id==='litter'),...(s.objects?.litter?.piles||[])].some(z=>z&&z.U>=5&&Math.hypot(z.x-p.x,(z.y-p.y)*1.6)<.1);return warm?.5:1;}
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
@@ -61,6 +66,8 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
   // lake and an unmelted spring still has water. Water only moves from the leaf snow to the body (no new water).
   if(p.snowWater>0&&p.B<b.mid){const n=Math.min(p.snowWater,SNOW_EAT,b.mid-p.B);p.snowWater-=n;p.B+=n;out.snow=n;}
   // over-wet friends dry out on the sun rock (while it holds sun or the sky is clear), in the shelter, or in the crevice
+  // the sun rock's stored sun warms a resting friend on a cold day (at night too): 기운 +2/min, drawing the store
+  if(isCold(s)&&restingAt(p,'rock')&&rockSun(s)>0&&!out.rockDrawn){energyPts(p,2/60);if(!(isDay(s)&&!dark&&p.B>15&&p.nutrition>15)){const r=s.patches.find(z=>z.id==='rock');r.sun=Math.max(0,r.sun-SUN.use);}}
   if(p.B>b.hi){const rate=restingAt(p,'rock')&&(rockSun(s)>0||s.weather.kind==='sun')?2:inside?1.5:restingAt(p,'crevice')?1:0;if(rate){const w=Math.min(p.B-b.mid,rate/60);p.B-=w;ledger.evaporation+=w;}}
   // 영양 from compost: resting still beside rich compost for 5 minutes soaks it up by the roots (a cause of 과잉)
   const spots=[s.patches.find(z=>z.id==='litter'),...(s.objects?.litter?.piles||[])].filter(z=>z&&z.U>1&&Math.hypot(z.x-p.x,(z.y-p.y)*1.6)<.1);
@@ -70,5 +77,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  const r=s.patches?.find(z=>z.id==='rock');if(r&&r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });
