@@ -709,3 +709,4 @@
 - 다음: 물가 이웃 도감, 이벤트 4개, 물 마시기.
 - 개구리 헤엄 추가(사용자 "개구리 모션 물에서 헤엄치는 것도 있어야 하지 않겠음?"): 헤엄 6칸 그림, 24초 주기로 앉기→뛰어들기→헤엄→돌아와 앉기(렌더 전용).
 - 릴리스 빌드에서 전체 테스트 중복 실행 삭제(사용자 "웰케 오래걸려", "필요한 검사만 하라고"): `release-apk.yml`이 병합 뒤 PR에서 이미 통과한 전체 시뮬레이션·UI 테스트(약 7분)를 다시 돌리던 단계를 뺐다. main의 `tests.yml`과 CodeQL 확인은 그대로. 다음 병합부터 적용.
+- 병합·릴리스: PR #53(https://github.com/sia080808-lgtm/Forest-of-Space/pull/53) main 병합 `8ccfd0caf92160cd88417b7090943a21ecd163d0`(사용자 "ㄱㄱ"; head `cd67bb2` 기준 simulation·CodeQL 성공, CodeQL 안 쓰는 반복 변수 2건 같은 PR에서 정리). 프리릴리스 v0.9.2 `Forest-of-Space-0.9.2.apk` 72,030,310 bytes, SHA-256 `f131739b7ec159fcfc9c9a805b64de1cb3a3cfa47e4b66dae87f6f4dc34e1d04` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode68/0.9.2. APK는 사용자에게 파일로 전달.
