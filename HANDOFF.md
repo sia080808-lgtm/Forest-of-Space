@@ -720,3 +720,4 @@
 - 검증: `lake.test.cjs` LK-07 추가(7/7), `rig`·`stroll`(소스 검사 정규식 조정)·`render`·`package` 통과, UI PASS. 화면 `docs/qa-0.9.3/runtime`. 전체는 CI. 실기기 미검증.
 - 미해결: 월드 왼쪽 아래 노란 조각 — 새 게임 봄 화면(액자 켜기/끄기)에서 재현 안 됨. 사용자에게 나타나는 상황(계절·확대·위치) 확인 필요.
 - 다음: 물가 이웃 도감 칸, 물가에서 물 마시기, 주워 오기·바구니, 더 동쪽 호수, 물가를 좋아하는 새 친구.
+- 병합·릴리스: PR #54(https://github.com/sia080808-lgtm/Forest-of-Space/pull/54) main 병합 `9008a9a4a2f209253cd81d496082dff4d858a8d6`(사용자 "ㄱㄱ"; head `431e0e7` 기준 simulation·CodeQL 성공. 첫 CI에서 `ellisii-legacy` 소스 검사가 엘리시 구간 주석의 "arms" 글자로 실패해 주석 문구만 고침). 프리릴리스 v0.9.3 `Forest-of-Space-0.9.3.apk` 72,038,502 bytes, SHA-256 `e81639dc9831d4ba34f3e280565503408ecb7ee864b66bd7546ed07adeee4001` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode69/0.9.3. APK는 사용자에게 파일로 전달.
