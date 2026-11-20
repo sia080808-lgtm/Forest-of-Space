@@ -699,3 +699,4 @@
 - 검증: `lake.test.cjs` LK-04만 추가·실행(4/4), 전체는 CI. 화면 `docs/qa-0.9.0/runtime/lake-lilies*.png`. 실기기 미검증.
 - 다음: 물가 이웃 7종, 상호작용·이벤트, 물 마시기.
 - 관리자 해금(사용자 "일단 지금은 관리자 권한으로 해금 조건 푸는 설정 넣어줘"): 설정 > 개발 검수 '호수 물가 바로 열기'(확인 창, `World.openLake`). `lake.test` LK-05, UI PASS.
+- 병합·릴리스: PR #52(https://github.com/sia080808-lgtm/Forest-of-Space/pull/52) main 병합 `7a139880d34c57fa8317a978e9fba4f6f6509c94`(사용자 "ㄱㄱ"; head `d79b33c` 기준 simulation·CodeQL 성공, 수련 그림 도구 CodeQL 지적 8건 같은 PR에서 정리). 프리릴리스 v0.9.1 `Forest-of-Space-0.9.1.apk` 71,840,893 bytes, SHA-256 `b5b60045bfdb53c1104111625fc4900ad5e07808af23a9af9dbc668375787cc2` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode67/0.9.1. APK는 사용자에게 파일로 전달.
