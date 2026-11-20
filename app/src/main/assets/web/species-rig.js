@@ -81,14 +81,30 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
 // The painted eyes (and 코로나's painted mouth) are covered with the body texture just below them. 베이치's face sits lower
 // on its body, clear of the head leaf (user: "베이치 얼굴을 여기다 이렇게 배치"). (베이치 redraws its body over its arms, so
 // this runs after that.)
-const FACE={bosong:{eyes:[[.37,.63],[.65,.63]],mouth:[.51,.68],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.34,.53],[.57,.53]],mouth:[.455,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16],scale:1.5}};
+const FACE={bosong:{eyes:[[.37,.63],[.65,.63]],mouth:[.51,.68],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.342,.523],[.567,.523]],mouth:[.457,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16]}};
+// 코로나: the painted face (thick cream crescents, faint dash mouth) is the base; other expressions are redrawn in the same strokes
+function coronaFace(c,d,e,E,M){const u=d.w/d.body[2];c.save();c.lineCap='round';c.strokeStyle='#f1e6cd';c.lineWidth=14*u;
+ for(const q of E){const x=q.x,y=q.y,sd=q===E[0]?-1:1;c.beginPath();
+  if(e==='happy'){c.moveTo(x-23*u,y+8*u);c.quadraticCurveTo(x,y-20*u,x+23*u,y+8*u);c.stroke();}
+  else if(e==='sad'){c.moveTo(x-22*u,y-6*u+sd*6*u);c.quadraticCurveTo(x,y+14*u,x+22*u,y-6*u-sd*6*u);c.stroke();}
+  else if(e==='surprised'){c.fillStyle='#f1e6cd';c.ellipse(x,y,14*u,17*u,0,0,7);c.fill();}
+  else if(e==='focused'){c.moveTo(x-20*u,y);c.quadraticCurveTo(x,y+8*u,x+20*u,y);c.stroke();}
+  else if(e==='sleepy'){c.lineWidth=7*u;c.moveTo(x-20*u,y+4*u);c.quadraticCurveTo(x,y+12*u,x+20*u,y+4*u);c.stroke();c.lineWidth=14*u;}}
+ c.strokeStyle='rgba(190,170,150,.75)';c.fillStyle=c.strokeStyle;c.lineWidth=7*u;c.beginPath();
+ if(e==='surprised'){c.ellipse(M.x,M.y+2*u,6*u,7*u,0,0,7);c.fill();}
+ else if(e==='sad'){c.moveTo(M.x-10*u,M.y+4*u);c.quadraticCurveTo(M.x,M.y-3*u,M.x+10*u,M.y+4*u);c.stroke();}
+ else if(e==='focused'){c.moveTo(M.x-10*u,M.y);c.lineTo(M.x+10*u,M.y);c.stroke();}
+ c.restore();}
 function cover(c,d,cx,cy,rx,ry,tx,ty,tw,th){c.save();c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,7);c.clip();img(c,d,[tx-tw*.8,ty+th*1.1,tw*1.6,th*2],cx-rx*1.1,cy-ry*1.1,rx*2.2,ry*2.2);c.restore();}
 function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');
+ if(k==='jureong'&&ex0==='neutral')return;
+ const e0=ex0;
  const P=(e)=>({x:-d.w/2+e[0]*d.w,y:-d.h-1.5+e[1]*d.h});
  // cover what is painted
  const rw=F.paint.w/d.body[2]*d.w/2,rh=F.paint.h/d.body[3]*d.h/2;
  for(const e of d.eyes){const q=P(e);cover(c,d,q.x,q.y,rw*1.4,rh*1.9,d.body[0]+e[0]*d.body[2],d.body[1]+e[1]*d.body[3],F.paint.w,F.paint.h);}
  if(F.paintMouth){const [mx,my,mw,mh]=F.paintMouth,q=P([mx,my]);cover(c,d,q.x,q.y,mw/d.body[2]*d.w*.8,mh/d.body[3]*d.h*.9,d.body[0]+mx*d.body[2],d.body[1]+my*d.body[3],mw,mh);}
+ if(k==='jureong'){coronaFace(c,d,e0,d.eyes.map(P),P([.457,.6]));return;}
  // 리들리's face, measured from rig.js: eyes 170 apart, 37 tall, line 9, mouth 26 wide 56 below the eye line
  const E=F.eyes.map(P),S=Math.hypot(E[1].x-E[0].x,E[1].y-E[0].y)*F.scale/170,M=P(F.mouth),blink=!p.reduced&&(t%4.7)<.16;
  c.save();c.strokeStyle='#efe4c7';c.fillStyle='#efe4c7';c.lineWidth=9*S;c.lineCap='round';
@@ -96,14 +112,12 @@ function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||
  for(const q of E){const x=q.x,y=q.y;c.beginPath();
   if(e==='sleepy'){c.moveTo(x-17*S,y);c.quadraticCurveTo(x,y+16*S,x+17*S,y);}
   else if(e==='happy'){c.moveTo(x-16*S,y+3*S);c.quadraticCurveTo(x,y-18*S,x+16*S,y+3*S);}
-  else if(e==='sad'&&k!=='bosong'&&k!=='jureong'){const sd=q===E[0]?-1:1;c.moveTo(x-15*S,y+(sd<0?-4:4)*S);c.lineTo(x+15*S,y+(sd<0?4:-4)*S);}
-  else if(k==='jureong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?26:22)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#efe4c7';continue;}   // 코로나 (눈동자 없음): big round eyes ("큰 동그라미 눈")
+  else if(e==='sad'&&k!=='bosong'){const sd=q===E[0]?-1:1;c.moveTo(x-15*S,y+(sd<0?-4:4)*S);c.lineTo(x+15*S,y+(sd<0?4:-4)*S);}
   else if(k==='bosong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?17:14)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#efe4c7';continue;}   // 베이치: round white eyes, as the user drew them ("눈 땡그랗게")
   else {c.moveTo(x,y-(e==='surprised'?22:18)*S);c.lineTo(x,y+(e==='surprised'?20:18)*S);}
   c.stroke();}
  c.beginPath();
- if(k==='jureong'){if(e!=='happy'&&e!=='sleepy'){c.arc(M.x,M.y+6*S,(e==='surprised'?8:5)*S,0,7);c.fill();}}   // 코로나: a tiny dot mouth ("입은 되게 작게 점으로")
- else if(e==='surprised'){c.ellipse(M.x,M.y,13*S,17*S,0,0,7);c.fill();}
+ if(e==='surprised'){c.ellipse(M.x,M.y,13*S,17*S,0,0,7);c.fill();}
  else if(e==='sad'){c.moveTo(M.x-12*S,M.y+5*S);c.quadraticCurveTo(M.x,M.y-6*S,M.x+12*S,M.y+5*S);c.stroke();}
  // 웃을 때는 입 없음 (사용자 "웃을 땐 입 없애")
  else if(e!=='sleepy'&&e!=='happy'){c.moveTo(M.x-13*S,M.y);c.lineTo(M.x+13*S,M.y);c.stroke();}
@@ -114,6 +128,7 @@ for(let i=0;i<2;i++){const s=i?1:-1;c.save();c.translate(s*d.w*.25,(k==='bonbon'
 if(k==='bosong'){c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,Math.PI*2);c.clip();img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);c.restore();}else img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);
 // Texture eyelids are a separate animation overlay. The body texture never changes.
 if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h;if(k==='bonbon'||k==='neolbi'){c.save();c.beginPath();c.ellipse(ex,ey,1.6,2.2,0,0,7);c.clip();img(c,d,k==='bonbon'?[d.body[0]+d.body[2]*.30,d.body[1]+d.body[3]*.30,70,80]:[d.body[0]+d.body[2]*.42,d.body[1]+d.body[3]*.72,70,80],ex-1.7,ey-2.3,3.4,4.6);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.65,ey);c.quadraticCurveTo(ex,ey+.6,ex+.65,ey);c.stroke();}}
+
 if(k==='jureong')faceExpr(c,d,k,p,m,t);
 const hands=[];
 // Front arms are composited after the body and head foliage.
