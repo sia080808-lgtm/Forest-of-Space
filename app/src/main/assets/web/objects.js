@@ -198,13 +198,16 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
 // to drink when it is nearer than the spring or the spring is nearly empty. The lake never runs dry; what a friend drinks
 // is recorded as lake inflow (ledger.lake) so the water balance still closes. Uses the walk record (p.stroll.lake).
 const LAKE_DRINK=Object.freeze({rate:10/60,target:50,deadline:120,linger:60,most:420});   // same pace as the spring (10 a minute), at most 7 minutes at the water
-function lakeDrink(s,p,current){if(p.stroll?.lake)return true;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
+// 1.0: a lake walk is only kept while it can still happen; a friend inside the shelter (whose move runs first) does not start one
+function lakeDrink(s,p,current){if(p.stroll?.lake&&(p.stroll.arrivedAt!=null||s.worldTick<=p.stroll.deadline))return true;if(p.stroll?.lake)delete p.stroll;if(p.shelter?.phase&&p.shelter.phase!=='outside')return false;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
  const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!(sp.water<2||dl<ds*.8))return false;
  if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,lake:'drink'};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
 function ambleSpot(s,p,rng){const Space=dep('spatial');for(let k=0;k<6;k++){const a=rng(s,'behavior')*6.283,r=.06+rng(s,'behavior')*.08,q={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r*.7};if(Space.walkable(s,q,p.id))return q;}return null;}
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
+ // 1.0: a walk that has run past its deadline before arriving always ends (it may have been held up by another move)
+ if(p.stroll&&p.stroll.arrivedAt==null&&s.worldTick>p.stroll.deadline+5){delete p.stroll;if(p.action==='drink')p.action='wander';}
  // 0.8.3: a friend waiting outside a full shelter (seats taken while it walked there) gives it up after 8 s and rests
  // elsewhere instead of waiting all night (sleep, rain, a free visit); a tired friend or one sheltering from a storm keeps waiting.
  {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free'].includes(c.reason)&&p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){release(s,p,'full');p.restCooldown=s.worldTick+120;p.nextObjectChoice=0;}}}
@@ -221,9 +224,11 @@ function choose(s,p,rng){
  // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
  const P=s.objects?.creatures?dep('creatures').pressure(s,p):{leaf:false,mite:false,gnatSites:[]},clean=ids=>ids.filter(id=>!P.gnatSites.includes(id)),lastInfested=ids=>[...ids.filter(id=>!P.gnatSites.includes(id)),...ids.filter(id=>P.gnatSites.includes(id))];
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
- else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
- else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
- else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
+ else if(n.water&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
+ else if(n.water&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
+ // SRS v2.34 생존 우선: once 수분 or 영양 is in its bad band it is fixed before resting (a low 기운 caused by hunger must not
+ // keep a friend resting while it starves)
+ else if(n.nutrition&&(p.nutrition<dep('vitals').band(p).lo||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
  // SRS v2.34 선제 행동: a friend dries off when over-wet (sun rock while it holds sun, shelter, crevice); in rain it
  // shelters before 수분 would pass its warning line within a minute (rain lovers wait until the top of the band)
  else if(!rainy(s)&&p.B>dep('vitals').band(p).hi&&!sleepTime(s,p)){for(const id of ['rock','shelter','crevice'])add(id,'rest','dry');}
