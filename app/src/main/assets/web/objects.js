@@ -160,7 +160,7 @@ function option(s,p,id,kind,reason,free=false){
   const target={water:50,energy:80,nutrition:50,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
-  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
+  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
@@ -291,7 +291,9 @@ function receive(s,p,requests){
  if(t.kind==='moss'){recover('energy',2,80);p.motion.kind='moss';}
  else if(t.kind==='rest'){recover('energy',rates[t.object]||1,80);p.motion.kind='rest';}
  else if(t.kind==='drink'||t.kind==='edgeDrink'){
-  add(s.spring,'water',Math.min(10/60,50-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
+  // root water can lift 수분 past the target between ticks: finish the drink then too
+  if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;(p.objectNeeds??=needs(p)).water=false;p.justDrank=true;}
+  else add(s.spring,'water',Math.min(10/60,50-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
  }else if(t.kind==='splash'){
   recover('mood',2,80);p.energy=clamp(p.energy-1/60);p.motion.kind='splash';
   add(s.spring,'water',Math.min(6/60,50-p.B),n=>{p.B+=n;p.motion.water=n;if(n>0&&p.B>=50-eps){p.objectNeeds??=needs(p);p.objectNeeds.water=false;if(!t.hydrationComplete){t.hydrationComplete=true;p.justDrank=true;}}});
@@ -314,7 +316,7 @@ function rootRequests(s,p,requests){
  let amount=0,body=false;if(z.id==='moss'){if(t?.object==='moss'&&at(s,p)&&z.S>0&&p.B<55){amount=Math.min(3/60,55-p.B);body=true;}else if(z.S>=z.cap*.2&&p.B<45&&p.Q<12)amount=Math.min(.5/60,12-p.Q);}
  else if(t?.kind==='rootDrink'&&at(s,p))amount=Math.min(1/60,20-p.Q);
  else if(moist(z)>=60)amount=Math.min(4/60,20-p.Q);
- if(amount>0){const key=t?.kind==='rootDrink'?'W':z.W>0?'W':'S';requests.push({sourceId:z.id+':'+key,source:z,key,amount,apply:n=>{if(body)p.B+=n;else p.Q+=n;}});}
+ if(amount>0){const key=t?.kind==='rootDrink'?'W':z.W>0?'W':'S';requests.push({sourceId:z.id+':'+key,source:z,key,amount,apply:n=>{if(body){p.B+=n;p.motion.water=n;if(t?.reason==='water'&&p.B>=50-eps){t.complete=true;(p.objectNeeds??=needs(p)).water=false;if(s.environment)s.environment.tutorialDone=true;}}else p.Q+=n;}});}
 }
 function upgradeStatus(s,id){const m=s.objects.upgrades[id];if(!m)return null;return {...m,capacity:capacity(s,id),nextCapacity:capacities[id][m.level],requiredSeconds:m.level===1?180:360,ready:m.level<3&&m.unlocked>m.level};}
 function progress(s){
