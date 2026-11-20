@@ -69,3 +69,14 @@ test('LK-07 lake events: frog surprise once a day, dragonfly emergence watched i
  s.worldTick=c0+14400+100;W.lakeStep(s);a.equal(W.inWater(s,p),false,'thawed: back on the shore');F.valid(s);
  const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,fx:{react:{x:{k:'dance',at:1}}}};a.throws(()=>F.valid(bad),/호수/);
 });
+test('LK-08 a thirsty friend near the open shore walks to the water and drinks (lake inflow recorded); not when frozen; lake neighbours are remembered for the guide',()=>{
+ const s=game(5);s.world.regions=[...s.world.regions,'lakeshore'];const c0=s.environment.calendar?.start??0;s.worldTick=c0+3600+100;calm(s);
+ const p=s.individuals[0];Object.assign(p,{x:1.32,y:.5,B:15,energy:80,nutrition:70,mood:80,active:true});s.individuals=[p];
+ let drank=0;const w0=F.totalWater(s);for(let t=0;t<400&&!drank;t++){calm(s);p.energy=80;p.nutrition=70;F.step(s);if((s.ledger.lake||0)>0&&p.stroll?.lake)drank=1;}
+ a.ok(drank,'drank at the lake: '+JSON.stringify(p.stroll)+' '+p.action);a.ok(W.waterD(p.x,p.y)>=1.0,'on the shore, not in the water');
+ for(let t=0;t<400&&p.stroll?.lake;t++){calm(s);F.step(s);}a.ok(p.B>=40,'drank up: '+p.B);a.ok(s.ledger.lake>20);F.valid(s);
+ const w=game(5);w.world.regions=[...w.world.regions,'lakeshore'];w.worldTick=(w.environment.calendar?.start??0)+10800+100;a.equal(W.shorePoint(w,{x:1.32,y:.5}),null,'frozen: no drinking');
+ const g=game(3);g.world.regions=[...g.world.regions,'lakeshore'];const g0=g.environment.calendar?.start??0;for(let t=0;t<7200;t+=60){g.worldTick=g0+t;g.weather.wind=5;g.weather.kind='sun';W.lakeStep(g);}
+ a.ok(Object.keys(g.world.lake.seen).length>=6,'seen '+Object.keys(g.world.lake.seen));F.valid(g);
+ const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,seen:{shark:1}};a.throws(()=>F.valid(bad),/호수/);
+});
