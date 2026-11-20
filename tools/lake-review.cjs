@@ -10,11 +10,11 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');for(const f of fs.readdir
  for(const [k,v] of Object.entries(ctx.Scene.seasonFiles()))try{A[k]=await loadImage(web+'/'+v);}catch{}
  for(const n of ['shadePlant','shadeGround'])A[n]=await loadImage(web+'/assets/forest/'+(n==='shadePlant'?'shade-plant':'shade-ground')+'.png');for(const [k,v]of Object.entries(Rig.files))A[k]=await loadImage(web+'/'+v);
  A.gardenWide=await loadImage(web+'/assets/forest/garden-wide.png');for(let i=1;i<=6;i++)A['fern'+i]=await loadImage(web+'/assets/forest/ferns/fern-'+i+'.png');
- A.lakeFloor=await loadImage(web+'/assets/forest/lake/lake-floor.png');A.lakeIce=await loadImage(web+'/assets/forest/lake/lake-ice.png');for(const n of ['leaf','bud','half','full','sink','wither'])A['lily_'+n]=await loadImage(web+'/assets/forest/lake/lily-'+n+'.png');
- const shot=async(name,{cx,cy,z,season,friends,overview,lilies,tick})=>{const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;
+ A.lakeFloor=await loadImage(web+'/assets/forest/lake/lake-floor.png');A.lakeIce=await loadImage(web+'/assets/forest/lake/lake-ice.png');for(const n of ['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'])A['life_'+n]=await loadImage(web+'/assets/forest/lake/life-'+n+'.png');for(const n of ['leaf','bud','half','full','sink','wither'])A['lily_'+n]=await loadImage(web+'/assets/forest/lake/lily-'+n+'.png');
+ const shot=async(name,{cx,cy,z,season,friends,overview,lilies,tick,life})=>{const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;
   s.world.regions=['forest','lakeshore'];s.world.lake={ready:true,scents:3,openedAt:0};
   if(season){s.environment.calendar.start=-season*3600-400;}
-  if(tick!=null){s.worldTick=tick;s.environment.calendar.start=tick-3600-1500;}if(lilies)s.world.lake.lilies=lilies.map((q,i)=>({id:'lily'+(i+1),x:q[0],y:q[1],born:s.worldTick-q[2]}));
+  if(tick!=null){s.worldTick=tick;s.environment.calendar.start=tick-3600-1500;}if(life)s.world.lake.life=life.map((q,i)=>({id:'life'+(i+1),kind:q[0],x:q[1],y:q[2],born:s.worldTick-10,...(q[0]==='tadpole'?{n:4}:{})}));if(lilies)s.world.lake.lilies=lilies.map((q,i)=>({id:'lily'+(i+1),x:q[0],y:q[1],born:s.worldTick-q[2]}));
   const base=JSON.parse(JSON.stringify(s.individuals[0]));s.individuals=friends.map((q,i)=>Object.assign(JSON.parse(JSON.stringify(base)),{id:'v'+i,species:q[0],xp:115,visualStage:3,B:60,energy:80,mood:90,x:q[1],y:q[2],motion:{kind:'idle',distance:0}}));
   const before=JSON.stringify(s);const sc=new ctx.Scene(canvas,()=>s);sc.assets=A;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.draw();
   if(overview){sc.camera.setOverview(true);}else{sc.camera.z=z;sc.camera.cx=cx;sc.camera.cy=cy;sc.camera.clamp();}
@@ -29,5 +29,8 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');for(const f of fs.readdir
  await shot('lake-lilies',{cx:1.5,cy:.5,z:1,tick:6000+300,lilies:LL,friends:fr});
  await shot('lake-lilies-night',{cx:1.5,cy:.5,z:1,tick:6000+900,lilies:LL,friends:fr});
  await shot('lake-lilies-zoom',{cx:1.6,cy:.5,z:2.4,tick:6000+300,lilies:LL,friends:fr});
+ const LF=[['strider',1.6,.45],['strider',1.66,.78],['snail',1.52,.62],['tadpole',1.56,.86],['frog',1.62,.58],['nymph',1.47,.37],['dragonfly',1.55,.25],['beetle',1.68,.5],['medaka',1.64,.68],['larva',1.53,.5],['eggs',1.58,.95]];
+ await shot('lake-life',{cx:1.5,cy:.5,z:1,tick:6000+300,lilies:LL,life:LF,friends:fr});
+ await shot('lake-life-zoom',{cx:1.58,cy:.6,z:2.6,tick:6000+300,lilies:LL,life:LF,friends:fr});
  await shot('lake-winter',{cx:1.5,cy:.5,z:1,season:3,friends:fr});
  console.log('ok');})().catch(e=>{console.error(e);process.exit(1);});

@@ -699,3 +699,12 @@
 - 검증: `lake.test.cjs` LK-04만 추가·실행(4/4), 전체는 CI. 화면 `docs/qa-0.9.0/runtime/lake-lilies*.png`. 실기기 미검증.
 - 다음: 물가 이웃 7종, 상호작용·이벤트, 물 마시기.
 - 관리자 해금(사용자 "일단 지금은 관리자 권한으로 해금 조건 푸는 설정 넣어줘"): 설정 > 개발 검수 '호수 물가 바로 열기'(확인 창, `World.openLake`). `lake.test` LK-05, UI PASS.
+- 병합·릴리스: PR #52(https://github.com/sia080808-lgtm/Forest-of-Space/pull/52) main 병합 `7a139880d34c57fa8317a978e9fba4f6f6509c94`(사용자 "ㄱㄱ"; head `d79b33c` 기준 simulation·CodeQL 성공, 수련 그림 도구 CodeQL 지적 8건 같은 PR에서 정리). 프리릴리스 v0.9.1 `Forest-of-Space-0.9.1.apk` 71,840,893 bytes, SHA-256 `b5b60045bfdb53c1104111625fc4900ad5e07808af23a9af9dbc668375787cc2` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode67/0.9.1. APK는 사용자에게 파일로 전달.
+
+### LAKE-LIFE-0.9.2-20261120 — 물가 이웃
+
+- 담당: Claude Code. 요청: 사용자 "물가 이웃 ㄱㄱ" → 시안 조트로프(개구리 뛰기·장구벌레 꼬리·잠자리 애벌레 다리·물달팽이 몸 수정) → "ㄱㄱ게임에 넣어줘"(중간에 "동작 2개로 줄여줘" 뒤 "아니다 저대로 ㄱㄱ" — 6칸 유지). 기준 main `7a13988`(0.9.1 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `world.js`(`LIFE`, `lifeStep`, `world.lake.life`·`nextLife`·`nextLifeId` 검증), `scene.js`(`drawLakeLife`, 그림 10장 불러오기), 그림 `tools/draw-lake-life.py` → `assets/forest/lake/life-*.png`. 버전 0.9.2 / versionCode 68.
+- 검증: `lake.test.cjs` LK-06 추가·실행(6/6), UI 검사(화면 코드 변경), 전체는 CI. 화면 `docs/qa-0.9.0/runtime/lake-life*.png`. 실기기 미검증.
+- 다음: 물가 이웃 도감, 이벤트 4개, 물 마시기.
+- 개구리 헤엄 추가(사용자 "개구리 모션 물에서 헤엄치는 것도 있어야 하지 않겠음?"): 헤엄 6칸 그림, 24초 주기로 앉기→뛰어들기→헤엄→돌아와 앉기(렌더 전용).
