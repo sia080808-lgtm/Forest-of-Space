@@ -19,6 +19,7 @@ function pose(kind='idle',time=0,opt={}){
  if(kind==='land'){p.bob=3*pulse(0,.45);p.front=.14*pulse(.15,.8);p.rear=p.front*.48;}
  if(['rest','nightrest','moss'].includes(kind)){p.front=.26;p.rear=.13;p.eyes='sleepy';p.bob=2+Math.sin(t*1.5)*.4;if(kind==='moss')p.sink=9*smooth(q*4);}
  if(kind==='wake'){p.front=.26*(1-smooth(q));p.rear=p.front*.48;p.eyes=q<.45?'sleepy':'neutral';}
+ if(kind==='startle'){p.front=.37;p.rear=.2;p.bob=1.6;p.eyes='surprised';}   // 0.9.3 놀람: the hood pulled right down over the body
  if(kind==='groom'){const env=pulse(0,.8);p.front=env*(.05+.13*Math.max(0,Math.sin(t*10)));p.rear=p.front*.48;p.bob=-env*Math.max(0,Math.sin(t*10))*1.2;p.eyes='focused';}
  if(['PE05','hoodfit'].includes(kind)){p.front=.14*pulse(0,.7);p.rear=p.front*.48;if(kind==='PE05')p.front+=.15*pulse(.4,.72);p.eyes='focused';}
  if(['drink','splash','receive'].includes(kind)){p.front=.07+.035*Math.sin(t*3);p.rear=p.front*.48;p.eyes='focused';if(kind==='splash'){p.left=Math.sin(t*7)*.23;p.right=-p.left;p.bob=-Math.abs(Math.sin(t*7));}}

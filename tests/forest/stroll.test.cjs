@@ -37,5 +37,5 @@ test('ST-05 0.8.7 light stroll poses: look around (turning), smell the grass, si
  const at=e=>O.strollPose(s,p,200+e);a.equal(at(1).pose,'look');a.notEqual(at(1).face,at(1.5).face,'turns this way and that');a.equal(at(5).pose,'sniff');a.equal(at(15).pose,'sit');a.equal(at(19.5).pose,'idle');
  const before=JSON.stringify(s);for(const e of [1,5,15])O.strollPose(s,p,200+e);a.equal(JSON.stringify(s),before,'pure');
  s.worldTick=205;a.match(O.reason(s,p),/냄새/);s.worldTick=215;a.match(O.reason(s,p),/앉아 쉬고/);s.worldTick=201;a.match(O.reason(s,p),/두리번/);
- const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/strollPose\?\.\(s,p,s\.worldTick\+fraction\)/);a.match(src,/kind==='sniff'\?'drink':kind/);
+ const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/strollPose\?\.\(s,p,s\.worldTick\+fraction\)/);a.match(src,/kind==='sniff'\?'drink':/);
 });

@@ -53,3 +53,19 @@ test('LK-06 lake neighbours: spring eggs grow into tadpoles and frogs, summer br
  s.worldTick=c0+10800+5;s.world.lake.nextLife=0;W.lakeStep(s);a.equal(s.world.lake.life.length,0,'winter clears them');
  const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,life:[{id:'x',kind:'shark',x:1.5,y:.5,born:0}]};a.throws(()=>F.valid(bad),/호수/);
 });
+test('LK-07 lake events: frog surprise once a day, dragonfly emergence watched in the morning, summer-night fireflies, walking on winter ice',()=>{
+ const s=game(4);s.world.regions=[...s.world.regions,'lakeshore'];const c0=s.environment.calendar?.start??0,p=s.individuals[0];p.active=true;
+ // frog surprise (summer)
+ s.world.lake??={ready:true,scents:3};s.worldTick=c0+3600+100;s.world.lake.life=[{id:'lifeF',kind:'frog',x:1.4,y:.5,born:s.worldTick}];s.world.lake.nextLife=1e12;p.x=1.42;p.y=.5;const ev=[];
+ W.lakeStep(s,(st,type,text)=>ev.push(text));a.equal(W.reaction(s,p).kind,'startle');a.ok(ev.some(t=>/개구리/.test(t)));a.equal(s.world.lake.life[0].dive,s.worldTick);
+ s.world.lake.life[0].dive=-1e9;s.worldTick+=30;W.lakeStep(s);a.notEqual(s.world.lake.life[0].dive,s.worldTick,'once a day for each friend');
+ // dragonfly emergence: only in the morning, friends close by watch it
+ const day=Math.ceil((c0+3600+1300)/1200)*1200;s.world.lake.life=[{id:'lifeN',kind:'nymph',x:1.47,y:.37,born:day-2000}];p.x=1.45;p.y=.4;p.mood=50;s.world.lake.nextLife=0;s.worldTick=day+700;W.lakeStep(s);a.equal(s.world.lake.life[0].kind,'nymph','not at night');
+ s.worldTick=day+1200+50;s.world.lake.nextLife=0;W.lakeStep(s);a.equal(s.world.lake.life[0].kind,'dragonfly');a.ok(p.mood>50);a.equal(W.reaction(s,p).kind,'watch');a.ok(s.discoveries['lake-dragonfly']);
+ // fireflies on a clear calm summer night (about half the nights)
+ const nt=day+700,nn=Math.floor((nt-620)/1200);s.worldTick=nt;s.weather.kind='sun';s.weather.wind=5;s.world.lake.fx.fire={night:nn,on:true,seen:false};p.x=1.3;p.mood=50;W.lakeStep(s);a.ok(W.fireflies(s)&&p.mood>50);s.weather.kind='rain';a.equal(W.fireflies(s),false,'not in the rain');a.ok(s.discoveries['lake-fireflies']);
+ // winter: ice is walkable and a small treat, thaw moves friends back to the shore
+ s.worldTick=c0+10800+100;const q={x:1.6,y:.56};a.ok(W.frozen(s)&&W.onIce(s,q)&&F.Space.walkable(s,q,p.id));p.x=1.6;p.y=.56;p.mood=50;for(let i=0;i<120;i++){s.worldTick++;W.lakeStep(s);}a.ok(p.mood>50.9);
+ s.worldTick=c0+14400+100;W.lakeStep(s);a.equal(W.inWater(s,p),false,'thawed: back on the shore');F.valid(s);
+ const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,fx:{react:{x:{k:'dance',at:1}}}};a.throws(()=>F.valid(bad),/호수/);
+});
