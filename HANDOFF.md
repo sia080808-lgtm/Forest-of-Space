@@ -639,3 +639,12 @@
 - 변경: `objects.js`(`STROLL` 30%·0.25·15~30초, `strollTarget`·`stroll`·카드 문구, 끝난 자유 행동 뒤 정돈·산책, 같은 자리 이유 바꾸기, `p.stroll` 검증), `engine.js`(이동에 `Obj.stroll`, `settings.showFrame` 기본·검증), `world-effects.js` `particles(area)`, `scene.js`(눈·바람 잎·안개를 숲 전체에, 가을 잎 넓이 비례, `drawFrame` 설정), `forest-app.js`(설정 스위치). 버전 0.8.5 / versionCode 63.
 - 판단: 곤충 출현 규칙에는 정원 범위 제한이 없다(숙주를 따름). 친구 잎 이웃이 가운데에 몰린 이유는 친구가 가운데에만 있어서였고, 산책으로 넓어졌다(바깥 22.1→24.8%). 별도 규칙은 바꾸지 않았다.
 - 검증: `npm test` 326/326(`stroll.test.cjs` 4 추가, `creatures` 개미 시드 [5,7,9]), `npm run test:ui` PASS. 측정: 바깥 땅 시간 1.4→5.9%(낮 1.8→10.6%), 개미 군락 한 해 6/8→8/8. 화면 `docs/qa-0.8.5/runtime`. Android 실기기 미검증.
+- 병합·릴리스: PR #48(https://github.com/sia080808-lgtm/Forest-of-Space/pull/48) main 병합 `d5cc0519d4dae9fa8e0b76a542a1abe791a3a12f`(사용자 "ㄱㄱ"; head `c5545b4` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.5 `Forest-of-Space-0.8.5.apk` 68,282,676 bytes, SHA-256 `c45cf50a6e491afdf4ca13b5f5040da8289b8aa2a1f61d75df9dbd014467e450` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode63/0.8.5, APK 안 engine.js VERSION 0.8.5·objects.js `strollTarget` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### CREVICE-ENTRY-0.8.6-20261120 — 바위틈에 걸어 들어가기, 네모 잘림
+
+- 담당: Claude Code. 기준 main `d5cc051`(0.8.5 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: "바위틈으로 들어갈 때 … 휘리릭 달려가면서 … 네모 이미지가 생성 … 다른 케릭터 들어갈 때도 그런가" → 분석·수정 → "ㄱㄱ".
+- 원인: `scene.js` 0.6.35 틈 연출 — 0.6초 미끄러짐(쉬는 자세), 나올 때 순간 복귀, 돌 아래 바닥 띠 잘라내기(`nookClip`)와 작은 돌 덮기(`creviceFront`)가 들어가기 시작부터 적용돼 돌 앞 친구가 직사각형으로 잘림. 모든 종 공통.
+- 변경: `this.nookS`(진행 0~1, 느린 걸음 속도 `GU*.6`로 들어가고 나옴, 걷기 모션·방향), 작은 돌은 발이 돌 아랫단 뒤일 때만, 바닥 띠 잘라내기는 다 앉았을 때만. 렌더 전용. 버전 0.8.6 / versionCode 64.
+- 검증: `npm test` 326/326(`rock-rider` 갱신), `npm run test:ui` PASS, 전후 화면 `docs/qa-0.8.6/runtime`(`tools/crevice-entry-review.cjs`). Android 실기기 미검증.
