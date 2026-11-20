@@ -648,3 +648,4 @@
 - 원인: `scene.js` 0.6.35 틈 연출 — 0.6초 미끄러짐(쉬는 자세), 나올 때 순간 복귀, 돌 아래 바닥 띠 잘라내기(`nookClip`)와 작은 돌 덮기(`creviceFront`)가 들어가기 시작부터 적용돼 돌 앞 친구가 직사각형으로 잘림. 모든 종 공통.
 - 변경: `this.nookS`(진행 0~1, 느린 걸음 속도 `GU*.6`로 들어가고 나옴, 걷기 모션·방향), 작은 돌은 발이 돌 아랫단 뒤일 때만, 바닥 띠 잘라내기는 다 앉았을 때만. 렌더 전용. 버전 0.8.6 / versionCode 64.
 - 검증: `npm test` 326/326(`rock-rider` 갱신), `npm run test:ui` PASS, 전후 화면 `docs/qa-0.8.6/runtime`(`tools/crevice-entry-review.cjs`). Android 실기기 미검증.
+- 병합·릴리스: PR #49(https://github.com/sia080808-lgtm/Forest-of-Space/pull/49) main 병합 `90c6c172f7f70ca11686f060c34ea7062e2b2bd1`(사용자 "ㄱㄱ"; head `191f6d6` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.6 `Forest-of-Space-0.8.6.apk` 68,282,676 bytes, SHA-256 `8f8b3442ba065574aaecd26d69d58c7383a996596e619328e3ce053de38b4daa` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode64/0.8.6, APK 안 engine.js VERSION 0.8.6·scene.js `nookS` 포함 확인. APK는 사용자에게 파일로 전달.
