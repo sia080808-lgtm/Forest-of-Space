@@ -84,7 +84,7 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
 // (베이치 redraws its body over its arms, so this runs after that.)
 const BOSONG_FACE={eyes:[[.36,.55],[.66,.55]],mouth:[.51,.59]},EYE={bosong:{w:52,h:22},jureong:{w:53,h:21}},MOUTH={jureong:[.46,.58,34,16]};
 function cover(c,d,cx,cy,rx,ry,tx,ty,tw,th){c.save();c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,7);c.clip();img(c,d,[tx-tw*.8,ty+th*1.1,tw*1.6,th*2],cx-rx*1.1,cy-ry*1.1,rx*2.2,ry*2.2);c.restore();}
-function faceExpr(c,d,k,p,m){const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');if(k!=='bosong')return;   // 코로나 keeps its painted face (user: "코로나는 기존을 유지해")
+function faceExpr(c,d,k,p,m){const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');if(ex0==='neutral'&&k!=='bosong')return;   // 코로나: painted face for 'neutral', its own wide-eye + mouth look otherwise (user: "코로나는 기존을 유지해" = the look from the previous draft)
  const E=EYE[k],rw=E.w/d.body[2]*d.w/2,rh=E.h/d.body[3]*d.h/2,cream='#f3e7cc';let u=rw/1.1;
  let eyes=d.eyes.map(e=>({x:-d.w/2+e[0]*d.w,y:-d.h-1.5+e[1]*d.h,tx:d.body[0]+e[0]*d.body[2],ty:d.body[1]+e[1]*d.body[3]}));
  for(const e of eyes)cover(c,d,e.x,e.y,rw*1.4,rh*1.9,e.tx,e.ty,E.w,E.h);
@@ -94,11 +94,12 @@ function faceExpr(c,d,k,p,m){const ex0=p.expr||(['sleep','rest','moss'].includes
  const L=(pts,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();};
  const Q=(x0,y0,cx,cy,x1,y1,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(cx,cy,x1,y1);c.stroke();};
  if(k==='bosong'){u*=1.35;const a=.42*u,lw=.3*u,MX=-d.w/2+BOSONG_FACE.mouth[0]*d.w,MY=-d.h-1.5+BOSONG_FACE.mouth[1]*d.h,mw=.5*u;
-  eyes.forEach((e,i)=>{const sd=i?1:-1,x=e.x,y=e.y,by=y-.95*u;
-   if(ex0==='happy'){Q(x-a,y+.25*u,x,y-.45*u,x+a,y+.25*u,lw);Q(x-a,by,x,by-.35*u,x+a,by,lw*.8);}
-   else if(ex0==='sad'){c.beginPath();c.arc(x,y+.15*u,.2*u,0,7);c.fill();L([[x-sd*a,by-.35*u],[x+sd*a,by+.05*u]],lw*.8);}
-   else if(ex0==='surprised'){c.lineWidth=lw*.9;c.beginPath();c.arc(x,y,.3*u,0,7);c.stroke();Q(x-a,by-.15*u,x,by-.55*u,x+a,by-.15*u,lw*.8);}
-   else if(ex0==='focused'){c.beginPath();c.arc(x,y,.2*u,0,7);c.fill();L([[x-sd*a,by+.15*u],[x+sd*a,by-.25*u]],lw*.9);}
+  // no brows (user: "눈섭 지우라고"): the eyes and the little mouth carry the feeling
+  eyes.forEach((e,i)=>{const sd=i?1:-1,x=e.x,y=e.y;
+   if(ex0==='happy')Q(x-a,y+.25*u,x,y-.45*u,x+a,y+.25*u,lw);
+   else if(ex0==='sad')Q(x-a,y+.3*u+(sd<0?-.12*u:0),x,y-.25*u,x+a,y+.3*u+(sd<0?0:-.12*u),lw);
+   else if(ex0==='surprised'){c.lineWidth=lw*.9;c.beginPath();c.arc(x,y,.34*u,0,7);c.stroke();}
+   else if(ex0==='focused')L([[x-a*.8,y],[x+a*.8,y]],lw);
    else if(ex0==='sleepy')Q(x-a,y-.05*u,x,y+.4*u,x+a,y-.05*u,lw);
    else{c.beginPath();c.arc(x,y,.32*u,0,7);c.fill();}});
   c.strokeStyle='#d8c6a6';c.fillStyle='#d8c6a6';
