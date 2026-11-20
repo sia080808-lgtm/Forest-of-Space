@@ -39,3 +39,6 @@ test('LK-04 water lilies appear at random on open water from late spring, grow t
  s.worldTick=c0+10800+5;W.lakeStep(s);a.equal(s.world.lake.lilies.length,0,'winter ice clears them');
  const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,lilies:[{id:'x',x:'1',y:.5,born:0}]};a.throws(()=>F.valid(bad),/호수/);
 });
+test('LK-05 the admin switch opens the shore at once (no growth conditions, no walks) and only once',()=>{
+ const s=game();a.equal(W.openLake(s),true);a.equal(W.lakeOpen(s),true);a.equal(s.world.lake.scents,3);a.equal(W.openLake(s),false);a.equal(s.world.regions.filter(r=>r==='lakeshore').length,1);F.valid(s);
+});

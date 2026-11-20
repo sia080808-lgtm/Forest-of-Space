@@ -698,3 +698,4 @@
 - 변경: `world.js`(`LILY`, `lilyStep`·`lilyStage`, `rng.lake`, `world.lake.lilies`·`nextLily`·`nextId` 검증), `scene.js`(`drawLilies`, 하루 리듬, 그림 6장 불러오기), 그림 `tools/draw-waterlily.py` → `assets/forest/lake/lily-*.png`. 버전 0.9.1 / versionCode 67.
 - 검증: `lake.test.cjs` LK-04만 추가·실행(4/4), 전체는 CI. 화면 `docs/qa-0.9.0/runtime/lake-lilies*.png`. 실기기 미검증.
 - 다음: 물가 이웃 7종, 상호작용·이벤트, 물 마시기.
+- 관리자 해금(사용자 "일단 지금은 관리자 권한으로 해금 조건 푸는 설정 넣어줘"): 설정 > 개발 검수 '호수 물가 바로 열기'(확인 창, `World.openLake`). `lake.test` LK-05, UI PASS.
