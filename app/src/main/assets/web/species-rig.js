@@ -83,21 +83,21 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
 // this runs after that.)
 const FACE={bosong:{eyes:[[.37,.63],[.65,.63]],mouth:[.51,.68],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.342,.523],[.567,.523]],mouth:[.457,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16]}};
 // 코로나: the painted face (thick cream crescents, faint dash mouth) is the base; other expressions are redrawn in the same strokes
-function coronaFace(c,d,e,E,M){const u=d.w/d.body[2];c.save();c.lineCap='round';c.strokeStyle='#f1e6cd';c.lineWidth=14*u;
+function coronaFace(c,d,e,E,M){const u=d.w/d.body[2];c.save();c.lineCap='round';c.strokeStyle='#f1e6cd';c.lineWidth=7*u;
  for(const q of E){const x=q.x,y=q.y,sd=q===E[0]?-1:1;c.beginPath();
-  if(e==='happy'){c.moveTo(x-23*u,y+8*u);c.quadraticCurveTo(x,y-20*u,x+23*u,y+8*u);c.stroke();}
+  if(e==='neutral'){c.moveTo(x-23*u,y-8*u);c.quadraticCurveTo(x,y+20*u,x+23*u,y-8*u);c.stroke();}
+  else if(e==='happy'){c.moveTo(x-23*u,y+8*u);c.quadraticCurveTo(x,y-20*u,x+23*u,y+8*u);c.stroke();}
   else if(e==='sad'){c.moveTo(x-22*u,y-6*u+sd*6*u);c.quadraticCurveTo(x,y+14*u,x+22*u,y-6*u-sd*6*u);c.stroke();}
-  else if(e==='surprised'){c.fillStyle='#f1e6cd';c.ellipse(x,y,14*u,17*u,0,0,7);c.fill();}
+  else if(e==='surprised'){c.fillStyle='#f1e6cd';c.ellipse(x,y,10*u,12*u,0,0,7);c.fill();}
   else if(e==='focused'){c.moveTo(x-20*u,y);c.quadraticCurveTo(x,y+8*u,x+20*u,y);c.stroke();}
-  else if(e==='sleepy'){c.lineWidth=7*u;c.moveTo(x-20*u,y+4*u);c.quadraticCurveTo(x,y+12*u,x+20*u,y+4*u);c.stroke();c.lineWidth=14*u;}}
- c.strokeStyle='rgba(190,170,150,.75)';c.fillStyle=c.strokeStyle;c.lineWidth=7*u;c.beginPath();
+  else if(e==='sleepy'){c.lineWidth=5*u;c.moveTo(x-20*u,y+4*u);c.quadraticCurveTo(x,y+12*u,x+20*u,y+4*u);c.stroke();c.lineWidth=7*u;}}
+ c.strokeStyle='rgba(190,170,150,.75)';c.fillStyle=c.strokeStyle;c.lineWidth=5*u;c.beginPath();
  if(e==='surprised'){c.ellipse(M.x,M.y+2*u,6*u,7*u,0,0,7);c.fill();}
  else if(e==='sad'){c.moveTo(M.x-10*u,M.y+4*u);c.quadraticCurveTo(M.x,M.y-3*u,M.x+10*u,M.y+4*u);c.stroke();}
- else if(e==='focused'){c.moveTo(M.x-10*u,M.y);c.lineTo(M.x+10*u,M.y);c.stroke();}
+ else if(e==='focused'||e==='neutral'){c.moveTo(M.x-10*u,M.y);c.lineTo(M.x+10*u,M.y);c.stroke();}
  c.restore();}
 function cover(c,d,cx,cy,rx,ry,tx,ty,tw,th){c.save();c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,7);c.clip();img(c,d,[tx-tw*.8,ty+th*1.1,tw*1.6,th*2],cx-rx*1.1,cy-ry*1.1,rx*2.2,ry*2.2);c.restore();}
 function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');
- if(k==='jureong'&&ex0==='neutral')return;
  const e0=ex0;
  const P=(e)=>({x:-d.w/2+e[0]*d.w,y:-d.h-1.5+e[1]*d.h});
  // cover what is painted
