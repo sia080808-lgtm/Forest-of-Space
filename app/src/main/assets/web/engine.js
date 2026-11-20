@@ -98,6 +98,13 @@ function step(s,{visible=true,held=null}={}){
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
   // 슈퍼범 is too large for most rest spots: when tired and nothing else holds it (no object task, no shelter request
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
+  // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
+  // (shelter full, every rest spot taken or too small) sleeps where it stands instead of standing frozen.
+  if(p.sleepHere){const tt=((s.worldTick%1200)+1200)%1200,still=(tt>=620&&tt<1150)||Env.precipitation(s,'rain')+Env.precipitation(s,'snow')>=.25;
+   if(!still||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
+   else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
+  if(p.braceHere){if(s.weather.wind<60||p.objectTask||p.shelterRequest||p.shelter?.facilityId||p.mounted||!p.active){delete p.braceHere;if(p.objectWait?.reason==='brace_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
+   else{p.motion.kind='rest';p.motion.distance=0;p.action='rest';continue;}}
   if(p.species==='superbum'){if(p.energy<40&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
    if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
   const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p)||Obj.stroll(s,p);
