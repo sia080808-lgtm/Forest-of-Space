@@ -2,10 +2,9 @@
 in the same watercolour style as the approved lake mock (user: "좋네"). Transparent, 320x220, anchor (160,130) = the point on the
 water the lily floats at. Usage: python3 tools/draw-waterlily.py"""
 import os
-import numpy as np, math, sys
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import numpy as np, math
+from PIL import Image, ImageDraw, ImageFilter
 CW,CH=320,220; rng=np.random.default_rng(3)
-FONT='/home/user/Forest-of-Space/app/src/main/assets/web/fonts/GowunDodum-Regular.ttf'
 def grain(w,h,s=4,seed=0):
     r=np.random.default_rng(seed); g=r.random((h//s+1,w//s+1))
     return np.asarray(Image.fromarray((g*255).astype(np.uint8)).resize((w,h),Image.BICUBIC),np.float32)/255
@@ -19,21 +18,10 @@ def wash(mask,c_in,c_edge,light=None,seed=0,alpha=.92,edge_w=.12):
     if light is not None: c=c+light[...,None]*30
     c=c*(.95+.08*g[...,None])
     return np.dstack([np.clip(c,0,255),m*alpha*255]).astype(np.uint8)
-def comp(base,rgba,xy=(0,0)):
-    im=Image.fromarray(rgba,'RGBA'); base.alpha_composite(im,xy)
 def poly_mask(w,h,pts,blur=0):
     im=Image.new('L',(w,h),0); ImageDraw.Draw(im).polygon(pts,fill=255)
     if blur: im=im.filter(ImageFilter.GaussianBlur(blur))
     return np.asarray(im,np.float32)/255
-def water_bg():
-    im=Image.new('RGBA',(CW,CH),(246,238,224,255)); a=np.zeros((CH,CW),np.float32)
-    yy,xx=np.mgrid[0:CH,0:CW]; d=np.sqrt(((xx-CW/2)/(CW*.48))**2+((yy-CH*.62)/(CH*.34))**2)
-    m=np.clip((1-d)/.35,0,1)*(.8+.2*grain(CW,CH,40,7))
-    rgba=np.dstack([np.full((CH,CW),186),np.full((CH,CW),206),np.full((CH,CW),202),m*200]).astype(np.uint8)
-    im.alpha_composite(Image.fromarray(rgba,'RGBA'));d2=ImageDraw.Draw(im)
-    for i,(y,L) in enumerate([(CH*.82,60),(CH*.88,40),(CH*.76,30)]):
-        x=CW*(.25+.25*i); d2.arc([x-L,y-L*.15,x+L,y+L*.15],200,340,fill=(236,242,238,170),width=2)
-    return im
 def leaf(im,cx,cy,rx,col=(120,154,106),dry=0,seed=1,notch=.4,curl=0):
     ry=rx*.45; w,h=im.size
     yy,xx=np.mgrid[0:h,0:w].astype(np.float32); ang=np.arctan2((yy-cy)/ry,(xx-cx)/rx); rr=np.sqrt(((xx-cx)/rx)**2+((yy-cy)/ry)**2)
@@ -52,11 +40,6 @@ def leaf(im,cx,cy,rx,col=(120,154,106),dry=0,seed=1,notch=.4,curl=0):
         t=notch+.35+k*(2*math.pi-.7)/10; ex=cx+math.cos(t)*rx*.9; ey=cy+math.sin(t)*ry*.9
         vd.line([(cx,cy),(ex,ey)],fill=tuple(int(min(255,x+28)) for x in c)+(110,),width=1)
     im.alpha_composite(v)
-def stem(im,x0,y0,x1,y1,col=(112,136,92),w=4):
-    d=ImageDraw.Draw(im); n=12
-    for i in range(n):
-        t0,t1=i/n,(i+1)/n; xa=x0+(x1-x0)*t0+math.sin(t0*3)*3; xb=x0+(x1-x0)*t1+math.sin(t1*3)*3
-        d.line([(xa,y0+(y1-y0)*t0),(xb,y0+(y1-y0)*t1)],fill=col+(230,),width=w)
 def petal(im,bx,by,ang,L,W,tip=(232,150,170),base=(250,236,234),seed=0,bend=0):
     w,h=im.size; pts=[]
     for i in range(25):
@@ -66,8 +49,7 @@ def petal(im,bx,by,ang,L,W,tip=(232,150,170),base=(250,236,234),seed=0,bend=0):
     ca,sa=math.cos(ang),math.sin(ang); P=[(bx+x*ca-y*sa+bend*(y/L)**2*0, by+x*sa+y*ca) for x,y in pts]
     m=poly_mask(w,h,P)
     yy,xx=np.mgrid[0:h,0:w].astype(np.float32)
-    # along-petal coordinate: projection onto petal axis
-    ax,ay=math.sin(ang)*-1,-math.cos(ang)*-1; t=np.clip(((xx-bx)*(-sa*-1)+(yy-by)*(ca*-1))/L,0,1)
+    # along-petal coordinate: projection onto the petal axis
     t=np.clip(((xx-bx)*sa-(yy-by)*ca)/L,0,1)
     c=np.array(base,np.float32)[None,None]*(1-t[...,None]**1.4)+np.array(tip,np.float32)[None,None]*(t[...,None]**1.4)
     mm=np.asarray(Image.fromarray((m*255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.1)),np.float32)/255
@@ -97,20 +79,6 @@ def flower(im,cx,cy,open_,scale=1.0,seed=0):
     front=[(-spread*.3,.7),(spread*.3,.7)]
     if open_>.4:
         for i,(a,k) in enumerate(front): petal(im,cx,cy+10*scale,a+math.pi*0,L*k*.55,W*.9,seed=seed+40+i)
-def seedpod(im,cx,cy,dry=0,droop=0):
-    w,h=im.size; m=np.zeros((h,w),np.float32); yy,xx=np.mgrid[0:h,0:w]
-    tilt=droop*.9
-    m=(((xx-cx)/30)**2+((yy-cy)/15)**2<1).astype(np.float32)
-    top=(((xx-cx)/30)**2+((yy-cy+8)/12)**2<1).astype(np.float32)
-    mm=np.clip(m+top,0,1)
-    c=np.array([150,170,104])*(1-dry)+np.array([140,112,76])*dry
-    im2=Image.new('RGBA',im.size,(0,0,0,0)); im2.alpha_composite(Image.fromarray(wash(mm,c,c*.7,None,5),'RGBA'))
-    d=ImageDraw.Draw(im2)
-    for i in range(9):
-        a=i*2*math.pi/9; d.ellipse([cx+math.cos(a)*16-3,cy-8+math.sin(a)*7-2,cx+math.cos(a)*16+3,cy-8+math.sin(a)*7+2],fill=tuple(int(x*.6) for x in c)+(220,))
-    d.ellipse([cx-3,cy-10,cx+3,cy-6],fill=tuple(int(x*.6) for x in c)+(220,))
-    if droop: im2=im2.rotate(-35*droop,center=(cx,cy+20),resample=Image.BICUBIC)
-    im.alpha_composite(im2)
 def sink(im,cx,cy,k):
     """only the tips of the closed flower above the water, with a ripple ring"""
     lay=Image.new('RGBA',im.size,(0,0,0,0)); flower(lay,cx,cy,0,.8,seed=7)
