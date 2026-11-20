@@ -649,3 +649,10 @@
 - 변경: `this.nookS`(진행 0~1, 느린 걸음 속도 `GU*.6`로 들어가고 나옴, 걷기 모션·방향), 작은 돌은 발이 돌 아랫단 뒤일 때만, 바닥 띠 잘라내기는 다 앉았을 때만. 렌더 전용. 버전 0.8.6 / versionCode 64.
 - 검증: `npm test` 326/326(`rock-rider` 갱신), `npm run test:ui` PASS, 전후 화면 `docs/qa-0.8.6/runtime`(`tools/crevice-entry-review.cjs`). Android 실기기 미검증.
 - 병합·릴리스: PR #49(https://github.com/sia080808-lgtm/Forest-of-Space/pull/49) main 병합 `90c6c172f7f70ca11686f060c34ea7062e2b2bd1`(사용자 "ㄱㄱ"; head `191f6d6` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.6 `Forest-of-Space-0.8.6.apk` 68,282,676 bytes, SHA-256 `8f8b3442ba065574aaecd26d69d58c7383a996596e619328e3ce053de38b4daa` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode64/0.8.6, APK 안 engine.js VERSION 0.8.6·scene.js `nookS` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### SRS-2.32-20261120 — 0.8.2~0.8.6 변경을 SRS에 반영 (문서만)
+
+- 담당: Claude Code. 요청: 사용자 "문서 정리부터 하고, 산책 동작 업데이트 한 뒤, 지역해금으로 가자". 기준 main `90c6c17`(0.8.6 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 새 문서: `docs/Forest-Life-SRS-v2.32.md`·`.pdf`(11쪽, `tools/build-srs-pdf.cjs`로 만들고 쪽 그림 확인). L32-01~10(원칙, 화면 정리, 밤 잠·비 피하기, 겨울 날씨, 빈 땅 산책, 곤충 출현 범위, 숲 전체 효과·고사리 액자, 바위틈 걸어 들어가기, AC↔테스트 12개, 남은 일). 비를 좋아하는 종 목록은 `traits.js`에서 확인(rain>0: 리들리·엘리시·코로나·슈퍼범).
+- 코드·버전 변경 없음. 제품 테스트는 새로 돌리지 않았다(문서만, 직전 0.8.6 결과 326/326).
+- 다음: 산책 동작 시안(사용자가 시안을 먼저 보기로 함) → 구현 0.8.7 → 지역 해금(동쪽 호수) 기획 초안.
