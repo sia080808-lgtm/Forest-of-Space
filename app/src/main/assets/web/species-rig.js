@@ -79,7 +79,7 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
 // 베이치·코로나 faces (user: "둘다 얼굴 귀엽게"): the same cute face as 리들리 (rig.js) — short upright cream eyes and a tiny
 // mouth, with 리들리's expressions (happy arcs, sad slants, surprised 'o', sleepy lids) — sized to each friend's face.
 // The painted eyes (and 코로나's painted mouth) are covered with the body texture just below them. 베이치's face sits lower
-// on its body, clear of the head leaf (user: "베이치 얼굴을 여기다 이렇게 배치"). (베이치 redraws its body over its arms, so
+// on its body, clear of the head leaf (user: "베이치 얼굴을 여기다 이렇게 배치"). (베이치 redraws its body over its hands, so
 // this runs after that.)
 const FACE={bosong:{eyes:[[.37,.63],[.65,.63]],mouth:[.51,.68],paint:{w:52,h:22},scale:1.35},jureong:{eyes:[[.342,.523],[.567,.523]],mouth:[.457,.6],paint:{w:53,h:21},paintMouth:[.46,.58,34,16]}};
 // 코로나: the painted face (thick cream crescents, faint dash mouth) is the base; other expressions are redrawn in the same strokes
