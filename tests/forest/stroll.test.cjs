@@ -39,10 +39,10 @@ test('ST-05 0.8.7 light stroll poses: look around (turning), smell the grass, si
  s.worldTick=205;a.match(O.reason(s,p),/냄새/);s.worldTick=215;a.match(O.reason(s,p),/앉아 쉬고/);s.worldTick=201;a.match(O.reason(s,p),/두리번/);
  const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/strollPose\?\.\(s,p,s\.worldTick\+fraction\)/);a.match(src,/kind==='sniff'\?'drink':/);
 });
-test('ST-06 0.9.5 no frozen waiting: a friend with nowhere to sleep sleeps where it stands; one waiting for a spot ambles nearby; card text follows',()=>{
+test('ST-06 0.9.5 no frozen waiting: a friend with nowhere to sleep sleeps where it stands; card text follows',()=>{
  const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=700;p.x=.5;p.y=.5;p.energy=30;
  // block every sleeping spot: make the friend think the shelter and rest spots are taken by giving them to others
  const base=JSON.stringify(p);for(let i=0;i<8;i++){const q=JSON.parse(base);q.id='z'+i;s.individuals.push(q);}
- let slept=false,amble=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=700+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}if(q.stroll?.amble)amble=true;}}
+ let slept=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=700+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}}}
  a.ok(slept,'someone slept where it stood');F.valid(s);
 });
