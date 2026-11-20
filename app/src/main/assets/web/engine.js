@@ -12,7 +12,7 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const VERSION='0.8.7', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.9.0', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -119,7 +119,7 @@ function step(s,{visible=true,held=null}={}){
   if(p.justDrank){delete p.justDrank;s.environment.tutorialDone=true;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);}discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',visible);}
   if(p.motion.water>0)p.motion.contact=p.id+':'+Math.floor(s.worldTick/3)+':water';
  }
- Social.tick(s,{visible,record:discovery,event});neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});
+ Social.tick(s,{visible,record:discovery,event});neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});World.lakeStep(s,event);
  return s;
 }
 function neighborStep(s,visible){
@@ -149,8 +149,8 @@ function resume(s,now=Date.now()){
  const result={seconds:s.offline.mode==='game'&&s.started?seconds:0,xp:s.individuals.reduce((n,p)=>n+p.xp,0)-start};s.offline=null;Sh.rebuild(s);s.savedAt=Math.max(s.savedAt,now);return result;
 }
 function validateLayout(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
- if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');
- for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
+ if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&spring.x>1.2&&World.waterD(spring.x,spring.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');
+ for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&p.x>1.2&&World.waterD(p.x,p.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
  for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
  const world={...s,patches:next,spring};
  for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');

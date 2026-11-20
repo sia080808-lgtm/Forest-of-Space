@@ -172,6 +172,8 @@ function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O
 // not night, not rain), keeps no object or resource, and any need, night, rain or danger ends it.
 const STROLL=Object.freeze({chance:.3,min:.25,linger:15,lingerSpread:16,deadline:90});
 function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.walk(s),G=W.GARDEN;
+ // 0.9.0: while the lake shore waits to be found, about a third of the walks head for the forest's east edge
+ if(W.lakeReady?.(s)&&rng(s,'behavior')<.35){for(let i=0;i<6;i++){const q={x:W.LAKE.east+(b.x1-W.LAKE.east)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};if(Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return q;}}
  for(let i=0;i<8;i++){const q={x:b.x0+(b.x1-b.x0)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};const outer=q.x<G.x0+.05||q.x>G.x1-.05||q.y<G.y0+.05||q.y>G.y1-.05;
   if(i<6&&!outer||Math.hypot(q.x-p.x,q.y-p.y)<STROLL.min)continue;if(Space.walkable(s,q,p.id))return q;}return null;}
 // 0.8.7 산책 동작 (user: "산책할 때 가벼운 모션들 먼저"): while it lingers at the walk's end the friend looks around (turning
@@ -312,7 +314,7 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
- if(p.stroll&&!t){if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
+ if(p.stroll&&!t){if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
  if(t.object==='moss')return patch(s,'moss').S<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';

@@ -29,7 +29,7 @@ function socket(s,id,individual){const p=id==='spring'?s.spring:s.patches.find(p
 }
 function walkable(s,p,id,skip,obs,w=pad(s,id),walls=true){
  if(walls&&Shelter.blocked(s,p,id))return false;
- if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p))return false;
+ if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p)||World.inWater?.(s,p))return false;   // 0.9.0: no walking on the lake
  const top=onRock(s,p);
  return !(obs||obstacles(s)).some(z=>skip&&skip.has(z.id)||z.id==='rock'&&top?false:z.id==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:solid(z,p,w));
 }
