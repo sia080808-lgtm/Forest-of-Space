@@ -96,11 +96,13 @@ function faceExpr(c,d,k,p,m,t=0){const F=FACE[k];if(!F)return;const ex0=p.expr||
  for(const q of E){const x=q.x,y=q.y;c.beginPath();
   if(e==='sleepy'){c.moveTo(x-17*S,y);c.quadraticCurveTo(x,y+16*S,x+17*S,y);}
   else if(e==='happy'){c.moveTo(x-16*S,y+3*S);c.quadraticCurveTo(x,y-18*S,x+16*S,y+3*S);}
-  else if(e==='sad'){const sd=q===E[0]?-1:1;c.moveTo(x-15*S,y+(sd<0?-4:4)*S);c.lineTo(x+15*S,y+(sd<0?4:-4)*S);}
+  else if(e==='sad'&&k!=='bosong'){const sd=q===E[0]?-1:1;c.moveTo(x-15*S,y+(sd<0?-4:4)*S);c.lineTo(x+15*S,y+(sd<0?4:-4)*S);}
+  else if(k==='bosong'){c.stroke();c.beginPath();c.arc(x,y,(e==='surprised'?17:14)*S,0,7);c.fillStyle='#f7f2e8';c.fill();c.fillStyle='#efe4c7';continue;}   // 베이치: round white eyes, as the user drew them ("눈 땡그랗게")
   else {c.moveTo(x,y-(e==='surprised'?22:18)*S);c.lineTo(x,y+(e==='surprised'?20:18)*S);}
   c.stroke();}
  c.beginPath();
  if(e==='surprised'){c.ellipse(M.x,M.y,13*S,17*S,0,0,7);c.fill();}
+ else if(e==='sad'){c.moveTo(M.x-12*S,M.y+5*S);c.quadraticCurveTo(M.x,M.y-6*S,M.x+12*S,M.y+5*S);c.stroke();}
  else if(e==='happy'){c.moveTo(M.x-14*S,M.y-4*S);c.quadraticCurveTo(M.x,M.y+12*S,M.x+14*S,M.y-4*S);c.stroke();}
  else if(e!=='sleepy'){c.moveTo(M.x-13*S,M.y);c.lineTo(M.x+13*S,M.y);c.stroke();}
  c.restore();}
