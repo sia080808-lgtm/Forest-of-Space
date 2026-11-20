@@ -181,13 +181,22 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
 // 0.8.7 산책 동작 (user: "산책할 때 가벼운 모션들 먼저"): while it lingers at the walk's end the friend looks around (turning
 // this way and that), bends to smell the grass, sits down for a little while and gets up again before walking on. Pure
 // function of the stroll record and the clock: the scene draws it and the card text follows it; no state or RNG changes.
-function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null||p.objectTask)return null;const e=t-r.arrivedAt,L=r.linger,sit=Math.max(7,L-7);
+function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null||p.objectTask||r.lake)return null;const e=t-r.arrivedAt,L=r.linger,sit=Math.max(7,L-7);
  if(e<0||e>=L-1)return {pose:'idle'};if(e<4)return {pose:'look',face:Math.floor(e/1.3)%2?1:-1};if(e<6.5)return {pose:'sniff'};if(e>=sit)return {pose:'sit'};
  return {pose:'look',face:Math.floor(e/1.8)%2?-1:1};}
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
  if(t.arrivedAt==null){const m=dep('spatial').travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
   if(m.arrived)t.arrivedAt=s.worldTick;else if(t.stalled>=3||s.worldTick>t.deadline){delete p.stroll;p.nextObjectChoice=s.worldTick;}return m;}
+ if(t.lake==='drink'){const W=dep('world');if(!W.lakeOpen(s)||W.frozen(s)){delete p.stroll;p.nextObjectChoice=s.worldTick;return null;}const n=Math.max(0,Math.min(LAKE_DRINK.rate,LAKE_DRINK.target-p.B));p.B+=n;s.ledger.lake=(s.ledger.lake||0)+n;
+  if(p.B>=LAKE_DRINK.target-eps||s.worldTick-t.arrivedAt>=LAKE_DRINK.most){delete p.stroll;p.objectNeeds??=needs(p);p.objectNeeds.water=false;p.justDrank=p.B>=LAKE_DRINK.target-eps;p.drinkCycle=false;p.nextObjectChoice=s.worldTick;}return {kind:n>0?'drink':'idle',water:n,distance:0};}
  if(s.worldTick-t.arrivedAt>=t.linger){delete p.stroll;p.nextObjectChoice=s.worldTick;}return null;}
+// 0.9.4 물가에서 물 마시기 (SRS v2.33 LK-07): once the shore is open (not frozen), a thirsty friend walks to the water's edge
+// to drink when it is nearer than the spring or the spring is nearly empty. The lake never runs dry; what a friend drinks
+// is recorded as lake inflow (ledger.lake) so the water balance still closes. Uses the walk record (p.stroll.lake).
+const LAKE_DRINK=Object.freeze({rate:10/60,target:65,deadline:120,linger:60,most:420});   // same pace as the spring (10 a minute), at most 7 minutes at the water
+function lakeDrink(s,p,current){if(p.stroll?.lake)return true;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
+ const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!(sp.water<2||dl<ds*.8))return false;
+ if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,lake:'drink'};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
@@ -207,6 +216,7 @@ function choose(s,p,rng){
  // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
  const P=s.objects?.creatures?dep('creatures').pressure(s,p):{leaf:false,mite:false,gnatSites:[]},clean=ids=>ids.filter(id=>!P.gnatSites.includes(id)),lastInfested=ids=>[...ids.filter(id=>!P.gnatSites.includes(id)),...ids.filter(id=>P.gnatSites.includes(id))];
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
+ else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))&&lakeDrink(s,p,current))return;
  else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
  else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
  else if(sleepTime(s)||rainy(s)&&p.species!=='neolbi'&&p.species!=='superbum'&&(dep('traits').of(p.species).rain<=0||dep('environment').precipitation(s,'rain')+dep('environment').precipitation(s,'snow')>=.6)&&!s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&Math.hypot(z.x-p.x,z.y-p.y)<.3)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
@@ -316,6 +326,7 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
+ if(p.stroll?.lake&&!t)return p.stroll.arrivedAt==null?'목이 말라 호수 물가로 가고 있어요':'호수 물가에서 물을 마시고 있어요';
  if(p.stroll&&!t){if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
@@ -330,7 +341,7 @@ function validate(s){
  for(const [id,m]of Object.entries(st.upgrades)){if(!capacities[id]||![1,2,3].includes(m.level)||![1,2,3].includes(m.unlocked)||m.unlocked<m.level||!f(m.useSeconds)||!f(m.stageUseSeconds)||!f(m.pressureSeconds,10)||typeof m.pressureEvidence!=='boolean')throw Error('확장 기록을 확인해 주세요.');}
  if(Object.keys(st.upgrades).length!==3||!f(st.ledger.leafInput)||!f(st.ledger.absorbed)||!f(s.spring.water,s.spring.capacity+eps)||!f(s.spring.snowWater,36+eps))throw Error('자원 원장을 확인해 주세요.');
  if(st.litter)dep('litter').validate(s);if(st.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
- for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)))throw Error('산책 기록을 확인해 주세요.');}
+ for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
 return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,STROLL,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};

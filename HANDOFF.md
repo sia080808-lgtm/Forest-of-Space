@@ -720,3 +720,12 @@
 - 검증: `lake.test.cjs` LK-07 추가(7/7), `rig`·`stroll`(소스 검사 정규식 조정)·`render`·`package` 통과, UI PASS. 화면 `docs/qa-0.9.3/runtime`. 전체는 CI. 실기기 미검증.
 - 미해결: 월드 왼쪽 아래 노란 조각 — 새 게임 봄 화면(액자 켜기/끄기)에서 재현 안 됨. 사용자에게 나타나는 상황(계절·확대·위치) 확인 필요.
 - 다음: 물가 이웃 도감 칸, 물가에서 물 마시기, 주워 오기·바구니, 더 동쪽 호수, 물가를 좋아하는 새 친구.
+- 병합·릴리스: PR #54(https://github.com/sia080808-lgtm/Forest-of-Space/pull/54) main 병합 `9008a9a4a2f209253cd81d496082dff4d858a8d6`(사용자 "ㄱㄱ"; head `431e0e7` 기준 simulation·CodeQL 성공. 첫 CI에서 `ellisii-legacy` 소스 검사가 엘리시 구간 주석의 "arms" 글자로 실패해 주석 문구만 고침). 프리릴리스 v0.9.3 `Forest-of-Space-0.9.3.apk` 72,038,502 bytes, SHA-256 `e81639dc9831d4ba34f3e280565503408ecb7ee864b66bd7546ed07adeee4001` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode69/0.9.3. APK는 사용자에게 파일로 전달.
+
+### LAKE-GUIDE-DRINK-0.9.4-20261120 — 물가 이웃 도감, 물가에서 물 마시기
+
+- 담당: Claude Code. 요청: 사용자 "1, 2 ㄱㄱ". 기준 main `9008a9a`(0.9.3 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `world.js`(`shorePoint`, `world.lake.seen` 기록·검증), `objects.js`(`lakeDrink`·`LAKE_DRINK`: 물가가 가깝거나 샘터가 비면 물가로 가는 산책 기록 `p.stroll.lake='drink'`, 도착하면 분당 10·65까지·최대 7분, `ledger.lake`; 카드 문구; 산책 자세 없음), `engine.js`(`ledger.lake` 검증), `forest-app.js`(도감 물가 이웃 7종, `lake-entry`), `tools/ui-smoke.mjs`(작은 이웃 10종 셈에서 물가 이웃 제외). 버전 0.9.4 / versionCode 70.
+- 판단: 호수를 사물(patch)로 넣지 않고 산책 기록으로 물가까지 걸어가게 했다(배치·저장 구조를 바꾸지 않음). 호수 물은 무한이라 원장에 들어온 물로 기록.
+- 검증: `lake.test.cjs` LK-08(8/8), 관련 테스트·UI PASS, 화면 `docs/qa-0.9.4/runtime/lake-dex.png`. 전체는 CI. 실기기 미검증.
+- 다음: 주워 오기·바구니, 물가를 좋아하는 새 친구, 더 동쪽 호수. 노란 조각은 사용자 화면 정보 대기.

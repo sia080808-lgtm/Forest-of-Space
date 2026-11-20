@@ -12,7 +12,7 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const VERSION='0.9.3', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.9.4', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -181,7 +181,7 @@ function valid(s){
  Obj.validate(s);W.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
  if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean')||s.settings.showFrame!==undefined&&typeof s.settings.showFrame!=='boolean')throw Error('설정 기록을 확인해 주세요.');
  if(!s.settings.audio||['master','music','environment','effects'].some(k=>!finite(s.settings.audio[k],0,1)))throw Error('소리 설정을 확인해 주세요.');
- if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k])))throw Error('물 원장이 올바르지 않아요.');
+ if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k]))||s.ledger.lake!=null&&!finite(s.ledger.lake))throw Error('물 원장이 올바르지 않아요.');
  if(!Array.isArray(s.events)||s.events.length>256||s.events.some(e=>typeof e.text!=='string'||!finite(e.tick))||!s.discoveries||Object.values(s.discoveries).some(d=>typeof d.text!=='string'||!finite(d.tick)))throw Error('관찰 기록이 올바르지 않아요.');
  if(!s.neighbor||!['none','trace','visiting'].includes(s.neighbor.stage)||['validSeconds','visitSeconds','absentSeconds','cooldown','visits'].some(k=>!finite(s.neighbor[k])))throw Error('작은 이웃 기록을 확인해 주세요.');
  if(s.offline&&(!finite(s.offline.at)||!finite(s.offline.processed,0,28800)||!['game','landscape'].includes(s.offline.mode)))throw Error('휴식 기록을 확인해 주세요.');
