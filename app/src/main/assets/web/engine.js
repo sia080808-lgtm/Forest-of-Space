@@ -12,7 +12,7 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const VERSION='0.8.4', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='0.8.5', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -36,7 +36,7 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
   weather:{kind:'sun',remaining:120,streak:1,intensity:35,wind:20,strongSeconds:0,transition:0,lastRainEnd:-9999,rainEpoch:0,lastRainEpoch:0},climate:{T:65,H:70,L:80},
   patches:PATCHES.map(p=>({...p,S:({moss:2,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:0,U:p.id==='litter'?10:0,rainTotal:0,film:0})),spring:{x:.20,y:.72,water:60},
   individuals:[{id,species:'ridley',name:'리들리',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
-  settings:{audio:{master:.65,music:.35,environment:.45,effects:.55},reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,theme:'auto'},
+  settings:{audio:{master:.65,music:.35,environment:.45,effects:.55},reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,showFrame:true,theme:'auto'},
   ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{observed:0,validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null}))))));
 }
 function level(p){let n=1;LEVELS.forEach((x,i)=>{if(p.xp>=x)n=i+1;});return n;}
@@ -100,7 +100,7 @@ function step(s,{visible=true,held=null}={}){
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
   if(p.species==='superbum'){if(p.energy<40&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
    if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
-  const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p);
+  const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p)||Obj.stroll(s,p);
   if(motion){Object.assign(p.motion,motion);if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   // Nutrition is metabolism, never a remotely supplied shelter service.
   p.nutrition=clamp(p.nutrition-.2/60);
@@ -179,7 +179,7 @@ function valid(s){
   if(!finite(p.Q,0,20)||!finite(p.V,0,40)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }
  Obj.validate(s);W.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
- if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean'))throw Error('설정 기록을 확인해 주세요.');
+ if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean')||s.settings.showFrame!==undefined&&typeof s.settings.showFrame!=='boolean')throw Error('설정 기록을 확인해 주세요.');
  if(!s.settings.audio||['master','music','environment','effects'].some(k=>!finite(s.settings.audio[k],0,1)))throw Error('소리 설정을 확인해 주세요.');
  if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k])))throw Error('물 원장이 올바르지 않아요.');
  if(!Array.isArray(s.events)||s.events.length>256||s.events.some(e=>typeof e.text!=='string'||!finite(e.tick))||!s.discoveries||Object.values(s.discoveries).some(d=>typeof d.text!=='string'||!finite(d.tick)))throw Error('관찰 기록이 올바르지 않아요.');

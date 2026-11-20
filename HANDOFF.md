@@ -630,3 +630,12 @@
 - 요청: 사용자 "날씨가 바뀌는 로직은 어케 됨. 아까부터 계속 흐림이라서" → 설명(120~240초마다, 같은 날씨 최대 2번 연속, 흐림 최장 약 8분, 앱을 연 동안에만 진행) + 찾은 버그(마른 숲 비 내려 주기가 겨울에도 비) → "1번만 ㄱㄱ"(흐림 줄이기는 하지 않음).
 - 변경: `environment.js` `rescueKind`(겨울 눈, 비·눈 없는 계절은 없음), 눈도 물 타이머에 셈, 차례가 맞지 않는 계절이면 취소. 버전 0.8.4 / versionCode 62.
 - 검증: `npm test` 322/322(`seasons` SE-0.8.4 추가), `npm run test:ui` PASS. 측정: 겨울 비는 가을에서 이어진 처음 최대 265초만, 겨울 몸 물 C01 46.2→45.1·C04 48.0→44.5(최저 24.8). Android 실기기 미검증.
+- 병합·릴리스: PR #47(https://github.com/sia080808-lgtm/Forest-of-Space/pull/47) main 병합 `fe398798f292b95e1effb8b8c2a85e69daf7ecbb`(사용자 "ㄱㄱ"; head `917489f` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.4 `Forest-of-Space-0.8.4.apk` 68,282,676 bytes, SHA-256 `8b1472a8cb02777ae1bc05bfe952c6c565179d6c10d7e45fca07a22427d06ab6` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode62/0.8.4, APK 안 engine.js VERSION 0.8.4·environment.js `rescueKind` 포함 확인. APK는 사용자에게 파일로 전달.
+
+### STROLL-0.8.5-20261120 — 빈 땅 산책, 숲 전체 눈·바람 잎, 고사리 액자 켜기/끄기
+
+- 담당: Claude Code. 기준 main `fe39879`(0.8.4 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 요청: 다음 업데이트 후보 중 "1번 ㄱㄱ"(빈 땅 산책). 작업 중 추가: "나뭇잎 떨어지는 것도 전체 맵만큼", "맵 전체에 곤충들 뜰 수 있는 가능성 영역확장", "고사리 프레임 적용 온 오프".
+- 변경: `objects.js`(`STROLL` 30%·0.25·15~30초, `strollTarget`·`stroll`·카드 문구, 끝난 자유 행동 뒤 정돈·산책, 같은 자리 이유 바꾸기, `p.stroll` 검증), `engine.js`(이동에 `Obj.stroll`, `settings.showFrame` 기본·검증), `world-effects.js` `particles(area)`, `scene.js`(눈·바람 잎·안개를 숲 전체에, 가을 잎 넓이 비례, `drawFrame` 설정), `forest-app.js`(설정 스위치). 버전 0.8.5 / versionCode 63.
+- 판단: 곤충 출현 규칙에는 정원 범위 제한이 없다(숙주를 따름). 친구 잎 이웃이 가운데에 몰린 이유는 친구가 가운데에만 있어서였고, 산책으로 넓어졌다(바깥 22.1→24.8%). 별도 규칙은 바꾸지 않았다.
+- 검증: `npm test` 326/326(`stroll.test.cjs` 4 추가, `creatures` 개미 시드 [5,7,9]), `npm run test:ui` PASS. 측정: 바깥 땅 시간 1.4→5.9%(낮 1.8→10.6%), 개미 군락 한 해 6/8→8/8. 화면 `docs/qa-0.8.5/runtime`. Android 실기기 미검증.
