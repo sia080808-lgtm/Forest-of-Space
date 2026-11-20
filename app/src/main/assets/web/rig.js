@@ -21,7 +21,7 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
  const p=pose(kind,phase,reduced,wiggle);c.save();c.translate(0,p.bob);
  for(const [i,x]of [515,795].entries()){c.save();c.translate(x,930);c.rotate(i?p.right:p.left);c.drawImage(assets[definition.legs[i]],-49,-45,98,202.385);c.restore();}
  // 0.8.7 sit (stroll rest): the legs stay on the ground, everything above settles over them like 엘리시
- c.translate(0,sit*95);
+ c.translate(0,sit*70);
  c.save();c.globalAlpha*=bodyAlpha;c.drawImage(assets[definition.body],0,0);c.restore();
  if(bodyAlpha===1){
   const e=expression|| (kind==='rest'?'sleepy':kind==='groom'||kind==='drink'?'focused':kind==='held'?'surprised':'neutral');
