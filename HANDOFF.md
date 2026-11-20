@@ -630,3 +630,4 @@
 - 요청: 사용자 "날씨가 바뀌는 로직은 어케 됨. 아까부터 계속 흐림이라서" → 설명(120~240초마다, 같은 날씨 최대 2번 연속, 흐림 최장 약 8분, 앱을 연 동안에만 진행) + 찾은 버그(마른 숲 비 내려 주기가 겨울에도 비) → "1번만 ㄱㄱ"(흐림 줄이기는 하지 않음).
 - 변경: `environment.js` `rescueKind`(겨울 눈, 비·눈 없는 계절은 없음), 눈도 물 타이머에 셈, 차례가 맞지 않는 계절이면 취소. 버전 0.8.4 / versionCode 62.
 - 검증: `npm test` 322/322(`seasons` SE-0.8.4 추가), `npm run test:ui` PASS. 측정: 겨울 비는 가을에서 이어진 처음 최대 265초만, 겨울 몸 물 C01 46.2→45.1·C04 48.0→44.5(최저 24.8). Android 실기기 미검증.
+- 병합·릴리스: PR #47(https://github.com/sia080808-lgtm/Forest-of-Space/pull/47) main 병합 `fe398798f292b95e1effb8b8c2a85e69daf7ecbb`(사용자 "ㄱㄱ"; head `917489f` 기준 simulation·CodeQL 성공). 프리릴리스 v0.8.4 `Forest-of-Space-0.8.4.apk` 68,282,676 bytes, SHA-256 `8b1472a8cb02777ae1bc05bfe952c6c565179d6c10d7e45fca07a22427d06ab6` — 내려받은 파일·`.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode62/0.8.4, APK 안 engine.js VERSION 0.8.4·environment.js `rescueKind` 포함 확인. APK는 사용자에게 파일로 전달.
