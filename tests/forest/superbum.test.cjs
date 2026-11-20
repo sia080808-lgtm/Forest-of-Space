@@ -1,7 +1,7 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),path=require('node:path'),F=require('../../app/src/main/assets/web/engine'),S=F.Social,R=F.Recruitment,Sh=F.Shelter;
 const web=path.resolve(__dirname,'../../app/src/main/assets/web'),SB=require(web+'/superbum.js'),Rig=require(web+'/rig.js');
 const near=(x,y,e=1e-6)=>a.ok(Math.abs(x-y)<e,`${x} != ${y}`);
-const balance=(s,base)=>{const l=s.ledger;return F.totalWater(s)-(base+l.rain+l.snow+l.condensation+l.spring-l.evaporation-l.outflow-l.physiology);};
+const balance=(s,base)=>{const l=s.ledger;return F.totalWater(s)-(base+l.rain+l.snow+l.condensation+l.spring+(l.lake||0)-l.evaporation-l.outflow-l.physiology);};
 function game(seed=7,adult=true){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
  const p={...F.clone(s.individuals[0]),id:'sb',species:'superbum',name:'슈퍼범',xp:adult?115:0,visualStage:adult?3:0,x:.6,y:.7,active:true,sources:{rain:0,other:0,unknown:0},V:0};s.individuals.push(p);F.valid(s);return {s,p};}
 const rain=(s,on)=>{s.weather.kind=on?'rain':'sun';s.weather.intensity=on?80:0;s.weather.transition=0;s.weather.remaining=600;delete s.environment.storm;s.weather.wind=10;};
