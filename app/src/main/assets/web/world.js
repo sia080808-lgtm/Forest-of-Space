@@ -7,7 +7,9 @@
 // 0.9.0 동쪽 호수 물가 (SRS v2.33, user: "일단 물가만 열고, 나중을 대비해서 연장 영역은 염두"): the lake shore opens east of
 // the forest; the water itself runs on past its east edge (one lake in world coordinates, waterD below) so a later region
 // further east only widens the world and the same lake continues.
-const REGIONS=Object.freeze({forest:Object.freeze({x0:-.25,y0:-.25,x1:1.25,y1:1.25}),lakeshore:Object.freeze({x0:1.25,y0:-.25,x1:1.75,y1:1.25})});
+const REGIONS=Object.freeze({forest:Object.freeze({x0:-.25,y0:-.25,x1:1.25,y1:1.25}),lakeshore:Object.freeze({x0:1.25,y0:-.25,x1:3.3,y1:1.25})});
+// 0.9.5 (user: "호수는 확장시켜 놓자"): the shore region now holds the whole lake and the land around it (north, south and
+// east shores are walkable), so friends can walk round the water; saves that opened the 0.9.0 shore get the wider area.
 // the lake's shape (tools/build-lake-floor.py draws the same formula): water where waterD < 1; walking stops a little
 // short of the soft painted edge
 const LAKE=Object.freeze({cx:2.25,cy:.56,ru:.74,rv:.46,edge:1.04,east:1.08,scents:3,friends:3,season:3600});
@@ -37,7 +39,7 @@ function lakeReady(s){const st=s?.world?.lake;return !!st?.ready&&!lakeOpen(s);}
 // shore and from other lilies; each one grows leaf -> bud -> half open -> full -> sinking -> withered by its own age, so
 // lilies at every stage mix. In autumn the ones still flowering sink and wither (staggered); winter's ice clears them.
 // Own RNG stream rng.lake; positions and ages are saved.
-const LILY=Object.freeze({check:90,chance:.3,max:7,gap:.08,len:3600,stages:Object.freeze([['leaf',400],['bud',900],['half',1300],['full',2500],['sink',2900],['wither',3300]]),fall:Object.freeze([400,800])});
+const LILY=Object.freeze({check:90,chance:.3,max:12,gap:.08,len:3600,stages:Object.freeze([['leaf',400],['bud',900],['half',1300],['full',2500],['sink',2900],['wither',3300]]),fall:Object.freeze([400,800])});
 const ORDER=['leaf','bud','half','full','sink','wither'];
 function lrnd(s){s.rng.lake??=((s.rng.weather^0x6a09e667)>>>0)||1;let x=s.rng.lake>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.lake=x>>>0;return (x>>>0)/4294967296;}
 function seasonAt(s){const el=Math.max(0,s.worldTick-(s.environment?.calendar?.start??0)),n=Math.floor(el/LILY.len);return {i:n%4,into:el-n*LILY.len};}
@@ -49,7 +51,7 @@ function lilyStep(s){const st=s.world.lake??={ready:true,scents:LAKE.scents};st.
  st.lilies=st.lilies.filter(l=>lilyStage(s,l));
  if(!(c.i===0&&c.into>=2400||c.i===1&&c.into<3000)||s.worldTick<(st.nextLily??0))return;st.nextLily=s.worldTick+LILY.check;
  if(st.lilies.length>=LILY.max||lrnd(s)>=LILY.chance)return;
- for(let k=0;k<10;k++){const x=1.3+lrnd(s)*.42,y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d<=.55||d>=.94||st.lilies.some(l=>Math.hypot(l.x-x,(l.y-y)*.62)<LILY.gap))continue;
+ for(let k=0;k<10;k++){const x=lakeX(s),y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d<=.55||d>=.94||st.lilies.some(l=>Math.hypot(l.x-x,(l.y-y)*.62)<LILY.gap))continue;
   st.nextId=(st.nextId||0)+1;st.lilies.push({id:'lily'+st.nextId,x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4,born:s.worldTick});return;}}
 // 0.9.2 물가 이웃 (LK-05, user: "물가 이웃 ㄱㄱ", "게임에 넣어줘"): checked every 60 s on the open shore, own RNG rng.lake.
 //  spring: frog eggs near the shore -> tadpoles (600 s) -> frogs (1,800 s) that sit on lily leaves or the shore;
@@ -59,9 +61,14 @@ function lilyStep(s){const st=s.world.lake??={ready:true,scents:LAKE.scents};st.
 //  a friend standing near larvae is bothered (mood -0.5/min). Autumn thins them out; winter's ice clears everything.
 const LIFE=Object.freeze({check:60,cap:Object.freeze({eggs:2,tadpole:2,frog:3,strider:3,snail:2,medaka:2,beetle:1,nymph:2,dragonfly:3,larva:4}),hatch:600,grow:1800,emerge:900,bother:.5/60,near:.12});
 const LIFE_KINDS=Object.keys(LIFE.cap);
-const REEDS=Object.freeze([[1.47,.37],[1.5,.29],[1.62,.11]]);
-function waterSpot(s,lo,hi,away=.06){const L=s.world.lake.life;for(let k=0;k<20;k++){const x=1.3+lrnd(s)*.42,y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d>lo&&d<hi&&!L.some(o=>Math.hypot(o.x-x,(o.y-y)*.62)<away))return {x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4};}return null;}
-function shoreSpot(s){for(let k=0;k<12;k++){const x=1.3+lrnd(s)*.4,y=-.1+lrnd(s)*1.2,d=waterD(x,y);if(d>1.06&&d<1.14&&x<1.68)return {x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4};}return null;}
+const REEDS=Object.freeze([[1.47,.37],[1.5,.29],[1.62,.11],[3.02,.41],[2.9,.14],[2.6,1.01]]);
+// a random x over the open shore region (the lake art and water reach x 3.3)
+function lakeX(s){const x1=Math.min(bounds(s).x1,REGIONS.lakeshore.x1);return 1.3+lrnd(s)*(x1-1.35);}
+// points just outside the water all round the lake (fixed shape), for the nearest shore
+const RING=(()=>{const r=[];for(let k=0;k<144;k++){const a=k/144*Math.PI*2;let d=.3;while(d<2&&waterD(LAKE.cx+Math.cos(a)*LAKE.ru*d,LAKE.cy+Math.sin(a)*LAKE.rv*d)<1.07)d+=.005;r.push({x:Math.round((LAKE.cx+Math.cos(a)*LAKE.ru*d)*1e4)/1e4,y:Math.round((LAKE.cy+Math.sin(a)*LAKE.rv*d)*1e4)/1e4});}return Object.freeze(r);})();
+function nearShore(s,p){const b=bounds(s);let best=null,bd=1e9;for(const q of RING){if(q.x<1.25||q.x>b.x1-.03||q.y<b.y0+.03||q.y>b.y1-.03)continue;const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;best=q;}}return best;}
+function waterSpot(s,lo,hi,away=.06){const L=s.world.lake.life;for(let k=0;k<20;k++){const x=lakeX(s),y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d>lo&&d<hi&&!L.some(o=>Math.hypot(o.x-x,(o.y-y)*.62)<away))return {x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4};}return null;}
+function shoreSpot(s){for(let k=0;k<12;k++){const x=lakeX(s),y=-.1+lrnd(s)*1.2,d=waterD(x,y);if(d>1.06&&d<1.14&&x<bounds(s).x1-.05)return {x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4};}return null;}
 function lifeStep(s,event){const st=s.world.lake;st.life??=[];const L=st.life,c=seasonAt(s),t=s.worldTick,count=k=>L.filter(o=>o.kind===k).length;
  // the pest bothers friends standing close to it, every tick
  const larvae=L.filter(o=>o.kind==='larva');if(larvae.length)for(const p of s.individuals)if(p.active&&!p.mounted&&larvae.some(o=>Math.hypot(o.x-p.x,(o.y-p.y)*.62)<LIFE.near))p.mood=Math.max(0,p.mood-LIFE.bother);
@@ -104,7 +111,7 @@ function watchers(s,x,y,mood){const fx=s.world.lake.fx;let n=0;for(const p of s.
 function fxStep(s,event){const st=s.world.lake,fx=st.fx??={},t=s.worldTick,c=seasonAt(s),day=Math.floor(t/1200),tt=dayTime(s),friends=s.individuals.filter(p=>p.active&&!p.mounted);fx.react??={};
  for(const id of Object.keys(fx.react))if(t-fx.react[id].at>30||!friends.some(p=>p.id===id))delete fx.react[id];
  // spring thaw: anyone still standing where the ice was walks out onto the shore
- if(!frozen(s))for(const p of friends)if(inWater(s,p)){let x=p.x;while(x>1.24&&waterD(x,p.y)<LAKE.edge+.02)x-=.01;p.x=Math.round(x*1e4)/1e4;}
+ if(!frozen(s))for(const p of friends)if(inWater(s,p)){const q=nearShore(s,p);if(q){p.x=q.x;p.y=q.y;}}
  // 개구리 깜짝: a frog close to a friend plops into the water; the friend jumps (once a day for each friend)
  if(c.i===1){fx.frog??={};for(const id of Object.keys(fx.frog))if(fx.frog[id]!==day)delete fx.frog[id];
   for(const o of st.life||[])if(o.kind==='frog'&&!(t-(o.dive??-1e9)<24))for(const p of friends)if(fx.frog[p.id]!==day&&Math.hypot(p.x-o.x,(p.y-o.y)*.62)<FX.frogNear){fx.frog[p.id]=day;o.dive=t;fx.react[p.id]={k:'startle',at:t};event?.(s,'world',p.name+' · 개구리가 퐁 뛰어들어 깜짝 놀랐어요.');break;}}
@@ -117,9 +124,7 @@ function fxStep(s,event){const st=s.world.lake,fx=st.fx??={},t=s.worldTick,c=sea
  if(frozen(s))for(const p of friends)if(onIce(s,p)&&p.mood<FX.iceCap)p.mood=Math.min(FX.iceCap,p.mood+FX.iceMood);}
 // 0.9.4 물가에서 물 마시기: the shore point nearest a friend (just outside the water, walkable is checked by the caller);
 // none while the lake is closed or frozen.
-function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;let best=null;
- for(let k=-6;k<=6;k++){const y=Math.max(-.2,Math.min(1.2,p.y+k*.04));let x=1.27;while(x<1.74&&waterD(x,y)>=1.07)x+=.005;if(x>=1.74)continue;const q={x:Math.round((x-.005)*1e4)/1e4,y:Math.round(y*1e4)/1e4},d=Math.hypot(q.x-p.x,q.y-p.y);if(!best||d<best.d)best={...q,d};}
- return best&&{x:best.x,y:best.y};}
+function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;const q=nearShore(s,p);return q&&{x:q.x,y:q.y};}
 function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeStep(s,event);fxStep(s,event);return;}const st=s.world.lake??={ready:false,scents:0};
  if(!st.ready&&s.individuals.filter(p=>p.active).length>=LAKE.friends&&s.worldTick-(s.environment?.calendar?.start??0)>=LAKE.season){st.ready=true;event?.(s,'world','숲 동쪽 끝에서 바람이 촉촉해졌어요.');}
  if(!st.ready)return;

@@ -34,3 +34,12 @@
 
 /* 0.8.0 season chip */
 .title-row{display:flex;align-items:center;gap:8px}.head-actions{margin-left:auto}#world.flash::after{content:'';position:absolute;inset:0;background:#fffdf6;pointer-events:none;animation:shutter .45s ease-out forwards;z-index:20}@keyframes shutter{from{opacity:.85}to{opacity:0}}.season-chip{margin-left:0;align-self:center;border:1px solid #00000014;border-radius:999px;background:var(--panel);color:#33402f;font:inherit;font-size:12px;padding:3px 10px;min-height:28px}.season-chip[data-season=spring]{background:#eef5e1}.season-chip[data-season=summer]{background:#fbf1d9}.season-chip[data-season=autumn]{background:#f8e2cc}.season-chip[data-season=winter]{background:#e7eef4}
+/* 0.9.5 관리자 도구 */
+.admin-sec{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:10px 0;padding:0 14px}
+.admin-sec>summary{min-height:48px;display:flex;align-items:center;font-weight:700;cursor:pointer;list-style:none}
+.admin-sec>summary::after{content:'›';margin-left:auto;transition:transform .2s}.admin-sec[open]>summary::after{transform:rotate(90deg)}
+.admin-sec>summary::-webkit-details-marker{display:none}.admin-sec[open]{padding-bottom:12px}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:6px 0 10px}
+.admin-grid button{min-height:44px;padding:6px 8px;font-size:14px}
+.admin-grid button.danger{color:#9a3b2c;border-color:#d9b2a6}
+.admin-now p{margin:4px 0 0}.admin-now small{opacity:.7}

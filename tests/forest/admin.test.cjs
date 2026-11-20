@@ -1,0 +1,20 @@
+'use strict';
+// 0.9.5 관리자 도구: every action works on a real save, keeps it valid, keeps the water total balanced (ledger.admin)
+const test=require('node:test'),a=require('node:assert/strict'),F=require('../../app/src/main/assets/web/engine.js'),A=require('../../app/src/main/assets/web/admin.js');
+const game=()=>{const s=F.create(0,3);s.started=true;F.advance(s,300);return s;};
+const bal=s=>F.totalWater(s)-s.ledger.rain+s.ledger.evaporation+s.ledger.outflow+s.ledger.physiology-(s.ledger.lake||0)-(s.ledger.admin||0);
+test('AD-01 time, season, weather, climate; the clock only moves forward',()=>{const s=game(),t0=s.worldTick;
+ A.run(F,s,'time','night');a.equal(((s.worldTick%1200)+1200)%1200,800);a.ok(s.worldTick>t0);
+ A.run(F,s,'season',3);a.equal(F.Environment.season(s),'winter');A.run(F,s,'weather','rain');a.equal(s.weather.kind,'snow','winter rain falls as snow');
+ A.run(F,s,'season',1);A.run(F,s,'weather','gale');a.ok(s.weather.wind>=60);A.run(F,s,'climate','C04');F.valid(s);
+ a.throws(()=>A.run(F,s,'advance',7),/진행/);});
+test('AD-02 levels, reset, stats keep water balanced; summon and welcome a friend',()=>{const s=game(),b0=bal(s);
+ A.run(F,s,'level','all',10);a.ok(s.individuals.filter(p=>p.active).every(p=>p.xp===150&&F.level(p)===10));
+ A.run(F,s,'resetLevels');a.ok(s.individuals.every(p=>p.xp===0&&p.growthSeconds===0));
+ for(const k of Object.keys(A.STATS))A.run(F,s,'stats','all',k);a.ok(Math.abs(bal(s)-b0)<1e-9,'water balanced');F.valid(s);
+ A.run(F,s,'summon','neolbi');a.equal(s.recruitment.visitor.species,'neolbi');A.run(F,s,'dismiss');a.equal(s.recruitment.visitor,null);
+ A.run(F,s,'welcome','bosong');a.ok(s.individuals.some(p=>p.species==='bosong'&&p.active));a.throws(()=>A.run(F,s,'summon','bosong'),/이미/);F.valid(s);});
+test('AD-03 unlocks and objects',()=>{const s=game();A.run(F,s,'openLake');a.ok(F.World.lakeOpen(s));a.throws(()=>A.run(F,s,'openLake'),/이미/);
+ A.run(F,s,'unlockShelter');a.equal(s.shelters.unlocked,true);A.run(F,s,'unlockObjects');a.ok(Object.values(s.objects.upgrades).every(m=>m.unlocked===3));
+ const b0=bal(s);A.run(F,s,'spring',false);a.equal(s.spring.water,0);A.run(F,s,'spring',true);a.ok(Math.abs(bal(s)-b0)<1e-9);A.run(F,s,'compost');A.run(F,s,'leaves');A.run(F,s,'clearCreatures');F.valid(s);
+ a.ok(s.events.some(e=>e.type==='admin'));a.throws(()=>A.run(F,s,'nope'),/관리자/);});
