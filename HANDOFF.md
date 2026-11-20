@@ -707,3 +707,4 @@
 - 변경: `world.js`(`LIFE`, `lifeStep`, `world.lake.life`·`nextLife`·`nextLifeId` 검증), `scene.js`(`drawLakeLife`, 그림 10장 불러오기), 그림 `tools/draw-lake-life.py` → `assets/forest/lake/life-*.png`. 버전 0.9.2 / versionCode 68.
 - 검증: `lake.test.cjs` LK-06 추가·실행(6/6), UI 검사(화면 코드 변경), 전체는 CI. 화면 `docs/qa-0.9.0/runtime/lake-life*.png`. 실기기 미검증.
 - 다음: 물가 이웃 도감, 이벤트 4개, 물 마시기.
+- 개구리 헤엄 추가(사용자 "개구리 모션 물에서 헤엄치는 것도 있어야 하지 않겠음?"): 헤엄 6칸 그림, 24초 주기로 앉기→뛰어들기→헤엄→돌아와 앉기(렌더 전용).

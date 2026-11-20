@@ -102,6 +102,22 @@ def frog(t):
         fill(im,P([(54,92),(66,80),(88,74),(108,78),(118,92),(98,98)]),G,seed=7); head(110,82,1)
         leg([(112,92),(122,104),(130,108)]); ripple(im,124,110,10)
     return im
+def frogswim(t):
+    """swimming, seen from above as it glides: hind legs kick out and fold back together, front legs tucked, a wake behind
+    (user: "개구리 모션 물에서 헤엄치는 것도")"""
+    im=canvas(); k=(1-math.cos(t*TAU))/2          # 0 folded, 1 kicked straight back
+    D=(116,156,88)
+    for side in (-1,1):
+        kx=58-k*22; ky=80+side*(14-k*8)
+        line(im,[(70,80+side*8),(62-k*6,80+side*(18-k*6)),(kx,ky)],3.6,D+(235,)); line(im,[(70,80+side*8),(62-k*6,80+side*(18-k*6)),(kx,ky)],1)
+        fill(im,E(kx-3,ky,4,2.4),D,seed=40+side,outline=False)
+        line(im,[(96,80+side*7),(102,80+side*11)],2.4,D+(235,))
+    fill(im,E(84,80,18,11),(126,166,96),seed=41); fill(im,E(100,80,8,8),(132,172,100),seed=42)
+    eye(im,104,74,2.4); eye(im,104,86,2.4)
+    # water veil over the body's lower half and the wake
+    d=ImageDraw.Draw(im)
+    for r,al in [(14+k*10,110),(22+k*14,60)]: d.arc([(56-r)*K,(80-r*.45)*K,(56+r)*K,(80+r*.45)*K],120,240,fill=(236,242,238,al),width=K)
+    return im
 def nymph(t):
     im=canvas(); k=math.sin(t*TAU); line(im,[(80,140),(80,30)],3,(110,122,82,235))
     y=-k*2
@@ -138,7 +154,7 @@ def larva(t):
     im=canvas(); k=math.sin(t*TAU)
     line(im,[(80,70),(80+k*4,84),(84-k*7,98),(90+k*7,106)],3.2,(96,88,70,220)); fill(im,E(80,68,6,5),(104,94,72),seed=20)
     line(im,[(90+k*7,106),(96+k*7,102)],1); line(im,[(90+k*7,106),(94+k*7,110)],1); ripple(im,80,64,10); return im
-CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
+CRE=[('strider',strider),('snail',snail),('eggs',eggs),('tadpole',tadpole),('frog',frog),('frogswim',frogswim),('nymph',nymph),('dragonfly',dragonfly),('beetle',beetle),('medaka',medaka),('larva',larva)]
 STILL={'eggs'}   # user: "몇몇 애들은 조트로프가 필요 없는데": these get one still frame (the game adds a slow drift / bob)
 frames={}
 for name,fn in CRE:
@@ -150,7 +166,7 @@ for name,fn in CRE:
 if len(sys.argv)>1:
     from PIL import ImageFont
     font=ImageFont.truetype(os.path.join(os.path.dirname(__file__),'..','app','src','main','assets','web','fonts','GowunDodum-Regular.ttf'),18)
-    LABEL={'strider':'물땡땡이 (소금쟁이)','snail':'방울이 (물달팽이)','eggs':'꼬물이 · 알','tadpole':'꼬물이 · 올챙이','frog':'꼬물이 · 개구리','nymph':'잠잠이 · 애벌레','dragonfly':'잠잠이 (잠자리)','beetle':'동글이 (물방개)','medaka':'반짝이 (송사리)','larva':'장구벌레 (해충)'}
+    LABEL={'strider':'물땡땡이 (소금쟁이)','snail':'방울이 (물달팽이)','eggs':'꼬물이 · 알','tadpole':'꼬물이 · 올챙이','frog':'꼬물이 · 개구리','frogswim':'꼬물이 · 개구리 헤엄','nymph':'잠잠이 · 애벌레','dragonfly':'잠잠이 (잠자리)','beetle':'동글이 (물방개)','medaka':'반짝이 (송사리)','larva':'장구벌레 (해충)'}
     sheet=Image.new('RGBA',(200+S*N,S*len(CRE)),(196,214,208,255)); d=ImageDraw.Draw(sheet)
     for r,(name,_) in enumerate(CRE):
         d.text((12,r*S+S/2),LABEL[name],font=font,fill=(60,50,40),anchor='lm')
