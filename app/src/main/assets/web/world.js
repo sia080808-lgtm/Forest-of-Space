@@ -100,7 +100,10 @@ function lifeStep(s,event){const st=s.world.lake;st.life??=[];const L=st.life,c=
 // fireflies, winter ice play. All friends take part; how each one reacts is drawn per species (scene.js, render only).
 const FX=Object.freeze({frogNear:.12,watchNear:.3,watchMood:4,fireMood:3,fireChance:.5,iceMood:.5/60,iceCap:80,morning:400});
 function dayTime(s){return ((s.worldTick%1200)+1200)%1200;}
-function frozen(s){return lakeOpen(s)&&seasonAt(s).i===3;}
+// 1.0.1: the lake freezes only in a cold winter (climate base + winter change under 45: 촉촉한·온화한·서늘한 숲). The dry forest's
+// winter stays warm (50), so its lake stays open and a thirsty friend can still drink at the shore (user: "마른 숲에는 호수 안 얼게")
+const ICE_T=45;
+function frozen(s){if(!lakeOpen(s)||seasonAt(s).i!==3)return false;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,c=s.environment?.climate||'C01',k=E?.CLIMATES?.[c],fx=E?.SEASON_FX?.[c]?.winter;return !k||!fx||k.T+fx.T<ICE_T;}
 function onIce(s,p){return frozen(s)&&p.x>1.25&&waterD(p.x,p.y)<LAKE.edge;}
 function clearCalm(s){return (s.weather.kind==='sun'||s.weather.kind==='cloud')&&s.weather.wind<30;}
 function fireflies(s){const f=s.world?.lake?.fx?.fire,tt=dayTime(s);return !!f&&f.on&&tt>=620&&tt<1150&&f.night===Math.floor((s.worldTick-620)/1200)&&seasonAt(s).i===1&&clearCalm(s);}
