@@ -75,8 +75,8 @@ function lifeStep(s,event){const st=s.world.lake;st.life??=[];const L=st.life,c=
   else if(o.kind==='nymph'&&a>=LIFE.emerge){o.kind='dragonfly';o.born=t;event?.(s,'world','잠자리가 날개를 말리고 날아올랐어요.');}}
  // eating
  const lily=(st.lilies||[]);for(const sn of L.filter(o=>o.kind==='snail')){const w=lily.find(l=>lilyStage(s,l)==='wither');if(w){if(Math.hypot(sn.x-w.x,sn.y-w.y)<.02){st.lilies=lily.filter(l=>l!==w);}else{sn.x=w.x;sn.y=w.y;}}}
- for(const b of L.filter(o=>o.kind==='beetle')){const tp=L.find(o=>o.kind==='tadpole');if(tp&&lrnd(s)<.12){tp.n=(tp.n||4)-1;if(tp.n<=0)L.splice(L.indexOf(tp),1);}}
- for(const e of L.filter(o=>['medaka','dragonfly','frog'].includes(o.kind))){const lv=L.findIndex(o=>o.kind==='larva');if(lv>=0&&lrnd(s)<.4)L.splice(lv,1);}
+ for(let k=L.filter(o=>o.kind==='beetle').length;k>0;k--){const tp=L.find(o=>o.kind==='tadpole');if(tp&&lrnd(s)<.12){tp.n=(tp.n||4)-1;if(tp.n<=0)L.splice(L.indexOf(tp),1);}}   // each beetle may take a tadpole
+ for(let k=L.filter(o=>['medaka','dragonfly','frog'].includes(o.kind)).length;k>0;k--){const lv=L.findIndex(o=>o.kind==='larva');if(lv>=0&&lrnd(s)<.4)L.splice(lv,1);}   // each larva-eater may take one
  // leaving in autumn
  if(c.i===2&&c.into>=1200)st.life=L.filter(o=>!['medaka','dragonfly','larva','nymph','beetle','eggs','tadpole'].includes(o.kind)||lrnd(s)>=.3);
  // arrivals
