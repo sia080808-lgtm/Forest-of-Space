@@ -86,12 +86,8 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Run simulation and UI regression tests
-        run: |
-          set -euo pipefail
-          npm ci --ignore-scripts
-          npm run test:ui
-          node --test tests/forest/*.test.cjs
+      # The full simulation/UI suite is not run again here (user: "필요한 검사만 하라고"): it already passed on the pull
+      # request head and runs again on main in tests.yml; this job only builds and signs after CodeQL succeeded.
 
       # Use the Android SDK already installed on the GitHub Ubuntu runner.
       # setup-android@v3 tries to install the removed 'tools' SDK package and fails.
