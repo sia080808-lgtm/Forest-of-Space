@@ -67,3 +67,9 @@ test('SE-08 seasonal pictures exist for the frame, the six fern clumps and the l
  const s=game();for(const t of [600,4200,7800,11400]){s.worldTick=t;const before=JSON.stringify(s),g=E.lighting(s);a.equal(JSON.stringify(s),before);a.equal(g.tints.length,2,'0.8.1: no seasonal colour over the world (the paper background stays)');a.ok(g.saturation>=.65&&g.saturation<=1.05);}
  const html=fs.readFileSync(path.join(__dirname,'../../app/src/main/assets/web/index.html'),'utf8');a.match(html,/id="season"/);
 });
+test('SE-0.8.4 the dry-forest rescue follows the season: snow in winter, none in the dry forest winter',()=>{
+ const win=(clim)=>{const s=game();s.environment.climate=clim;s.worldTick=3*E.SEASON_LEN+600;s.weather.kind='cloud';s.weather.remaining=240;s.environment.dryActiveSeconds=5000;return s;};
+ const s=win('C01');F.step(s);a.equal(s.environment.rainRescuePending,true);s.weather.remaining=1;F.step(s);a.equal(s.weather.kind,'snow','C01 winter rescues with snow, not rain');a.equal(s.weather.intensity,60);
+ const d=win('C04');F.step(d);a.equal(d.environment.rainRescuePending,false,'the dry forest winter has no precipitation, so no rescue');d.environment.rainRescuePending=true;d.weather.remaining=1;F.step(d);a.notEqual(d.weather.kind,'rain');a.notEqual(d.weather.kind,'snow');a.equal(d.environment.rainRescuePending,false);
+ const w=win('C01');w.environment.rainRescuePending=false;w.weather.kind='snow';w.weather.intensity=60;w.weather.transition=0;w.environment.precipFrom=null;w.environment.effectiveRainSeconds=119;w.environment.dryActiveSeconds=10;F.step(w);a.equal(w.environment.dryActiveSeconds,0,'snow counts as water for the rescue timer');
+});
