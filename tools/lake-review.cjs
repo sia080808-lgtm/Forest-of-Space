@@ -10,10 +10,11 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');for(const f of fs.readdir
  for(const [k,v] of Object.entries(ctx.Scene.seasonFiles()))try{A[k]=await loadImage(web+'/'+v);}catch{}
  for(const n of ['shadePlant','shadeGround'])A[n]=await loadImage(web+'/assets/forest/'+(n==='shadePlant'?'shade-plant':'shade-ground')+'.png');for(const [k,v]of Object.entries(Rig.files))A[k]=await loadImage(web+'/'+v);
  A.gardenWide=await loadImage(web+'/assets/forest/garden-wide.png');for(let i=1;i<=6;i++)A['fern'+i]=await loadImage(web+'/assets/forest/ferns/fern-'+i+'.png');
- A.lakeFloor=await loadImage(web+'/assets/forest/lake/lake-floor.png');A.lakeIce=await loadImage(web+'/assets/forest/lake/lake-ice.png');
- const shot=async(name,{cx,cy,z,season,friends,overview})=>{const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;
+ A.lakeFloor=await loadImage(web+'/assets/forest/lake/lake-floor.png');A.lakeIce=await loadImage(web+'/assets/forest/lake/lake-ice.png');for(const n of ['leaf','bud','half','full','sink','wither'])A['lily_'+n]=await loadImage(web+'/assets/forest/lake/lily-'+n+'.png');
+ const shot=async(name,{cx,cy,z,season,friends,overview,lilies,tick})=>{const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;
   s.world.regions=['forest','lakeshore'];s.world.lake={ready:true,scents:3,openedAt:0};
   if(season){s.environment.calendar.start=-season*3600-400;}
+  if(tick!=null){s.worldTick=tick;s.environment.calendar.start=tick-3600-1500;}if(lilies)s.world.lake.lilies=lilies.map((q,i)=>({id:'lily'+(i+1),x:q[0],y:q[1],born:s.worldTick-q[2]}));
   const base=JSON.parse(JSON.stringify(s.individuals[0]));s.individuals=friends.map((q,i)=>Object.assign(JSON.parse(JSON.stringify(base)),{id:'v'+i,species:q[0],xp:115,visualStage:3,B:60,energy:80,mood:90,x:q[1],y:q[2],motion:{kind:'idle',distance:0}}));
   const before=JSON.stringify(s);const sc=new ctx.Scene(canvas,()=>s);sc.assets=A;sc.prepareLitter();sc.ready=true;sc.inspector=null;sc.draw();
   if(overview){sc.camera.setOverview(true);}else{sc.camera.z=z;sc.camera.cx=cx;sc.camera.cy=cy;sc.camera.clamp();}
@@ -24,5 +25,9 @@ const F=require(web+'/engine'),Rig=require(web+'/rig');for(const f of fs.readdir
  await shot('lake-edge',{cx:1.3,cy:.52,z:1,friends:fr});
  await shot('lake-shore',{cx:1.55,cy:.5,z:1,friends:fr});
  await shot('lake-overview',{overview:true,friends:fr});
+ const LL=[[1.56,.42,200],[1.6,.58,600],[1.66,.33,1000],[1.55,.7,1500],[1.68,.62,2000],[1.62,.8,2600],[1.7,.18,3000]];
+ await shot('lake-lilies',{cx:1.5,cy:.5,z:1,tick:6000+300,lilies:LL,friends:fr});
+ await shot('lake-lilies-night',{cx:1.5,cy:.5,z:1,tick:6000+900,lilies:LL,friends:fr});
+ await shot('lake-lilies-zoom',{cx:1.6,cy:.5,z:2.4,tick:6000+300,lilies:LL,friends:fr});
  await shot('lake-winter',{cx:1.5,cy:.5,z:1,season:3,friends:fr});
  console.log('ok');})().catch(e=>{console.error(e);process.exit(1);});
