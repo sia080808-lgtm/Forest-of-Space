@@ -12,6 +12,7 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
+const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
 const VERSION='0.9.5', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
@@ -35,7 +36,7 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
   rng:{weather:seedInt(seed+'weather'),behavior:seedInt(seed+'behavior'),neighbor:seedInt(seed+'neighbor')},
   weather:{kind:'sun',remaining:120,streak:1,intensity:35,wind:20,strongSeconds:0,transition:0,lastRainEnd:-9999,rainEpoch:0,lastRainEpoch:0},climate:{T:65,H:70,L:80},
   patches:PATCHES.map(p=>({...p,S:({moss:2,rock:1,shade:4,crevice:2,shelter:3,litter:6})[p.id],W:0,O:0,U:p.id==='litter'?10:0,rainTotal:0,film:0})),spring:{x:.20,y:.72,water:60},
-  individuals:[{id,species:'ridley',name:'리들리',B:30,Q:5,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
+  individuals:[{id,species:'ridley',name:'리들리',B:30,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.47,y:.38,xp:0,growthSeconds:0,mounted:false,active:true,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id)}],
   settings:{audio:{master:.65,music:.35,environment:.45,effects:.55},reducedMotion:false,showName:false,showLevel:false,showState:true,showSpeech:true,showFrame:true,theme:'auto'},
   ledger:{rain:0,spring:0,evaporation:0,outflow:0,physiology:0},events:[],discoveries:{},neighbor:{observed:0,validSeconds:0,visitSeconds:0,absentSeconds:0,cooldown:0,visits:0,stage:'none'},offline:null,legacy:null}))))));
 }
@@ -70,21 +71,24 @@ function step(s,{visible=true,held=null}={}){
   let receiving=rain;const redirected=rain>0?rain*W.rainFraction(s,p):0;receiving-=redirected;
   const edge=s.patches.filter(z=>z.id!==p.id&&z.y>p.y&&dist(z,p)<.42).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(redirected+weatherWater.roofMelt>0){if(edge)transfers.push([edge,redirected+weatherWater.roofMelt]);else s.ledger.outflow+=redirected+weatherWater.roofMelt;}
   receiving=Social.rain(s,p,receiving,held);
-  const roots=s.individuals.filter(q=>q.active&&!q.mounted&&q.Q<20&&s.patches.reduce((a,b)=>dist(a,q)<=dist(b,q)?a:b).id===p.id);
-  const requests=roots.map(q=>Math.min(20-q.Q,2/60*Env.precipitation(s,'rain')*p.exposure*(1-W.rainCover(s,q))));const demand=requests.reduce((a,b)=>a+b,0),fraction=demand>0?Math.min(1,receiving/demand):0;
-  roots.forEach((q,i)=>{const n=requests[i]*fraction;q.Q+=n;receiving-=n;});
+  // SRS v2.34: rain lands on the friend's body (수분) at up to 6/min in heavy rain, faster for friends weak to water;
+  // shelters, leaf shade and 엘레판's leaf cut it (rainCover). Taken from this patch's real rainfall (conserved).
+  const roots=s.individuals.filter(q=>q.active&&!q.mounted&&q.B<100&&s.patches.reduce((a,b)=>dist(a,q)<=dist(b,q)?a:b).id===p.id);
+  const requests=roots.map(q=>Math.min(100-q.B,6/60*Env.precipitation(s,'rain')*(1-W.rainCover(s,q))*Traits.ofPet(q).wet));const demand=requests.reduce((a,b)=>a+b,0),fraction=demand>0?Math.min(1,receiving/demand):0;
+  roots.forEach((q,i)=>{const n=requests[i]*fraction;q.B+=n;receiving-=n;});
   receiving+=weatherWater.ground+p.W;p.W=0;const infiltration=Math.min(receiving,p.infiltration/60,p.cap-p.S);p.S+=infiltration;receiving-=infiltration;
   const pool=Math.min(receiving,p.pool);p.W=pool;s.ledger.outflow+=receiving-pool;
   const drain=take(p,Math.min(p.S+p.W,p.drain/60));const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y+.015&&dist(z,p)<.32).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)transfers.push([lower,drain]);else s.ledger.outflow+=drain;
   const evaporation=take(p,Math.min(p.S+p.W,(p.id==='moss'?(.05+.1*light(s,p)/100+.1*w.wind/100):(.2+.6*light(s,p)/100+.4*w.wind/100))/60));s.ledger.evaporation+=evaporation;
  }
  for(const [to,amount]of transfers)put(s,to,amount);
- const active=rotate(s.individuals.filter(p=>p.active),s.worldTick),requests=[];
+ const active=rotate(s.individuals.filter(p=>p.active),s.worldTick),requests=[];Vit.sunStep(s,light);
  for(const p of active){
   p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
   // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
-  const tr=Traits.of(p.species),bodyUse=Math.min(p.B,(.8*tr.keep+(!Sh.inside(s,p)&&!p.mounted&&light(s,p)>=70?.4*tr.sun:0))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
-  const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,65-p.B));p.Q-=absorb;p.B+=absorb;
+  // SRS v2.34: basic water use by the water stat; strong light now costs water through photosynthesis (vitals.js)
+  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
+  const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
   const ground=Obj.groundAt(s,p),safeDry=Sh.inside(s,p)||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
   const weatherDamage=W.physiology(s,p,{safeCare:p.mounted});
@@ -92,6 +96,8 @@ function step(s,{visible=true,held=null}={}){
   // leaf shelters a friend. Not under a shelter roof or on the mount, where the weather does not reach the friend.
   if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&(s.climate.T<35||s.weather.kind==='snow'))p.mood=clamp(p.mood+tr.cold/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);
    if(p.species==='neolbi'&&p.mood<Traits.TANK_MOOD_MAX&&s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids[0]===p.id&&a.phase==='rest'))p.mood=Math.min(Traits.TANK_MOOD_MAX,p.mood+Traits.TANK_MOOD/60);}
+  // SRS v2.34 능력치: bands, photosynthesis growth, drying, compost, mood and leaf damage folded into 기운 (vitals.js)
+  Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});
   if((p.wetRecovery||p.leafRecovery||p.burden>=40||p.damage>=30)&&participants.has(p.id)){Social.cancel(s,p.id);participants.delete(p.id);}
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-.2/60);continue;}
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-.2/60);continue;}
@@ -100,20 +106,18 @@ function step(s,{visible=true,held=null}={}){
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
   // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
   // (shelter full, every rest spot taken or too small) sleeps where it stands instead of standing frozen.
-  if(p.sleepHere){const tt=((s.worldTick%1200)+1200)%1200,still=(tt>=620&&tt<1150)||Env.precipitation(s,'rain')+Env.precipitation(s,'snow')>=.25;
+  if(p.sleepHere){const tt=((s.worldTick%1200)+1200)%1200,still=Vit.sleepTime(s,p)||Env.precipitation(s,'rain')+Env.precipitation(s,'snow')>=.25;
    if(!still||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
-   else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
+   else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
   if(p.braceHere){if(s.weather.wind<60||p.objectTask||p.shelterRequest||p.shelter?.facilityId||p.mounted||!p.active){delete p.braceHere;if(p.objectWait?.reason==='brace_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
    else{p.motion.kind='rest';p.motion.distance=0;p.action='rest';continue;}}
   if(p.species==='superbum'){if(p.energy<40&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
-   if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(75,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
+   if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
   const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p)||Obj.stroll(s,p);
   if(motion){Object.assign(p.motion,motion);if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   // Nutrition is metabolism, never a remotely supplied shelter service.
   p.nutrition=clamp(p.nutrition-.2/60);
   const resting=Obj.receive(s,p,requests);
-  // SRS v2.28: sun-loving species gather energy on a clear bright day while they are not walking (up to 75)
-  if(tr.sunEnergy&&!Sh.inside(s,p)&&s.weather.kind==='sun'&&light(s,p)>=60&&!(p.motion.distance>0)&&p.energy<75)p.energy=Math.min(75,p.energy+tr.sunEnergy/60);
   Obj.rootRequests(s,p,requests);
   if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage)p.damage=clamp(p.damage-1/60);
   if(!p.objectTask&&p.action==='groom'){p.motion.kind='groom';p.actionSeconds=Math.max(0,p.actionSeconds-1);}
@@ -122,7 +126,6 @@ function step(s,{visible=true,held=null}={}){
  }
  Obj.grant(requests);Obj.progress(s);
  for(const p of active){
-  growth(p,s);
   if(p.justDrank){delete p.justDrank;s.environment.tutorialDone=true;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);}discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',visible);}
   if(p.motion.water>0)p.motion.contact=p.id+':'+Math.floor(s.worldTick/3)+':water';
  }
@@ -185,7 +188,7 @@ function valid(s){
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
   if(!finite(p.Q,0,20)||!finite(p.V,0,40)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }
- Obj.validate(s);W.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
+ Obj.validate(s);W.validate(s);Vit.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
  if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean')||s.settings.showFrame!==undefined&&typeof s.settings.showFrame!=='boolean')throw Error('설정 기록을 확인해 주세요.');
  if(!s.settings.audio||['master','music','environment','effects'].some(k=>!finite(s.settings.audio[k],0,1)))throw Error('소리 설정을 확인해 주세요.');
  if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k]))||s.ledger.lake!=null&&!finite(s.ledger.lake)||s.ledger.admin!=null&&!Number.isFinite(s.ledger.admin))throw Error('물 원장이 올바르지 않아요.');
@@ -207,7 +210,7 @@ function migrate(old,now=Date.now()){
 function welcomeNeolbi(s){
  if(s.individuals.some(p=>p.species==='neolbi'))return false;
  const id='neolbi-welcome-'+s.deviceId;
- const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:35,Q:0,V:0,energy:70,mood:70,nutrition:70,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
+ const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:45,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
  for(const k of ['motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived'])delete p[k];
  s.individuals.push(p);for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])p[k]=0;p.wetRecovery=p.leafRecovery=false;delete p.weatherExposure;delete p.protectedBy;event(s,'welcome','엘레판이 숲에 찾아왔어요. 친구 목록에서 정원에 들일 수 있어요.',{individual:id,arrivalWater:35});return true;
 }

@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -12,7 +12,7 @@ const seasonDaily=(base,id)=>Math.ceil(base*(LITTER_SEASON[id]??1)-1e-9);
 const daily=[...new Set([...BASE_DAILY,...BASE_DAILY.flatMap(b=>Object.keys(LITTER_SEASON).map(k=>seasonDaily(b,k)))])];
 const envSeason=s=>{const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;return s.environment&&E?.season?E.season(s):null;};
 const quota=s=>seasonDaily(BASE_DAILY[level(s,'litter')-1],envSeason(s));// 0.7.0: leaves per day grow with the forest area (x2.25)
-const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:4};
+const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:3};   // SRS v2.34: shelter 4 -> 3 (photosynthesis shares the work of 기운)
 const names={moss:'이끼 자리',spring:'샘터',litter:'낙엽 자리',rock:'햇살 바위',shade:'잎 그늘',crevice:'바위틈',shelter:'쉼터'};
 const isPile=id=>typeof id==='string'&&id.startsWith('pile:');
 const patch=(s,id)=>id==='spring'?s.spring:isPile(id)?dep('litter').pile(s,id):s.patches.find(p=>p.id===id);
@@ -117,18 +117,21 @@ function effectsValid(s,p,t){
 }
 function needs(p){
  const n=p.objectNeeds??{water:false,energy:false,nutrition:false,mood:false};
- for(const [k,v,start,end]of [['water',p.B,35,65],['energy',p.energy,40,75],['nutrition',p.nutrition,40,70],['mood',p.mood,45,80]]){if(v<start)n[k]=true;if(v>=end-eps)n[k]=false;}
+ // SRS v2.34: drink / feed before leaving the fit band (warning line 5 inside it), up to the middle; 기운 below 40% of the pool
+ // rests to 80%. The old mood is folded into 기운, so there is no separate mood need any more.
+ const V=dep('vitals').targets(p);n.mood=false;
+ for(const [k,v,start,end]of [['water',p.B,V.water.start,V.water.end],['energy',p.energy,V.energy.start,V.energy.end],['nutrition',p.nutrition,V.nutrition.start,V.nutrition.end]]){if(v<start)n[k]=true;if(v>=end-eps)n[k]=false;}
  return n;
 }
 function urgency(s,p){if(dep('weather-care').wind(s,p)>=60||p.burden>=60)return 0;if(p.B<20||p.energy<20||p.nutrition<20)return 1;return 2;}
 // 0.8.3 (user: "케릭들 쉼터에 쉬러 잘 안 가던데" → 밤 잠·비 피하기): at night (from 'night' to 'dawn' of the game day) a friend
 // without an urgent need goes to sleep, in the shelter if there is room, otherwise on moss / in leaf shade / by the stones,
 // and stays until dawn; while it rains or snows it shelters there until it stops.
-function sleepTime(s){const t=((s.worldTick%1200)+1200)%1200;return t>=620&&t<1150;}
+function sleepTime(s,p){return dep('vitals').sleepTime(s,p);}   // SRS v2.34 ST34-09: deep night for all, dusk when tired, shade lovers wake first
 function rainy(s){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
 function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)return t.remaining<=0;
  if(t.reason==='safety')return dep('weather-care').wind(s,{...p,shelter:{phase:'outside'}})<50&&!p.wetRecovery&&!p.leafRecovery&&p.burden<40&&p.damage<10&&s.weather.wind<50;
- if(t.reason==='sleep')return !sleepTime(s);if(t.reason==='shelterRain')return !rainy(s);
+ if(t.reason==='sleep')return !sleepTime(s,p);if(t.reason==='shelterRain')return !rainy(s);if(t.reason==='dry')return p.B<=dep('vitals').band(p).mid+2;
  if(t.reason==='water')return !n.water;if(t.reason==='nutrition')return !n.nutrition;
  if(t.object==='moss')return !n.energy&&!n.mood;
  return t.reason==='energy'?!n.energy:t.reason==='mood'?!n.mood:false;
@@ -154,10 +157,10 @@ function option(s,p,id,kind,reason,free=false){
   if(!Space.walkable(s,q,p.id)){fail='blocked_path';continue;}
   const route=Space.route(s,p,q,p.id);if(!route){fail='blocked_path';continue;}
   const seconds=route.reduce((a,z,i)=>a+Space.distance(i?route[i-1]:p,z),0)/Space.gait(p,s).speed;
-  const target={water:65,energy:75,nutrition:70,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
+  const target={water:50,energy:80,nutrition:50,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
-  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;
+  if(reason==='energy')score+=(rates[id]||0)*8;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
@@ -193,7 +196,7 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
 // 0.9.4 물가에서 물 마시기 (SRS v2.33 LK-07): once the shore is open (not frozen), a thirsty friend walks to the water's edge
 // to drink when it is nearer than the spring or the spring is nearly empty. The lake never runs dry; what a friend drinks
 // is recorded as lake inflow (ledger.lake) so the water balance still closes. Uses the walk record (p.stroll.lake).
-const LAKE_DRINK=Object.freeze({rate:10/60,target:65,deadline:120,linger:60,most:420});   // same pace as the spring (10 a minute), at most 7 minutes at the water
+const LAKE_DRINK=Object.freeze({rate:10/60,target:50,deadline:120,linger:60,most:420});   // same pace as the spring (10 a minute), at most 7 minutes at the water
 function lakeDrink(s,p,current){if(p.stroll?.lake)return true;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
  const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!(sp.water<2||dl<ds*.8))return false;
  if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,lake:'drink'};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
@@ -217,10 +220,13 @@ function choose(s,p,rng){
  // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
  const P=s.objects?.creatures?dep('creatures').pressure(s,p):{leaf:false,mite:false,gnatSites:[]},clean=ids=>ids.filter(id=>!P.gnatSites.includes(id)),lastInfested=ids=>[...ids.filter(id=>!P.gnatSites.includes(id)),...ids.filter(id=>P.gnatSites.includes(id))];
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
- else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))&&lakeDrink(s,p,current))return;
- else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/65<=Math.min(p.energy/75,p.nutrition/70))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
- else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/70<p.energy/75)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
- else if(sleepTime(s)||rainy(s)&&p.species!=='neolbi'&&p.species!=='superbum'&&(dep('traits').of(p.species).rain<=0||dep('environment').precipitation(s,'rain')+dep('environment').precipitation(s,'snow')>=.6)&&!s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&Math.hypot(z.x-p.x,z.y-p.y)<.3)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
+ else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
+ else if(n.water&&(p.B<20||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
+ else if(n.nutrition&&(p.nutrition<20||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
+ // SRS v2.34 선제 행동: a friend dries off when over-wet (sun rock while it holds sun, shelter, crevice); in rain it
+ // shelters before 수분 would pass its warning line within a minute (rain lovers wait until the top of the band)
+ else if(!rainy(s)&&p.B>dep('vitals').band(p).hi&&!sleepTime(s,p)){for(const id of ['rock','shelter','crevice'])add(id,'rest','dry');}
+ else if(sleepTime(s,p)||rainy(s)&&p.species!=='neolbi'&&(()=>{const E=dep('environment'),pr=E.precipitation(s,'rain')+E.precipitation(s,'snow'),tr=dep('traits').ofPet(p),b=dep('vitals').band(p),line=tr.rain>0?b.hi:b.warnHi;return pr>=.6&&p.species!=='superbum'||p.B+6*E.precipitation(s,'rain')*tr.wet>=line;})()&&!s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&Math.hypot(z.x-p.x,z.y-p.y)<.3)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s,p)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
  else if(n.energy){for(const id of ['shelter','moss','shade','rock','crevice'])add(id,id==='moss'?'moss':'rest','energy');}
  else if(n.mood){add('moss','moss','mood');for(const id of clean(litterSpots(s,'O',p)))add(id,'litterPlay','mood');add('spring','splash','mood');}
  else if(!current&&p.action==='rest'&&p.target==='shelter'){add('shelter','rest','free',true);}
@@ -282,19 +288,19 @@ function receive(s,p,requests){
  const z=patch(s,t.object),Sh=dep('shelter');t.arrived=true;p.objectArrived=true;
  const add=(source,key,amount,apply)=>requests.push({sourceId:(source===s.spring?'spring':source.id)+':'+key,source,key,amount:Math.max(0,amount),apply});
  const recover=(key,rate,max)=>{if(p[key]<max)p[key]=Math.min(max,p[key]+rate/60);};
- if(t.kind==='moss'){recover('energy',2,75);recover('mood',1,80);p.motion.kind='moss';}
- else if(t.kind==='rest'){recover('energy',rates[t.object]||1,75);p.motion.kind='rest';}
+ if(t.kind==='moss'){recover('energy',2,80);p.motion.kind='moss';}
+ else if(t.kind==='rest'){recover('energy',rates[t.object]||1,80);p.motion.kind='rest';}
  else if(t.kind==='drink'||t.kind==='edgeDrink'){
-  add(s.spring,'water',Math.min(10/60,65-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=65-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
+  add(s.spring,'water',Math.min(10/60,50-p.B),n=>{p.B+=n;p.motion.water=n;p.motion.kind=n>0?'drink':'idle';if(p.B>=50-eps){t.complete=true;p.drinkCycle=false;p.objectNeeds.water=false;p.justDrank=true;}});
  }else if(t.kind==='splash'){
   recover('mood',2,80);p.energy=clamp(p.energy-1/60);p.motion.kind='splash';
-  add(s.spring,'water',Math.min(6/60,65-p.B),n=>{p.B+=n;p.motion.water=n;if(n>0&&p.B>=65-eps){p.objectNeeds??=needs(p);p.objectNeeds.water=false;if(!t.hydrationComplete){t.hydrationComplete=true;p.justDrank=true;}}});
+  add(s.spring,'water',Math.min(6/60,50-p.B),n=>{p.B+=n;p.motion.water=n;if(n>0&&p.B>=50-eps){p.objectNeeds??=needs(p);p.objectNeeds.water=false;if(!t.hydrationComplete){t.hydrationComplete=true;p.justDrank=true;}}});
  }
  else if(t.kind==='litterPlay'){
   if(!p.carriedLeaf&&z.O>=.5){z.O-=.5;p.carriedLeaf={amount:.5,pile:t.object,key:'leaf:'+p.id+':'+t.serial};p.objectContact={id:p.carriedLeaf.key+':pick',cue:'pickup',tick:s.worldTick};}
   if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';if(isPile(t.object))z.playBoostUntil=s.worldTick+120;else s.objects.playBoostUntil=s.worldTick+120;}
  }else if(t.kind==='nutrition'){
-  add(z,'U',Math.min(1/60,70-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=70-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
+  add(z,'U',Math.min(1/60*dep('traits').ofPet(p).nutr,50-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
  // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
  if(t.free||t.kind==='splash'){t.remaining--;if(t.remaining<=0)t.complete=true;}
@@ -303,10 +309,12 @@ function receive(s,p,requests){
 }
 function rootRequests(s,p,requests){
  const z=groundAt(s,p),t=p.objectTask;if(!z||p.mounted||p.motion.distance>0||p.motion.kind==='held'||dep('shelter').inside(s,p))return;
- let amount=0;if(z.id==='moss'){if(z.S>=z.cap*.2&&p.B<45&&p.Q<12)amount=Math.min(.5/60,12-p.Q);}
+ // SRS v2.34: moss is like sphagnum, it holds water and gives it slowly to a friend resting on it (+3/min up to 55, never
+ // into over-wet); a friend weak to water prefers it to the spring
+ let amount=0,body=false;if(z.id==='moss'){if(t?.object==='moss'&&at(s,p)&&z.S>0&&p.B<55){amount=Math.min(3/60,55-p.B);body=true;}else if(z.S>=z.cap*.2&&p.B<45&&p.Q<12)amount=Math.min(.5/60,12-p.Q);}
  else if(t?.kind==='rootDrink'&&at(s,p))amount=Math.min(1/60,20-p.Q);
  else if(moist(z)>=60)amount=Math.min(4/60,20-p.Q);
- if(amount>0){const key=t?.kind==='rootDrink'?'W':z.W>0?'W':'S';requests.push({sourceId:z.id+':'+key,source:z,key,amount,apply:n=>{p.Q+=n;}});}
+ if(amount>0){const key=t?.kind==='rootDrink'?'W':z.W>0?'W':'S';requests.push({sourceId:z.id+':'+key,source:z,key,amount,apply:n=>{if(body)p.B+=n;else p.Q+=n;}});}
 }
 function upgradeStatus(s,id){const m=s.objects.upgrades[id];if(!m)return null;return {...m,capacity:capacity(s,id),nextCapacity:capacities[id][m.level],requiredSeconds:m.level===1?180:360,ready:m.level<3&&m.unlocked>m.level};}
 function progress(s){

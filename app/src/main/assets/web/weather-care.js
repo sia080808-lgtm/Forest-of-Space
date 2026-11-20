@@ -2,7 +2,7 @@
 'use strict';
 const Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
-const trait=p=>(typeof module==='object'?require('./traits.js'):globalThis.ForestTraits).of(p.species);
+const trait=p=>(typeof module==='object'?require('./traits.js'):globalThis.ForestTraits).ofPet(p);
 const fields={gustExposure:0,braceSeconds:0,windCalmSeconds:0,wet85Seconds:0,wetFilm:0,wetRecovery:false,leafRecovery:false};
 function init(s){s.weather.wind_dir??=0;for(const p of s.individuals)for(const[k,v]of Object.entries(fields))p[k]??=v;return s;}
 function healthy(p){return p&&p.active&&!p.mounted&&p.B>=35&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&p.damage<30&&!p.wetRecovery&&!p.leafRecovery;}
@@ -15,7 +15,7 @@ function wind(s,p){const inside=p.mounted||Sh.inside(s,p);let a=s.weather.wind*(
 const coverCache=new WeakMap();
 function rainFraction(s,patch){const hosts=s.individuals.filter(h=>h.species==='neolbi'&&live(s,h));const fixed=s.patches.find(z=>z.id==='shade');const key=[...(s.shelters?.facilities||[]).flatMap(f=>[f.id,f.level,f.x,f.y]),fixed?.x,fixed?.y,...hosts.flatMap(h=>[h.id,h.x,h.y,h.xp]),...s.patches.flatMap(z=>[z.x,z.y])].join(':');let cache=coverCache.get(s);if(!cache||cache.key!==key){cache={key,values:{}};coverCache.set(s,cache);}if(cache.values[patch.id]!==undefined)return cache.values[patch.id];let sum=0;const n=12;for(let j=0;j<n;j++)for(let i=0;i<n;i++)sum+=rainCover(s,{x:patch.x+((i+.5)/n-.5)*.18,y:patch.y+((j+.5)/n-.5)*.18/1.6});return cache.values[patch.id]=sum/(n*n);}
 function counters(s,p,a){const before=p.gustExposure;p.gustExposure=a>=60?Math.min(10,before+1):a<50?Math.max(0,before-2):before;p.windCalmSeconds=s.weather.wind<50?Math.min(20,p.windCalmSeconds+1):0;if(p.windCalmSeconds>=20)p.braceSeconds=0;return before;}
-function physiology(s,p,{safeCare=false}={}){const r=p.Q*5,wet=p.wetSeconds||0;
+function physiology(s,p,{safeCare=false}={}){const r=Math.max(p.Q*5,p.B),   /* SRS v2.34: 수분 includes root wetness */wet=p.wetSeconds||0;
  p.wetSeconds=r>=80?wet+1:0;p.wet85Seconds=r>=85?p.wet85Seconds+1:0;
  if(r<60)p.burden=clamp(p.burden-4/60);else if(!safeCare&&r>=80&&wet>=60)p.burden=clamp(p.burden+2/60*trait(p).wet);
  if(p.burden>=40||p.wet85Seconds>=30)p.wetRecovery=true;
