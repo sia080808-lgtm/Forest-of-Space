@@ -729,3 +729,4 @@
 - 판단: 호수를 사물(patch)로 넣지 않고 산책 기록으로 물가까지 걸어가게 했다(배치·저장 구조를 바꾸지 않음). 호수 물은 무한이라 원장에 들어온 물로 기록.
 - 검증: `lake.test.cjs` LK-08(8/8), 관련 테스트·UI PASS, 화면 `docs/qa-0.9.4/runtime/lake-dex.png`. 전체는 CI. 실기기 미검증.
 - 다음: 주워 오기·바구니, 물가를 좋아하는 새 친구, 더 동쪽 호수. 노란 조각은 사용자 화면 정보 대기.
+- 병합·릴리스: PR #55(https://github.com/sia080808-lgtm/Forest-of-Space/pull/55) main 병합 `0697735a9238f364cf80a17bc6bd7141de8b5358`(사용자 "ㄱㄱ"; head `54e5033` 기준 simulation·CodeQL 성공). 프리릴리스 v0.9.4 `Forest-of-Space-0.9.4.apk` 72,038,502 bytes, SHA-256 `901dbed48ef2b20a4ac6b8a475b2a7d39d877cf565ba7f05e33736903de4e23f` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode70/0.9.4. APK는 사용자에게 파일로 전달.
