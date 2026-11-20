@@ -76,21 +76,43 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
  // Nest leaf hinges at its top-right attachment: it bounces with each step, flutters when held and settles when resting.
  if(layer('Leaf')){const lift=still?(rest?-.01:0):walk?Math.abs(beat)*(run?.05:.035):m==='held'?Math.sin(t*6)*.06:rest?-.012+Math.sin(t*1.1)*.006:Math.sin(t*1.2)*.012;c.save();c.translate(ELLI.leafPivot.x,ELLI.leafPivot.y);c.rotate(lift);c.translate(-ELLI.leafPivot.x,-ELLI.leafPivot.y);draw(layer('Leaf'),true);c.restore();}
  c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bodyY-(p.lift||0))*g}),tip=toWorld({x:r[0]+3,y:-8});return{hands:[],tip,face:{x,y:y-16*g*.55},width:20.5*g,height:33*g};}
-// 베이치·코로나 expressions (user: "코로나랑 베이치는 표정 좀 다양하게"): their painted eyes stay for 'neutral'; any other
-// expression covers each painted eye with the body texture just below it (same light) and draws the expression in the
-// same cream line, sized to the painted eye. (베이치 redraws its body over its arms, so this runs after that.)
-const EYE={bosong:{w:52,h:22},jureong:{w:53,h:21}};
-function faceExpr(c,d,k,p,m){const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':m==='held'?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');if(ex0==='neutral')return;
- const E=EYE[k],rw=E.w/d.body[2]*d.w/2,rh=E.h/d.body[3]*d.h/2,u=rw/1.1;
- d.eyes.forEach((e,i)=>{const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h,side=i?1:-1,tx=d.body[0]+e[0]*d.body[2],ty=d.body[1]+e[1]*d.body[3];
-  c.save();c.beginPath();c.ellipse(ex,ey,rw*1.4,rh*1.9,0,0,7);c.clip();img(c,d,[tx-E.w*.8,ty+E.h*1.1,E.w*1.6,E.h*2],ex-rw*1.5,ey-rh*2.1,rw*3,rh*4.2);c.restore();
-  c.save();c.strokeStyle='#f3e7cc';c.fillStyle='#f3e7cc';c.lineWidth=.38*u;c.lineCap='round';c.beginPath();const a=.6*u;
-  if(ex0==='sleepy'){c.moveTo(ex-a,ey-.1*u);c.quadraticCurveTo(ex,ey+.55*u,ex+a,ey-.1*u);c.stroke();}
-  else if(ex0==='happy'){c.moveTo(ex-a,ey+.3*u);c.quadraticCurveTo(ex,ey-.55*u,ex+a,ey+.3*u);c.stroke();}
-  else if(ex0==='sad'){c.moveTo(ex-a,ey+(side<0?.3:-.15)*u);c.lineTo(ex+a,ey+(side<0?-.15:.3)*u);c.stroke();}
-  else if(ex0==='surprised'){c.ellipse(ex,ey,.36*u,.5*u,0,0,7);c.fill();}
-  else {c.moveTo(ex,ey-.45*u);c.lineTo(ex,ey+.45*u);c.stroke();}
-  c.restore();});}
+// 베이치·코로나 expressions (user: "코로나랑 베이치는 표정 좀 다양하게", "너무 똑같음, 구별되게"): their painted eyes stay
+// for 'neutral'; any other expression covers the painted eyes (and 코로나's mouth) with the body texture just below them and
+// draws the face in the same cream line. Each has its own look:
+//  베이치 (fuzzy, gentle): small eyes with soft fur brows that carry the feeling; no mouth.
+//  코로나 (wide, droopy): big wide eyes and a mouth that changes (smile, frown, little 'o', flat line).
+// (베이치 redraws its body over its arms, so this runs after that.)
+const EYE={bosong:{w:52,h:22},jureong:{w:53,h:21}},MOUTH={jureong:[.46,.58,34,16]};
+function cover(c,d,cx,cy,rx,ry,tx,ty,tw,th){c.save();c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,7);c.clip();img(c,d,[tx-tw*.8,ty+th*1.1,tw*1.6,th*2],cx-rx*1.1,cy-ry*1.1,rx*2.2,ry*2.2);c.restore();}
+function faceExpr(c,d,k,p,m){const ex0=p.expr||(['sleep','rest','moss'].includes(m)?'sleepy':['held','startle','slip'].includes(m)?'surprised':m==='splash'?'happy':m==='thirsty'?'sad':'neutral');if(ex0==='neutral')return;
+ const E=EYE[k],rw=E.w/d.body[2]*d.w/2,rh=E.h/d.body[3]*d.h/2,cream='#f3e7cc';let u=rw/1.1;
+ const eyes=d.eyes.map(e=>({x:-d.w/2+e[0]*d.w,y:-d.h-1.5+e[1]*d.h,tx:d.body[0]+e[0]*d.body[2],ty:d.body[1]+e[1]*d.body[3]}));
+ for(const e of eyes)cover(c,d,e.x,e.y,rw*1.4,rh*1.9,e.tx,e.ty,E.w,E.h);
+ c.save();c.strokeStyle=cream;c.fillStyle=cream;c.lineCap='round';c.lineJoin='round';
+ const L=(pts,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();};
+ const Q=(x0,y0,cx,cy,x1,y1,w)=>{c.lineWidth=w;c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(cx,cy,x1,y1);c.stroke();};
+ if(k==='bosong'){u*=1.35;const a=.42*u,lw=.3*u;
+  eyes.forEach((e,i)=>{const sd=i?1:-1,x=e.x,y=e.y,by=y-.95*u;
+   if(ex0==='happy'){Q(x-a,y+.25*u,x,y-.45*u,x+a,y+.25*u,lw);Q(x-a,by,x,by-.35*u,x+a,by,lw*.8);}
+   else if(ex0==='sad'){c.beginPath();c.arc(x,y+.15*u,.2*u,0,7);c.fill();L([[x-sd*a,by+.05*u],[x+sd*a,by-.35*u]],lw*.8);}
+   else if(ex0==='surprised'){c.lineWidth=lw*.9;c.beginPath();c.arc(x,y,.3*u,0,7);c.stroke();Q(x-a,by-.15*u,x,by-.55*u,x+a,by-.15*u,lw*.8);}
+   else if(ex0==='focused'){c.beginPath();c.arc(x,y,.2*u,0,7);c.fill();L([[x-sd*a,by-.25*u],[x+sd*a,by+.15*u]],lw*.9);}
+   else Q(x-a,y-.05*u,x,y+.4*u,x+a,y-.05*u,lw);});}
+ else{const a=.72*u,lw=.42*u,[mx,my,mw,mh]=MOUTH.jureong,X=-d.w/2+mx*d.w,Y=-d.h-1.5+my*d.h,mrx=mw/d.body[2]*d.w/2,mry=mh/d.body[3]*d.h/2;
+  cover(c,d,X,Y,mrx*1.6,mry*1.8,d.body[0]+mx*d.body[2],d.body[1]+my*d.body[3],mw,mh);
+  eyes.forEach((e,i)=>{const sd=i?1:-1,x=e.x,y=e.y;
+   if(ex0==='happy')Q(x-a,y+.35*u,x,y-.7*u,x+a,y+.35*u,lw);
+   else if(ex0==='sad'){Q(x-a,y-.2*u+(sd<0?.3*u:0),x,y+.35*u,x+a,y-.2*u+(sd<0?0:.3*u),lw);}
+   else if(ex0==='surprised'){c.beginPath();c.ellipse(x,y,.5*u,.62*u,0,0,7);c.fill();}
+   else if(ex0==='focused')L([[x-a,y],[x+a,y]],lw);
+   else Q(x-a,y-.1*u,x,y+.55*u,x+a,y-.1*u,lw);});
+  c.strokeStyle='#cbb79a';c.fillStyle='#cbb79a';const w2=mrx*.9;
+  if(ex0==='happy')Q(X-w2,Y-.15*u,X,Y+.55*u,X+w2,Y-.15*u,.32*u);
+  else if(ex0==='sad')Q(X-w2*.8,Y+.3*u,X,Y-.25*u,X+w2*.8,Y+.3*u,.3*u);
+  else if(ex0==='surprised'){c.lineWidth=.28*u;c.beginPath();c.ellipse(X,Y+.1*u,.32*u,.42*u,0,0,7);c.stroke();}
+  else if(ex0==='focused')L([[X-w2*.5,Y],[X+w2*.5,Y]],.28*u);
+  else L([[X-w2*.3,Y],[X+w2*.3,Y]],.24*u);}
+ c.restore();}
 function actor(c,k,x,y,t,p={}){if(k==='bonbon')return ellisiiActor(c,x,y,t,p);if(!data[k])return duriActor(c,k,x,y,t,p);const d=data[k],g=p.growth??.65,m=p.mode||'idle',walk=['walk','run','slow'].includes(m),beat=Math.sin(t*d.tempo*(m==='run'?12:8)),rest=p.rest??(['sleep','rest','moss'].includes(m)?1:0),bob=walk?-Math.abs(beat)*.65:m==='held'?Math.sin(t*7)*.22:Math.sin(t*1.4)*.09;
 const sit=p.sit||0,sd=k==='bosong'?1.3:1.4,sink=sit*(rest*.7+sd);c.save();c.translate(x,y);c.scale(g,g);c.translate(0,bob+rest*.7+sit*sd-(p.lift||0));c.rotate((p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:0));if(d.hat)hatLayer(c,d,t,p,true);
 for(let i=0;i<2;i++){const s=i?1:-1;c.save();c.translate(s*d.w*.25,(k==='bonbon'?-2.2:-3)-sink);c.rotate(walk?s*beat*.35:m==='held'?s*Math.sin(t*10+i)*.62:m==='splash'?s*Math.sin(t*7)*.25:0);img(c,d,d.legs[i],k==='bonbon'?-1.55:-1.9,k==='bonbon'?-2:-2.2,k==='bonbon'?3.1:3.8,k==='bonbon'?4.2:5.7);c.restore();}
