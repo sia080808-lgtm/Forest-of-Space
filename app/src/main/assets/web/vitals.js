@@ -24,8 +24,8 @@ const isDay=s=>{const t=dayTime(s);return t<620||t>=1150;};
 function sleepTime(s,p){const t=dayTime(s);if(t>=750&&t<1050)return true;if(!p)return t>=620&&t<1150;if(t>=620&&t<750)return p.energy<50;if(t>=1050&&t<1150)return !['bonbon','jureong'].includes(p.species)&&t<1100;return false;}
 // the sun rock stores sun on bright days (0..100) and a friend resting on it draws it
 const SUN=Object.freeze({clear:2/60,cloud:.5/60,use:2/60});
-function rockSun(s){const r=s.patches?.find(z=>z.id==='rock');if(!r)return 0;if(!Number.isFinite(r.sun))r.sun=0;return r.sun;}
-function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return;rockSun(s);if(!isDay(s))return;const k=s.weather.kind;
+function rockSun(s){const r=s.patches?.find(z=>z.id==='rock');return r&&Number.isFinite(r.sun)?r.sun:0;}   // read only (cards and the screen call it)
+function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return;if(!Number.isFinite(r.sun))r.sun=0;if(!isDay(s))return;const k=s.weather.kind;
  if(k==='sun'&&light(s,r)>=60)r.sun=Math.min(100,r.sun+SUN.clear);else if(k==='cloud')r.sun=Math.min(100,r.sun+SUN.cloud);}
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
