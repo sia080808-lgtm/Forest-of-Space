@@ -664,3 +664,4 @@
 - 변경: `objects.js` `strollPose`(두리번·냄새·앉기·일어서기, 순수 함수)·카드 문구, `scene.js` 자세 적용(냄새=drink 리그+앞으로 기울임, 앉기=rest), 엘레판 잎 우산 아닐 때 걷는 방향 보기. 버전 0.8.7 / versionCode 65.
 - 검증: `npm test` 327/327(`stroll` ST-05), `npm run test:ui` PASS(한 번), 화면 `docs/qa-0.8.7/runtime/stroll-poses.png`. 이후 로컬 검사는 바뀐 부분 관련 테스트만 돌리고 전체는 CI에 맡긴다. Android 실기기 미검증.
 - 다음: 주워 오기·바구니 구현(사용자 확인 후), 지역 해금(동쪽 호수) 기획.
+- 앉는 모습 추가(사용자 "엘리시 앉는 모션이 좋다고", "다른 애들도 엘리시처럼 앉으라고"): 리그 옵션 `sit`로 발은 땅에 두고 몸만 내려앉음(`scene.js` `v.sit` 0.6초 전환, `rig.js`·`species-rig.js`·`neolbi.js`·`superbum.js`). 처음 시도(바닥 기준 잘라 내기·다리 눌러 그리기)는 친구가 사라지거나 파묻혀 보여 버렸다. 화면 `docs/qa-0.8.7/runtime/stroll-sit.png`.
