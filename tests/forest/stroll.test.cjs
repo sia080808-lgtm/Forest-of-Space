@@ -42,7 +42,7 @@ test('ST-05 0.8.7 light stroll poses: look around (turning), smell the grass, si
 test('ST-06 0.9.5 no frozen waiting: a friend with nowhere to sleep sleeps where it stands; card text follows',()=>{
  const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=800;p.x=.5;p.y=.5;p.energy=30;
  // block every sleeping spot: make the friend think the shelter and rest spots are taken by giving them to others
- const base=JSON.stringify(p);for(let i=0;i<8;i++){const q=JSON.parse(base);q.id='z'+i;s.individuals.push(q);}
+ const base=JSON.stringify(p);for(let i=0;i<12;i++){const q=JSON.parse(base);q.id='z'+i;s.individuals.push(q);}   /* 1.0: more friends than every spot (9 fit now) */
  let slept=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=800+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}}}
  a.ok(slept,'someone slept where it stood');F.valid(s);
 });

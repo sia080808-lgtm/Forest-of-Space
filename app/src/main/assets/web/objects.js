@@ -147,12 +147,13 @@ function option(s,p,id,kind,reason,free=false){
  // 0.6.37: the crevice gap holds one friend at a time (its rest spot is a narrow strip right in front of the stones since
  // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
  // body on the way, gave up and chose the crevice again, so it looked frozen "heading to the crevice".
- if(id==='crevice'&&s.individuals.some(z=>z.id!==p.id&&z.active&&z.objectTask?.object==='crevice'))return {fail:'capacity',object:id,kind};if(id!=='shelter'&&used(s,id,p.id)+Sh.units(p)>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};
+ if(id==='crevice'&&s.individuals.some(z=>z.id!==p.id&&z.active&&z.objectTask?.object==='crevice'))return {fail:'capacity',object:id,kind};if(id!=='shelter'&&used(s,id,p.id)+(kind==='nutrition'?Math.min(Sh.units(p),spaceCapacity(s,id)):Sh.units(p))>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};   /* 1.0: a big friend may eat at compost alone */
  let fail='shape';
  for(const q of points(s,p,id,kind)){
   const t={...q,object:id,kind,reason,free};
   if(!effectsValid(s,p,t)){fail=id==='spring'&&s.spring.water<=eps?'empty_water':kind==='litterPlay'&&patch(s,id).O<.5?'no_play_leaves':kind==='nutrition'&&patch(s,id).U<=eps?'no_nutrients':'unsafe_weather';continue;}
-  if(id!=='shelter'&&!fits(s,p,id,q,kind))continue;
+  // 1.0: eating compost only needs the friend beside it, so a big friend (grown 슈퍼범) is not shut out of 영양
+  if(id!=='shelter'&&kind!=='nutrition'&&!fits(s,p,id,q,kind))continue;
   if(id!=='shelter'&&s.individuals.some(z=>z.id!==p.id&&z.active&&(z.objectTask?.object===id&&Space.distance(z.objectTask,q)<.4*(Space.diameter(p)+Space.diameter(z))||Space.distance(z,q)<.4*(Space.diameter(p)+Space.diameter(z))))){fail='capacity';continue;}
   if(!Space.walkable(s,q,p.id)){fail='blocked_path';continue;}
   const route=Space.route(s,p,q,p.id);if(!route){fail='blocked_path';continue;}
