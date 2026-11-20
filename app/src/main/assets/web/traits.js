@@ -1,40 +1,43 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestTraits=api;})(globalThis,function(){
 'use strict';
-// SRS v2.28 (0.6.36): species traits from each friend's motif staghorn fern. Every value multiplies an existing rule
-// (1 = the rule as it was), or is a new small weather mood / sun energy rate per minute. No new resource is created and
-// nothing here is saved: traits are looked up by species key. See docs/Forest-Species-Traits-SRS-v2.28.md.
-//  mite / miteGrow : spider mite arrival chance (20%) / growth on hot dry leaves (+4/min)
-//  mealy           : mealybug arrival chance (20%)
-//  absorb          : root water -> body water (2/min)
-//  keep            : body water use (0.8/min; below 1 = keeps water longer)
-//  sun             : extra body water use in strong light (+0.4/min)
-//  leaf            : leaf damage from pests and wind
-//  wet             : over-wet root burden (+2/min)
-//  wind            : wind leaf damage
-//  cold / rain     : mood per minute when cold (T < 35 or snow) / while it rains (not in a shelter or mounted)
-//  sunEnergy       : energy per minute on a clear bright day while not walking (up to 75)
-const BASE={mite:1,miteGrow:1,mealy:1,absorb:1,keep:1,sun:1,leaf:1,wet:1,wind:1,cold:0,rain:0,sunEnergy:0};
-const TABLE={
- ridley:{wet:1.3,wind:.9,cold:-1,rain:1},
- bonbon:{mite:.5,miteGrow:.8,mealy:1.1,keep:.85,sun:.9,leaf:.8,wind:.9,cold:-.5,rain:.5},
- neolbi:{miteGrow:.9,keep:.8,sun:.6,leaf:.7,wet:1.2,wind:.8,cold:-1.5,sunEnergy:1},
- bosong:{mite:.6,miteGrow:.8,mealy:1.5,absorb:.9,keep:.75,sun:.5,leaf:.9,wet:1.4,wind:.8,rain:-.5,sunEnergy:1},
- jureong:{mite:1.4,miteGrow:1.3,absorb:1.3,keep:1.15,sun:1.4,leaf:1.1,wet:.6,wind:1.2,cold:-1.5,rain:1.5},
- superbum:{mite:.8,miteGrow:.9,mealy:1.4,absorb:1.1,keep:.85,sun:.8,leaf:.8,wet:.9,wind:1.2,rain:1,sunEnergy:.5},
- duri:{leaf:.9,wet:.9,rain:.5}
-};
-// 엘레판 the tank: while its open leaf shelters a friend (CANOPY session) its own mood rises 1/min up to 80
+// SRS v2.34 육각형 종족값 (replaces the v2.28 per-rule table). Six stats of 1..5, every species totals 18 at level 1
+// (user: "종족값 총합은 같아야"); at levels 3, 6 and 9 the lowest stat rises by one (ties: water, sun, leaf, pest, cold,
+// nutrient), so every friend gains the same. The old multiplier names are derived from the six stats, so the rules that
+// read them (water use, rain on the body, wind and pest leaf harm, pest arrival, cold) keep their call sites.
+// Nothing here is saved: values come from the species key and the friend's level.
+const KEYS=Object.freeze(['water','sun','leaf','pest','cold','nutr']);
+const NAMES=Object.freeze({water:'물',sun:'햇빛',leaf:'잎',pest:'해충',cold:'추위',nutr:'영양'});
+const HEX=Object.freeze({
+ ridley:  {water:1,sun:4,leaf:3,pest:4,cold:2,nutr:4},
+ bonbon:  {water:3,sun:3,leaf:3,pest:5,cold:2,nutr:2},
+ neolbi:  {water:3,sun:5,leaf:5,pest:2,cold:1,nutr:2},
+ bosong:  {water:1,sun:5,leaf:3,pest:3,cold:3,nutr:3},
+ jureong: {water:5,sun:2,leaf:3,pest:2,cold:1,nutr:5},
+ superbum:{water:5,sun:3,leaf:2,pest:1,cold:5,nutr:2},
+ duri:    {water:3,sun:3,leaf:3,pest:3,cold:3,nutr:3}});
+const WEAK=[1.4,1.2,1,.8,.6],GAIN=[.6,.8,1,1.2,1.4],COLD=[-2,-1.5,-1,-.5,0];
+// favourite light (the sun stat): photosynthesis is best inside this band
+const LIGHT=[[25,55],[30,60],[40,70],[45,80],[50,85]];
+// rain liking stays apart from the six stats (likes rain = energy +/min while it rains on the friend)
+const RAIN=Object.freeze({ridley:1,bonbon:.5,neolbi:0,bosong:-.5,jureong:1.5,superbum:1,duri:.5});
+const LEVELS=[0,3,8,15,25,40,60,85,115,150];
+function level(xp){let n=1;LEVELS.forEach((x,i)=>{if((xp||0)>=x)n=i+1;});return n;}
+function hex(species,lv=1){const h={...(HEX[species]||HEX.duri)};for(const at of [3,6,9])if(lv>=at){const k=KEYS.reduce((a,b)=>h[b]<h[a]?b:a,KEYS[0]);if(h[k]<5)h[k]++;}return h;}
+// the old rule multipliers, derived from the six stats
+function of(species,lv=1){const h=hex(species,lv),w=k=>WEAK[h[k]-1];
+ return {hex:h,keep:w('water'),wet:w('water'),absorb:1,sun:w('sun'),leaf:w('leaf'),wind:w('leaf'),mite:w('pest'),miteGrow:w('pest'),mealy:w('pest'),
+  cold:COLD[h.cold-1],rain:RAIN[species]??0,nutr:GAIN[h.nutr-1],nutrWeak:w('nutr'),light:LIGHT[h.sun-1],sunEnergy:0};}
+function ofPet(p){return of(p?.species,level(p?.xp));}
+// 엘레판 the tank: while its open leaf shelters a friend (CANOPY session) its own energy rises 1/min up to 80
 const TANK_MOOD=1,TANK_MOOD_MAX=80;
 const TEXT={
- ridley:{good:['비 오는 날 기분이 좋아요','개미와 친해요'],bad:['물이 고이면 금방 지쳐요','추위를 타요']},
- bonbon:{good:['매끈한 잎이라 잎응애가 잘 안 붙어요','잎이 두꺼워 덜 상해요'],bad:['잎이 겹친 곳에 솜깍지가 조금 더 숨어요']},
- neolbi:{good:['두껍고 넓은 잎으로 친구에게 그늘과 우산이 되어 줘요','잎이 튼튼해 비바람에도 덜 상해요','햇빛·더위·가뭄에 강해요'],bad:['추위를 많이 타요','서늘할 때 늘 젖어 있으면 힘들어해요']},
- bosong:{good:['은빛 털이 햇빛과 가뭄을 막아 줘요','잎응애가 잘 못 붙어요','쌀쌀해도 괜찮아요'],bad:['털 사이에 솜깍지가 잘 숨어요','늘 젖어 있으면 약해요']},
- jureong:{good:['물을 잘 빨아들이고 과습에 강해요','비를 좋아해요'],bad:['마르면 잎응애가 잘 붙어요','햇빛·추위에 약해요']},
- superbum:{good:['크고 튼튼해 잎이 덜 상해요','추위에 강해요','둥지에 빗물을 모아요'],bad:['깍지벌레류가 잘 붙어요','큰 잎이 바람을 받아요']},
- duri:{good:['무난하고 튼튼해요'],bad:['특별히 약한 곳은 없어요']}
-};
-function of(species){return {...BASE,...(TABLE[species]||{})};}
+ ridley:{good:['높은 나무 위 밝은 볕에 강해요','둥지잎에 개미가 살아 벌레를 쫓고 영양이 돼요','습한 공기를 좋아해요'],bad:['뿌리가 젖으면 금방 상해요(과습에 약함)','추위를 타요']},
+ bonbon:{good:['매끈한 잎이라 벌레가 잘 안 붙어요'],bad:['마다가스카르 출신이라 추위에 약한 편이에요','거름을 천천히 빨아들여요']},
+ neolbi:{good:['두껍고 큰 잎이라 볕과 바람에 강한 탱커예요','친구에게 그늘과 우산이 되어 줘요'],bad:['추위를 많이 타요','큰 잎이라 벌레가 붙을 자리가 많고 영양이 많이 들어요']},
+ bosong:{good:['은빛 털이 강한 볕을 막아 줘요'],bad:['건조한 곳 출신이라 과습에 약해요 · 이끼에서 천천히 물을 마셔요']},
+ jureong:{good:['물에 강하고 과습이 잘 안 와요','물과 거름을 아주 잘 빨아들여요'],bad:['추위에 가장 약해요','강한 볕과 벌레에 약해요']},
+ superbum:{good:['둥지잎으로 빗물을 모아요 · 물에 강해요','추위에 강해요'],bad:['넓은 잎이 바람을 받아요','둥지잎 안쪽에 깍지벌레가 숨어요','몸이 커서 영양이 많이 들어요']},
+ duri:{good:['무난하고 튼튼해요'],bad:['특별히 약한 곳은 없어요']}};
 function text(species){return TEXT[species]||{good:[],bad:[]};}
-return Object.freeze({BASE,TABLE,TEXT,TANK_MOOD,TANK_MOOD_MAX,of,text});
+return Object.freeze({KEYS,NAMES,HEX,WEAK,GAIN,COLD,LIGHT,RAIN,LEVELS,level,hex,of,ofPet,TANK_MOOD,TANK_MOOD_MAX,TEXT,text});
 });

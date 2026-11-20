@@ -748,3 +748,12 @@
 - 변경: `world.js`(lakeshore x1 3.3, `lakeX`·`RING`·`nearShore`, 수련 최대 12, 갈대 3곳 추가), `scene.js`(호수 그림 폭 2.25, 반딧불 범위, 바탕 종이 조각), `tools/build-lake-floor.py`(x 3.3), `objects.js`·`engine.js`·`shelter.js`(제자리 잠·몸 낮추기·거닐기·문구, 커밋 `043b5fe`), 새 `admin.js`(관리자 기능, `ledger.admin`), `recruitment.js`(`arrive` 분리), `forest-app.js`(`settingsPage`·`adminPage`, 뒤로 가기), `forest.css`, `index.html`. 버전 0.9.5 / versionCode 71.
 - 검증: `admin.test.cjs` 3개 추가, 관련 테스트 29/29, UI PASS(설정·관리자 흐름 추가, 검수 화면은 관리자 화면에서 열도록 갱신). 화면 `docs/qa-0.9.5/runtime`. 전체는 CI. 실기기 미검증.
 - 다음: 사용자 확인 후 병합·APK. 그 뒤 SRS v2.34 능력치 개편(1.0, 단계 0~9 제안).
+- 병합·릴리스: PR #56(https://github.com/sia080808-lgtm/Forest-of-Space/pull/56) main 병합 `a3d6ed11533e8bc3f367d88814babc72e79284a8`(사용자 "ㄱㄱ"; head `f15cfb5` 기준 simulation·CodeQL 성공. 첫 CI에서 `creatures` 개미 운반 테스트 2개가 시드 변화로 실패해 시드를 1·7·10으로 조정, CodeQL 안 쓰는 변수 1건 정리). 프리릴리스 v0.9.5 `Forest-of-Space-0.9.5.apk` 74,311,847 bytes, SHA-256 `510cdc8466137455c019117aec60d4884b4f86e387e02ec1d26c93333b205a1d` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode71/0.9.5. APK는 사용자에게 파일로 전달.
+
+### STATS-1.0.0-20261120 — 능력치 개편 (SRS v2.34)
+
+- 담당: Claude Code. 요청: 사용자 "ㄱㄱ"(SRS v2.34 능력치 개편). 기준 main `a3d6ed1`(0.9.5 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: 새 `vitals.js`(수분·영양 띠·기운 피통, 기분·잎 손상을 기운으로, 광합성 성장, 말리기, 거름 곁 흡수, 햇살 바위 볕 저장, 밤 시간표, 저장 이전), `traits.js`(육각형 종족값·레벨 오름, 옛 배율은 칸에서 계산), `engine.js`(비가 몸 수분에, 기본 물 소모·뿌리 흡수 상한, `Vit.step`, 영양 소모 0.08/분, 제자리 쉼·그 자리 잠은 목마름·배고픔에 끝남, 햇살 바위 위 친구는 불러올 때 옮기지 않음), `objects.js`(필요 기준 경계선/가운데, 비 예측 피하기·말리기 'dry', 이끼 수분 3/분·물 약한 친구 이끼 우선, 쉼터 3/분, 큰 친구도 거름 먹기, 잠 시간), `weather-care.js`·`creatures.js`(레벨 종족값, 과습은 수분 포함, 영양 과잉 해충 1.5배), `forest-app.js`·`forest.css`(막대·육각형), `object-cards.js`(문구), `admin.js`(상태 바꾸기가 새 능력치와 맞게). 버전 1.0.0 / versionCode 72.
+- 판단: 저장 필드 이름을 그대로 두고 기운은 피통 비율로 저장해 기존 규칙의 기준값을 살렸다. 영양이 기운에 영향을 주게 되면서 거름 공급(6시간 약 100)보다 소모가 커서 0.08/분으로 줄였다. 측정 중 실제 버그 2개(슈퍼범이 배고픈 채 제자리 쉼, 다 자란 슈퍼범이 거름 자리에 '맞지 않아' 영양을 못 먹음)와 저장 불러오기 버그 1개(햇살 바위 위 친구를 옮김)를 찾아 고쳤다.
+- 검증: 로컬 전체 339/339, UI PASS. 테스트 조정: 물 목표 65→50, 쉼터 4→3, 이끼 물 3/분, 종족값·추위 테스트 다시 씀, 깊은 밤 시간, 개미 외 시드 무관. 측정 `tools/stats-balance.cjs`(6명 × 3게임시간: C01 수분 적정 99.9%·영양 92.8%, C04 99.7%·99.6%, 위험 0%, 물 오차 0). 화면 `docs/qa-1.0.0/runtime`(`tools/stats-review.cjs`). 실기기 미검증.
+- 남은 일: 볕 쬐기·몸 말리기 전용 동작(지금은 쉬기 동작), 기운 낮을 때 걷는 속도, 리들리 비 맞기 기운 체감 확인.

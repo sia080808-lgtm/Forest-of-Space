@@ -78,7 +78,7 @@ test('0.6.35 the nest water dries in clear weather (the spring rate, booked as e
   const v=p.V;s.weather.kind='fog';s.weather.intensity=0;for(let t=0;t<60;t++){F.step(s);s.weather.kind='fog';}a.ok(p.V>=v-1e-9,'fog: no drying');}
  // own use: body water below 45 is topped up from the nest, up to 55, at most 3/min
  {const {s,p}=game();p.V=20;p.sources={rain:20,other:0,unknown:0};rain(s,false);p.B=30;for(const q of s.individuals)if(q!==p)q.B=60;const base=F.totalWater(s);const v0=p.V;F.step(s);
-  a.ok(v0-p.V>=S.NEST_SIP-1e-9,'drinks from the nest when thirsty');for(let t=0;t<600;t++){F.step(s);rain(s,false);}a.ok(p.B>=50,'body water topped up: '+p.B.toFixed(1));near(balance(s,base),0,1e-6);}
+  a.ok(v0-p.V>=S.NEST_SIP-1e-9,'drinks from the nest when thirsty');for(let t=0;t<600;t++){F.step(s);rain(s,false);}a.ok(p.B>=45,'body water topped up (1.0: drinks to the middle of the band, 50): '+p.B.toFixed(1));near(balance(s,base),0,1e-6);}
 });
 
 test('0.6.38 shelter: a grown 슈퍼범 takes 엘레판\'s points and fits the base shelter in its folded pose, baked from the real render',()=>{

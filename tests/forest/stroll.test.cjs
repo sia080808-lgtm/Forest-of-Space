@@ -16,7 +16,7 @@ test('ST-01 a free friend sometimes walks out to the open ground, lingers there 
 });
 test('ST-02 night, rain or a need ends the walk at once',()=>{
  const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=300;
- p.stroll={x:-.12,y:.5,since:300,deadline:390,linger:20};p.nextObjectChoice=0;s.worldTick=640;F.step(s);   // night
+ p.stroll={x:-.12,y:.5,since:300,deadline:390,linger:20};p.nextObjectChoice=0;s.worldTick=800;F.step(s);   // deep night (1.0: 750..1050)
  a.equal(p.stroll,undefined,'night');a.equal(p.objectTask?.reason,'sleep');
  const r=game(2),q=r.individuals[0];fed(r);r.worldTick=300;q.stroll={x:-.12,y:.5,since:300,deadline:390,linger:20};q.nextObjectChoice=0;q.B=15;F.step(r);
  a.equal(q.stroll,undefined,'thirst');a.equal(q.objectTask?.reason,'water');
@@ -40,9 +40,9 @@ test('ST-05 0.8.7 light stroll poses: look around (turning), smell the grass, si
  const src=require('fs').readFileSync(require('path').join(__dirname,'../../app/src/main/assets/web/scene.js'),'utf8');a.match(src,/strollPose\?\.\(s,p,s\.worldTick\+fraction\)/);a.match(src,/kind==='sniff'\?'drink':/);
 });
 test('ST-06 0.9.5 no frozen waiting: a friend with nowhere to sleep sleeps where it stands; card text follows',()=>{
- const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=700;p.x=.5;p.y=.5;p.energy=30;
+ const s=game(2),p=s.individuals[0];fed(s);calm(s);s.worldTick=800;p.x=.5;p.y=.5;p.energy=30;
  // block every sleeping spot: make the friend think the shelter and rest spots are taken by giving them to others
- const base=JSON.stringify(p);for(let i=0;i<8;i++){const q=JSON.parse(base);q.id='z'+i;s.individuals.push(q);}
- let slept=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=700+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}}}
+ const base=JSON.stringify(p);for(let i=0;i<12;i++){const q=JSON.parse(base);q.id='z'+i;s.individuals.push(q);}   /* 1.0: more friends than every spot (9 fit now) */
+ let slept=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=800+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}}}
  a.ok(slept,'someone slept where it stood');F.valid(s);
 });

@@ -3,8 +3,10 @@
 // v2.24 patch 6a (0.6.25): carrier ants and springtails. Small neighbours, not characters: they use no roster slot.
 // ECO24-B01 common arrival limit, B03 conditions, A01 real leaf carrying (one leaf, conserved), A02/N01 springtail
 // decomposition help (x1.25 on its pile only, never stacked). Own RNG stream `rng.creatures`; render reads state only.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits',world:'ForestWorld',environment:'ForestEnvironment'}[n]];
-const trait=p=>dep('traits').of(p?.species);
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits',world:'ForestWorld',environment:'ForestEnvironment',vitals:'ForestVitals'}[n]];
+// SRS v2.34: the pest stat (and level) sets arrival and harm; a friend fed too rich (영양 과잉) has soft leaves that draw
+// spider mites and mealybugs x1.5
+const trait=p=>{const t=p?dep('traits').ofPet(p):dep('traits').of(undefined);if(p&&Number.isFinite(p.nutrition)&&p.nutrition>dep('vitals').band(p).hi){t.mite*=1.5;t.mealy*=1.5;}return t;};
 const PROTECT=600,CHECK=180,COOLDOWN=600,STABLE=120,LEAVE=120,MAXG=8,ANT_EVERY=90,CARRY_SECONDS=25,SPRING=1.25;
 // 0.7.1 짐꾼개미 군락 (SRS v2.30): like the real ant fern P. ridleyi, each healthy 리들리 can host one colony. Colonies keep
 // 0.5 apart (ridleys living close share one), work within 0.3 of their nest, and at most 3 live in the forest region. They

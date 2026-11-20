@@ -24,11 +24,12 @@ test('P02 arrives only after 120 s of dry leaves, at the common 180 s checks aft
 
 test('ECO-05/14 density +4/min on dry hot leaves, -6/min on moist leaves, -4/min while tidying or in the shelter; leaf burden 2/min x density/100',()=>{
  const s=game(),p=s.individuals[0];addMite(s,p.id,50);const d0=p.damage;
- for(let t=0;t<60;t++)tick(s,{T:70,H:20,kind:'sun'});a.ok(Math.abs(mite(s,p.id).density-54)<1e-6);a.ok(Math.abs(p.damage-d0-(2*0.5+2*0.54)/2)<.02,'burden '+(p.damage-d0));
- for(let t=0;t<60;t++)tick(s,{T:55,H:75});a.ok(Math.abs(mite(s,p.id).density-48)<1e-6);
- for(let t=0;t<60;t++)tick(s,{T:55,H:50});a.ok(Math.abs(mite(s,p.id).density-48)<1e-6,'steady on mildly dry leaves');
- p.action='groom';for(let t=0;t<60;t++)tick(s,{T:55,H:50});a.ok(Math.abs(mite(s,p.id).density-44)<1e-6);
- for(let t=0;t<3000;t++)tick(s,{T:70,H:20,kind:'sun'});a.ok(mite(s,p.id).density<=100);a.ok(p.damage<=100);
+ const tr=require('../../app/src/main/assets/web/traits.js').ofPet(p),d1=50+4*tr.miteGrow;   // 1.0: x the pest / leaf stats
+ for(let t=0;t<60;t++)tick(s,{T:70,H:20,kind:'sun'});a.ok(Math.abs(mite(s,p.id).density-d1)<1e-6);a.ok(Math.abs(p.damage-d0-tr.leaf*(2*0.5+2*d1/100)/2)<.02,'burden '+(p.damage-d0));
+ for(let t=0;t<60;t++)tick(s,{T:55,H:75});a.ok(Math.abs(mite(s,p.id).density-(d1-6))<1e-6);
+ for(let t=0;t<60;t++)tick(s,{T:55,H:50});a.ok(Math.abs(mite(s,p.id).density-(d1-6))<1e-6,'steady on mildly dry leaves');
+ p.action='groom';for(let t=0;t<60;t++)tick(s,{T:55,H:50});a.ok(Math.abs(mite(s,p.id).density-(d1-10))<1e-6);
+ for(let t=0;t<3000;t++)tick(s,{T:70,H:20,kind:'sun'});a.ok((mite(s,p.id)?.density??0)<=100);a.ok(p.damage<=100);
 });
 
 test('ECO-14 under 5 for 60 s counts as recovered: the group is removed and that friend gets 300 s before a new arrival',()=>{

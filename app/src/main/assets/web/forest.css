@@ -43,3 +43,12 @@
 .admin-grid button{min-height:44px;padding:6px 8px;font-size:14px}
 .admin-grid button.danger{color:#9a3b2c;border-color:#d9b2a6}
 .admin-now p{margin:4px 0 0}.admin-now small{opacity:.7}
+/* SRS v2.34 능력치 막대·종족값 */
+.stat.two .track{position:relative;height:10px;border-radius:6px;background:linear-gradient(90deg,#d9c39a 0,#efe6d2 30%,#efe6d2 70%,#a9c2c6 100%);flex:1;min-width:60px}
+.stat.two .fit{position:absolute;top:0;bottom:0;background:#9fbf8a;border-radius:6px;opacity:.85}
+.stat.two .mark{position:absolute;top:-3px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--ink)}
+.stat.two.dangerLow b,.stat.two.dangerHigh b{color:#9a3b2c}
+.hexstats svg{display:block;width:240px!important;height:216px!important;max-width:100%;margin:0 auto}
+.hexstats polygon.r5{fill:#f3efe4;stroke:var(--line)}.hexstats polygon.r3{fill:none;stroke:var(--line);stroke-dasharray:2 2}
+.hexstats polygon.me{fill:#9fbf8a88;stroke:var(--green);stroke-width:1.5}.hexstats text{font-size:8px;fill:var(--ink);stroke:none}
+.stat b{white-space:nowrap}

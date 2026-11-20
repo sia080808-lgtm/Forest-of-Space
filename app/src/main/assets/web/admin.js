@@ -14,7 +14,7 @@ const WEATHER=Object.freeze({
  sun:['sun',20,15,'맑음'],cloud:['cloud',35,25,'흐림'],drizzle:['rain',30,25,'보슬비'],rain:['rain',80,35,'큰비'],
  fog:['fog',50,10,'안개'],snow:['snow',60,20,'눈'],gale:['cloud',40,75,'강풍']});
 const STATS=Object.freeze({
- full:['모두 넉넉하게',{B:55,energy:90,mood:90,nutrition:55,damage:0,burden:0,Q:0}],
+ full:['모두 적정하게',{B:50,energy:90,mood:90,nutrition:50,damage:0,burden:0,Q:0}],
  thirsty:['목마르게',{B:12}],wet:['과습하게',{B:90,Q:18}],tired:['지치게',{energy:12,mood:12}],
  hungry:['배고프게',{nutrition:12}],rich:['영양 과잉으로',{nutrition:90}],hurt:['잎이 다치게',{damage:35}]});
 const pick=(F,s,who)=>s.individuals.filter(p=>who==='all'?p.active:p.id===who);
@@ -36,7 +36,7 @@ function climate(F,s,id){F.Environment.changeClimate(s,id);return ro(F.Environme
 function level(F,s,who,lv){if(!Number.isInteger(lv)||lv<1||lv>F.LEVELS.length)throw Error('레벨을 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');for(const p of list){p.xp=F.LEVELS[lv-1];p.growthSeconds=0;}return (who==='all'?'정원 친구 모두':list[0].name)+' 레벨을 '+ro(lv)+' 맞췄어요.';}
 function resetLevels(F,s){for(const p of s.individuals){p.xp=0;p.growthSeconds=0;}return '모든 친구의 레벨을 1로 되돌렸어요. 성장 경험도 0이에요.';}
 function stats(F,s,who,key){const st=STATS[key];if(!st)throw Error('상태를 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');
- for(const p of list){for(const [k,v]of Object.entries(st[1])){if(k==='B')water(s,p,v);else if(k==='Q')root(s,p,v);else p[k]=clamp(v);}if(key==='full'){p.wetRecovery=false;p.leafRecovery=false;delete p.sleepHere;delete p.braceHere;}p.nextObjectChoice=s.worldTick;}
+ for(const p of list){for(const [k,v]of Object.entries(st[1])){if(k==='B')water(s,p,v);else if(k==='Q')root(s,p,v);else p[k]=clamp(v);}if(key==='full'){p.wetRecovery=false;p.leafRecovery=false;delete p.sleepHere;delete p.braceHere;}if('energy' in st[1])p.mood=p.energy;p.moodSync=p.mood;if(key!=='hurt')p.damageSync=p.damage;p.nextObjectChoice=s.worldTick;}
  return (who==='all'?'정원 친구 모두':list[0].name)+' 상태를 '+st[0]+' 했어요.';}
 function summon(F,s,species){const R=F.Recruitment;R.init(s);if(!R.ids.includes(species)||R.retired.includes(species))throw Error('부를 수 없는 친구예요.');if(s.individuals.some(p=>p.species===species))throw Error('이미 함께 사는 친구예요.');s.recruitment.visitor=null;R.arrive(s,species,F.personality,F.event);return R.josa(R.names[R.ids.indexOf(species)],'이','가')+' 숲 입구에 찾아왔어요.';}
 function welcome(F,s,species){summon(F,s,species);const v=s.recruitment.visitor;v.ready=true;const p=F.Recruitment.settle(s,F.event);p.active=true;return F.Recruitment.josa(p.name,'이','가')+' 바로 정원에 들어왔어요.';}
