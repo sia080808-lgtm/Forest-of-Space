@@ -8,7 +8,7 @@
 //    every existing threshold still reads a share of the pool; point changes are scaled by 100/max, so a bigger friend
 //    feels the same knock less. The old mood is folded in: any mood change since the last tick becomes 기운 and mood then
 //    mirrors 기운. Leaf damage still heals as before, but every new point of damage is taken from 기운.
-const dep=name=>typeof module==='object'?require('./'+name+'.js'):({traits:globalThis.ForestTraits,environment:globalThis.ForestEnvironment,shelter:globalThis.ForestShelter})[name];
+const dep=name=>typeof module==='object'?require('./'+name+'.js'):({traits:globalThis.ForestTraits,environment:globalThis.ForestEnvironment,shelter:globalThis.ForestShelter,world:globalThis.ForestWorld})[name];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
 const T=()=>dep('traits');
 function band(p){const L=T().level(p.xp),k=(L-1)*10/9;const lo=Math.round(35-k),hi=Math.round(65+k);return {L,lo,hi,warnLo:lo+5,warnHi:hi-5,mid:50,max:60+Math.round((L-1)*40/9)};}
@@ -27,6 +27,11 @@ const SUN=Object.freeze({clear:2/60,cloud:.5/60,use:2/60});
 function rockSun(s){const r=s.patches?.find(z=>z.id==='rock');return r&&Number.isFinite(r.sun)?r.sun:0;}   // read only (cards and the screen call it)
 function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return;if(!Number.isFinite(r.sun))r.sun=0;if(!isDay(s))return;const k=s.weather.kind;
  if(k==='sun'&&light(s,r)>=60)r.sun=Math.min(100,r.sun+SUN.clear);else if(k==='cloud')r.sun=Math.min(100,r.sun+SUN.cloud);}
+// 1.0.1 물가 시원함 (user: "여름 구간에는 물가 가면 기온이 좀 더 낮아질 수 있다"): on a summer day, a friend at the open
+// (unfrozen) lake's edge dries half as fast (engine body water use, like the leaf shade) and feels the sun one step softer
+// (light −15 for photosynthesis), so a hot dry summer is easier by the water. Pure read; nothing is saved.
+const COOL=Object.freeze({reach:1.2,light:15});
+function coolAt(s,p){const W=dep('world'),E=dep('environment');return !!(W&&isDay(s)&&E?.season?.(s)==='summer'&&W.lakeOpen(s)&&!W.frozen(s)&&p.x>1.15&&W.waterD(p.x,p.y)<COOL.reach);}
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
@@ -42,7 +47,7 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
   for(const [z,w] of [[zb,tr.wet],[zn,tr.nutrWeak]])if(bad(z))energyPts(p,-1/60*w);else if(danger(z))energyPts(p,-2/60*w);
   // photosynthesis (ST34-08): uses water, gives 기운 and growth
   const onRock=restingAt(p,'rock')&&rockSun(s)>0,dark=inside||restingAt(p,'crevice');
-  if(isDay(s)&&!dark&&p.B>15&&p.nutrition>15){const [a,c]=tr.light,L=onRock?(a+c)/2:light;
+  if(isDay(s)&&!dark&&p.B>15&&p.nutrition>15){const [a,c]=tr.light,L=onRock?(a+c)/2:coolAt(s,p)?light-COOL.light:light;
    const g=L>=a&&L<=c?'good':L<a?(L>=a-15?'near':'dark'):(L<=c+15?'near':'strong');
    const R={good:[.3,.6,1/210],near:[.2,.3,1/420],strong:[.6,.2,1/420],dark:[0,0,0]}[g];out.grade=g;
    if(R[0]){const w=Math.min(p.B,R[0]*tr.sun/60);p.B-=w;ledger.physiology+=w;out.water=w;}
@@ -60,5 +65,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  const r=s.patches?.find(z=>z.id==='rock');if(r&&r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });

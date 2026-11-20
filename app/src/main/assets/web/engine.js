@@ -89,7 +89,7 @@ function step(s,{visible=true,held=null}={}){
   p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
   // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
   // SRS v2.34: basic water use by the water stat; strong light now costs water through photosynthesis (vitals.js)
-  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
+  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0||Vit.coolAt(s,p)?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
   const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
   const ground=Obj.groundAt(s,p),safeDry=Sh.inside(s,p)||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
