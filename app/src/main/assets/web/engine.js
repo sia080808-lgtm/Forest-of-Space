@@ -13,6 +13,8 @@ const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.Fo
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
+// SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
+const NUTR_USE=.08/60;
 const VERSION='0.9.5', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
@@ -99,24 +101,26 @@ function step(s,{visible=true,held=null}={}){
   // SRS v2.34 능력치: bands, photosynthesis growth, drying, compost, mood and leaf damage folded into 기운 (vitals.js)
   Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});
   if((p.wetRecovery||p.leafRecovery||p.burden>=40||p.damage>=30)&&participants.has(p.id)){Social.cancel(s,p.id);participants.delete(p.id);}
-  if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-.2/60);continue;}
-  if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-.2/60);continue;}
+  if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
+  if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
   // 슈퍼범 is too large for most rest spots: when tired and nothing else holds it (no object task, no shelter request
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
   // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
   // (shelter full, every rest spot taken or too small) sleeps where it stands instead of standing frozen.
   if(p.sleepHere){const tt=((s.worldTick%1200)+1200)%1200,still=Vit.sleepTime(s,p)||Env.precipitation(s,'rain')+Env.precipitation(s,'snow')>=.25;
-   if(!still||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
-   else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
+   if(!still||p.B<Vit.band(p).warnLo||p.nutrition<Vit.band(p).warnLo||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
+   else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   if(p.braceHere){if(s.weather.wind<60||p.objectTask||p.shelterRequest||p.shelter?.facilityId||p.mounted||!p.active){delete p.braceHere;if(p.objectWait?.reason==='brace_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
    else{p.motion.kind='rest';p.motion.distance=0;p.action='rest';continue;}}
-  if(p.species==='superbum'){if(p.energy<40&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
-   if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-.2/60);continue;}}
+  // SRS v2.34: resting where it stands never hides thirst or hunger (water or 영양 under the warning line ends it)
+  const vNeed=p.B<Vit.band(p).warnLo||p.nutrition<Vit.band(p).warnLo;
+  if(p.species==='superbum'){if(p.energy<40&&!vNeed&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||vNeed||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
+   if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p)||Obj.stroll(s,p);
   if(motion){Object.assign(p.motion,motion);if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   // Nutrition is metabolism, never a remotely supplied shelter service.
-  p.nutrition=clamp(p.nutrition-.2/60);
+  p.nutrition=clamp(p.nutrition-NUTR_USE);
   const resting=Obj.receive(s,p,requests);
   Obj.rootRequests(s,p,requests);
   if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage)p.damage=clamp(p.damage-1/60);

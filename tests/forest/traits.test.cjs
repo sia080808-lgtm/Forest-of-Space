@@ -4,12 +4,14 @@ const SPECIES=['ridley','bonbon','neolbi','bosong','jureong','superbum','duri'];
 const balance=(s,base)=>{const l=s.ledger;return F.totalWater(s)-(base+l.rain+l.snow+l.condensation+l.spring-l.evaporation-l.outflow-l.physiology);};
 function game(species,seed=19){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;const p=s.individuals[0];p.species=species;s.worldTick=601;return {s,p};}
 
-test('ST-AC01a every friend has a full trait row inside 0.5..1.5 and a strong and weak point text; 엘레판 is the tank',()=>{
- for(const sp of SPECIES){const t=T.of(sp);for(const k of ['mite','miteGrow','mealy','absorb','keep','sun','leaf','wet','wind'])a.ok(t[k]>=.5&&t[k]<=1.5,sp+' '+k+' '+t[k]);
+test('ST-AC01a 1.0 육각형 종족값: six stats 1..5, every species totals 18, levels 3/6/9 raise the lowest stat; the old multipliers come from them',()=>{
+ for(const sp of SPECIES){const h=T.hex(sp,1);a.deepEqual(Object.keys(h).sort(),[...T.KEYS].sort());a.ok(T.KEYS.every(k=>h[k]>=1&&h[k]<=5),sp);a.equal(T.KEYS.reduce((n,k)=>n+h[k],0),18,sp+' total');
+  for(const [lv,sum] of [[2,18],[3,19],[6,20],[9,21],[10,21]])a.equal(T.KEYS.reduce((n,k)=>n+T.hex(sp,lv)[k],0),sum,sp+' Lv'+lv);
+  const t=T.of(sp);for(const k of ['mite','miteGrow','mealy','keep','sun','leaf','wet','wind','nutrWeak'])a.ok(t[k]>=.6&&t[k]<=1.4,sp+' '+k+' '+t[k]);
   a.ok(T.text(sp).good.length&&T.text(sp).bad.length,sp+' text');}
- a.equal(T.of('bosong').keep,.75,'베이치 keeps the water use it had before (0.6 of 0.8)');
- const toughest=Math.min(...SPECIES.map(s=>T.of(s).leaf));a.equal(T.of('neolbi').leaf,toughest,'엘레판 has the toughest leaves');a.ok(T.of('neolbi').wind<1);
- a.ok(T.of('bonbon').mite<T.of('ridley').mite,'엘리시: smooth leaves, fewer spider mites');
+ a.equal(T.hex('ridley').water,1,'리들리: roots rot when wet');a.equal(T.hex('superbum').water,5,'슈퍼범 keeps water');a.equal(T.hex('bonbon').pest,5,'엘리시: smooth leaves');
+ a.equal(T.of('neolbi').leaf,Math.min(...SPECIES.map(s=>T.of(s).leaf)),'엘레판 has the toughest leaves');a.ok(T.of('jureong').cold<T.of('superbum').cold);
+ a.equal(T.ofPet({species:'ridley',xp:150}).hex.water,3,'Lv10 리들리: the lowest stat rose at Lv3 and Lv6');
 });
 
 test('ST-AC01b over-wet burden and wind leaf damage scale by species; recovery does not',()=>{
@@ -35,13 +37,13 @@ test('ST-AC02 water is conserved for every species in clear, rainy and windy wea
  for(const sp of SPECIES)for(const kind of ['sun','rain','wind']){const {s}=game(sp,5),base=F.totalWater(s);for(let t=0;t<600;t++){s.weather.kind=kind==='wind'?'sun':kind;s.weather.intensity=kind==='rain'?70:0;s.weather.wind=kind==='wind'?70:10;F.step(s);}near(balance(s,base),0,1e-6);}
 });
 
-test('ST-AC04 weather mood: cold and rain change mood out in the garden but not under a shelter roof or on the mount; values stay in range',()=>{
- {const {s,p}=game('jureong');p.mood=50;s.climate.T=20;s.weather.kind='cloud';s.weather.intensity=0;for(let t=0;t<60;t++){F.step(s);s.climate.T=20;s.weather.kind='cloud';}a.ok(p.mood<50,'코로나 feels the cold: '+p.mood);}
- {const {s,p}=game('bosong');p.mood=50;s.climate.T=20;s.weather.kind='cloud';s.weather.intensity=0;const m0=p.mood;for(let t=0;t<60;t++){F.step(s);s.climate.T=20;s.weather.kind='cloud';}a.ok(Math.abs(p.mood-m0)<1.01,'베이치 does not mind the cold: '+(p.mood-m0));}
- {const {s,p}=game('jureong');p.mounted=true;p.mood=50;s.climate.T=20;for(let t=0;t<60;t++){F.step(s);s.climate.T=20;}a.ok(p.mood>=50-1e-9,'mounted: no cold mood');}
- {const {s,p}=game('jureong');p.mood=99.99;s.weather.kind='rain';s.weather.intensity=80;s.weather.remaining=600;for(let t=0;t<120;t++){F.step(s);s.weather.kind='rain';}a.ok(p.mood<=100,'mood stays in range');}
+test('ST-AC04 1.0 cold costs 기운 by the cold stat (코로나 most, 슈퍼범 none), not under a roof or on the mount; values stay in range',()=>{
+ const loss=(sp,mounted=false)=>{const {s,p}=game(sp);s.worldTick=800;Object.assign(p,{B:50,nutrition:50,energy:70,mood:70,moodSync:70,mounted});const e0=p.energy;for(let t=0;t<60;t++){s.climate.T=20;s.weather.kind='cloud';s.weather.intensity=0;p.nextObjectChoice=s.worldTick+10;F.step(s);}return e0-p.energy;};
+ const j=loss('jureong'),b=loss('superbum');a.ok(j-b>1.5,'코로나 feels the cold more than 슈퍼범: '+j.toFixed(2)+' vs '+b.toFixed(2));
+ a.ok(loss('jureong',true)<=1e-9,'mounted: no cold');
+ {const {s,p}=game('jureong');p.energy=p.mood=99.99;s.weather.kind='rain';s.weather.intensity=80;s.weather.remaining=600;for(let t=0;t<120;t++){F.step(s);s.weather.kind='rain';}a.ok(p.energy>=0&&p.energy<=100,'기운 stays in range');}
 });
 
 test('ST-AC05 traits are looked up, never saved: a save carries no trait fields and reloads unchanged',()=>{
- const {s}=game('neolbi');for(let t=0;t<30;t++)F.step(s);const json=JSON.stringify(s);a.ok(!/"(keep|absorb|miteGrow|sunEnergy)"/.test(json));F.valid(JSON.parse(json));
+ const {s}=game('neolbi');for(let t=0;t<30;t++)F.step(s);const json=JSON.stringify(s);a.ok(!/"(keep|absorb|miteGrow|sunEnergy|hex)"/.test(json));F.valid(JSON.parse(json));
 });

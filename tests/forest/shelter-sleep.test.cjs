@@ -7,13 +7,13 @@ const friend=(s,sp,x,y)=>{const p={...F.clone(s.individuals[0]),id:'p-'+sp,speci
 const calm=s=>{s.weather.kind='sun';s.weather.intensity=0;s.weather.wind=5;s.weather.remaining=600;};
 test('SL-01 at night a friend without an urgent need goes to sleep in the shelter and stays until dawn',()=>{
  const s=game();const p=s.individuals[0];fed(s);s.worldTick=600;
- let slept=0,night=0;for(let t=0;t<560;t++){calm(s);F.step(s);const tt=s.worldTick%1200;if(tt>=700&&tt<1150){night++;if(Sh.inside(s,p)&&p.objectTask?.reason==='sleep')slept++;if(tt===900)a.match(Sh.label(s,p),/자고/);}}
+ let slept=0,night=0;for(let t=0;t<560;t++){calm(s);F.step(s);const tt=s.worldTick%1200;if(tt>=780&&tt<1050){night++;   /* 1.0 (SRS v2.34 ST34-09): deep night 750..1050 for everyone */if(Sh.inside(s,p)&&p.objectTask?.reason==='sleep')slept++;if(tt===900)a.match(Sh.label(s,p),/자고/);}}
  a.ok(slept/night>.75,'asleep in the shelter '+slept+'/'+night);
  for(let t=0;t<120;t++){calm(s);F.step(s);}a.notEqual(p.objectTask?.reason,'sleep','up at dawn');
 });
 test('SL-02 a full shelter: the others sleep on moss, in shade or by the stones (nobody waits all night outside)',()=>{
- const s=game();for(const [sp,x,y] of [['bonbon',.6,.55],['bosong',.7,.4],['jureong',.52,.42],['ridley',.45,.62]])friend(s,sp,x,y);fed(s);s.worldTick=600;
- let n=0,asleep=0,inside=0,waiting=0;for(let t=0;t<540;t++){calm(s);F.step(s);if(t<120)continue;n++;for(const p of s.individuals){if(p.objectTask?.reason==='sleep')asleep++;if(Sh.inside(s,p))inside++;if(p.shelter?.phase==='waitingOutside')waiting++;}}
+ const s=game();for(const [sp,x,y] of [['bonbon',.6,.55],['bosong',.7,.4],['jureong',.52,.42],['ridley',.45,.62]])friend(s,sp,x,y);fed(s);s.worldTick=700;
+ let n=0,asleep=0,inside=0,waiting=0;for(let t=0;t<350;t++){calm(s);F.step(s);if(t<80)continue;   /* 1.0: deep night 750..1050 */n++;for(const p of s.individuals){if(p.objectTask?.reason==='sleep')asleep++;if(Sh.inside(s,p))inside++;if(p.shelter?.phase==='waitingOutside')waiting++;}}
  a.ok(asleep/n>=4,'asleep '+(asleep/n).toFixed(2));a.ok(inside/n>=1.5&&inside/n<=3,'inside '+(inside/n).toFixed(2));a.ok(waiting/n<.25,'waiting '+(waiting/n).toFixed(2));
 });
 test('SL-03 rain: 베이치 (dislikes rain) takes shelter, a rain lover stays out in light rain, 엘레판 and friends beside it keep the leaf umbrella',()=>{

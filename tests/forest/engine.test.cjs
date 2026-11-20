@@ -1,7 +1,7 @@
 const {test}=require('node:test');const a=require('node:assert/strict');const F=require('../../app/src/main/assets/web/engine.js');
 function game(seed=12){const s=F.create(1000,seed);s.started=true;return s;}const near=(x,y,t=1e-7)=>a.ok(Math.abs(x-y)<t,`${x} != ${y}`);
 function balance(s,initial){const l=s.ledger;near(F.totalWater(s),initial+l.rain+l.snow+l.condensation+l.spring-l.evaporation-l.outflow-l.physiology,1e-6);}
-test('fresh state validates and the tutorial has safe independent B/Q',()=>{const s=game();F.valid(s);a.equal(s.individuals[0].B,30);a.equal(s.individuals[0].Q,5);a.equal(s.patches.length,6);a.equal(s.spring.water,60);});
+test('fresh state validates and the tutorial has safe independent B/Q',()=>{const s=game();F.valid(s);a.equal(s.individuals[0].B,30);a.equal(s.individuals[0].Q,0);   /* 1.0: 수분 is one stat, roots start dry */a.equal(s.patches.length,6);a.equal(s.spring.water,60);});
 // 0.7.0: 'bounded' is checked over the whole run (time below 30 under 10%, never below 10) instead of the value at the last
 // second, which swings with any change to the random streams (8-seed mean body water: 0.6.38 48.9, 0.7.0 48.8)
 // 0.7.1: the share of time below 30 swings a lot from seed to seed (0~30% on single seeds, with the same rules), so it is
