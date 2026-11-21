@@ -203,7 +203,7 @@ function startRecording(){if(rec||!scene.ready||inspector)return;const f=recForm
  let mr;try{mr=new MediaRecorder(stream,{mimeType:f.type,videoBitsPerSecond:2500000});}catch{if(toGallery)native.videoEnd(false);notice('영상을 찍지 못했어요.');return;}
  const r={mr,f,name,toGallery,parts:[],chain:Promise.resolve(true),start:performance.now(),timer:0,stream};rec=r;scene.recording=true;
  mr.ondataavailable=e=>{if(!e.data||!e.data.size)return;if(!r.toGallery){r.parts.push(e.data);return;}r.chain=r.chain.then(ok=>ok&&toBase64(e.data).then(b=>native.videoChunk(b))).catch(()=>false);};
- mr.onstop=()=>{for(const t of r.stream.getVideoTracks())t.stop();r.chain.then(ok=>{if(r.toGallery){const saved=native.videoEnd(!!ok);notice(saved?'영상을 갤러리(동영상/여백의 숲)에 저장했어요.':'영상을 저장하지 못했어요.');return;}
+ mr.onstop=()=>{for(const t of r.stream.getVideoTracks())t.stop();if(r.toGallery)notice('영상을 저장하고 있어요…');r.chain.then(ok=>new Promise(res=>setTimeout(()=>res(ok),60))).then(ok=>{if(r.toGallery){const saved=native.videoEnd(!!ok);notice(saved?'영상을 갤러리(동영상/여백의 숲)에 저장했어요.':'영상을 저장하지 못했어요.');return;}
   if(!r.parts.length){notice('영상을 저장하지 못했어요.');return;}const url=URL.createObjectURL(new Blob(r.parts,{type:r.f.mime})),a=document.createElement('a');a.href=url;a.download=r.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);notice('영상을 저장했어요.');});};
  try{mr.start(1000);}catch{rec=null;scene.recording=false;if(toGallery)native.videoEnd(false);notice('영상을 찍지 못했어요.');return;}
  r.timer=setInterval(()=>{recButton();if(performance.now()-r.start>=REC_MAX*1000)stopRecording();},250);recButton();notice('영상을 찍고 있어요 · 다시 누르면 멈춰요 (최대 1분)');}
