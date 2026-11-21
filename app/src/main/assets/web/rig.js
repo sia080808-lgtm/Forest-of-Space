@@ -76,7 +76,8 @@ function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(
 // 광합성: standing in good light, the friend stretches a little taller toward the sun (top left, like the world light),
 // breathes slowly with its eyes closed happily, and small light motes drift up off its leaves.
 // 볕 쬐기 (on the sun rock): it sits low and spreads out, eyes sleepily closed, breathing deep and slow, wrapped in a warm
-// glow with a faint heat shimmer rising; when it photosynthesises there too (by day) its light motes are bigger (user).
+// glow with a faint heat shimmer rising (only on a cold day: the rock warming it). 슈퍼 광합성 on the rock (opt.photo)
+// draws the light motes 1.8x bigger than on the ground, in either pose (user).
 const PHOTO=5,BASK=6;
 function motes(c,t,height,reduced,big=1){c.save();c.translate(FEET[0],FEET[1]);
  const beam=c.createLinearGradient(-height*.9,-height*1.9,height*.2,-height*.2);beam.addColorStop(0,'rgba(255,246,200,0)');beam.addColorStop(.55,'rgba(255,246,200,.30)');beam.addColorStop(1,'rgba(255,246,200,0)');c.fillStyle=beam;c.beginPath();c.moveTo(-height*1.1,-height*2);c.lineTo(-height*.35,-height*2);c.lineTo(height*.62,-height*.05);c.lineTo(-height*.62,-height*.05);c.closePath();c.fill();
@@ -100,7 +101,7 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
   const b=playBody(t);c.save();c.translate(FEET[0],FEET[1]);c.scale(1/Math.sqrt(b.sq),b.sq);c.translate(0,b.dy);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:['ridley','superbum','bosong'].includes(sp)?'litter':'idle',litterUp:litterUp(t),expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
  if(kind==='photo'){const b=photoBody(t,opt.reduced);c.save();c.translate(FEET[0],FEET[1]);c.rotate(b.rot);c.scale(1/Math.sqrt(b.sy),b.sy);c.translate(-FEET[0],-FEET[1]);
-  drawCore(c,assets,{...opt,kind:'idle',expression:opt.expression||'happy'});c.restore();motes(c,t,h,opt.reduced);return;}
+  drawCore(c,assets,{...opt,kind:'idle',expression:opt.expression||'happy'});c.restore();motes(c,t,h,opt.reduced,opt.photo?1.8:1);return;}
  if(kind==='bask'){const b=baskBody(t,opt.reduced);warmth(c,t,h,opt.reduced,false);c.save();c.translate(FEET[0],FEET[1]);c.scale(b.sx,b.sy);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle',sit:.5,expression:opt.expression||'sleepy'});c.restore();warmth(c,t,h,opt.reduced,true);if(opt.photo)motes(c,t,h,opt.reduced,1.8);return;}
  if(kind==='groom'&&!OWN_GROOM.includes(sp)&&!opt.reduced){const m=shake(t);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);

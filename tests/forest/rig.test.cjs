@@ -26,3 +26,8 @@ test('1.0.3 광합성 and 볕 쬐기 poses draw every species, bigger motes on t
  a.ok(area(true)>area(false));
  const s=F.create(0,4);s.weather.kind='sun';s.climate.L=60;const p=s.individuals[0];Object.assign(p,{B:50,nutrition:50});s.worldTick=300;a.ok(['good','near'].includes(V.photoGrade(s,p,F.light(s,p),false)));
  a.equal(V.photoGrade(s,p,F.light(s,p),true),null);s.worldTick=900;a.equal(V.photoGrade(s,p,F.light(s,p),false),null);});
+test('1.0.3 슈퍼 광합성: on the sun rock the same water gives 1.5x the 기운 and growth of good light on the ground',()=>{const V=require(web+'/vitals.js'),F=require(web+'/engine.js');
+ const run=onRock=>{const s=F.create(0,4);s.weather.kind='sun';s.climate.T=60;s.worldTick=300;const r=s.patches.find(z=>z.id==='rock');r.sun=80;const p=s.individuals[0];Object.assign(p,{B:50,nutrition:50,energy:50,xp:20,growthSeconds:0});
+  const [a,c]=require(web+'/traits.js').ofPet(p).light;s.climate.L=(a+c)/2;if(onRock){Object.assign(p,F.Space.rockTop(s));p.objectTask={object:'rock',kind:'rest',reason:'energy',since:0};p.objectArrived=true;}
+  const e0=p.energy,led={physiology:0,evaporation:0};const out=V.step(s,p,{light:F.light(s,p),inside:false,moving:false,held:false,ledger:led});return {out,de:p.energy-e0};};
+ const g=run(false),k=run(true);a.equal(g.out.grade,'good');a.equal(k.out.grade,'good');a.ok(Math.abs(k.out.water-g.out.water)<1e-9);a.ok(Math.abs(k.out.xp-g.out.xp*V.ROCK_BOOST)<1e-9);a.ok(k.de>g.de);});

@@ -1,4 +1,4 @@
-// 1.0.3 review: 광합성 on the ground, 볕 쬐기+광합성 on the sun rock by day (bigger motes), 볕 쬐기 at night. Real scene.js render.
+// 1.0.3 review: 광합성 on the ground; on the sun rock 슈퍼 광합성 (warm day, big motes), both (cold day), 볕 쬐기 only (cold night). Real scene.js render.
 // Output: docs/qa-1.0.3/runtime/photo-game.png. Usage: node tools/photo-bask-review.cjs
 
 const fs=require('node:fs'),vm=require('node:vm');const R=require('node:path').resolve(__dirname,'..')+'/';const {createCanvas,loadImage,GlobalFonts}=require(R+'node_modules/@napi-rs/canvas');
@@ -10,11 +10,11 @@ const web=R+'app/src/main/assets/web',out=R+'docs/qa-1.0.3/runtime';const F=requ
  for(const [k,v] of Object.entries(ctx.Scene.seasonFiles()))try{A[k]=await loadImage(web+'/'+v);}catch{}
  for(const n of ['shadePlant','shadeGround'])A[n]=await loadImage(web+'/assets/forest/'+(n==='shadePlant'?'shade-plant':'shade-ground')+'.png');for(const [k,v]of Object.entries(Rig.files))A[k]=await loadImage(web+'/'+v);
  A.gardenWide=await loadImage(web+'/assets/forest/garden-wide.png');for(let i=1;i<=6;i++)A['fern'+i]=await loadImage(web+'/assets/forest/ferns/fern-'+i+'.png');
- const SP=['ridley','bonbon','neolbi','bosong','jureong','superbum'],T=[['ground',300,'땅에서 광합성'],['rock',300,'바위 위 (낮: 볕 쬐기+광합성)'],['rock',900,'바위 위 (밤: 볕 쬐기만)']],cw=200,ch=180;
+ const SP=['ridley','bonbon','neolbi','bosong','jureong','superbum'],T=[['ground',300,60,'땅 광합성'],['rock',300,60,'바위·따뜻한 낮: 슈퍼 광합성'],['rock',300,20,'바위·추운 낮: 둘 다'],['rock',900,20,'바위·추운 밤: 볕 쬐기만']],cw=200,ch=180;
  const sheet=createCanvas(cw*T.length+80,ch*SP.length+40),g=sheet.getContext('2d');g.fillStyle='#f6ece0';g.fillRect(0,0,sheet.width,sheet.height);g.fillStyle='#4a3c2e';g.font='14px Forest, sans-serif';
- T.forEach(([,,l],i)=>{g.textAlign='center';g.fillText(l,80+i*cw+cw/2,26);});const kinds=[];
+ T.forEach(([,,,l],i)=>{g.textAlign='center';g.fillText(l,80+i*cw+cw/2,26);});const kinds=[];
  for(const [r,sp] of SP.entries()){g.textAlign='left';g.fillStyle='#4a3c2e';g.fillText(F.SPECIES.find(x=>x[0]===sp)[1],8,40+r*ch+ch/2);
-  for(const [i,[where,tick]] of T.entries()){const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;s.climate.L=60;const p=s.individuals[0];
+  for(const [i,[where,tick,temp]] of T.entries()){const s=F.create(0,4);s.started=true;s.environment.tutorialDone=true;s.weather.kind='sun';s.weather.intensity=0;s.climate.L=60;s.climate.T=temp;const p=s.individuals[0];
    const rock=s.patches.find(z=>z.id==='rock');rock.sun=80;const pos=where==='rock'?F.Space.rockTop(s):{x:rock.x-.18,y:rock.y+.02};
    Object.assign(p,{species:sp,xp:115,visualStage:3,B:50,nutrition:50,energy:80,mood:90,x:pos.x,y:pos.y,motion:{kind:where==='rock'?'rest':'idle',distance:0,tick:0}});
    if(where==='rock'){p.objectTask={object:'rock',kind:'rest',reason:'energy',since:0};p.objectArrived=true;}
