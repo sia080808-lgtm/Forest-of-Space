@@ -926,3 +926,11 @@
 - 원인(엔진 재현): 폭풍 110초 중 전조 20초·끝 30초는 비 0.35·바람 45라 보슬비로 취급, 가장 센 60초에 쉼터가 차면 safety 친구가 입구에서 계속 기다림, 바위틈은 한 바람 방향·마른 때만 써서 폭풍에 늘 막힘. 1.2.3에서 큰비만 재현하고 폭풍을 따로 보지 않아 놓쳤다.
 - 수정: `objects.js` `stormy`(폭풍 전체를 큰비로, `rainy`·`rainCover`·비 피하기 분기), 꽉 찬 쉼터 8초 포기에 safety 포함, 바위틈 바람 반감 모든 방향·비/바람 피하기에는 젖어도 사용. 테스트 `shelter-sleep` 1.2.4. 버전 1.2.4 / versionCode 90.
 - 검증: 관련 129개 + shelter-sleep 6개 통과, 전체는 CI. 실기기 미검증.
+- 병합·릴리스: PR #75(https://github.com/sia080808-lgtm/Forest-of-Space/pull/75) main 병합 `fab8ac2a815eeeb67775dfb012dd4159a1c3220b`(사용자 "머지"; head `3378dee` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.4 `Forest-of-Space-1.2.4.apk` 74,365,079 bytes, SHA-256 `ac9002964c19842df550e8cc4ac2ba6eeb103d2f521aef5b11672603cd7b5a1e` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode90/1.2.4. APK는 사용자에게 파일로 전달.
+
+### SHORE-SPOT-1.2.5-20261121 — 호수 가는 길에서 멈추던 친구
+
+- 담당: Claude Code. 요청: 사용자 "밤에 잘 때는 애들 왜 쉼터에 안 들어가는 거임?"(이유 질문) → 답변(쉼터 3자리·목마르면 물 먼저·호수 가는 길 멈춤 버그) → "호수 가는 길에서 멈추는 버그 이거 고쳐". 기준 main `fab8ac2`(1.2.4 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `world.js` `shorePoint`가 가장 가까운 물가 지점만 골라, 같은 지점에 이미 친구가 마시고 있으면 `planFor`(친구 피하기)가 길을 못 찾아 멈춤(60초마다 다시 출발).
+- 수정: 다른 친구가 서 있거나 가는 지점(0.08 안)은 건너뜀(`SHORE_GAP`). 테스트 `lake.test` 1.2.5. 버전 1.2.5 / versionCode 91.
+- 검증: 관련 33개·package 통과(고치기 전 실패 확인), 전체는 CI. 실기기 미검증.

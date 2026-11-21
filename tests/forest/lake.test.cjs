@@ -99,3 +99,8 @@ test('1.1.2 lake life moves about: striders and medaka roam the water, eggs and 
  for(const o of s.world.lake.life)if(o.kind==='dragonfly')a.ok(W.waterD(o.x,o.y)<1.26,'dragonfly over the lake or its shore');
  F.valid(JSON.parse(JSON.stringify(s)));const bad=JSON.parse(JSON.stringify(s));bad.world.lake.life[0].tx='x';bad.world.lake.life[0].ty=1;a.throws(()=>F.valid(bad),/호수/);
 });
+// 1.2.5 (user: "호수 가는 길에서 멈추는 버그"): a second thirsty friend no longer heads for the spot another friend is drinking at
+test('1.2.5 two thirsty friends pick different shore spots and both reach the water',()=>{const F=require('../../app/src/main/assets/web/engine'),W=require('../../app/src/main/assets/web/world.js'),a=require('node:assert/strict');
+ const s=F.create(5,4);s.started=true;s.environment.tutorialDone=true;W.openLake(s);const [p]=s.individuals;const q={...F.clone(p),id:'p-two',name:'둘',x:p.x+.02,y:p.y+.02,active:true};s.individuals.push(q);
+ const first=W.shorePoint(s,p);p.stroll={x:first.x,y:first.y,since:0,deadline:999,linger:60,lake:'drink'};const second=W.shorePoint(s,q);
+ a.ok(Math.hypot(first.x-second.x,first.y-second.y)>=.08,'second spot is apart');p.x=first.x;p.y=first.y;a.ok(Math.hypot(W.shorePoint(s,q).x-first.x,W.shorePoint(s,q).y-first.y)>=.08,'a friend standing at the spot also counts');});
