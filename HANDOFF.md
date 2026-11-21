@@ -842,3 +842,13 @@
 - 걷는 속도(사용자 "속도 넣어"): `spatial.js` `gait` 기운 80% 이상 걸음 1.15배, 15% 아래 0.45배(40% 아래 0.6배는 기존).
 - 판단: 몸 전체를 누르는 첫 시안과 띠 왜곡 시안은 버림(찌그러짐·줄무늬).
 - 검증: `rig.test` 7/7(1.1.5 검사 추가), `render`·`superbum`·`ellisii-legacy` 25/25, `package` 3/3, 전체는 CI. 화면 `docs/qa-1.1.5/runtime/vigor.png`. 실기기 미검증.
+- 병합·릴리스: PR #66(https://github.com/sia080808-lgtm/Forest-of-Space/pull/66) main 병합 `530a3c2730a16b566359b57062443c9ea255641c`(사용자 "ㄱㄱ"; head `582223f` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.5 `Forest-of-Space-1.1.5.apk` 74,344,747 bytes, SHA-256 `f049617d0549f55679235f8a25ea0abb9b9721fcbdbce6cbead8523a1e9f5871` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode81/1.1.5. APK는 사용자에게 파일로 전달.
+
+### RENDER-COST-1.1.6-20261121 — 렉 줄이기 2: 화면 한 장 그리는 비용
+
+- 담당: Claude Code. 요청: "원래 이런 게임 돌리면 폰 자체가 좀 렉이 걸리나" → 그래픽 칩 질문 → 한 장 그리는 비용 줄이기 → 화질 질문 → "ㄱㄱ". 기준 main `530a3c2`(1.1.5 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 판단: Node 그림판 측정은 필터 비용을 거의 못 잡아서(1.1.4 방식), 크롬(소프트웨어 그리기)으로 다시 쟀다. 진짜 무거운 곳은 매 장 쓰는 필터(낙엽 그림자 blur, 사물 젖음, 그늘 아래 친구)와 임시 그림판이었다. 처음 계획한 '바닥 미리 그리기'는 바닥이 이미 가벼워 하지 않았고, 배터리 절약은 이미 초당 30장이라 의미 없었다(사용자에게 정정).
+- 변경: `scene.js`(`bakeLeaf`·`leafQ`·`wetTile`·`dimmed`, 낙엽 자리 그림자 구움), `species-rig.js`(팔 임시 그림판 제거), `superbum.js`(옆잎 굽기 `bendCached`). 버전 1.1.6 / versionCode 82. 도구 `tools/render-bench.cjs`(크롬 장면 측정).
+- 결과: 크롬 한 장 약 170→15ms(전체 보기 70→13ms). 전후 픽셀 비교 25장, 바뀐 픽셀 0~0.2%. 비교 그림 `docs/qa-1.1.6/runtime/before-after.png`.
+- 고치며 찾은 것: 그늘 아래 친구 그림판 영역을 친구 리그 좌표가 아닌 세계 좌표로 잡아 친구가 사라짐, 납작하게 비튼 거름 조각의 해상도를 낮게 재 흐려짐, 젖은 바위를 원본 크기로 구워 조금 거칠어짐 — 모두 고치고 다시 비교.
+- 검증: 렌더 관련 테스트 통과(`render.test` 가짜 그림판 보강·슈퍼범 옆잎 검사 조정), 전체는 CI. Android 실기기 미검증.

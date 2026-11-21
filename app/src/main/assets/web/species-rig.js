@@ -134,18 +134,20 @@ if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[
 if(k==='jureong')faceExpr(c,d,k,p,m,t);
 const hands=[];
 // Front arms are composited after the body and head foliage.
-const armCanvas=armBuffer||(armBuffer=createCanvas(640,640)),armCtx=armCanvas.getContext('2d');armCtx.setTransform(1,0,0,1,0,0);armCtx.clearRect(0,0,640,640);armCtx.translate(320,320);armCtx.scale(10,10);const bodyContext=c;c=armCtx;
+// 1.1.6: the 640 px arm buffer was cleared and composited every frame for every species here (about 1.6 ms a friend, even
+// for armless 코로나); 베이치's arms go behind its body, so they are drawn straight onto the canvas before the body is drawn
+// again over them, and a species without arms skips the buffer altogether
+const bodyContext=c,direct=k==='bosong'||!d.arms;let armCanvas=null;if(!direct){armCanvas=armBuffer||(armBuffer=createCanvas(640,640));const armCtx=armCanvas.getContext('2d');armCtx.setTransform(1,0,0,1,0,0);armCtx.clearRect(0,0,640,640);armCtx.translate(320,320);armCtx.scale(10,10);c=armCtx;}
 if(d.arms)for(let i=0;i<2;i++){const s=i?1:-1,root={x:s*d.w*.31,y:-d.h*.46};let h={x:s*d.w*.47,y:-d.h*.22};if(walk)h.y+=s*beat*.85;if(m==='held'){h.x=s*d.w*.44;h.y=-d.h*.30+Math.sin(t*9+i*Math.PI)*1.8;}if(m==='splash'){h.x=s*d.w*.49;h.y=-d.h*.35+Math.sin(t*7+i*Math.PI)*1.8;}if(m==='startle')h={x:s*d.w*.52,y:-d.h*.98+Math.sin(t*14+i)*.25};if(m==='slip')h={x:s*d.w*.74,y:-d.h*.6+s*1.4+Math.sin(t*9+i*Math.PI)*.6};if(m==='groom'&&i===1){const q=ease(t%8/.9)*(1-ease(((t%8)-6.7)/1.3));h=k==='bosong'?{x:lerp(h.x,d.w*.42+Math.sin(t*18)*.12,q),y:lerp(h.y,-d.h*.86+Math.sin(t*18+1)*.3,q)}:{x:lerp(h.x,d.w*.30+Math.sin(t*5)*.5,q),y:lerp(h.y,-d.h*.86+Math.cos(t*5)*.45,q)};}if(dr&&!['groom','litter','startle','slip','held','splash'].includes(m)){h.y+=dr*1.4;h.x-=s*dr*.5;}if(m==='carry'||m==='pass'){h.y=-d.h*.48;h.x=s*d.w*.5;}if(m==='litter'){const u=p.litterUp||0;h={x:s*d.w*lerp(.36,.62,u),y:lerp(-d.h*.08,-d.h*.9,u)};}if(p.hands?.[i])h=p.hands[i];
  // 0.6.34: 베이치's arms keep their length (they used to stretch when raised); its arms stay behind the body, so grooming is a scratch at the back of the head
  if(k==='bosong'){const L=Math.hypot(h.x-root.x,h.y-root.y),M=['groom','startle','slip'].includes(m)?10:7.2;if(L>M)h={x:root.x+(h.x-root.x)*M/L,y:root.y+(h.y-root.y)*M/L};}
  if(k==='bonbon'){h.x=s*(d.w*.46+.15*Math.cos(t*7+i));h.y=-d.h*.40+(m==='held'?Math.sin(t*9+i*Math.PI)*1.8:walk?s*beat*.7:0);c.save();c.beginPath();c.arc(h.x,h.y,1.65,0,Math.PI*2);c.clip();img(c,d,[d.body[0]+180,d.body[1]+300,100,100],h.x-1.65,h.y-1.65,3.3,3.3);c.restore();c.strokeStyle='#62513f60';c.lineWidth=.12;c.beginPath();c.arc(h.x,h.y,1.65,0,Math.PI*2);c.stroke();hands.push(h);continue;}const dx=h.x-root.x,dy=h.y-root.y,len=Math.hypot(dx,dy),width=Math.min(3,d.w*.18);c.save();c.translate(root.x,root.y);c.rotate(Math.atan2(dy,dx)-Math.PI/2);img(c,d,d.arms[i],-width/2,-width*.8,width,len+width*1.3);c.restore();hands.push(h);}
 c=bodyContext;
 if(k==='bosong'){
- c.drawImage(armCanvas,-32,-32,64,64);
  c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,Math.PI*2);c.clip();img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);c.restore();
  faceExpr(c,d,k,p,m,t);
  leafLayer(c,d,t,p);
-}else{leafLayer(c,d,t,p);c.drawImage(armCanvas,-32,-32,64,64);}
+}else{leafLayer(c,d,t,p);if(armCanvas)c.drawImage(armCanvas,-32,-32,64,64);}
 // Armless species use the physical leaf-tip contact point, never virtual hands.
 const f=d.fol,tip=k==='jureong'?{x:f[0]+2,y:f[1]+f[3]-3}:{x:f[0]+5,y:f[1]+f[3]-2};
 const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x,ty=tip.y-pivot;tip.x=tx*Math.cos(la)-ty*Math.sin(la);tip.y=pivot+tx*Math.sin(la)+ty*Math.cos(la);
