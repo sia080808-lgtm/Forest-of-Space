@@ -194,7 +194,8 @@ $('photo').onclick=takePhoto;
 const REC_MAX=60;let rec=null;
 function recFormat(){const M=window.MediaRecorder;if(!M||!M.isTypeSupported)return null;for(const t of ['video/mp4;codecs=avc1,mp4a.40.2','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'])if(M.isTypeSupported(t)){const mime=t.split(';')[0];return {type:t,mime,ext:mime==='video/mp4'?'mp4':'webm'};}return null;}
 function recButton(){const b=$('record');if(!rec){b.classList.remove('recording');b.innerHTML=icon('video');b.setAttribute('aria-label','월드 영상 찍기');return;}const left=Math.max(0,REC_MAX-Math.floor((performance.now()-rec.start)/1000));b.classList.add('recording');b.innerHTML='<span class="rec-stop"></span><span class="rec-time">'+Math.floor(left/60)+':'+String(left%60).padStart(2,'0')+'</span>';b.setAttribute('aria-label','영상 멈추기');}
-function toBase64(blob){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=no;r.readAsDataURL(blob);});}
+/* 1.1.7.1: the data URL's type can itself hold a comma ("video/mp4;codecs=avc1,mp4a.40.2"), so the data is what follows ";base64," */
+function toBase64(blob){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>{const t=String(r.result),i=t.indexOf(';base64,');i<0?no(Error('no data')):ok(t.slice(i+8));};r.onerror=no;r.readAsDataURL(blob);});}
 function startRecording(){if(rec||!scene.ready||inspector)return;const f=recFormat(),canvas=$('garden');if(!f||!canvas.captureStream){notice('이 기기에서는 영상을 찍을 수 없어요.');return;}
  carry.cancel();let stream;try{stream=canvas.captureStream(30);const sound=audio.stream?.();if(sound)for(const t of sound.getAudioTracks())stream.addTrack(t);}catch{notice('영상을 찍지 못했어요.');return;}
  const d=new Date(),p2=n=>String(n).padStart(2,'0'),name='여백의숲-'+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes())+p2(d.getSeconds())+'.'+f.ext;

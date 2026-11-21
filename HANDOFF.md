@@ -863,3 +863,11 @@
 - 아이콘: 사용자 "기본 버튼 아이콘은 위에 카메라 아이콘 처럼 비디오 캠코더 아이콘" → 사진 아이콘과 같은 각진 몸통·위 볼록·렌즈 원 + 옆 렌즈통.
 - 아이콘 다시: 사용자 "엄청 심플하게" → 네모 몸통 + 렌즈 삼각형만.
 - 아이콘 되돌림: 사용자 "이전께 낫다" → 사진 아이콘과 같은 모양의 캠코더로.
+- 병합·릴리스: PR #68(https://github.com/sia080808-lgtm/Forest-of-Space/pull/68) main 병합 `20ee8d196575e8904ae937cae478ca94a275e97e`(사용자 "ㄱㄱ"; head `e0fde96` 기준 simulation·CodeQL 성공. 첫 CI에서 `selection-ring222` 소스 검사가 녹화 중 링 숨김 조건으로 실패해 테스트 정규식을 고침). 프리릴리스 v1.1.7 `Forest-of-Space-1.1.7.apk` 74,348,843 bytes, SHA-256 `e8572593e782c5d64d05c70da7cab0a1503f527f5162d6f85605e4d70f112d9b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode83/1.1.7. APK는 사용자에게 파일로 전달.
+
+### VIDEO-SAVE-1.1.8-20261121 — 영상이 저장되지 않던 문제
+
+- 담당: Claude Code. 요청: 사용자 1.1.7 실기기 "왜 영상을 저장하지 못한다고 뜰까? 맵 움직이면 안댐?". 기준 main `20ee8d1`(1.1.7 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `toBase64`가 데이터 URL을 첫 쉼표로 잘랐는데 MIME `video/mp4;codecs=avc1,mp4a.40.2`에 쉼표가 있어 base64가 아닌 문자열을 `videoChunk`로 넘김 → Java 디코드 실패 → `videoEnd(false)`. 1.1.7 검증은 브라우저 내려받기 경로만 봐서 놓쳤다(내 검증 누락).
+- 수정: `;base64,` 뒤를 씀. 크롬에서 RidleyNative 흉내(read/save/video*)로 맵 끌기·전체 보기 중 녹화 → 조각 2개·1,093,334 bytes, end true(고치기 전 0개·false). 버전 1.1.8 / versionCode 84.
+- 미검증: Android 실기기.
