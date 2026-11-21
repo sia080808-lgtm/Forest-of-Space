@@ -24,7 +24,7 @@ const isDay=s=>{const t=dayTime(s);return t<620||t>=1150;};
 function sleepTime(s,p){const t=dayTime(s);if(t>=750&&t<1050)return true;if(!p)return t>=620&&t<1150;if(t>=620&&t<750)return p.energy<50;if(t>=1050&&t<1150)return !['bonbon','jureong'].includes(p.species)&&t<1100;return false;}
 // the sun rock stores sun on bright days (0..100) and a friend resting on it draws it
 // 1.0.1 (user: "맑은 날은 분당 5, 흐린 날은 분당 2"): the rock fills faster so it still holds some sun in a cloudy winter
-const SUN=Object.freeze({clear:5/60,cloud:2/60,use:2/60});
+const SUN=Object.freeze({clear:5/60,cloud:2/60,use:2/60}),ROCK_BOOST=1.5;
 function rockSun(s){const r=s.patches?.find(z=>z.id==='rock');return r&&Number.isFinite(r.sun)?r.sun:0;}   // read only (cards and the screen call it)
 function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return;if(!Number.isFinite(r.sun))r.sun=0;if(!isDay(s))return;const k=s.weather.kind;
  if(k==='sun'&&light(s,r)>=60)r.sun=Math.min(100,r.sun+SUN.clear);else if(k==='cloud')r.sun=Math.min(100,r.sun+SUN.cloud);}
@@ -42,6 +42,11 @@ function chill(s,p){if(restingAt(p,'rock')&&rockSun(s)>0)return 0;const warm=[s.
 const restingAt=(p,id)=>p.objectArrived&&p.objectTask?.object===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
+// 1.0.3: how well a friend photosynthesises right now ('good'/'near'/'strong'/'dark', or null at night, inside, in the
+// crevice or when too dry/hungry to). Pure read; step uses it and the scene shows the 광합성 pose from it.
+function photoGrade(s,p,light,inside){const dark=inside||restingAt(p,'crevice');if(!isDay(s)||dark||!(p.B>15&&p.nutrition>15))return null;
+ const [a,c]=T().ofPet(p).light,L=restingAt(p,'rock')&&rockSun(s)>0?(a+c)/2:coolAt(s,p)?light-COOL.light:light;
+ return L>=a&&L<=c?'good':L<a?(L>=a-15?'near':'dark'):(L<=c+15?'near':'strong');}
 // one tick for an active friend (engine calls it after the weather physiology)
 function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPet(p),E=dep('environment');migrate(p);
  // fold old mood changes and new leaf damage into 기운
@@ -54,9 +59,10 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
   for(const [z,w] of [[zb,tr.wet],[zn,tr.nutrWeak]])if(bad(z))energyPts(p,-1/60*w);else if(danger(z))energyPts(p,-2/60*w);
   // photosynthesis (ST34-08): uses water, gives 기운 and growth
   const onRock=restingAt(p,'rock')&&rockSun(s)>0,dark=inside||restingAt(p,'crevice');
-  if(isDay(s)&&!dark&&p.B>15&&p.nutrition>15){const [a,c]=tr.light,L=onRock?(a+c)/2:coolAt(s,p)?light-COOL.light:light;
-   const g=L>=a&&L<=c?'good':L<a?(L>=a-15?'near':'dark'):(L<=c+15?'near':'strong');
-   const R={good:[.3,.6,1/210],near:[.2,.3,1/420],strong:[.6,.2,1/420],dark:[0,0,0]}[g];out.grade=g;
+  if(isDay(s)&&!dark&&p.B>15&&p.nutrition>15){const g=photoGrade(s,p,light,inside);
+   const R=[...{good:[.3,.6,1/210],near:[.2,.3,1/420],strong:[.6,.2,1/420],dark:[0,0,0]}[g]];out.grade=g;
+   // 1.0.3 슈퍼 광합성 (user): on the sun rock it uses the same water but gives 1.5x the 기운 and growth
+   if(onRock){R[1]*=ROCK_BOOST;R[2]*=ROCK_BOOST;}
    if(R[0]){const w=Math.min(p.B,R[0]*tr.sun/60);p.B-=w;ledger.physiology+=w;out.water=w;}
    if(R[1])energyPts(p,R[1]/60);if(g==='strong'&&zb==='low'||g==='strong'&&zb==='dangerLow')energyPts(p,-1/60);
    if(R[2]){const fit=danger(zb)||danger(zn)?0:bad(zb)||bad(zn)?.5:1,en=p.energy>=70?1.2:p.energy<30?.5:1,season={spring:1.25,winter:.75}[E?.season?.(s)]??1;
@@ -78,5 +84,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  const r=s.patches?.find(z=>z.id==='rock');if(r&&r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({ROCK_BOOST,photoGrade,restingAt,band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });

@@ -18,3 +18,16 @@ test('0.6.34 every species shivers now and then while spider mites are on its le
   a.deepEqual(shot({...o,phase:3}),shot({...o,phase:3,itch:false}),species+' only part of each '+R.ITCH+' s');
   a.deepEqual(shot({...o,kind:'sleep'}),shot({...o,kind:'sleep',itch:false}),species+' not while asleep');}
 });
+test('1.0.3 광합성 and 볕 쬐기 poses draw every species, bigger motes on the sun rock by day, and grade follows the photosynthesis rule',async()=>{const images=await assets(),can=createCanvas(200,200),c=can.getContext('2d'),V=require(web+'/vitals.js'),F=require(web+'/engine.js');
+ const ink=()=>{let n=0;const d=c.getImageData(0,0,200,200).data;for(let i=3;i<d.length;i+=4)if(d[i]>8)n++;return n;};
+ for(const species of ['ridley','bonbon','neolbi','bosong','jureong','superbum'])for(const kind of ['photo','bask']){const opt={species,kind,phase:1.5,seed:0};const before=JSON.stringify(opt);c.resetTransform();c.clearRect(0,0,200,200);c.translate(100,180);c.scale(.1,.1);c.translate(-627,-1066);R.draw(c,images,opt);a.ok(ink()>500,species+' '+kind);a.equal(JSON.stringify(opt),before);}
+ const area=photo=>{c.resetTransform();c.clearRect(0,0,200,200);c.translate(100,180);c.scale(.1,.1);c.translate(-627,-1066);R.draw(c,images,{species:'ridley',kind:'bask',phase:1.5,photo,seed:0});return ink();};
+ // the day bask (photo) adds the big light motes around the friend
+ a.ok(area(true)>area(false));
+ const s=F.create(0,4);s.weather.kind='sun';s.climate.L=60;const p=s.individuals[0];Object.assign(p,{B:50,nutrition:50});s.worldTick=300;a.ok(['good','near'].includes(V.photoGrade(s,p,F.light(s,p),false)));
+ a.equal(V.photoGrade(s,p,F.light(s,p),true),null);s.worldTick=900;a.equal(V.photoGrade(s,p,F.light(s,p),false),null);});
+test('1.0.3 슈퍼 광합성: on the sun rock the same water gives 1.5x the 기운 and growth of good light on the ground',()=>{const V=require(web+'/vitals.js'),F=require(web+'/engine.js');
+ const run=onRock=>{const s=F.create(0,4);s.weather.kind='sun';s.climate.T=60;s.worldTick=300;const r=s.patches.find(z=>z.id==='rock');r.sun=80;const p=s.individuals[0];Object.assign(p,{B:50,nutrition:50,energy:50,xp:20,growthSeconds:0});
+  const [a,c]=require(web+'/traits.js').ofPet(p).light;s.climate.L=(a+c)/2;if(onRock){Object.assign(p,F.Space.rockTop(s));p.objectTask={object:'rock',kind:'rest',reason:'energy',since:0};p.objectArrived=true;}
+  const e0=p.energy,led={physiology:0,evaporation:0};const out=V.step(s,p,{light:F.light(s,p),inside:false,moving:false,held:false,ledger:led});return {out,de:p.energy-e0};};
+ const g=run(false),k=run(true);a.equal(g.out.grade,'good');a.equal(k.out.grade,'good');a.ok(Math.abs(k.out.water-g.out.water)<1e-9);a.ok(Math.abs(k.out.xp-g.out.xp*V.ROCK_BOOST)<1e-9);a.ok(k.de>g.de);});
