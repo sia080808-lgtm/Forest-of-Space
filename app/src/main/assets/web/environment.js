@@ -29,7 +29,7 @@ function profile(a){return {brightness:a[0],saturation:a[1],color:rgb(a[2]),alph
 function mix(a,b,t){return {brightness:a.brightness+(b.brightness-a.brightness)*t,saturation:a.saturation+(b.saturation-a.saturation)*t,color:a.color.map((x,i)=>x+(b.color[i]-x)*t),alpha:a.alpha+(b.alpha-a.alpha)*t};}
 function weatherKey(s){return s.environment?.storm?'storm':s.weather.kind==='sun'&&s.weather.wind>=40?'wind':s.weather.kind;}
 function weatherProfile(s){const e=s.environment||{},key=weatherKey(s),to=profile(WEATHER[key]||WEATHER.sun);return e.visualFrom&&s.weather.transition>0?mix(e.visualFrom,to,1-s.weather.transition/10):to;}
-function lighting(s){const forced=s.previewTime||(s.settings.theme==='night'?'night':s.settings.theme==='day'?'noon':null);let t;
+function lighting(s){const forced=s.previewTime;/* 1.2.1: the light/dark setting is for the app screens only; the world always follows its own clock */let t;
  if(forced)t=profile(TIMES[forced]);else{const centers=[90,360,570,750,1020,1170],keys=['morning','noon','dusk','night','deep','dawn'],tick=s.worldTick%1200;let idx=centers.findIndex(c=>c>tick);if(idx<0)idx=0;const prev=(idx+5)%6;let a=centers[prev],b=centers[idx],x=tick;if(idx===0){b+=1200;if(x<a)x+=1200;}t=mix(profile(TIMES[keys[prev]]),profile(TIMES[keys[idx]]),clamp((x-a)/(b-a),0,1));}
  const w=weatherProfile(s),se=seasonProfile(s);return {brightness:clamp(t.brightness*w.brightness,.58,1.08),saturation:clamp(t.saturation*w.saturation*se.saturation,.65,1.05),tints:se.alpha>0?[t,w,se]:[t,w]};}
 // 0.8.0: a light seasonal colour over the world (render only): fresh green spring, warm summer, amber autumn, cool winter

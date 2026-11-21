@@ -119,3 +119,5 @@
 #admin-view .tag text{font-weight:500}
 #admin-view{stroke:none;width:100%;height:100%}#admin-view .tag rect,#admin-view .tag text{stroke:none}
 .region-entry h3{margin:14px 0 6px}.region-entry p{margin:6px 0}.region-art{height:150px;border-radius:14px;background-size:cover;background-color:var(--wash);display:grid;place-items:center}.region-entry.unmet{background:var(--wash)}.region-entry.unmet .region-art{background:none;border:1px dashed var(--line);height:90px}.region-art span{font-family:Gowun;font-size:32px;color:#999989}
+.adm input[type=range]{touch-action:pan-y}.adm-body{touch-action:pan-y}
+.adm-prog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 10px;border-radius:12px;background:var(--wash);font-size:13px}

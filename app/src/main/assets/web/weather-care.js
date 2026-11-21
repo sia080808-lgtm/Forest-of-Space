@@ -8,6 +8,8 @@ const U=h=>(typeof module==='object'?require('./skills.js'):globalThis.ForestSki
 const fields={gustExposure:0,braceSeconds:0,windCalmSeconds:0,wet85Seconds:0,wetFilm:0,wetRecovery:false,leafRecovery:false};
 function init(s){s.weather.wind_dir??=0;for(const p of s.individuals)for(const[k,v]of Object.entries(fields))p[k]??=v;return s;}
 function healthy(p){return p&&p.active&&!p.mounted&&p.B>=35&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&p.damage<30&&!p.wetRecovery&&!p.leafRecovery;}
+// 1.2.1: under 엘레판's leaf in rain, low 수분 is no reason to refuse the umbrella — the rain itself waters the friend
+function leafFit(s,p){return healthy(p)||!!p&&['rain','snow'].includes(s.weather.kind)&&healthy({...p,B:Math.max(p.B,35)});}
 function live(s,h){return healthy(h)&&h.canopy&&!h.canopyClosing&&(h.canopyProgress??1)>=.95&&s.weather.wind<U(h).limit&&(s.weather.wind<U(h).limit-10||h.braceSeconds<=10)&&(!h.motion||!h.motion.distance);}
 function covered(s,q){return s.individuals.filter(h=>h.species==='neolbi'&&live(s,h)&&N.covers(h,q));}
 function host(s,p){const a=s.social?.sessions.find(a=>a.type==='CANOPY'&&a.phase==='rest'&&a.ids[1]===p.id);const h=a&&s.individuals.find(h=>h.id===a.ids[0]);return h&&live(s,h)&&N.canFit(h,p,p)?h:null;}
@@ -33,5 +35,5 @@ function physiology(s,p,{safeCare=false}={}){const r=Math.max(p.Q*5,p.B),   /* S
 function offline(p){p.gustExposure=Math.max(0,p.gustExposure-2);p.windCalmSeconds=Math.min(20,p.windCalmSeconds+1);if(p.windCalmSeconds>=20)p.braceSeconds=0;if(p.Q<16)p.wetSeconds=0;if(p.Q<17)p.wet85Seconds=0;if(p.Q<12&&p.burden<30)p.wetRecovery=false;if(p.damage<20)p.leafRecovery=false;p.wetFilm=Math.max(0,p.wetFilm-.003);delete p.weatherExposure;}
 function validate(s){if(!Number.isFinite(s.weather.wind_dir)||Math.abs(s.weather.wind_dir)>Math.PI*2)throw Error('바람 방향 기록을 확인해 주세요.');for(const p of s.individuals){for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])if(!Number.isFinite(p[k])||p[k]<0||p[k]>(k==='gustExposure'||k==='braceSeconds'?10:k==='windCalmSeconds'?20:k==='wetFilm'?1:1e15))throw Error('날씨 노출 기록을 확인해 주세요.');for(const k of ['wetRecovery','leafRecovery'])if(typeof p[k]!=='boolean')throw Error('회복 기록을 확인해 주세요.');}}
 const limit=h=>U(h).limit;
-return {limit,init,healthy,live,host,covered,rainCover,rainFraction,wind,physiology,offline,validate};
+return {limit,init,healthy,leafFit,live,host,covered,rainCover,rainFraction,wind,physiology,offline,validate};
 });

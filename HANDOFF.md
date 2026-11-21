@@ -887,3 +887,14 @@
 - 변경: `forest-app.js`(관리자 패널 `renderAdmin`·`adminOverlay`·`adminRun`·`adminFocus`, 배속·날씨 고정은 tick 루프에서(UI 전용, 저장 안 함), 관리자 모드 스위치는 localStorage `forest-admin-mode`, 옛 `adminPage` 삭제, 새 `settingsPage`, 쉼터 편집 끌기·뒤집기), `admin.js`(`set`·`skillReady`·`creature`·`rockSun`·`climateAuto`·`fireflies`, `climate`는 고정으로 표시), `creatures.js`(`arrive` 내보냄), `shelter.js`(`sourceX`·`entry` 뒤집기, `flip` 검증, 'flip' 종류, 추가 시 겹침 검사, 넓은 숲 배치·물 위 금지, `build`에서 flip 지우기), `carry.js`(쉼터 끌기), `scene.js`(뒤집힌 쉼터 그림), `object-cards.js`(좌우 뒤집기 버튼), `index.html`·`forest.css`. 버전 1.2.0 / versionCode 86.
 - 검증: `admin-panel`·`shelter-flip` 새 테스트, 관련 테스트, `npm run test:ui` PASS(`tools/ui-smoke.mjs`를 새 설정·패널 흐름으로 갱신, 검수 화면은 패널 '보기' 탭에서 열기). 크롬 화면 `docs/qa-1.2.0/runtime`. 전체는 CI. Android 실기기 미검증.
 - 남은 것: `tools/admin-review.cjs`는 옛 관리자 페이지 기준이라 다시 맞춰야 함(CI 미사용). 병합은 사용자 지시대로 하지 않음.
+- 추가(같은 PR): 도감 그림 크기 맞춤(`fitArt`), 도감 '생활 기록'·'환경 발견' 탭을 '지역 발견'(이끼의 숲·동쪽 호수, 바다·산·눈밭은 아직)으로.
+- 병합·릴리스: PR #71(https://github.com/sia080808-lgtm/Forest-of-Space/pull/71) main 병합 `d5db2d87ec414acd5548167255f7f184b911cf7c`(사용자 "이렇게 업데이트 ㄱㄱ"; head `0ea4a9b` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.0 `Forest-of-Space-1.2.0.apk` 74,361,131 bytes, SHA-256 `60e260349e1f0812b4632571cca22dd0941f45c241197597a35af643a6f66750` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode86/1.2.0. APK는 사용자에게 파일로 전달.
+
+### SETTINGS-FIX-1.2.1-20261121 — 기후 선택, 라이트·다크 모드와 월드 시간 분리, 켤 때마다 첫 화면
+
+- 담당: Claude Code. 요청: 사용자 제보 3건(기후 선택 안 됨, 화면 설정이 월드 밝기를 바꿈, 켤 때 첫 화면 없음) "디버깅 pr". 기준 main `d5db2d8`(1.2.0 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `forest-app.js`(기후 카드는 예약 기후 `pendingClimate`로 선택 표시·안내, 같은 기후는 예약 지움, 화면 설정 라이트/다크 두 가지·UI만, 시작마다 `welcome` 보임), `environment.js` `lighting`(테마로 시간 고정 안 함, `previewTime`만), `scene.js`·`audio.js`(밤 판정이 월드 시간만). 테스트: `tools/ui-smoke.mjs`(첫 화면·테마 두 가지), `lifecycle.test.cjs`(배경음 숲 시간). 버전 1.2.1 / versionCode 87.
+- 검증: UI PASS, lifecycle·render·seasons·package 통과, 크롬 기후 카드 확인. 전체는 CI. 실기기 미검증.
+- 남은 것: QA 도구 몇 개(`tools/render-review.cjs`·`viewport-review.cjs` 등)가 `settings.theme`로 밤 그림을 만들던 방식 — `previewTime`으로 고쳐야 함(CI 미사용).
+- 추가(같은 PR #72): 관리자 패널 스크롤 유지·밀다 끝난 터치 무시·'스킬 대기 없애기' 색, 친구 고르면 확대·따라가기(탭 유지), 이웃 부르면 클로즈업, 시간 버튼이 계절을 바꾸지 않음(달력 시작점 같이 이동, 시각 값 맞춤), 실제로 진행을 프레임마다 나눠 진행(진행 표시·멈추기), 관리자 기후 즉시 변경, 사물 탭 현재 값·낙엽 버튼 더하기·숲 바닥 낙엽 떨어뜨리기, 보기 탭 사물 상태(햇살 바위 볕·이끼·바위틈·낙엽 자리·웅덩이). 크롬 화면 `docs/qa-1.2.1/runtime`.
+- 추가(같은 PR #72): 비·폭풍·추위에 피하지 않던 문제 — 목마름이 비 피하기보다 먼저였던 순서(비가 오면 물 마시러 가지 않음, 큰비엔 붙잡던 일도 끊음), 마실 물이 없으면 서성이지 않고 넘어감, 추운 날 추위에 약한 친구는 먼저 몸 녹이기('warm' 이유), 엘레판 잎 우산은 비 올 때 수분 낮아도 가능(`leafFit`)·곁 친구와 엘레판이 기다림. 전체 364/364. 남은 것: 실기기, 쉼터 3자리라 친구가 많으면 나머지는 바위틈·잎 그늘·바위로.

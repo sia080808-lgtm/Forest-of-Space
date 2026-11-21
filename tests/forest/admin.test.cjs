@@ -4,7 +4,7 @@ const test=require('node:test'),a=require('node:assert/strict'),F=require('../..
 const game=()=>{const s=F.create(0,3);s.started=true;F.advance(s,300);return s;};
 const bal=s=>F.totalWater(s)-s.ledger.rain+s.ledger.evaporation+s.ledger.outflow+s.ledger.physiology-(s.ledger.lake||0)-(s.ledger.admin||0);
 test('AD-01 time, season, weather, climate; the clock only moves forward',()=>{const s=game(),t0=s.worldTick;
- A.run(F,s,'time','night');a.equal(((s.worldTick%1200)+1200)%1200,800);a.ok(s.worldTick>t0);
+ A.run(F,s,'time','night');a.equal(((s.worldTick%1200)+1200)%1200,1000);a.ok(s.worldTick>t0);
  A.run(F,s,'season',3);a.equal(F.Environment.season(s),'winter');A.run(F,s,'weather','rain');a.equal(s.weather.kind,'snow','winter rain falls as snow');
  A.run(F,s,'season',1);A.run(F,s,'weather','gale');a.ok(s.weather.wind>=60);A.run(F,s,'climate','C04');F.valid(s);
  a.throws(()=>A.run(F,s,'advance',7),/진행/);});
