@@ -14,6 +14,8 @@ await new Promise(r=>setTimeout(r,50));
 const {scene,carry,getState}=win.__qa;
 assert.ok(win.RidleyApp,'boot');assert.equal(win.document.getElementById('world').hidden,false);
 const click=sel=>{const b=win.document.querySelector(sel);assert.ok(b,sel);b.click();};
+// 1.2.1: the title screen shows on every launch, even for a started forest, and '숲에 들어가기' closes it
+assert.equal(win.document.getElementById('welcome').hidden,false,'title screen on launch');click('#enter');assert.equal(win.document.getElementById('welcome').hidden,true);
 // 1.2.0: the admin tools live in a panel over the world (turned on in settings), the inspectors under its '보기' tab
 const adminPanel=(tabId='view')=>{click('#settings');const sw=win.document.querySelector('[data-action="admin-mode"]');if(sw.getAttribute('aria-checked')!=='true')sw.click();click('[data-tab="world"]');if(win.document.getElementById('admin-panel').hidden)click('#admin-tool');click('[data-tab-id="'+tabId+'"]');};
 const canvas=win.document.getElementById('garden');
@@ -80,7 +82,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
 // 1.2.0 설정 화면·관리자 모드: grouped settings, the admin switch, the panel over the world, real actions saved, reset behind a dialog
 {click('#settings');const caps=[...win.document.querySelectorAll('#page .st-cap')].map(h=>h.textContent);assert.deepEqual(caps,['화면','소리','숲의 기후','기록','더 보기']);
  assert.equal(win.document.querySelector('[data-action="facility-home"]'),null,'no shelter row in settings');
- click('[data-action="theme-set"][data-v="night"]');assert.equal(saved.settings.theme,'night');click('[data-action="theme-set"][data-v="auto"]');
+ click('[data-action="theme-set"][data-v="night"]');assert.equal(saved.settings.theme,'night');click('[data-action="theme-set"][data-v="day"]');assert.equal(saved.settings.theme,'day');assert.equal(win.document.querySelector('[data-action="theme-set"][data-v="auto"]'),null,'only light and dark modes');
  click('[data-action="climate-set"][data-v="C04"]');assert.equal(saved.environment.climateMode,'fixed');click('[data-action="climate-set"][data-v="season"]');assert.equal(saved.environment.climateMode,undefined);
  adminPanel('time');const panel=win.document.getElementById('admin-panel');assert.equal(panel.hidden,false);assert.equal(panel.querySelectorAll('.adm-tab').length,8);
  const t0=getState().worldTick,run=args=>{const b=[...panel.querySelectorAll('[data-action="admin-run"]')].find(x=>x.dataset.args===JSON.stringify(args));assert.ok(b,'button '+args);b.click();};

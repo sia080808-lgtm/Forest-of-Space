@@ -889,3 +889,10 @@
 - 남은 것: `tools/admin-review.cjs`는 옛 관리자 페이지 기준이라 다시 맞춰야 함(CI 미사용). 병합은 사용자 지시대로 하지 않음.
 - 추가(같은 PR): 도감 그림 크기 맞춤(`fitArt`), 도감 '생활 기록'·'환경 발견' 탭을 '지역 발견'(이끼의 숲·동쪽 호수, 바다·산·눈밭은 아직)으로.
 - 병합·릴리스: PR #71(https://github.com/sia080808-lgtm/Forest-of-Space/pull/71) main 병합 `d5db2d87ec414acd5548167255f7f184b911cf7c`(사용자 "이렇게 업데이트 ㄱㄱ"; head `0ea4a9b` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.0 `Forest-of-Space-1.2.0.apk` 74,361,131 bytes, SHA-256 `60e260349e1f0812b4632571cca22dd0941f45c241197597a35af643a6f66750` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode86/1.2.0. APK는 사용자에게 파일로 전달.
+
+### SETTINGS-FIX-1.2.1-20261121 — 기후 선택, 라이트·다크 모드와 월드 시간 분리, 켤 때마다 첫 화면
+
+- 담당: Claude Code. 요청: 사용자 제보 3건(기후 선택 안 됨, 화면 설정이 월드 밝기를 바꿈, 켤 때 첫 화면 없음) "디버깅 pr". 기준 main `d5db2d8`(1.2.0 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `forest-app.js`(기후 카드는 예약 기후 `pendingClimate`로 선택 표시·안내, 같은 기후는 예약 지움, 화면 설정 라이트/다크 두 가지·UI만, 시작마다 `welcome` 보임), `environment.js` `lighting`(테마로 시간 고정 안 함, `previewTime`만), `scene.js`·`audio.js`(밤 판정이 월드 시간만). 테스트: `tools/ui-smoke.mjs`(첫 화면·테마 두 가지), `lifecycle.test.cjs`(배경음 숲 시간). 버전 1.2.1 / versionCode 87.
+- 검증: UI PASS, lifecycle·render·seasons·package 통과, 크롬 기후 카드 확인. 전체는 CI. 실기기 미검증.
+- 남은 것: QA 도구 몇 개(`tools/render-review.cjs`·`viewport-review.cjs` 등)가 `settings.theme`로 밤 그림을 만들던 방식 — `previewTime`으로 고쳐야 함(CI 미사용).
