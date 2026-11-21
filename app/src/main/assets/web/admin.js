@@ -42,6 +42,7 @@ function summon(F,s,species){const R=F.Recruitment;R.init(s);if(!R.ids.includes(
 function welcome(F,s,species){summon(F,s,species);const v=s.recruitment.visitor;v.ready=true;const p=F.Recruitment.settle(s,F.event);p.active=true;return F.Recruitment.josa(p.name,'이','가')+' 바로 정원에 들어왔어요.';}
 function dismiss(F,s){if(!s.recruitment?.visitor)throw Error('기다리는 손님이 없어요.');s.recruitment.visitor=null;return '입구의 손님을 돌려보냈어요.';}
 // unlocks
+function fillLake(F,s){const n=F.World.fillLake(s);if(n===null)throw Error('호수 물가가 아직 열리지 않았어요.');if(n===0)throw Error('지금은 더 채울 게 없어요(겨울이거나 이미 가득해요).');return '호수에 연꽃과 물가 이웃을 '+n+'개 채웠어요.';}
 function openLake(F,s){if(!F.World.openLake(s))throw Error('호수 물가는 이미 열려 있어요.');return '숲 동쪽에 물가가 열렸어요.';}
 function unlockShelter(F,s){F.Shelter.init?.(s);s.shelters.unlocked=true;return '쉼터 넓히기·더 짓기를 열었어요.';}
 function unlockObjects(F,s){for(const m of Object.values(s.objects.upgrades))m.unlocked=3;return '샘터·이끼·낙엽 자리 넓히기를 3단계까지 열었어요.';}
@@ -51,7 +52,7 @@ function compost(F,s){const z=s.patches.find(p=>p.id==='litter');z.U=Math.max(z.
 function leaves(F,s){const z=s.patches.find(p=>p.id==='litter');z.O=Math.max(z.O,10);return '낙엽 자리에 낙엽 10장을 놓았어요.';}
 // small neighbours: send every group home except the porter ants (they may be carrying a real leaf)
 function clearCreatures(F,s){const c=s.objects?.creatures;if(!c)throw Error('작은 이웃 기록이 없어요.');const n=c.groups.length;c.groups=c.groups.filter(g=>g.kind==='ant');return '작은 이웃 '+(n-c.groups.length)+'무리를 돌려보냈어요(짐꾼개미는 남겨요).';}
-const ACTIONS=Object.freeze({time,advance,season,weather,climate,level,resetLevels,stats,summon,welcome,dismiss,openLake,unlockShelter,unlockObjects,spring,compost,leaves,clearCreatures});
+const ACTIONS=Object.freeze({time,advance,season,weather,climate,level,resetLevels,stats,summon,welcome,dismiss,openLake,fillLake,unlockShelter,unlockObjects,spring,compost,leaves,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
 return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,ACTIONS,run});
 });

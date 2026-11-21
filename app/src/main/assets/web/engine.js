@@ -16,7 +16,7 @@ const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVital
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.1.0', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.1.1', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -112,7 +112,9 @@ function step(s,{visible=true,held=null}={}){
   // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
   // (shelter full, every rest spot taken or too small) sleeps where it stands instead of standing frozen.
   if(p.sleepHere){const still=Vit.sleepTime(s,p)||Env.precipitation(s,'rain')+Env.precipitation(s,'snow')>=.25;
-   if(!still||p.B<Vit.band(p).warnLo||p.nutrition<Vit.band(p).warnLo||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
+   // 1.1.1: every 20 s it looks again for a real spot (a shelter seat held by a friend still walking frees up, the rain stops),
+   // instead of sleeping out in the open for the rest of the night
+   if(!still||s.worldTick>=p.nextObjectChoice||p.B<Vit.band(p).warnLo||p.nutrition<Vit.band(p).warnLo||p.objectTask||p.shelterRequest||p.shelter?.facilityId||s.weather.wind>=60||p.mounted||!p.active){delete p.sleepHere;if(p.objectWait?.reason==='sleep_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
    else{p.motion.kind='sleep';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   if(p.braceHere){if(s.weather.wind<60||p.objectTask||p.shelterRequest||p.shelter?.facilityId||p.mounted||!p.active){delete p.braceHere;if(p.objectWait?.reason==='brace_here')delete p.objectWait;p.nextObjectChoice=s.worldTick;}
    else{p.motion.kind='rest';p.motion.distance=0;p.action='rest';continue;}}
