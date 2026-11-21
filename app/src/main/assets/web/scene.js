@@ -429,7 +429,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    // 0.6.35: a friend tucked into the crevice is not drawn where the small front stone stands or below it (its feet and
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip();
-   if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
+   if(!carry&&!this.recording&&this.selected===p.id)this.selectionRing(p,pos,phase);
    if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind

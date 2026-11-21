@@ -181,6 +181,49 @@ public final class MainActivity extends Activity {
                 return false;
             }
         }
+        /* 1.1.7 video: the page streams a recording of the world canvas here in pieces (begin, chunk..., end) straight into
+           the gallery (Movies/여백의 숲), so a one-minute video never has to sit in memory as one string. */
+        private OutputStream videoOut; private Uri videoUri; private long videoBytes;
+        @JavascriptInterface public synchronized boolean videoBegin(String name, String mime) {
+            videoEnd(false);
+            if (!"video/mp4".equals(mime) && !"video/webm".equals(mime)) return false;
+            String ext = "video/mp4".equals(mime) ? "mp4" : "webm";
+            String file = (name == null || !name.matches("[\\p{L}\\p{N}._-]{1,80}\\." + ext)) ? "Forest-of-Space." + ext : name;
+            try {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Video.Media.DISPLAY_NAME, file);
+                v.put(MediaStore.Video.Media.MIME_TYPE, mime);
+                v.put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/여백의 숲");
+                v.put(MediaStore.Video.Media.IS_PENDING, 1);
+                videoUri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v);
+                if (videoUri == null) return false;
+                videoOut = getContentResolver().openOutputStream(videoUri, "w");
+                if (videoOut == null) throw new IllegalStateException();
+                videoBytes = 0;
+                return true;
+            } catch (Exception e) { videoEnd(false); return false; }
+        }
+        @JavascriptInterface public synchronized boolean videoChunk(String base64) {
+            if (videoOut == null || base64 == null) return false;
+            try {
+                byte[] b = Base64.decode(base64, Base64.DEFAULT);
+                videoBytes += b.length;
+                if (videoBytes > 20L * MAX_BYTES) throw new IllegalStateException();
+                videoOut.write(b);
+                return true;
+            } catch (Exception e) { videoEnd(false); return false; }
+        }
+        @JavascriptInterface public synchronized boolean videoEnd(boolean keep) {
+            Uri uri = videoUri; OutputStream out = videoOut; videoUri = null; videoOut = null;
+            boolean ok = keep && uri != null && out != null && videoBytes > 0;
+            if (out != null) { try { out.close(); } catch (Exception e) { ok = false; } }
+            if (uri == null) return false;
+            try {
+                if (ok) { ContentValues v = new ContentValues(); v.put(MediaStore.Video.Media.IS_PENDING, 0); getContentResolver().update(uri, v, null, null); }
+                else getContentResolver().delete(uri, null, null);
+            } catch (Exception e) { ok = false; }
+            return ok;
+        }
         @JavascriptInterface public void theme(final boolean dark) {
             runOnUiThread(new Runnable() { @Override public void run() {
                 getWindow().setStatusBarColor(Color.parseColor(dark ? "#232A27" : "#F7F4EC"));

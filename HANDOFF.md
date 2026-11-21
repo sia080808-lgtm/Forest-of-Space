@@ -853,3 +853,10 @@
 - 고치며 찾은 것: 그늘 아래 친구 그림판 영역을 친구 리그 좌표가 아닌 세계 좌표로 잡아 친구가 사라짐, 납작하게 비튼 거름 조각의 해상도를 낮게 재 흐려짐, 젖은 바위를 원본 크기로 구워 조금 거칠어짐 — 모두 고치고 다시 비교.
 - 검증: 렌더 관련 테스트 통과(`render.test` 가짜 그림판 보강·슈퍼범 옆잎 검사 조정), 전체는 CI. Android 실기기 미검증.
 - 병합·릴리스: PR #67(https://github.com/sia080808-lgtm/Forest-of-Space/pull/67) main 병합 `78e0342e6e2595e166dbe815d9ecb70d6bf098b1`(사용자 "ㄱㄱ"; head `ebd36b8` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.6 `Forest-of-Space-1.1.6.apk` 74,344,747 bytes, SHA-256 `d3e26d4fdc8a5c1dee3a4ee801d53d895430403458f22c6081cbc3575f5d37bd` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode82/1.1.6. APK는 사용자에게 파일로 전달.
+
+### WORLD-VIDEO-1.1.7-20261121 — 월드 영상 녹화 (최대 1분)
+
+- 담당: Claude Code. 요청: "일정시간 월드를 비디오 녹화하는 기능 넣을 수 있나" → "최대 시간은 1분으로 지정해두고, 그 안에서 찍다가 정지". 기준 main `78e0342`(1.1.6 병합) + HANDOFF `e860464`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `forest-app.js`(`startRecording`·`stopRecording`·`recFormat`·`recButton`, canvas `captureStream(30)` + MediaRecorder 1초 조각, 60초 자동 정지, `pause()`에서 멈춤), `audio.js`(`stream()` 게임 소리 트랙), `scene.js`(녹화 중 선택 링 숨김 `recording`), `index.html`·`forest.css`(녹화 버튼·남은 시간), `MainActivity.java`(`videoBegin`/`videoChunk`/`videoEnd` → MediaStore `Movies/여백의 숲`, 람다 없음, 상한 320MB). 버전 1.1.7 / versionCode 83.
+- 판단(사용자가 정하지 않은 것): 소리는 함께 녹음(소리 크기 설정 그대로), 버튼은 사진 아래 따로 둠.
+- 검증: `package`·`android-shell-dex` 통과, UI PASS, javac 컴파일, 크롬 3초 녹화 MP4(H.264+Opus) 확인. 전체는 CI. Android 실기기(WebView MP4 지원·갤러리 저장·렉) 미검증.
