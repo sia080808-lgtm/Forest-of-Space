@@ -4,7 +4,7 @@ function fixture(){const calls=[],ctx=new Proxy({},{get:(_,k)=>k.startsWith('cre
  vm.createContext(sandbox);vm.runInContext(fs.readFileSync(web+'scene.js','utf8')+'\nthis.Scene=ForestScene;',sandbox);const s=F.create(0,88);F.welcomeNeolbi(s);const canvas={getContext:()=>ctx,getBoundingClientRect:()=>({width:420,height:690}),addEventListener(){}};const scene=new sandbox.Scene(canvas,()=>s);return {scene,s,calls};}
 const src=fs.readFileSync(web+'scene.js','utf8');
 test('SEL222-01 selection ring is drawn in the world pass immediately before the selected body',()=>{
- a.match(src,/if\(!carry&&this\.selected===p\.id\)this\.selectionRing\(p,pos,phase\);\n\s*if\(!carry\)this\.pet\(/);
+ a.match(src,/if\(!carry&&!this\.recording&&this\.selected===p\.id\)this\.selectionRing\(p,pos,phase\);\n\s*if\(!carry\)this\.pet\(/);
  a.ok(!/target\.ellipse\(q\.x,q\.y,23\*this\.camera\.scale/.test(src),'old post-lighting overlay ring removed');});
 test('SEL222-02 ring is stroke-only, scales with body size, and render does not mutate state',()=>{const {scene,s,calls}=fixture();const r=s.individuals[0],n=s.individuals.find(p=>p.species==='neolbi');const before=JSON.stringify(s);
  scene.selectionRing(r,{x:.4,y:.5},1);const rr=scene.ringPass.rx;a.ok(!calls.some(c=>c.k==='fill'),'no filled disc');a.ok(calls.filter(c=>c.k==='stroke').length>=4);
