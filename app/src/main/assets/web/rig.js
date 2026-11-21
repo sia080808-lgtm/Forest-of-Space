@@ -14,7 +14,7 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0}={}){
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0}={}){
  if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop});
  if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop});
  if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop}))return;
@@ -30,7 +30,7 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
   else {c.save();c.strokeStyle='#efe4c7';c.fillStyle='#efe4c7';c.lineWidth=9;c.lineCap='round';
    for(const x of [592,762]){c.beginPath();if(e==='sleepy'||blink){c.moveTo(x-17,793);c.quadraticCurveTo(x,809,x+17,793);}else if(e==='happy'){c.moveTo(x-16,796);c.quadraticCurveTo(x,775,x+16,796);}else if(e==='sad'){c.moveTo(x-15,796);c.lineTo(x+15,803);}else {c.moveTo(x,775);c.lineTo(x,812);}c.stroke();}
    if(e==='surprised'){c.beginPath();c.ellipse(678,849,13,17,0,0,Math.PI*2);c.fill();}else if(e!=='sleepy'){c.beginPath();c.moveTo(664,849);c.lineTo(690,849);c.stroke();}c.restore();}
-  c.save();c.translate(640,690);c.rotate(restBlend*.04+droop*.07+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.scale(1+droop*.05,1-droop*.06);c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12+droop*34);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
+  c.save();c.translate(640,690);c.rotate(leafTilt+restBlend*.04+droop*.07+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.scale(1+droop*.05,1-droop*.06);c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12+droop*34);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
  }
  const hands=kind==='splash'?[[420,935+Math.sin(phase*7)*16,.2],[930,935-Math.sin(phase*7)*16,-.2]]:kind==='drink'?[[500,870,.2],[930,935,-.2]]:kind==='litter'?litterHands(phase,reduced):kind==='brush'?brushHands(phase,reduced):null;
  for(const [x,y,angle]of (hands||[[391,906+restBlend*10+droop*34,['walk','slow','hurry','run','duck','step','avoid'].includes(kind)?p.swing:.2],[968-210*p.reach,898-232*p.reach+p.stroke+droop*34,-.2-.5*p.reach]])){c.save();c.translate(x,y);c.rotate(angle);c.drawImage(assets[definition.palm],-43,-52,86,104);c.restore();}
@@ -50,8 +50,15 @@ function playBody(t){const u=mod(t,PLAY);if(u<.8){const e=ease(u/.8);return {dy:
 function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);}
 function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
-// SRS v2.36 리들리 잎 털어 주기: both hands reach out in front and brush up and down in turn
-function brushHands(t,reduced){const a=reduced?0:Math.sin(t*9),b=reduced?0:Math.sin(t*9+Math.PI);return [[1060+a*28,660+a*55,-1.1+a*.25],[1140+b*28,730+b*55,-.9+b*.25]];}
+// 1.2.7 리들리 잎 털어 주기 (user: "공중에서 손 두기 왔다 갔다 거리는 거 짜침" → 시안 E "머리 잎 끝으로 톡톡"): the hands stay by the body; 리들리 leans
+// toward the friend and taps its leaves three times with the curled, hand-like tip of its front leaf, then rests (1.6 s). Each tap knocks a mite off.
+const TAP=1.6;function brushHands(){return [[400,920,.25],[930,925,-.1]];}
+function tapAmount(t,reduced){if(reduced)return 0;const u=mod(t,TAP);return u<.9?Math.max(0,Math.sin(u/.3*Math.PI)):0;}
+// where the curled leaf tip (leaves.png about (965,445)) is when the leaves tilt by lr around (640,690)
+function leafTip(lr){const x=325,y=-245,c=Math.cos(lr),s=Math.sin(lr);return [640+x*c-y*s,690+x*s+y*c];}
+function tapFx(c,t,reduced){if(reduced)return;const u=mod(t,TAP);if(u>=.9)return;const k=(u%.3)/.3,tap=tapAmount(t,false),p=leafTip(.14+.1*tap);
+ if(tap>.8){c.save();c.strokeStyle='rgba(224,178,79,.9)';c.lineWidth=7;c.lineCap='round';for(let i=0;i<4;i++){const a=-1.5+i*.55;c.beginPath();c.moveTo(p[0]+Math.cos(a)*50,p[1]+Math.sin(a)*50);c.lineTo(p[0]+Math.cos(a)*85,p[1]+Math.sin(a)*85);c.stroke();}c.restore();}
+ if(k>.45){const q=(k-.45)/.55,x=p[0]+40+q*150,y=p[1]-70*Math.sin(q*Math.PI)+q*90;c.save();c.globalAlpha=1-q;c.fillStyle='#fff6e2';c.beginPath();c.arc(x,y,15,0,Math.PI*2);c.fill();c.fillStyle='#8a5a2c';c.beginPath();c.ellipse(x,y,9,7,q*4,0,Math.PI*2);c.fill();c.restore();}}
 // shiver (0.6.34: the common motion of a friend with spider mites on its leaves; 0.6.33 used it for grooming): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
  const k=u-1.35;return {rot:.035*Math.sin(Math.min(1,k/2.4)*Math.PI*2)*(1-Math.min(1,k/2.65)),dx:0,sq:1};}
@@ -138,6 +145,7 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
   drawCore(c,assets,{...opt,kind:'idle'});c.restore();specks(c,t,h);return;}
  // 0.6.34: a friend whose leaves carry spider mites (the leaf-damaging pest) shivers now and then, every species alike:
  // every ITCH seconds a short crouch-and-shiver plays over whatever it is doing (not while held, resting or asleep).
+ if(kind==='brush'&&sp==='ridley'){const tap=tapAmount(t,opt.reduced);c.save();c.translate(FEET[0],FEET[1]);c.rotate(.07);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,{...opt,kind:'brush',leafTilt:.14+.1*tap,expression:opt.expression||'focused'});tapFx(c,t,opt.reduced);c.restore();return;}
  if(opt.itch&&!opt.reduced&&!NO_ITCH.includes(kind)){const u=mod(t+(opt.seed||0)*1.7,ITCH);if(u<1.35){const m=shake(u);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();specks(c,u,h);return;}}
  // 0.6.34: while 베이치 scratches the back of its head (hand hidden behind it, fingertips at the crown) it leans its head into the hand
  if(kind==='groom'&&sp==='bosong'&&!opt.reduced){const u=mod(t,8),q=ease(u/.9)*(1-ease((u-6.7)/1.3));c.save();c.translate(FEET[0],FEET[1]);c.rotate(.07*q);c.translate(-FEET[0],-FEET[1]);drawCore(c,assets,opt);c.restore();return;}
