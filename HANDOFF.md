@@ -809,3 +809,10 @@
 - 추가(사용자 "엘리시 목이 말라서 물을 찾아가요 … 그냥 잎 그늘 밑에서 쉬고 있음" → "그런 생리적인 안내보고는 안 해도 될 듯"): `forest-app.js` 월드 하단 안내에서 목마름 안내를 뺐다(옛 기준 수분 35 미만 고정이라 실제 행동과 달랐음). 목마름은 친구 카드 문구로만 보인다. UI PASS.
 - 확인: 관리자 여름 전환 뒤 엔진에서 연꽃 5분 2개→35분 10개, 호수 생명체 5~11마리 정상 생성. 반딧불은 맑고 바람 30 미만일 때만(측정 340초 중 약 120초 켜짐) — 비·바람이 오면 꺼짐.
 - 병합·릴리스: PR #62(https://github.com/sia080808-lgtm/Forest-of-Space/pull/62) main 병합 `b13ac58e896f20b3909ab355657306a61e02bee8`(사용자 "ㄱㄱ"; head `7af7bca` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.1 `Forest-of-Space-1.1.1.apk` 74,336,555 bytes, SHA-256 `c66d77cd285aacb9b2cc171f7511f8a50e7a9827056033f67978fd551814374f` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode77/1.1.1. APK는 사용자에게 파일로 전달.
+
+### LAKE-SWIM-1.1.2-20261121 — 호수 생물이 호수를 돌아다님
+
+- 담당: Claude Code. 요청: 사용자 "현재 호수 생물들 이동 반경 어케댐" → "2번 ㄱㄱ"(엔진에서 실제 이동). 기준 main `b13ac58`(1.1.1 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `world.js`(`SWIM`·`swim`·`swimTarget`·`swimOk`·`hrnd`, 물달팽이 0.3 안 시든 수련으로 기어감, 잠자리 날개돋이 상한, 검증 `tx/ty/rest/mv`), `scene.js`(위치 따라 그리기·방향·개구리 헤엄). 버전 1.1.2 / versionCode 78.
+- 판단: 이동 목적지는 해시로 골라 `rng.lake` 흐름(찾아오는 생물)은 그대로.
+- 검증: `lake.test.cjs` 1.1.2 검사, `lake`·`admin`·`render`·`package` 통과, 전체는 CI. 실기기 미검증.

@@ -310,12 +310,16 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   {const W=Forest.World,rain=Forest.Environment?.precipitation?.(s,'rain')||0;if(rain>0&&!W.frozen?.(s)){const hs=q=>{const x=Math.sin(q*127.1+311.7)*43758.5453;return x-Math.floor(x);},n=Math.round(40+rain*120);c.save();c.strokeStyle='rgba(244,249,247,.9)';c.lineWidth=.8;
    for(let i=0;i<n;i++){const per=.9+hs(i+.5)*.8,ph2=t/per+hs(i+2),cyc=Math.floor(ph2),uu=ph2-cyc,x=1.36+hs(i*7.1+cyc*1.3)*.5,y=-.22+hs(i*3.7+cyc*2.9)*1.44;if(W.waterD(x,y)>=.99)continue;const r=1.5+uu*(5+rain*5);c.globalAlpha=(1-uu)*.85;c.beginPath();c.ellipse(x*w,y*h,r,r*.38,0,0,Math.PI*2);c.stroke();if(uu>.3){c.globalAlpha=(1-uu)*.35;c.beginPath();c.ellipse(x*w,y*h,r*.55,r*.2,0,0,Math.PI*2);c.stroke();}}
    c.restore();}}
-  for(const o of s.world?.lake?.life||[]){let hsh=0;for(const ch of o.id)hsh=(hsh*31+ch.charCodeAt(0))>>>0;const ph=(hsh%100)/100*6.283,X=o.x*w,Y=o.y*h,fr=k=>Math.floor(t*(FPS[k]||4)+hsh);
-   if(o.kind==='strider'){if(storm)continue;const a=t*.35+ph,r=7;sprite('strider',X+Math.cos(a)*r,Y+Math.sin(a)*r*.5,fr('strider'),Math.sin(a)>0?-1:1);}
-   else if(o.kind==='snail'){const dx=Math.sin(t*.05+ph)*4;sprite('snail',X+dx,Y,fr('snail'),Math.cos(t*.05+ph)>0?1:-1);}
+  const LP=this._lifePos??={},now=this.phase||0;   // 1.1.2: the engine moves them once a second — ease the drawn spot after it
+  for(const o of s.world?.lake?.life||[]){let hsh=0;for(const ch of o.id)hsh=(hsh*31+ch.charCodeAt(0))>>>0;let q=LP[o.id];if(!q||red||Math.hypot(o.x-q.x,o.y-q.y)>.1)q=LP[o.id]={x:o.x,y:o.y,t:now};else{const k=Math.min(1,Math.max(0,now-q.t)*2.5);q.x+=(o.x-q.x)*k;q.y+=(o.y-q.y)*k;q.t=now;}
+   const moving=o.tx!=null,mdir=moving?(o.tx>=o.x?1:-1):0;
+   const ph=(hsh%100)/100*6.283,X=q.x*w,Y=q.y*h,fr=k=>Math.floor(t*(FPS[k]||4)+hsh);
+   if(o.kind==='strider'){if(storm)continue;const a=t*.35+ph,r=7;sprite('strider',X+Math.cos(a)*r,Y+Math.sin(a)*r*.5,fr('strider'),moving?-mdir:Math.sin(a)>0?-1:1);}
+   else if(o.kind==='snail'){const dx=Math.sin(t*.05+ph)*4;sprite('snail',moving?X:X+dx,Y,fr('snail'),moving?mdir:Math.cos(t*.05+ph)>0?1:-1);}
    else if(o.kind==='eggs')sprite('eggs',X,Y+Math.sin(t*.8+ph)*.4,0);
-   else if(o.kind==='tadpole'){for(let i=0;i<(o.n||4);i++){const a=t*.9+ph+i*1.57,r=5+i;sprite('tadpole',X+Math.cos(a)*r,Y+Math.sin(a)*r*.6,fr('tadpole')+i,Math.sin(a)>0?-1:1);}}
+   else if(o.kind==='tadpole'){for(let i=0;i<(o.n||4);i++){const a=t*.9+ph+i*1.57,r=5+i;sprite('tadpole',X+Math.cos(a)*r,Y+Math.sin(a)*r*.6,fr('tadpole')+i,moving?-mdir:Math.sin(a)>0?-1:1);}}
    else if(o.kind==='frog'){   // a 24 s round: sit, leap into the water, swim a slow loop, swim back and climb out, sit again
+    if(moving&&o.dive==null){sprite('frogswim',X,Y,Math.floor(t*5+hsh),mdir,18,.9);continue;}   // 1.1.2 swimming to another pad
     let u=(t+ph*4)%24;const face=hsh&1?1:-1;
     if(o.dive!=null&&!red){const D=this._dive??={};if(D[o.id]?.at!==o.dive)D[o.id]={at:o.dive,t0:t};const el=t-D[o.id].t0;if(el<12.5){u=8+el;if(el>1&&el<3.2){const q=(el-1)/2.2;c.save();c.strokeStyle='rgba(236,244,240,.8)';c.lineWidth=.6;for(let r=0;r<2;r++){const k=Math.max(0,q-r*.25);c.globalAlpha=(1-k)*.9;c.beginPath();c.ellipse(X+face*10,Y+1,2+k*10,.8+k*3.5,0,0,Math.PI*2);c.stroke();}c.restore();}}}   // 0.9.3 개구리 깜짝: it plops straight in, with a splash
     if(u<8)sprite('frog',X,Y,0,face);
@@ -324,8 +328,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     else sprite('frog',X+face*(1-(u-20.5)/3.5)*10,Y,u<21.7?Math.floor((u-20.5)/1.2*5):0,face);}
    else if(o.kind==='nymph')sprite('nymph',X,Y-6,fr('nymph'));
    else if(o.kind==='dragonfly'){if(storm||night)continue;const a=t*.5+ph;sprite('dragonfly',X+Math.sin(a)*22,Y-18+Math.sin(a*2)*7,fr('dragonfly'));}
-   else if(o.kind==='beetle'){const a=t*.2+ph;sprite('beetle',X+Math.cos(a)*6,Y+Math.sin(a)*3,fr('beetle'),1,SZ.beetle,.85);}
-   else if(o.kind==='medaka'){for(let i=0;i<5;i++){const a=t*.6+ph+i*.5,r=9+i*1.5;sprite('medaka',X+Math.cos(a)*r,Y+Math.sin(a)*r*.5,fr('medaka')+i,Math.sin(a)>0?-1:1,SZ.medaka,.85);}}
+   else if(o.kind==='beetle'){const a=t*.2+ph;sprite('beetle',X+Math.cos(a)*6,Y+Math.sin(a)*3,fr('beetle'),moving?mdir:1,SZ.beetle,.85);}
+   else if(o.kind==='medaka'){for(let i=0;i<5;i++){const a=t*.6+ph+i*.5,r=9+i*1.5;sprite('medaka',X+Math.cos(a)*r*(moving?.4:1)-mdir*i*4,Y+Math.sin(a)*r*.5*(moving?.4:1),fr('medaka')+i,moving?-mdir:Math.sin(a)>0?-1:1,SZ.medaka,.85);}}
    else if(o.kind==='larva'){for(let i=0;i<3;i++)sprite('larva',X+(i-1)*5,Y+(i%2)*3,fr('larva')+i*2);}}}
  drawLilies(c,w,h){const s=this.state(),W=Forest.World,A=this.assets,tk=Forest.Environment?.timeKey?.(s),t=s.settings.reducedMotion?0:this.phase||0;
   for(const l of s.world?.lake?.lilies||[]){let st=W.lilyStage(s,l);if(!st)continue;
