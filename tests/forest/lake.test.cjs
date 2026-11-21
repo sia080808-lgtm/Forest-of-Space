@@ -89,3 +89,13 @@ test('1.1.1 admin fill lake, fireflies stay the night, a far friend walks home i
  // a friend at the far east shore at night still reaches a spot (the old 30 s cap made it give up halfway)
  {const s=fresh();A.run(F,s,'season',1);const p=s.individuals[0];let q=null;for(let y=-.2;y<1.2&&!q;y+=.02){const c={x:3.0,y};if(Sp.walkable(s,c,p.id))q=c;}Object.assign(p,q,{B:55,nutrition:55,energy:70});A.run(F,s,'time','night');
   for(let t=0;t<200;t++)F.step(s);a.ok(p.x<1.2,'walked home: x '+p.x.toFixed(2));a.ok(!p.sleepHere);}});
+test('1.1.2 lake life moves about: striders and medaka roam the water, eggs and the nymph stay, everything stays where it belongs',()=>{
+ const s=game(3);W.openLake(s);const c0=s.environment.calendar?.start??0;s.worldTick=c0+3600+300;s.weather.kind='sun';s.weather.wind=5;W.fillLake(s);
+ const L=s.world.lake.life,p0=new Map(L.map(o=>[o.id,{x:o.x,y:o.y}]));
+ for(let i=0;i<900;i++){s.worldTick++;W.lakeStep(s);for(const o of s.world.lake.life){if(['frog','nymph','dragonfly'].includes(o.kind))continue;a.ok(W.inWater(s,o),o.kind+' stays on the water');}}
+ const moved=k=>s.world.lake.life.filter(o=>o.kind===k&&p0.has(o.id)).map(o=>Math.hypot(o.x-p0.get(o.id).x,o.y-p0.get(o.id).y));
+ a.ok(moved('strider').some(d=>d>.1),'a strider roamed '+moved('strider'));a.ok(moved('medaka').some(d=>d>.1),'medaka roamed');
+ for(const k of ['eggs','nymph'])a.ok(moved(k).every(d=>d===0),k+' stays put');
+ for(const o of s.world.lake.life)if(o.kind==='dragonfly')a.ok(W.waterD(o.x,o.y)<1.26,'dragonfly over the lake or its shore');
+ F.valid(JSON.parse(JSON.stringify(s)));const bad=JSON.parse(JSON.stringify(s));bad.world.lake.life[0].tx='x';bad.world.lake.life[0].ty=1;a.throws(()=>F.valid(bad),/호수/);
+});
