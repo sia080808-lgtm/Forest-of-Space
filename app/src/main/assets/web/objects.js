@@ -101,7 +101,7 @@ function dry(s,id){const z=patch(s,id);return z&&moist(z)<40&&z.W<=.5;}
 function windAt(s,p,q,id){
  const W=dep('weather-care'),probe={...p,...q,shelter:{phase:'outside'}};
  if(id==='shelter')return s.weather.wind*.2;
- let a=W.wind(s,probe);if(id==='crevice'&&Math.cos(s.weather.wind_dir||0)<-.5&&!fits(s,p,'crevice',probe,'rest'))a*=.5;return a;
+ let a=W.wind(s,probe);/* 1.2.4: tucked into the crevice a friend is out of the wind from any side (it was only from one wind direction, so in a storm the crevice was never usable) */if(id==='crevice')a*=.5;return a;
 }
 function effectsValid(s,p,t){
  const z=patch(s,t.object),W=dep('weather-care'),a=t.object==='shelter'?s.weather.wind*.2:windAt(s,p,t,t.object);
@@ -113,6 +113,7 @@ function effectsValid(s,p,t){
  if(t.kind==='nutrition')return z.U>eps&&a<60&&z.W<=1;
  if(t.kind==='rootDrink')return z.W>eps&&a<60&&p.burden<40&&!p.wetRecovery;
  if(t.object==='shade')return a<60&&!p.wetRecovery&&p.burden<40&&z.W<=.5;
+ /* 1.2.4: in rain or wind the crevice is a refuge even when wet (it was refused once rain soaked it, leaving friends out in the storm) */if(t.object==='crevice'&&['safety','shelterRain'].includes(t.reason))return a<50;
  return a<50&&dry(s,t.object);
 }
 function needs(p){
@@ -128,14 +129,15 @@ function urgency(s,p){if(dep('weather-care').wind(s,p)>=60||p.burden>=60)return 
 // without an urgent need goes to sleep, in the shelter if there is room, otherwise on moss / in leaf shade / by the stones,
 // and stays until dawn; while it rains or snows it shelters there until it stops.
 function sleepTime(s,p){return dep('vitals').sleepTime(s,p);}   // SRS v2.34 ST34-09: deep night for all, dusk when tired, shade lovers wake first
-function rainCover(s,p){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.6&&p.species!=='superbum'&&!(p.species==='neolbi'&&canShield(s,p))&&!dep('shelter').inside(s,p);}
+function rainCover(s,p){const E=dep('environment');return (stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.6)&&p.species!=='superbum'&&!(p.species==='neolbi'&&canShield(s,p))&&!dep('shelter').inside(s,p);}
 function coldCall(s,p){const V=dep('vitals');if(!V.isCold(s)||dep('traits').ofPet(p).cold>=0||p.mounted)return false;if(dep('shelter').inside(s,p)||V.restingAt(p,'rock')&&V.rockSun(s)>0)return false;return true;}
 // 1.2.1: a friend waits by 엘레판 for its leaf only when that can really happen (both healthy enough for a leaf umbrella,
 // 엘레판 outside and not tied up) or the umbrella is already over it; otherwise it takes cover like everyone else
 function underLeaf(s,p){if(s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids.includes(p.id)))return true;const W=dep('weather-care');if(!W.leafFit(s,p))return false;/* 1.2.3 (user: "봄에 큰비로 … 아무도 안 들어가"): the umbrella holds one friend; once 엘레판 has opened it over someone else the other friends nearby stopped waiting forever in the rain — now only a 엘레판 whose umbrella is still free counts */return s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&!z.mounted&&!dep('shelter').inside(s,z)&&!s.social?.sessions?.some(a=>a.ids.includes(z.id))&&W.leafFit(s,z)&&s.weather.wind<W.limit(z)&&Math.hypot(z.x-p.x,z.y-p.y)<.3);}
 // 엘레판 stays out in the rain only while a friend it could hold its leaf over is close by and outside
 function canShield(s,h){const W=dep('weather-care');return W.leafFit(s,h)&&s.weather.wind<W.limit(h)&&s.individuals.some(z=>z.active&&z.id!==h.id&&!z.mounted&&!dep('shelter').inside(s,z)&&W.leafFit(s,z)&&Math.hypot(z.x-h.x,z.y-h.y)<.35);}
-function rainy(s){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
+/* 1.2.4 (user: "폭풍치는데 아무도 안 들어가"): a storm is shown as 폭풍 for its whole 110 s, but its first 20 s and last 30 s are only rain .35 · wind 45 — friends read that as drizzle and stayed out. The whole storm now counts as heavy rain */function stormy(s){return !!s.environment?.storm;}
+function rainy(s){const E=dep('environment');return stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
 function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)return t.remaining<=0;
  if(t.reason==='safety')return dep('weather-care').wind(s,{...p,shelter:{phase:'outside'}})<50&&!p.wetRecovery&&!p.leafRecovery&&p.burden<40&&p.damage<10&&s.weather.wind<50;
  if(t.reason==='sleep')return !sleepTime(s,p);if(t.reason==='shelterRain')return !rainy(s);if(t.reason==='dry')return p.B<=dep('vitals').band(p).mid+2;if(t.reason==='warm')return !dep('vitals').isCold(s);
@@ -231,9 +233,10 @@ function choose(s,p,rng){
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
  // 1.0: a walk that has run past its deadline before arriving always ends (it may have been held up by another move)
  if(p.stroll&&p.stroll.arrivedAt==null&&s.worldTick>p.stroll.deadline+5){delete p.stroll;if(p.action==='drink')p.action='wander';}
+ // 1.2.4: a friend sheltering from strong wind (safety) also gives up a full shelter after 8 s and takes the crevice, rock or shade instead of standing in the storm.
  // 0.8.3: a friend waiting outside a full shelter (seats taken while it walked there) gives it up after 8 s and rests
  // elsewhere instead of waiting all night (sleep, rain, a free visit); a tired friend or one sheltering from a storm keeps waiting.
- {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free','warm'].includes(c.reason)&&p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){release(s,p,'full');p.restCooldown=s.worldTick+120;p.nextObjectChoice=0;}}}
+ {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free','warm','safety'].includes(c.reason)&&p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){release(s,p,'full');p.restCooldown=s.worldTick+120;p.nextObjectChoice=0;}}}
  const current=p.objectTask,danger=(Sh.inside(s,p)?s.weather.wind:W.wind(s,p))>=60||p.burden>=40||p.wetRecovery||((p.leafRecovery||p.damage>=10)&&p.B>=40&&p.nutrition>=40);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
@@ -271,7 +274,7 @@ function choose(s,p,rng){
  // SRS v2.34 선제 행동: a friend dries off when over-wet (sun rock while it holds sun, shelter, crevice); in rain it
  // shelters before 수분 would pass its warning line within a minute (rain lovers wait until the top of the band)
  else if(!rainy(s)&&p.B>dep('vitals').band(p).hi&&!sleepTime(s,p)){for(const id of ['rock','shelter','crevice'])add(id,'rest','dry');}
- else if(sleepTime(s,p)||rainy(s)&&!(p.species==='neolbi'&&canShield(s,p))&&(()=>{const E=dep('environment'),pr=E.precipitation(s,'rain')+E.precipitation(s,'snow'),tr=dep('traits').ofPet(p),b=dep('vitals').band(p),line=tr.rain>0?b.hi:b.warnHi;return pr>=.6&&p.species!=='superbum'||p.B+6*E.precipitation(s,'rain')*tr.wet>=line;})()&&!underLeaf(s,p)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s,p)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
+ else if(sleepTime(s,p)||rainy(s)&&!(p.species==='neolbi'&&canShield(s,p))&&(()=>{const E=dep('environment'),pr=E.precipitation(s,'rain')+E.precipitation(s,'snow'),tr=dep('traits').ofPet(p),b=dep('vitals').band(p),line=tr.rain>0?b.hi:b.warnHi;return (pr>=.6||stormy(s))&&p.species!=='superbum'||p.B+6*E.precipitation(s,'rain')*tr.wet>=line;})()&&!underLeaf(s,p)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s,p)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
  // 1.2.1 (user: "날씨 추운 한겨울에도 아무도 쉼터로 들어가질 않음"): a friend that feels the cold used to wait until its 기운 ran low;
  // now on a cold day it goes to warm up first — the shelter, or the sun rock while it still holds sun
  // 1.2.1: in the rain a friend beside 엘레판 (and 엘레판 itself) waits where it is for the leaf umbrella instead of wandering off

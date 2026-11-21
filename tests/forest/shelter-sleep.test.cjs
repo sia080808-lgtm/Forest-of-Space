@@ -34,3 +34,10 @@ test('1.2.3 heavy rain at noon and a drizzly night both fill the shelter seats',
  const inside=s=>s.individuals.filter(p=>p.shelter?.phase==='restingInside').length;
  let s=make();A.run(F,s,'time','noon');A.run(F,s,'weather','rain');for(let t=0;t<60;t++){s.weather.remaining=Math.max(s.weather.remaining,30);F.step(s);}assert.equal(inside(s),3);
  s=make();A.run(F,s,'time','noon');A.run(F,s,'weather','drizzle');for(let t=0;t<450;t++){s.weather.remaining=Math.max(s.weather.remaining,30);F.step(s);}assert.equal(s.worldTick%1200>=800,true);assert.equal(inside(s),3);});
+// 1.2.4 (user: "폭풍치는데 아무도 안 들어가"): the whole storm counts as heavy rain, and friends who find the shelter full take the crevice instead of waiting outside
+test('1.2.4 a summer storm: friends take cover from the first second, the crevice takes one when the shelter is full',()=>{const F=require('../../app/src/main/assets/web/engine'),A=require('../../app/src/main/assets/web/admin.js'),assert=require('node:assert/strict');
+ const s=F.create(5,4);s.started=true;s.environment.tutorialDone=true;for(const [sp,x,y] of [['bonbon',.6,.55],['neolbi',.3,.6],['bosong',.42,.5],['jureong',.5,.7],['superbum',.7,.4]])s.individuals.push({...F.clone(s.individuals[0]),id:'p-'+sp,species:sp,name:sp,x,y,active:true});F.valid(s);A.run(F,s,'time','noon');for(let i=0;i<200;i++)F.step(s);
+ s.environment.storm={phase:'prelude',remaining:20};Object.assign(s.weather,{kind:'rain',intensity:35,wind:45,transition:0,remaining:240});s.environment.windTarget=45;
+ for(let t=0;t<12;t++)F.step(s);const covering=s.individuals.filter(p=>['shelterRain','safety'].includes(p.objectTask?.reason)).length;assert.ok(covering>=3,'prelude cover '+covering);
+ for(let t=0;t<38;t++)F.step(s);assert.equal(s.environment.storm.phase,'peak');assert.equal(s.individuals.filter(p=>p.shelter?.phase==='restingInside').length,3);assert.ok(s.individuals.some(p=>p.objectTask?.object==='crevice'),'crevice used');
+ assert.ok(!s.individuals.some(p=>p.shelter?.phase==='waitingOutside'),'nobody waits outside a full shelter');});
