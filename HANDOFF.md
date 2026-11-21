@@ -934,3 +934,4 @@
 - 원인: `world.js` `shorePoint`가 가장 가까운 물가 지점만 골라, 같은 지점에 이미 친구가 마시고 있으면 `planFor`(친구 피하기)가 길을 못 찾아 멈춤(60초마다 다시 출발).
 - 수정: 다른 친구가 서 있거나 가는 지점(0.08 안)은 건너뜀(`SHORE_GAP`). 테스트 `lake.test` 1.2.5. 버전 1.2.5 / versionCode 91.
 - 검증: 관련 33개·package 통과(고치기 전 실패 확인), 전체는 CI. 실기기 미검증.
+- 병합·릴리스: PR #76(https://github.com/sia080808-lgtm/Forest-of-Space/pull/76) main 병합 `7d9bbf17e7a49ddab7b3722c1f338b7fca199417`(사용자 "머지해"; head `cf793ac` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.5 `Forest-of-Space-1.2.5.apk` 74,365,079 bytes, SHA-256 `22c540393c7431e2387f5cc02ab0f6623bda3718f243390f72e15f3e8fc04b53` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode91/1.2.5. APK는 사용자에게 파일로 전달.
