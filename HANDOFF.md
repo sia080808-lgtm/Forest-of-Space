@@ -913,4 +913,5 @@
 - 담당: Claude Code. 요청: 사용자 1.2.2 "톡토기 누르니까 작은이웃 기록을 확인해주세요라고 뜨는데" → "pr ㄱㄱ". (그 전 '관리자 버튼 눌림 표시' PR은 사용자 "방금pr취소"로 만들기 전에 되돌림.) 기준 main `3ef001f`(1.2.2 병합), 브랜치 `claude/festive-curie-mjk5mw`.
 - 원인: `admin.js` `creature`가 톡토기를 `kind:'spring'`으로 만들어 `Creatures.validate`가 거절(엔진 이름표 `springtail`).
 - 수정: `springtail`로 부르기, 두 무리 상한, `forest-app.js` `adminFocusNeighbour`가 `g.pile` 더미로 확대. 테스트 ADM-05. 버전 1.2.3 / versionCode 89.
-- 검증: `admin-panel`(고치기 전 같은 문구로 실패)·`admin`·`package` 11/11, 전체는 CI. 실기기 미검증.
+- 추가(사용자 "앱을 닫아두면 경험치 못 얻게 pr", 같은 PR #74): `engine.js` `offlineStep`에서 성장 경험 쌓기 삭제(`growth`·`GROWTH_SEASON` 함께 삭제), `engine.test` CARE-04를 '성장 없음·기운 회복'으로 다시 씀.
+- 검증: `admin-panel`(고치기 전 같은 문구로 실패)·`admin`·`package` 11/11, `engine` 24/24, 전체는 CI. 실기기 미검증.

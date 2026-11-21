@@ -45,9 +45,6 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
 }
 function level(p){let n=1;LEVELS.forEach((x,i)=>{if(p.xp>=x)n=i+1;});return n;}
 function health(p){return p.active&&!p.mounted&&p.B>=35&&p.B<=80&&p.energy>=40&&p.nutrition>=40&&p.burden<60&&p.damage<30;}
-// 0.8.0: growth time runs x1.25 in spring (new fronds) and x0.75 in winter
-const GROWTH_SEASON={spring:1.25,winter:.75};
-function growth(p,s){if(health(p)&&p.xp<150){p.growthSeconds+=s?.environment?GROWTH_SEASON[Env.season(s)]??1:1;if(p.growthSeconds>=360){p.growthSeconds-=360;p.xp=Math.min(150,p.xp+1);}}}
 function moisture(p){return 100*p.S/p.cap;}
 function totalWater(s){return Skills.water(s)+s.spring.water+(s.spring.snowWater||0)+s.patches.reduce((n,p)=>n+p.S+p.W+(p.snowWater||0)+(p.roofSnow||0),0)+s.individuals.reduce((n,p)=>n+p.B+p.Q+p.V+(p.snowWater||0),0);}
 function event(s,type,text,detail={}){s.events.push({id:s.worldTick+'-'+s.events.length,type,text,tick:s.worldTick,layout:s.layoutRevision,...detail});s.events=s.events.filter(e=>s.worldTick-e.tick<=600).slice(-256);}
@@ -157,7 +154,8 @@ function advance(s,seconds,options){for(let i=0;i<seconds;i++)step(s,options);re
 function pause(s,now=Date.now()){if(!s.offline){Social.invalidate(s);s.neighbor.observed=0;s.offline={at:now,mode:s.recruitment?.visitor?.open?'landscape':s.mode,processed:0};}s.savedAt=Math.max(s.savedAt,now);return s;}
 function offlineStep(s){
  for(const p of s.individuals.filter(p=>p.active)){
-  if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);growth(p,s);
+  // 1.2.3 (user: "앱을 닫아두면 경험치 못 얻게"): no growth while the app is closed; growth comes only from photosynthesis
+  if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);
  }
  s.offline.processed++;
 }
