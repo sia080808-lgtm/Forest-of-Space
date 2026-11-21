@@ -16,7 +16,7 @@ const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVital
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.1.2', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.1.3', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -195,7 +195,7 @@ function valid(s){
   if(p.target!==null&&p.target!=='spring'&&!PATCHES.some(z=>z.id===p.target)&&!(Obj.isPile(p.target)&&Obj.patch(s,p.target)))throw Error('이동 목적지가 올바르지 않아요.');
   for(const k of ['B','energy','mood','nutrition','damage','burden'])if(!finite(p[k],0,100))throw Error('생활 상태가 범위를 벗어났어요.');
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
-  if(!finite(p.Q,0,20)||!finite(p.V,0,40)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
+  if(!finite(p.Q,0,20)||!finite(p.V,0,50)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }
  Obj.validate(s);W.validate(s);Vit.validate(s);Skills.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
  if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean')||s.settings.showFrame!==undefined&&typeof s.settings.showFrame!=='boolean')throw Error('설정 기록을 확인해 주세요.');
