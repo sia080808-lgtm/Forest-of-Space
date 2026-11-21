@@ -342,12 +342,21 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
  // the fern frame: fixed to the screen edges at today's size (where the garden's edge ferns sat in the default view),
  // drawn over the floor and under every object and friend. It does not move or scale with the camera.
  drawFrame(c,base){const im=this.assets.frame;if(!im||this.state().settings?.showFrame===false)return;   /* 0.8.5: the fern frame can be turned off in the settings (user: "고사리 프레임 적용 온 오프 기능") */const cam=this.camera,fw=360*cam.fit,fh=576*cam.fit;c.save();c.setTransform(base);this.seasonal('frame',f=>c.drawImage(f,(this.vw-fw)/2,(cam.visibleHeight-fh)/2,fw,fh));c.restore();}
+ // SRS v2.36 고유 스킬 (render only): 베이치's puddles (wash ellipse, smaller as the water goes) and the faint mist round
+ // a 엘리시 keeping the leaves near it moist
+ drawSkillGround(c,w,h,t){const s=this.state(),K=typeof ForestSkills!=='undefined'?ForestSkills:null;if(!K)return;
+  for(const d of K.puddles(s)){const k=Math.sqrt(Math.max(0,d.W)/K.SK.dig.amount),rx=.05*w*(.45+.55*k),ry=rx*.42,x=d.x*w,y=d.y*h;c.save();
+   const g=c.createRadialGradient(x,y,0,x,y,rx);g.addColorStop(0,'rgba(150,186,190,.62)');g.addColorStop(.7,'rgba(160,192,192,.42)');g.addColorStop(1,'rgba(170,196,190,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill();
+   c.strokeStyle='rgba(236,244,240,.55)';c.lineWidth=.6;c.beginPath();c.ellipse(x-rx*.15,y-ry*.2,rx*.45,ry*.3,0,Math.PI*1.1,Math.PI*1.8);c.stroke();
+   if(!s.settings.reducedMotion){const u=(t*.4)%1;c.globalAlpha=.4*(1-u);c.beginPath();c.ellipse(x,y,rx*(.3+.5*u),ry*(.3+.5*u),0,0,7);c.stroke();}c.restore();}
+  for(const e of K.misters(s)){const x=e.x*w,y=e.y*h,r=K.SK.mist.range*w;c.save();const b=s.settings.reducedMotion?0:Math.sin(t*.8)*.05;
+   const g=c.createRadialGradient(x,y-r*.1,r*.1,x,y-r*.1,r);g.addColorStop(0,'rgba(214,232,226,'+(.30+b)+')');g.addColorStop(1,'rgba(214,232,226,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y-r*.1,r,r*.55,0,0,7);c.fill();c.restore();}}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
   enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
-  const patches=s.patches.map(p=>({...p,...this.preview[p.id]}));patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();
+  const patches=s.patches.map(p=>({...p,...this.preview[p.id]}));patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();this.drawSkillGround(c,w,h,phase);
   this.springFlow();
   for(const p of s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0)){const g=ForestNeolbi.geometry(p);ForestSurfaces.wash(c,g.cx*w,g.cy*h,g.rx*w,g.ry*h,'71,82,60',.14*p.canopyProgress,1.5);}
   const night=s.settings.theme==='night'||(s.settings.theme==='auto'&&Math.floor(s.worldTick/600)%2===1);

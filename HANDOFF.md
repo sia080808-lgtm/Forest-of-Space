@@ -788,3 +788,12 @@
 - 측정(친구 6명 × 3시드 × 2게임시간): 성장 경험 11.94 → 12.29(+2.9%), 바위 시간 3.4% 그대로.
 - 검증: `rig`(1.0.3 검사)·`render`·`package`·`traits`·`seasons` 통과, 전체는 CI. 화면 `docs/qa-1.0.3/runtime`. 실기기 미검증.
 - 다음: 기운 높음/낮음 동작(1.0.4 예정), 과습/수분 부족, 영양 과잉/결핍.
+- 병합·릴리스: PR #60(https://github.com/sia080808-lgtm/Forest-of-Space/pull/60) main 병합 `213a327ff6926a5ff156710fcbf6b4b327b2f980`(사용자 "ㄱㄱ"; head `e817bf2` 기준 simulation·CodeQL 성공). 프리릴리스 v1.0.3 `Forest-of-Space-1.0.3.apk` 74,324,201 bytes, SHA-256 `8e8ac292b0f892933d3bbf513c74dece94cf2aa80459cf468aed2a67127bd972` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode75/1.0.3. APK는 사용자에게 파일로 전달.
+
+### SKILLS-1.1.0-20261121 — 친구 고유 스킬 (SRS v2.36)
+
+- 담당: Claude Code. 요청: 고유 스킬 점검 → "일단 이거 먼저 하자" → 제안 → 베이치는 원래 물 찾기(v2.22 보송) → "ㅇㅇ괜찮네 ㄱㄱ". 기준 main `213a327`(1.0.3 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: 새 `skills.js`(베이치 웅덩이·안내, 코로나 낙엽 긁어모으기, 리들리 잎 털기, 엘리시 습도·천적 보조, 횟수·처음 기록·카드 문구·검증), `engine.js`(prepare/act 연결, 물 합계에 웅덩이, 검증, 환영 복제 키), `objects.js`(웅덩이 마시기 `puddleDrink`, 안내 받은 친구는 그 물만, `lakeDrink` forced), `creatures.js`(`brush`, 잎 습도, 천적 준비 2배 `assistStep`/`due` — 엘리시 없으면 기존과 같은 판정), `litter.js`(들고 가는 잎 바닥 낙엽에 셈), `scene.js`(웅덩이·물안개·낙엽), `rig.js`(`brush` 손), `forest-app.js`(카드 문구·고유 스킬 칸·도감), `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`(스크립트). 버전 1.1.0 / versionCode 76. SRS `docs/Forest-Skills-SRS-v2.36.md`·`.pdf`.
+- 검증: `skills.test.cjs` 9개 추가, 관련 19개 파일 142/142, UI PASS, 전체는 CI. 측정·화면은 릴리스 노트. 실기기 미검증.
+- 코로나 스킬 변경(사용자 "1번 ㄱㄱ"): 한 장씩 나르기 → 한 칸 낱잎을 그 자리에서 긁어모아 더미로(`litter.gather`, `rig.js` `rake`). 들고 다니는 잎 없음.
+- 다음: 상태별 동작(기운 → 수분 → 영양), 레벨에 따른 스킬 강화(미정).

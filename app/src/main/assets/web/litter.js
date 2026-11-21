@@ -3,7 +3,7 @@
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 // ECO24-L01~L06 / N01~N05 step 1 (0.6.20): natural leaf fall into 12 fixed world sectors, loose leaves, piles,
 // pile decomposition, and the one-time move of an old save's raw leaves into real piles. No creatures yet.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',environment:'ForestEnvironment',objects:'ForestObjects',creatures:'ForestCreatures'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',environment:'ForestEnvironment',objects:'ForestObjects',creatures:'ForestCreatures',skills:'ForestSkills'}[n]];
 // 0.7.0 넓은 숲: 6x5 sectors over the forest's walkable ground (cells about as big as the old 4x3 garden cells); the floor
 // leaf cap grows with the area (40 -> 90). Old saves are re-sectored once on load (grid 2), see regrid().
 const WB=World.walk(null),COLS=6,ROWS=5,X0=WB.x0,X1=WB.x1,Y0=WB.y0,Y1=WB.y1,LCAP=90,SECTOR=12,PILE=5,eps=1e-8,GRID=2;
@@ -20,7 +20,7 @@ function carried(s,from){return s.individuals.reduce((v,p)=>v+(p.carriedLeaf&&(f
 // legacy compost heap and does not gate the fall; withSpot adds its raw leaves for "any leaves at all" checks.
 function floor(s,withSpot=false){const z=s.patches.find(p=>p.id==='litter');return leaves(s).length+piles(s).reduce((v,p)=>v+p.O,0)+carried(s)+antCarry(s)+(withSpot?z?.O||0:0);}
 // leaves an ant is carrying right now (each L=1, between two sectors)
-function antCarry(s){return s.objects?.creatures?dep('creatures').carried(s):0;}
+function antCarry(s){return (s.objects?.creatures?dep('creatures').carried(s):0)+(dep('skills')?.carried?.(s)||0);}   // + leaves 코로나 is carrying (SRS v2.36 SK-04)
 function compost(s){const z=s.patches.find(p=>p.id==='litter');return piles(s).reduce((v,p)=>v+p.U,0)+(z?.U||0);}
 function sectorRaw(s,i){const p=piles(s).find(p=>p.sector===i);return leaves(s).filter(l=>l.sector===i).length+(p?p.O+carried(s,p.id):0);}
 function ucap(s){const O=dep('objects');return O.capacity(s,'litter');}
@@ -48,6 +48,9 @@ function land(s,i,q){
  if(here.length>=PILE){const c={x:here.reduce((v,l)=>v+l.x,0)/here.length,y:here.reduce((v,l)=>v+l.y,0)/here.length};const at=blocked(s,c,.0)?{x:here.at(-1).x,y:here.at(-1).y}:c;st.leaves=st.leaves.filter(l=>l.sector!==i);newPile(s,i,here.length,at);return 'formed';}
  return 'loose';
 }
+// SRS v2.36 SK-04 코로나 긁어모으기: these loose leaves of one sector become one pile at `at` (or join the sector's pile)
+function gather(s,i,ids,at){const st=state(s),take=st.leaves.filter(l=>l.sector===i&&ids.includes(l.id));if(!take.length)return 0;st.leaves=st.leaves.filter(l=>!take.includes(l));
+ const p=piles(s).find(p=>p.sector===i);if(p)p.O+=take.length;else{const q=blocked(s,at,.0)?{x:take[0].x,y:take[0].y}:at;newPile(s,i,take.length,q);}return take.length;}
 function pick(s){
  const down=new Set(downwind(s)),open=[...Array(COLS*ROWS).keys()].filter(i=>sectorRaw(s,i)+1<=SECTOR+eps);if(!open.length)return null;
  const w=open.map(i=>down.has(i)?2:1),total=w.reduce((a,b)=>a+b,0);let r=rnd(s)*total;for(let k=0;k<open.length;k++){r-=w[k];if(r<0)return open[k];}return open.at(-1);
@@ -132,5 +135,5 @@ function validate(s){
  if(floor(s)>Math.max(LCAP,legacy)+1e-6)throw Error('바닥 낙엽이 상한을 넘었어요.');
  if(compost(s)>ucap(s)+(s.objects.overflow||0)+1e-6)throw Error('부식층 영양이 상한을 넘었어요.');
 }
-return {land,spot,antCarry,COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
+return {gather,land,spot,antCarry,COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
 });

@@ -13,9 +13,10 @@ const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.Fo
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
+const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.0.3', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.1.0', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -48,7 +49,7 @@ function health(p){return p.active&&!p.mounted&&p.B>=35&&p.B<=80&&p.energy>=40&&
 const GROWTH_SEASON={spring:1.25,winter:.75};
 function growth(p,s){if(health(p)&&p.xp<150){p.growthSeconds+=s?.environment?GROWTH_SEASON[Env.season(s)]??1:1;if(p.growthSeconds>=360){p.growthSeconds-=360;p.xp=Math.min(150,p.xp+1);}}}
 function moisture(p){return 100*p.S/p.cap;}
-function totalWater(s){return s.spring.water+(s.spring.snowWater||0)+s.patches.reduce((n,p)=>n+p.S+p.W+(p.snowWater||0)+(p.roofSnow||0),0)+s.individuals.reduce((n,p)=>n+p.B+p.Q+p.V+(p.snowWater||0),0);}
+function totalWater(s){return Skills.water(s)+s.spring.water+(s.spring.snowWater||0)+s.patches.reduce((n,p)=>n+p.S+p.W+(p.snowWater||0)+(p.roofSnow||0),0)+s.individuals.reduce((n,p)=>n+p.B+p.Q+p.V+(p.snowWater||0),0);}
 function event(s,type,text,detail={}){s.events.push({id:s.worldTick+'-'+s.events.length,type,text,tick:s.worldTick,layout:s.layoutRevision,...detail});s.events=s.events.filter(e=>s.worldTick-e.tick<=600).slice(-256);}
 function discovery(s,id,text,visible,detail={}){if(visible&&!s.discoveries[id]){s.discoveries[id]={tick:s.worldTick,text,layout:s.layoutRevision,...detail};event(s,'discovery',text,{discovery:id});}}
 function light(s,p){return s.climate.L*(1-Social.shadeFactor(s,p));}
@@ -63,7 +64,7 @@ function step(s,{visible=true,held=null}={}){
  s.worldTick++;Env.step(s,rng,event);const w=s.weather;if(held&&(w.wind>=60||s.individuals.find(p=>p.id===held)?.B<20))held=null;
  Obj.resources(s);Creatures.step(s,event);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
- Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
+ Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);Skills.prepare(s,{held,busy:participants,event,discovery,visible});const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
   // Movable leaf canopy physically shields patches within its radius; intercepted water
@@ -104,6 +105,8 @@ function step(s,{visible=true,held=null}={}){
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
+  // SRS v2.36 고유 스킬: a friend busy with its skill (or held still while its leaves are brushed) spends the tick on it
+  {const sm=Skills.act(s,p,{event,discovery,visible});if(sm){Object.assign(p.motion,sm);if(sm.distance>0)p.energy=clamp(p.energy-1/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   // 슈퍼범 is too large for most rest spots: when tired and nothing else holds it (no object task, no shelter request
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
   // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
@@ -192,7 +195,7 @@ function valid(s){
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
   if(!finite(p.Q,0,20)||!finite(p.V,0,40)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }
- Obj.validate(s);W.validate(s);Vit.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
+ Obj.validate(s);W.validate(s);Vit.validate(s);Skills.validate(s);Social.validate(s);Sh.validate(s);Env.validate(s);Rec.validate(s);
  if(!s.settings||!['auto','day','night'].includes(s.settings.theme)||['reducedMotion','showName','showLevel','showState','showSpeech'].some(k=>typeof s.settings[k]!=='boolean')||s.settings.showFrame!==undefined&&typeof s.settings.showFrame!=='boolean')throw Error('설정 기록을 확인해 주세요.');
  if(!s.settings.audio||['master','music','environment','effects'].some(k=>!finite(s.settings.audio[k],0,1)))throw Error('소리 설정을 확인해 주세요.');
  if(!s.ledger||['rain','spring','evaporation','outflow','physiology'].some(k=>!finite(s.ledger[k]))||s.ledger.lake!=null&&!finite(s.ledger.lake)||s.ledger.admin!=null&&!Number.isFinite(s.ledger.admin))throw Error('물 원장이 올바르지 않아요.');
@@ -215,7 +218,7 @@ function welcomeNeolbi(s){
  if(s.individuals.some(p=>p.species==='neolbi'))return false;
  const id='neolbi-welcome-'+s.deviceId;
  const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:45,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
- for(const k of ['motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived'])delete p[k];
+ for(const k of ['motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
  s.individuals.push(p);for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])p[k]=0;p.wetRecovery=p.leafRecovery=false;delete p.weatherExposure;delete p.protectedBy;event(s,'welcome','엘레판이 숲에 찾아왔어요. 친구 목록에서 정원에 들일 수 있어요.',{individual:id,arrivalWater:35});return true;
 }
 
