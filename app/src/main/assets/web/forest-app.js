@@ -191,9 +191,10 @@ function adminRun(args){let msg='';if(commit(s=>{msg=window.ForestAdmin.run(F,s,
  if(args[0]==='creature')adminFocusNeighbour(args[1]);}}
 // 1.2.1 (user: "관리자 모드에서 이웃들 버튼 클릭했을 때 해당 이웃으로 화면 클로즈업"): after calling a neighbour, close up on
 // where it is — the friend it sits on (followed), the litter spot or leaf pile it lives in, or the ant nest
-function adminFocusNeighbour(kind){const g=[...(state.objects?.creatures?.groups||[])].reverse().find(q=>q.kind===kind);if(!g)return;
+function adminFocusNeighbour(kind){if(kind==='spring')kind='springtail';const g=[...(state.objects?.creatures?.groups||[])].reverse().find(q=>q.kind===kind);if(!g)return;
  if(g.host&&['mite','mealy','keeper','lady'].includes(kind)){adminFriend=g.host;scene.selected=g.host;adminFocus(g.host,3);renderAdmin();return;}
  let pt=g.nest||null;if(!pt&&typeof g.site==='string'){const pile=F.Litter.piles(state).find(p=>p.id===g.site)||null;pt=pile||state.patches.find(p=>p.id===g.site)||null;}
+ if(!pt&&typeof g.pile==='string')pt=F.Litter.piles(state).find(p=>p.id===g.pile)||null;
  if(!pt&&g.host){const h=state.individuals.find(p=>p.id===g.host);if(h)pt=h;}
  if(pt)adminFocusPoint(pt);}
 function adminFocusPoint(pt){const cam=scene.camera;adminFollow=null;cam.setOverview?.(false);cam.z=Math.max(cam.z,2.4);cam.cx=pt.x;cam.cy=pt.y;cam.clamp();scene.cameraChanged();scene.saveCamera();}
