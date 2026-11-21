@@ -174,7 +174,7 @@ function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O
 // 0.8.5 빈 땅 산책 (user: "1번 ㄱㄱ"): a free friend sometimes walks out to the open ground of the wide forest (0.7.0 ring
 // outside the old garden), lingers there for a while and then chooses again. It only happens on a free choice (no need,
 // not night, not rain), keeps no object or resource, and any need, night, rain or danger ends it.
-const STROLL=Object.freeze({chance:.4,min:.25,linger:10,lingerSpread:9,deadline:90});
+const STROLL=Object.freeze({reach:.9,chance:.4,min:.25,linger:10,lingerSpread:9,deadline:90});
 function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.walk(s),G=W.GARDEN;
  // 0.9.0: while the lake shore waits to be found, about a third of the walks head for the forest's east edge
  if(W.lakeReady?.(s)&&rng(s,'behavior')<.35){for(let i=0;i<6;i++){const q={x:W.LAKE.east+(b.x1-W.LAKE.east)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};if(Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return q;}}
@@ -182,7 +182,10 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
  {const V=dep('vitals'),E=dep('environment');if(V.isDay(s)&&E.season(s)==='summer'&&W.shorePoint&&rng(s,'behavior')<.5){const q0=W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,cool:true};}}}
  // 0.9.3 겨울 얼음 놀이: when the lake is frozen, some walks go out onto the ice
  if(W.frozen?.(s)&&rng(s,'behavior')<.3){for(let i=0;i<6;i++){const q={x:1.3+(b.x1-1.3)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};if(W.onIce(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return q;}}
- for(let i=0;i<8;i++){const q={x:b.x0+(b.x1-b.x0)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};const outer=q.x<G.x0+.05||q.x>G.x1-.05||q.y<G.y0+.05||q.y>G.y1-.05;
+ // 1.0.1: a walk ends within 0.9 of where the friend is. Since the shore was widened (0.9.5) a walk could pick a spot at
+ // the far east end of the lake, far from every object, and each later choice then searched very long paths.
+ const R=STROLL.reach,X0=Math.max(b.x0,p.x-R),X1=Math.min(b.x1,p.x+R),Y0=Math.max(b.y0,p.y-R),Y1=Math.min(b.y1,p.y+R);
+ for(let i=0;i<8;i++){const q={x:X0+(X1-X0)*rng(s,'behavior'),y:Y0+(Y1-Y0)*rng(s,'behavior')};const outer=q.x<G.x0+.05||q.x>G.x1-.05||q.y<G.y0+.05||q.y>G.y1-.05;
   if(i<6&&!outer||Math.hypot(q.x-p.x,q.y-p.y)<STROLL.min)continue;if(Space.walkable(s,q,p.id))return q;}return null;}
 // 0.8.7 산책 동작 (user: "산책할 때 가벼운 모션들 먼저"): while it lingers at the walk's end the friend looks around (turning
 // this way and that), bends to smell the grass, sits down for a little while and gets up again before walking on. Pure
