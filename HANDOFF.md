@@ -879,3 +879,4 @@
 - 원인 판단: 크롬 MediaRecorder(1초 조각)가 만든 fragmented MP4를 약 20초 찍어 분석 — 내용은 끝까지(484장), 머리말 `mvhd` 길이 0, `mdhd` 영상 0.21초·소리 0.13초, `mehd` 없음. 갤러리가 머리말 길이를 써서 짧게 보이는 것으로 판단(실기기 파일 미확인).
 - 수정: `MainActivity.java` 조각을 `cacheDir/recording.part`에 모으고 `videoEnd`에서 MediaExtractor→MediaMuxer(MPEG_4/WEBM, MediaStore fd "rwt")로 다시 묶음, 실패 시 원본 복사, 임시 파일 삭제. `forest-app.js` 저장 중 안내. 버전 1.1.9 / versionCode 85.
 - 검증: javac 컴파일, `android-shell-dex`·`package` 통과, 크롬 흐름 확인. MediaMuxer 변환 자체는 Android에서만 실행되어 미검증.
+- 병합·릴리스: PR #70(https://github.com/sia080808-lgtm/Forest-of-Space/pull/70) main 병합 `145ab75f5d3484cdb668a1bcd1a63302b8c66186`(사용자 "ㄱㄱ"; head `a931541` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.9 `Forest-of-Space-1.1.9.apk` 74,352,939 bytes, SHA-256 `d3b1c066c345dedc29f8b94b7fe7e3732369365f5dbb18157d75d1be23b84129` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode85/1.1.9. APK는 사용자에게 파일로 전달.
