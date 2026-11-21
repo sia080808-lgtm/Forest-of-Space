@@ -15,7 +15,7 @@ const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorl
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.0.0', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.0.1', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -89,14 +89,14 @@ function step(s,{visible=true,held=null}={}){
   p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
   // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
   // SRS v2.34: basic water use by the water stat; strong light now costs water through photosynthesis (vitals.js)
-  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
+  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0||Vit.coolAt(s,p)?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
   const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
   const ground=Obj.groundAt(s,p),safeDry=Sh.inside(s,p)||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
   const weatherDamage=W.physiology(s,p,{safeCare:p.mounted});
   // SRS v2.28 species traits: weather mood (cold or snow / rain on the friend), and 엘레판's tank bonus while its open
   // leaf shelters a friend. Not under a shelter roof or on the mount, where the weather does not reach the friend.
-  if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&(s.climate.T<35||s.weather.kind==='snow'))p.mood=clamp(p.mood+tr.cold/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);
+  if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&Vit.isCold(s))p.mood=clamp(p.mood+tr.cold*Vit.chill(s,p)/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);
    if(p.species==='neolbi'&&p.mood<Traits.TANK_MOOD_MAX&&s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids[0]===p.id&&a.phase==='rest'))p.mood=Math.min(Traits.TANK_MOOD_MAX,p.mood+Traits.TANK_MOOD/60);}
   // SRS v2.34 능력치: bands, photosynthesis growth, drying, compost, mood and leaf damage folded into 기운 (vitals.js)
   Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});

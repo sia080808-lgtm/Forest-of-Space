@@ -35,7 +35,7 @@ class ForestScene {
  // winter: one continuous snow cover over most of the ground (cached), the paper showing through in thawing patches;
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
  // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
- snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);if(this.assets.lakeIce&&(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.lakeOpen?.(s))c.drawImage(this.assets.lakeIce,1.05*w,-.25*h,2.25*w,1.5*h);   /* 0.9.0: the lake freezes under the snow */
+ snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);{const LW=typeof ForestWorld!=='undefined'?ForestWorld:Forest.World;if(LW?.lakeOpen?.(s)){const img=LW.frozen?.(s)===false?this.assets.lakeFloor:this.assets.lakeIce;if(img)c.drawImage(img,1.05*w,-.25*h,2.25*w,1.5*h);}}   /* 0.9.0: the lake freezes under the snow */
   // a few very faint, broad grey washes: the gentle rise and fall of the snow (barely visible, no clutter)
   for(let i=0;i<9;i++){const x=(W.x0+((i*.618034+.21)%1)*(W.x1-W.x0))*w,y=(W.y0+((i*.381966+.13)%1)*(W.y1-W.y0))*h,r=(.18+.08*(i%3))*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,178,184,.07)');g.addColorStop(1,'rgba(170,178,184,0)');c.save();c.translate(x,y);c.scale(1,.38);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}
   c.restore();}

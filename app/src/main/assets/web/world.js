@@ -100,7 +100,10 @@ function lifeStep(s,event){const st=s.world.lake;st.life??=[];const L=st.life,c=
 // fireflies, winter ice play. All friends take part; how each one reacts is drawn per species (scene.js, render only).
 const FX=Object.freeze({frogNear:.12,watchNear:.3,watchMood:4,fireMood:3,fireChance:.5,iceMood:.5/60,iceCap:80,morning:400});
 function dayTime(s){return ((s.worldTick%1200)+1200)%1200;}
-function frozen(s){return lakeOpen(s)&&seasonAt(s).i===3;}
+// 1.0.1: the lake freezes only in a cold winter (climate base + winter change under 45: 촉촉한·온화한·서늘한 숲). The dry forest's
+// winter stays warm (50), so its lake stays open and a thirsty friend can still drink at the shore (user: "마른 숲에는 호수 안 얼게")
+const ICE_T=45;
+function frozen(s){if(!lakeOpen(s)||seasonAt(s).i!==3)return false;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,c=s.environment?.climate||'C01',k=E?.CLIMATES?.[c],fx=E?.SEASON_FX?.[c]?.winter;return !k||!fx||k.T+fx.T<ICE_T;}
 function onIce(s,p){return frozen(s)&&p.x>1.25&&waterD(p.x,p.y)<LAKE.edge;}
 function clearCalm(s){return (s.weather.kind==='sun'||s.weather.kind==='cloud')&&s.weather.wind<30;}
 function fireflies(s){const f=s.world?.lake?.fx?.fire,tt=dayTime(s);return !!f&&f.on&&tt>=620&&tt<1150&&f.night===Math.floor((s.worldTick-620)/1200)&&seasonAt(s).i===1&&clearCalm(s);}
@@ -126,10 +129,11 @@ function fxStep(s,event){const st=s.world.lake,fx=st.fx??={},t=s.worldTick,c=sea
 // none while the lake is closed or frozen.
 function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;const q=nearShore(s,p);return q&&{x:q.x,y:q.y};}
 function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeStep(s,event);fxStep(s,event);return;}const st=s.world.lake??={ready:false,scents:0};
- if(!st.ready&&s.individuals.filter(p=>p.active).length>=LAKE.friends&&s.worldTick-(s.environment?.calendar?.start??0)>=LAKE.season){st.ready=true;event?.(s,'world','숲 동쪽 끝에서 바람이 촉촉해졌어요.');}
- if(!st.ready)return;
- for(const p of s.individuals){const t=p.stroll;if(!p.active||!t||t.arrivedAt!==s.worldTick||t.scent||t.x<LAKE.east)continue;t.scent=true;st.scents++;event?.(s,'world',p.name+' · 동쪽에서 물 냄새가 나요.');
-  if(st.scents>=LAKE.scents){s.world.regions=[...s.world.regions,'lakeshore'];st.openedAt=s.worldTick;event?.(s,'world','숲 동쪽에 물가가 열렸어요.');break;}}}
+ // 1.0.1 (user: "봄 1시간 보낸 뒤 호수지역은 해금"): the shore opens by itself when the first spring is over (one season
+ // after the calendar began), with no friend count or east-edge walks, so every forest has open water before its first
+ // summer and winter. Old saves still waiting for the walks open at once.
+ if(s.worldTick-(s.environment?.calendar?.start??0)<LAKE.season)return;
+ st.ready=true;st.scents=Math.max(st.scents||0,LAKE.scents);s.world.regions=[...s.world.regions,'lakeshore'];st.openedAt=s.worldTick;event?.(s,'world','봄이 지나고 숲 동쪽에 물가가 열렸어요.');}
 // 관리자: open the shore at once, skipping the growth conditions and the three walks (settings > 개발 검수; user: "관리자 권한으로 해금 조건 푸는 설정")
 function openLake(s){if(!s.world||lakeOpen(s))return false;const st=s.world.lake??={ready:false,scents:0};st.ready=true;st.scents=Math.max(st.scents,LAKE.scents);st.openedAt=s.worldTick;s.world.regions=[...s.world.regions,'lakeshore'];return true;}
 function validate(s){if(s.world===undefined)return;{const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)||l.nextLily!=null&&!Number.isSafeInteger(l.nextLily)||l.nextId!=null&&!Number.isSafeInteger(l.nextId)||l.nextLife!=null&&!Number.isSafeInteger(l.nextLife)||l.nextLifeId!=null&&!Number.isSafeInteger(l.nextLifeId)||l.life!=null&&(!Array.isArray(l.life)||l.life.length>30||l.life.some(q=>!q||typeof q.id!=='string'||!LIFE_KINDS.includes(q.kind)||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.n!=null&&!Number.isSafeInteger(q.n)))||l.fx!=null&&(typeof l.fx!=='object'||Array.isArray(l.fx)||l.fx.react!=null&&(typeof l.fx.react!=='object'||Object.values(l.fx.react).some(r=>!r||!['startle','watch'].includes(r.k)||!Number.isSafeInteger(r.at)))||l.fx.fire!=null&&(!Number.isSafeInteger(l.fx.fire.night)||typeof l.fx.fire.on!=='boolean'))||l.life!=null&&l.life.some(q=>q?.dive!=null&&!Number.isSafeInteger(q.dive))||l.seen!=null&&(typeof l.seen!=='object'||Array.isArray(l.seen)||Object.entries(l.seen).some(([k,v])=>!LIFE_KINDS.includes(k)||!Number.isSafeInteger(v)))||l.lilies!=null&&(!Array.isArray(l.lilies)||l.lilies.length>LILY.max||l.lilies.some(q=>!q||typeof q.id!=='string'||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.fall!=null&&!Number.isSafeInteger(q.fall)))))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length)throw Error('숲 지역 기록을 확인해 주세요.');}
