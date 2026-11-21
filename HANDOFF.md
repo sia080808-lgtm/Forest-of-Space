@@ -906,3 +906,4 @@
 - 원인: 친구가 작아지면(레벨 초기화 뒤 그림 단계 하강) 잎 위 눈(`snowWater`)이 한도(12×잎 넓이)를 넘은 채 저장됨 → 불러올 때 `Environment.validate` 실패. 엔진에서 같은 상태로 1.2.1 코드 실패 재현.
 - 수정: `environment.js` `fitSnow`(init에서 — 불러오기·매 단계) 한도 넘는 눈을 `ledger.outflow`로. 테스트 `snow-fit.test.cjs`. 버전 1.2.2 / versionCode 88.
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기에서 같은 기록이 열리는지 미확인.
+- 병합·릴리스: PR #73(https://github.com/sia080808-lgtm/Forest-of-Space/pull/73) main 병합 `3ef001f8c1091205efc432b07fa992f74d2ebbd7`(사용자 "ㄱㄱ"; head `47d6b1d` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.2 `Forest-of-Space-1.2.2.apk` 74,369,323 bytes, SHA-256 `69b2034909614094408faa222384e0076295d6c76a4710dd3408f228eb7dcae9` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode88/1.2.2. APK는 사용자에게 파일로 전달.
