@@ -907,3 +907,10 @@
 - 수정: `environment.js` `fitSnow`(init에서 — 불러오기·매 단계) 한도 넘는 눈을 `ledger.outflow`로. 테스트 `snow-fit.test.cjs`. 버전 1.2.2 / versionCode 88.
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기에서 같은 기록이 열리는지 미확인.
 - 병합·릴리스: PR #73(https://github.com/sia080808-lgtm/Forest-of-Space/pull/73) main 병합 `3ef001f8c1091205efc432b07fa992f74d2ebbd7`(사용자 "ㄱㄱ"; head `47d6b1d` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.2 `Forest-of-Space-1.2.2.apk` 74,369,323 bytes, SHA-256 `69b2034909614094408faa222384e0076295d6c76a4710dd3408f228eb7dcae9` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode88/1.2.2. APK는 사용자에게 파일로 전달.
+
+### SPRINGTAIL-CALL-1.2.3-20261121 — 관리자 톡토기 부르기가 저장 검사에 걸리던 문제
+
+- 담당: Claude Code. 요청: 사용자 1.2.2 "톡토기 누르니까 작은이웃 기록을 확인해주세요라고 뜨는데" → "pr ㄱㄱ". (그 전 '관리자 버튼 눌림 표시' PR은 사용자 "방금pr취소"로 만들기 전에 되돌림.) 기준 main `3ef001f`(1.2.2 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `admin.js` `creature`가 톡토기를 `kind:'spring'`으로 만들어 `Creatures.validate`가 거절(엔진 이름표 `springtail`).
+- 수정: `springtail`로 부르기, 두 무리 상한, `forest-app.js` `adminFocusNeighbour`가 `g.pile` 더미로 확대. 테스트 ADM-05. 버전 1.2.3 / versionCode 89.
+- 검증: `admin-panel`(고치기 전 같은 문구로 실패)·`admin`·`package` 11/11, 전체는 CI. 실기기 미검증.
