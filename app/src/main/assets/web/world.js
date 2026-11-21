@@ -96,6 +96,21 @@ function lifeStep(s,event){const st=s.world.lake;st.life??=[];const L=st.life,c=
   if(c.into<2400&&lrnd(s)<.15){const r=REEDS[Math.floor(lrnd(s)*REEDS.length)];if(!L.some(o=>o.kind==='nymph'&&o.x===r[0]))add('nymph',{x:r[0],y:r[1]});}
   if(calm&&lrnd(s)<.35)add('larva',waterSpot(s,.8,.98,.04));}
  st.seen??={};for(const o of st.life)st.seen[o.kind]??=t;}   // 0.9.4: 물가 이웃 도감 — which kinds have been at the lake
+// 1.1.1 관리자 '호수 생명 채우기' (user: "2번"): the season jump leaves the lake as empty as the first minute of that
+// season (in play lilies and lake life come slowly, from late spring). This admin-only button fills the lake with what
+// that season would hold by now: lilies at mixed ages (spring's last day, summer, autumn) and the season's neighbours up
+// to their caps. Nothing changes in normal play. Returns how many were added.
+function fillLake(s){if(!lakeOpen(s))return null;const st=s.world.lake;st.lilies??=[];st.life??=[];const c=seasonAt(s),t=s.worldTick;if(c.i===3||frozen(s))return 0;let n=0;
+ if(c.i===1||c.i===2||c.i===0&&c.into>=2400)for(let k=0;k<40&&st.lilies.length<8;k++){const x=lakeX(s),y=-.15+lrnd(s)*1.3,d=waterD(x,y);if(d<=.55||d>=.94||st.lilies.some(l=>Math.hypot(l.x-x,(l.y-y)*.62)<LILY.gap))continue;
+  st.nextId=(st.nextId||0)+1;const l={id:'lily'+st.nextId,x:Math.round(x*1e4)/1e4,y:Math.round(y*1e4)/1e4,born:t-Math.floor(lrnd(s)*2800)};if(c.i===2)l.fall=t+Math.floor(lrnd(s)*600);st.lilies.push(l);n++;}
+ const L=st.life,count=k=>L.filter(o=>o.kind===k).length,add=(kind,q,extra={})=>{if(!q||count(kind)>=LIFE.cap[kind])return;st.nextLifeId=(st.nextLifeId||0)+1;L.push({id:'life'+st.nextLifeId,kind,x:q.x,y:q.y,born:t,...extra});n++;};
+ const want=c.i===0?[['eggs',2],['strider',c.into>=1200?2:0],['snail',c.into>=1200?1:0],['medaka',c.into>=2400?1:0]]
+  :c.i===1?[['tadpole',1],['frog',2],['strider',3],['snail',2],['medaka',2],['beetle',1],['nymph',1],['dragonfly',2],['larva',2]]
+  :[['frog',2],['strider',c.into<2400?2:0],['snail',2]];
+ for(const [kind,k] of want)for(let i=0;i<k;i++){if(kind==='nymph'){const r=REEDS[Math.floor(lrnd(s)*REEDS.length)];if(!L.some(o=>o.kind==='nymph'&&o.x===r[0]))add('nymph',{x:r[0],y:r[1]});}
+  else if(kind==='frog')add('frog',shoreSpot(s));else if(kind==='tadpole')add('tadpole',waterSpot(s,.86,.98),{n:4});else if(kind==='eggs')add('eggs',waterSpot(s,.86,.98));
+  else add(kind,waterSpot(s,{strider:.4,snail:.9,medaka:.3,beetle:.3,dragonfly:.6,larva:.8}[kind],{strider:.95,snail:1,medaka:.92,beetle:.8,dragonfly:1,larva:.98}[kind]));}
+ st.seen??={};for(const o of L)st.seen[o.kind]??=t;return n;}
 // 0.9.3 호수 이벤트 (SRS v2.33 LK-07, user "4개 다 넣어줘"): frog surprise, dragonfly emergence watched, summer-night
 // fireflies, winter ice play. All friends take part; how each one reacts is drawn per species (scene.js, render only).
 const FX=Object.freeze({frogNear:.12,watchNear:.3,watchMood:4,fireMood:3,fireChance:.5,iceMood:.5/60,iceCap:80,morning:400});
@@ -106,7 +121,8 @@ const ICE_T=45;
 function frozen(s){if(!lakeOpen(s)||seasonAt(s).i!==3)return false;const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,c=s.environment?.climate||'C01',k=E?.CLIMATES?.[c],fx=E?.SEASON_FX?.[c]?.winter;return !k||!fx||k.T+fx.T<ICE_T;}
 function onIce(s,p){return frozen(s)&&p.x>1.25&&waterD(p.x,p.y)<LAKE.edge;}
 function clearCalm(s){return (s.weather.kind==='sun'||s.weather.kind==='cloud')&&s.weather.wind<30;}
-function fireflies(s){const f=s.world?.lake?.fx?.fire,tt=dayTime(s);return !!f&&f.on&&tt>=620&&tt<1150&&f.night===Math.floor((s.worldTick-620)/1200)&&seasonAt(s).i===1&&clearCalm(s);}
+// 1.1.1 (user: 반딧불이 금방 사라짐): once they have come out (calm night), they stay the whole night unless rain, snow or a gale
+function fireflies(s){const f=s.world?.lake?.fx?.fire,tt=dayTime(s);return !!f&&f.on&&tt>=620&&tt<1150&&f.night===Math.floor((s.worldTick-620)/1200)&&seasonAt(s).i===1&&(f.seen?!['rain','snow'].includes(s.weather.kind)&&s.weather.wind<60:clearCalm(s));}
 // the reaction a friend is showing (render reads it): {kind:'startle'|'watch', age} for a few seconds after the event
 function reaction(s,p){const r=s.world?.lake?.fx?.react?.[p.id];if(!r)return null;const age=s.worldTick-r.at;return age>=0&&age<8?{kind:r.k,age}:null;}
 function found(s,event,id,text){s.discoveries??={};if(s.discoveries[id])return;s.discoveries[id]={tick:s.worldTick,text,layout:s.layoutRevision};event?.(s,'discovery',text,{discovery:id});}
@@ -137,5 +153,5 @@ function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeSt
 // 관리자: open the shore at once, skipping the growth conditions and the three walks (settings > 개발 검수; user: "관리자 권한으로 해금 조건 푸는 설정")
 function openLake(s){if(!s.world||lakeOpen(s))return false;const st=s.world.lake??={ready:false,scents:0};st.ready=true;st.scents=Math.max(st.scents,LAKE.scents);st.openedAt=s.worldTick;s.world.regions=[...s.world.regions,'lakeshore'];return true;}
 function validate(s){if(s.world===undefined)return;{const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)||l.nextLily!=null&&!Number.isSafeInteger(l.nextLily)||l.nextId!=null&&!Number.isSafeInteger(l.nextId)||l.nextLife!=null&&!Number.isSafeInteger(l.nextLife)||l.nextLifeId!=null&&!Number.isSafeInteger(l.nextLifeId)||l.life!=null&&(!Array.isArray(l.life)||l.life.length>30||l.life.some(q=>!q||typeof q.id!=='string'||!LIFE_KINDS.includes(q.kind)||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.n!=null&&!Number.isSafeInteger(q.n)))||l.fx!=null&&(typeof l.fx!=='object'||Array.isArray(l.fx)||l.fx.react!=null&&(typeof l.fx.react!=='object'||Object.values(l.fx.react).some(r=>!r||!['startle','watch'].includes(r.k)||!Number.isSafeInteger(r.at)))||l.fx.fire!=null&&(!Number.isSafeInteger(l.fx.fire.night)||typeof l.fx.fire.on!=='boolean'))||l.life!=null&&l.life.some(q=>q?.dive!=null&&!Number.isSafeInteger(q.dive))||l.seen!=null&&(typeof l.seen!=='object'||Array.isArray(l.seen)||Object.entries(l.seen).some(([k,v])=>!LIFE_KINDS.includes(k)||!Number.isSafeInteger(v)))||l.lilies!=null&&(!Array.isArray(l.lilies)||l.lilies.length>LILY.max||l.lilies.some(q=>!q||typeof q.id!=='string'||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.fall!=null&&!Number.isSafeInteger(q.fall)))))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length)throw Error('숲 지역 기록을 확인해 주세요.');}
-return Object.freeze({REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep,lilyStage,LILY,openLake,LIFE,FX,frozen,onIce,fireflies,reaction,shorePoint});
+return Object.freeze({fillLake,REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep,lilyStage,LILY,openLake,LIFE,FX,frozen,onIce,fireflies,reaction,shorePoint});
 });

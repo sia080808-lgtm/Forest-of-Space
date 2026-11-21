@@ -79,3 +79,13 @@ test('LK-08 a thirsty friend near the open shore walks to the water and drinks (
  a.ok(Object.keys(g.world.lake.seen).length>=6,'seen '+Object.keys(g.world.lake.seen));F.valid(g);
  const bad=game();bad.world.regions=['forest','lakeshore'];bad.world.lake={ready:true,scents:3,seen:{shark:1}};a.throws(()=>F.valid(bad),/호수/);
 });
+test('1.1.1 admin fill lake, fireflies stay the night, a far friend walks home instead of sleeping out',()=>{const F=require('../../app/src/main/assets/web/engine'),A=require('../../app/src/main/assets/web/admin'),W=require('../../app/src/main/assets/web/world'),Sp=require('../../app/src/main/assets/web/spatial');
+ const fresh=()=>{const s=F.create(0,1);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;A.run(F,s,'openLake');return s;};
+ // fill: summer gets lilies at mixed stages and the season's neighbours; winter adds nothing; save stays valid
+ {const s=fresh();A.run(F,s,'season',1);A.run(F,s,'fillLake');const L=s.world.lake;a.ok(L.lilies.length>=6);a.ok(new Set(L.lilies.map(l=>W.lilyStage(s,l))).size>=2);a.ok(L.life.length>=10);F.valid(JSON.parse(JSON.stringify(s)));
+  const w=fresh();A.run(F,w,'season',3);a.throws(()=>A.run(F,w,'fillLake'));}
+ // fireflies: once out on a calm night they stay though the wind picks up (not in rain)
+ {const s=fresh();A.run(F,s,'season',1);A.run(F,s,'time','night');s.weather.kind='sun';s.weather.wind=10;F.step(s);s.world.lake.fx.fire.on=true;F.step(s);a.ok(W.fireflies(s));s.weather.wind=40;a.ok(W.fireflies(s),'wind 40');s.weather.kind='rain';a.ok(!W.fireflies(s),'rain');}
+ // a friend at the far east shore at night still reaches a spot (the old 30 s cap made it give up halfway)
+ {const s=fresh();A.run(F,s,'season',1);const p=s.individuals[0];let q=null;for(let y=-.2;y<1.2&&!q;y+=.02){const c={x:3.0,y};if(Sp.walkable(s,c,p.id))q=c;}Object.assign(p,q,{B:55,nutrition:55,energy:70});A.run(F,s,'time','night');
+  for(let t=0;t<200;t++)F.step(s);a.ok(p.x<1.2,'walked home: x '+p.x.toFixed(2));a.ok(!p.sleepHere);}});
