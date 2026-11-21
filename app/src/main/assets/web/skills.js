@@ -97,14 +97,14 @@ const ga=n=>{const c=n.charCodeAt(n.length-1)-44032;return c>=0&&c<11172&&c%28?'
 function startBrush(s,p,held,busy){if(!ready(s,p,'brush'))return false;const Sh=dep('shelter');
  const r=s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.id!==held&&!busy.has(q.id)&&!q.skill&&!q.skillHold&&!Sh.inside?.(s,q)&&!q.shelter?.facilityId&&dist(q,p)<lv(p,'brush','reach')&&pest(s,q)>=SK.brush.min).sort((a,b)=>pest(s,b)-pest(s,a)||a.id.localeCompare(b.id))[0];
  if(!r||!dep('spatial').route(s,p,side(s,p,r)))return false;p.skill={k:'brush',target:r.id,phase:'go',start:s.worldTick};return true;}
-function side(s,p,r){const Space=dep('spatial'),gap=.4*(Space.diameter(p)+Space.diameter(r))+.01;for(const dx of [p.x<=r.x?-1:1,p.x<=r.x?1:-1]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
+/* 1.2.6: the spot beside the friend must also be clear of the other friends — it could fall inside a third friend's body (a big 슈퍼범 next to it), the walk there never found a way and the brush gave up every time */function side(s,p,r){const Space=dep('spatial'),gap=.4*(Space.diameter(p)+Space.diameter(r))+.01,clear=q=>Space.walkable(s,q,p.id)&&!s.individuals.some(z=>z.id!==p.id&&z.id!==r.id&&z.active&&!z.mounted&&Math.hypot(z.x-q.x,z.y-q.y)<.4*(Space.diameter(p)+Space.diameter(z)));const L=p.x<=r.x?-1:1;for(const [dx,dy] of [[L,.004],[-L,.004],[L*.7,.04],[-L*.7,.04],[0,.06]]){const q={x:r.x+dx*gap,y:r.y+dy};if(clear(q))return q;}for(const dx of [L,-L]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
 // ---- 엘리시 촉촉한 잎 곁 (always on while it holds) ----
 function misters(s){return s.individuals.filter(p=>p.species===SK.mist.species&&p.active&&!p.mounted&&p.energy>=40&&p.B>=band(p).warnLo&&!dep('shelter').inside?.(s,p)&&s.patches.some(z=>z.id==='moss'&&dist(z,p)<SK.mist.moss));}
 function moistLeaf(s,q){return misters(s).reduce((v,e)=>dist(e,q)<lv(e,'mist','range')?Math.max(v,lv(e,'mist','humid')):v,0);}
 function assist(s,q){return !!q&&misters(s).some(e=>dist(e,q)<lv(e,'mist','assist'));}
 // ---- puddles (SK-03) ----
 function puddleStep(s){const st=init(s);for(const d of [...st.puddles]){const e=Math.min(d.W,SK.dig.evap);d.W-=e;s.ledger.evaporation+=e;
- if(s.worldTick-d.born>=SK.dig.life||d.W<=eps){const z=s.patches.find(z=>z.id===d.from),back=z?Math.min(d.W,Math.max(0,z.cap-z.S)):0;if(z)z.S+=back;s.ledger.outflow+=d.W-back;st.puddles=st.puddles.filter(x=>x!==d);for(const p of s.individuals)if(p.guideTo?.id===d.id)delete p.guideTo;}}}
+ if(s.worldTick-d.born>=SK.dig.life||d.W<=eps){const z=[...s.patches,...(s.objects?.stored||[])].find(z=>z.id===d.from),back=z?Math.min(d.W,Math.max(0,z.cap-z.S)):0;if(z)z.S+=back;s.ledger.outflow+=d.W-back;st.puddles=st.puddles.filter(x=>x!==d);for(const p of s.individuals)if(p.guideTo?.id===d.id)delete p.guideTo;}}}
 // ---- one tick: puddles, counting the kept skills, starting new ones ----
 function prepare(s,{held=null,busy=new Set(),event,discovery,visible=true}={}){init(s);puddleStep(s);const ctx={event,discovery,visible};
  for(const p of s.individuals){if(p.guideTo&&(p.guideTo.until<=s.worldTick||!p.active||p.B>=band(p).mid))delete p.guideTo;if(p.skill&&!p.active)stop(s,p);if(p.skillHold&&!s.individuals.some(q=>q.skill?.k==='brush'&&q.skill.target===p.id&&q.id===p.skillHold))delete p.skillHold;}
@@ -147,6 +147,15 @@ function act(s,p,ctx={}){const Space=dep('spatial'),Vit=dep('vitals');
   if(s.worldTick-t.at<SK.brush.time)return {kind:'brush',distance:0};
   dep('creatures').brush(s,r.id,lv(p,'brush','amount'));Vit.energyPts(p,-SK.brush.cost);rest(s,p,'brush',lv(p,'brush','rest'));bump(s,p,ctx);ctx.event?.(s,'skill',p.name+' · '+r.name+'의 잎을 털어 주었어요.',{individual:p.id});stop(s,p);return {kind:'idle',distance:0};}
  stop(s,p);return null;}
+// 1.2.6 관리자 '스킬 보기' (user: "친구 항목에서 해당 케릭터의 스킬 연출 볼 수 있게 스킬 사용 키"): starts the skill now, skipping the
+// wait and the "is it needed" check (a thirsty friend, a low spring); the caller has already put the leaves, pests or soil water in place.
+// The skill then runs exactly as in play. Returns false when there is nothing to work on.
+function force(s,p){init(s);(p.skillRest??={});for(const k of KINDS)delete p.skillRest[k];
+ if(p.species==='bosong'){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}return false;}
+ if(p.species==='jureong'){const c=rakeFor(s,p);if(!c)return false;const Space=dep('spatial');let at=null;for(const q of [{x:c.x,y:c.y+.03},{x:c.x+.04,y:c.y+.02},{x:c.x-.04,y:c.y+.02},{x:c.x,y:c.y}])if(Space.walkable(s,q,p.id)){at=q;break;}if(!at||!Space.route(s,p,at))return false;
+  p.skill={k:'rake',sector:c.sector,ids:c.ids.map(l=>l.id),pile:c.pile,anchor:c.anchor,cx:c.x,cy:c.y,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'rake',SK.rake.rest);return true;}
+ if(p.species==='ridley')return startBrush(s,p,null,new Set());
+ return false;}
 // leaves held by a friend: none (코로나 rakes leaves where they lie)
 function carried(){return 0;}
 // card line for a friend using or receiving a skill (render / UI only)
@@ -169,11 +178,11 @@ const LINE=Object.freeze({
 function levelLines(p){const f=LINE[p?.species];if(!f)return null;const L=levelOf(p),now=f(p),nextL=NEXT.find(n=>n>L&&f({...p,xp:LEVELS[n-1]})!==now);
  return {level:L,now,next:nextL?{level:nextL,line:f({...p,xp:LEVELS[nextL-1]})}:null};}
 function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='object'||!Array.isArray(st.puddles)||st.puddles.length>SK.dig.max||!Number.isInteger(st.nextId)||st.nextId<1||typeof st.seen!=='object')throw Error('고유 스킬 기록을 확인해 주세요.');
-  for(const d of st.puddles)if(typeof d.id!=='string'||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!(d.W>=0&&d.W<=LEVEL.dig.amount.at(-1)+eps)||!s.patches.some(z=>z.id===d.from)||!(d.born<=s.worldTick))throw Error('웅덩이 기록을 확인해 주세요.');}
+  for(const d of st.puddles)if(typeof d.id!=='string'||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!(d.W>=0&&d.W<=LEVEL.dig.amount.at(-1)+eps)||![...s.patches,...(s.objects?.stored||[])].some(z=>z.id===d.from)||!(d.born<=s.worldTick))throw Error('웅덩이 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillRest!==undefined&&(typeof p.skillRest!=='object'||Object.entries(p.skillRest).some(([k,v])=>!KINDS.includes(k)||!Number.isFinite(v))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well});
+return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side});
 });
