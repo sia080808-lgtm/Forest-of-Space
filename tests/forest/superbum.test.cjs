@@ -15,10 +15,10 @@ test('슈퍼범 is a full species: listed, 1.7x, bigger than 엘레판, the same
  a.ok(require('node:fs').existsSync(path.join(web,'assets/forest/species/superbum-portrait.png')));
 });
 
-test('the nest frond collects real rain into V: ledger-balanced, at most .1/s and 40, never while held, mounted or sheltered',()=>{
+test('the nest frond collects real rain into V: ledger-balanced, at most .1/s and the nest size of its level (Lv9 50, 1.1.3), never while held, mounted or sheltered',()=>{
  const {s,p}=game(),base=F.totalWater(s);rain(s,true);let max=0;for(let t=0;t<300;t++){const v=p.V;F.step(s);max=Math.max(max,p.V-v);rain(s,true);}
  a.ok(p.V>5,'collected '+p.V);a.ok(max<=.1+1e-9);a.ok(p.sources.rain>0);near(balance(s,base),0,1e-6);
- for(let t=0;t<900;t++){F.step(s);rain(s,true);}a.ok(p.V<=S.NEST+1e-9);near(balance(s,base),0,1e-6);
+ for(let t=0;t<900;t++){F.step(s);rain(s,true);}a.ok(p.V<=require(web+'/skills.js').share(p).nest+1e-9&&p.V>S.NEST,'Lv9 nest holds up to 50: '+p.V);near(balance(s,base),0,1e-6);
  const g=game();rain(g.s,true);g.p.mounted=true;for(let t=0;t<60;t++){F.step(g.s);rain(g.s,true);}a.equal(g.p.V,0);
  const h=game();rain(h.s,false);for(let t=0;t<120;t++){F.step(h.s);rain(h.s,false);}a.equal(h.p.V,0,'no rain, no water');
  const e=game();e.p.species='bonbon';e.p.name='엘리시';rain(e.s,true);for(let t=0;t<120;t++){F.step(e.s);rain(e.s,true);}a.equal(e.p.V,0,'Ellisii no longer collects');
