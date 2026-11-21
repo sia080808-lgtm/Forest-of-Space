@@ -11,6 +11,8 @@ test('0.6.30 leaf shade: the rest spot is under the leaves beside the stem, and 
 
 test('0.6.30 엘레판 canopy: the friend is seated under the open leaf, close to 엘레판, not in front of its tip',()=>{
  const s=game(9),base=s.individuals[0];s.individuals.push({...F.clone(base),id:'n',species:'neolbi',name:'엘레판',x:.45,y:.6,active:true,sources:{rain:0,other:0,unknown:0}});base.x=.3;base.y=.6;
+ // 1.2.1: both start outdoors (the clone would otherwise carry the shelter seat of the friend it was copied from)
+ for(const q of s.individuals){delete q.shelter;q.action='idle';q.target=null;q.actionSeconds=0;}F.Shelter.rebuild(s);
  let seat=null;for(let t=0;t<1800&&!seat;t++){s.weather.kind='rain';s.weather.intensity=60;s.weather.remaining=200;s.weather.wind=10;F.step(s);const c=s.social.sessions.find(x=>x.type==='CANOPY'&&x.seat);if(c){const h=s.individuals.find(q=>q.id===c.ids[0]);seat={dx:c.seat.x-h.x,dy:c.seat.y-h.y,ok:N.canFit(h,c.seat,s.individuals.find(q=>q.id===c.ids[1]))};}}
  a.ok(seat,'a canopy session started');a.ok(seat.ok);a.ok(seat.dx<=.085&&seat.dy<=.02,JSON.stringify(seat));
 });
