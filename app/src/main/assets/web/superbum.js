@@ -14,6 +14,11 @@ const META={
 // Water held in the nest: the wet set shows from WET_ON and fully at WET_FULL (fraction of the nest's capacity).
 const WET_ON=.12,WET_FULL=.3,STRIP=6;
 const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>(x=clamp(x))*x*(3-2*x);
+// 1.1.6: a gently swaying side leaf (standing, resting: small angle and lift) is drawn from a small cache of bent leaves
+// baked once per pose step (angle and lift rounded to BAKE_STEP, resolution to the screen scale), instead of 60-odd clipped
+// strips every frame; bigger swings (walking, playing, startle) are still bent live. The cache keeps the newest BAKE_MAX.
+const BAKE_STEP=.003,BAKE_SMALL=.035,BAKE_MAX=48,bakes=new Map();
+const makeCanvas=(w,h)=>{const c=typeof document!=='undefined'?document.createElement('canvas'):require('@napi-rs/canvas').createCanvas(w,h);c.width=w;c.height=h;return c;};
 const MOVING=['walk','slow','hurry','run','duck','step','avoid'];
 // Rig-frame scale: the common renderer gives 1254 px for a 48-unit friend; 슈퍼범 stands 1.7x 리들리 (38.5 units tall).
 const K=1254/48*RIDLEY_H*SIZE/HEIGHT;
@@ -80,6 +85,12 @@ function drawSet(c,a,set,p,opt,t){
   const top=Math.max(0,Math.floor(py-40)),span=420-py;c.save();c.beginPath();c.rect(-60,-60,600,top+60);c.clip();c.drawImage(im,0,0,480,420);c.restore();
   for(let y=top;y<420;y+=STRIP){const h=Math.min(STRIP,420-y),f=Math.max(0,(y+h/2-py)/span),w=f*f*(3-2*f),dx=-ang*span*w,dy=-lift*span*.35*w;c.save();c.beginPath();c.rect(-60,y+dy-.75,600,h+1.5);c.clip();c.drawImage(im,dx,dy,480,420);c.restore();}
   if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
+ const bentLive=bend;
+ const bendCached=(k,py,ang,lift,snowy)=>{const im=L(k);if(!im)return;if(Math.abs(ang)<1e-4&&Math.abs(lift)<1e-4||Math.abs(ang)>BAKE_SMALL||Math.abs(lift)>BAKE_SMALL)return bentLive(k,py,ang,lift,snowy);
+  const T=c.getTransform(),scale=Math.min(1,Math.ceil(Math.hypot(T.a,T.b)*1.25*4)/4)||1,qa=Math.round(ang/BAKE_STEP)*BAKE_STEP,ql=Math.round(lift/BAKE_STEP)*BAKE_STEP,key=set+k+'|'+qa.toFixed(3)+'|'+ql.toFixed(3)+'|'+scale;
+  let cv=bakes.get(key);if(cv){bakes.delete(key);bakes.set(key,cv);}
+  else{cv=makeCanvas(Math.ceil(560*scale),Math.ceil(460*scale));const o=cv.getContext('2d');o.scale(scale,scale);o.translate(40,20);const keep=c;c=o;try{bentLive(k,py,qa,ql,false);}finally{c=keep;}bakes.set(key,cv);if(bakes.size>BAKE_MAX)bakes.delete(bakes.keys().next().value);}
+  c.drawImage(cv,-40,-20,560,460);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // body (round face) first; the feet are attached in front of its lower edge (they move with the body and step on their own); leaves and crown move with the body
  const sit=opt.sit||0,lift=()=>{c.translate(0,p.bob+p.sink+sit*10);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
  c.save();lift();img('body');eyes(c,set,m,p,a,opt,t);c.restore();
@@ -89,8 +100,8 @@ function drawSet(c,a,set,p,opt,t){
  // huddled (0.6.38): the outer tips at the top of the side leaves sit under the nest brim; once the nest folds down they
  // would stick out, so they are clipped away (only the leaf top outside x 90..390 above y 240)
  const hc=p.huddled>.01;if(hc){c.save();c.beginPath();c.rect(-60,240,600,300);c.rect(90,-60,300,300);c.clip();}
- bend('skirt-left',m.skirt[0][1],p.skirt[0],p.skirtLift[0],true);
- bend('skirt-right',m.skirt[1][1],p.skirt[1],p.skirtLift[1],true);
+ bendCached('skirt-left',m.skirt[0][1],p.skirt[0],p.skirtLift[0],true);
+ bendCached('skirt-right',m.skirt[1][1],p.skirt[1],p.skirtLift[1],true);
  if(hc)c.restore();
  const [cx,cy]=m.crown;c.save();c.translate(cx,cy);c.rotate(p.crown);c.scale(p.crownScale,p.crownScale);c.translate(-cx,-cy+p.crownLift);img('crown',true);const M=c.getTransform();c.restore();
  c.restore();return M;
