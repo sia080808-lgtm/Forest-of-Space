@@ -108,6 +108,7 @@ function water(c,M,set,p,t,opt){
 // drawLocal: origin = the feet's ground centre, units = layer px
 function drawLocal(c,a,opt={}){
  const t=opt.reduced?0:opt.phase||0,kind=opt.clip||opt.kind||'idle',p=pose(kind,t,{...opt,kind}),w=wetness(opt);
+ const dr=opt.droop||0;if(dr){p.sink=(p.sink||0)+14*dr;p.crownScale=(p.crownScale||1)*(1-.05*dr);p.crownLift=(p.crownLift||0)+14*dr;p.skirt=[(p.skirt?.[0]||0)+.14*dr,(p.skirt?.[1]||0)-.14*dr];p.squash=(p.squash||1)*(1-.03*dr);}
  c.save();c.translate(-ANCHOR[0],-ANCHOR[1]);
  const sets=w<=0?[['dry',1]]:w>=1?[['wet',1]]:[['dry',1],['wet',w]];
  for(const [set,alpha] of sets){
