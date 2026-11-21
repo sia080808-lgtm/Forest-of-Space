@@ -71,7 +71,7 @@ test('rendering is pure and the water state is visible: dry set when the nest is
 
 test('0.6.35 the nest water dries in clear weather (the spring rate, booked as evaporation) and a thirsty 슈퍼범 drinks its own nest water; water is conserved',()=>{
  // evaporation: sunny, not thirsty
- {const {s,p}=game(),base=F.totalWater(s);p.V=30;p.sources={rain:30,other:0,unknown:0};for(const q of s.individuals)q.B=60;const base2=F.totalWater(s);rain(s,false);s.climate.L=80;
+ {const {s,p}=game(),base=F.totalWater(s);p.V=30;p.sources={rain:30,other:0,unknown:0};for(const q of s.individuals)q.B=60;p.restCooldown=1e9;   /* 1.1.4: measured out in the open (a shelter roof stops the drying; how soon it walks in depends on its route) */const base2=F.totalWater(s);rain(s,false);s.climate.L=80;
   for(let t=0;t<600;t++){F.step(s);rain(s,false);s.climate.L=80;}
   a.ok(p.V<26&&p.V>18,'10 minutes of sun: '+p.V.toFixed(2));near(balance(s,base2),0,1e-6);void base;
   // no drying in rain (rain adds instead), under fog either
