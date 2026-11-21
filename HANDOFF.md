@@ -824,3 +824,12 @@
 - 변경: `skills.js`(`LEVEL`·`lv`·`levelOf`·`tier`·`umbrella`·`share`·`levelLines`, 코로나 새 방식 `rakeFor`·act), `weather-care.js`(우산 비·바람·한계 `U`, `limit` 내보냄), `social.js`(둥지 최대·나눔 합계 `SH`, 우산 한계), `engine.js`(둥지 물 검증 50), `forest-app.js`(스킬 칸 문구). 버전 1.1.3 / versionCode 79. SRS `docs/Forest-Skill-Levels-SRS-v2.37.md`·`.pdf`.
 - 검증: `skills.test` 10/10(SK-AC05 다시 씀, SK-LV 추가), 관련 테스트, 전체는 CI. 실기기 미검증.
 - 병합·릴리스: PR #64(https://github.com/sia080808-lgtm/Forest-of-Space/pull/64) main 병합 `879a38a29defae111464139922f3f64e7802d3f7`(사용자 "ㄱㄱ"; head `9e2f288` 기준 simulation·CodeQL 성공. 첫 CI에서 슈퍼범 둥지 테스트가 고정 상한 40으로 실패해 레벨별 둥지 최대로 고침, CodeQL 안 쓰는 변수 1건 정리). 프리릴리스 v1.1.3 `Forest-of-Space-1.1.3.apk` 74,340,651 bytes, SHA-256 `62abf7cbc6ef3db44097b2c0552416355bb7b62569cc9cb481caedfe4e06d5a2` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode79/1.1.3. APK는 사용자에게 파일로 전달.
+
+### PERF-1.1.4-20261121 — 렉 줄이기: 길찾기 다시 쓰기, 화면 조명 가볍게
+
+- 담당: Claude Code. 요청: "용량이 많아지면서 렉이 조금씩 걸리는데 안걸리게 하는 법 없니" → 측정·제안 1~5 → "1,2번 ㄱㄱ". 기준 main `879a38a`(1.1.3 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 측정 방법: 친구 6명·여름 호수 채움 장면을 Node에서 엔진(`--cpu-prof`)과 실제 scene.js 렌더(@napi-rs/canvas)로 프로파일. 측정 스크립트는 스크래치에만 두고 저장소에 넣지 않음.
+- 변경: `spatial.js`(`planFor`·`keptPlan` 걷는 길 저장·재사용 REPLAN 8초·실패 3초, `route` 친구 무시 경로 답 캐시 `routeMemo`/`layoutKey`), `objects.js`(`walkPlan` 검증), `world-effects.js`(`light`·`gradeOver`, 필터 대신 multiply/lighter/saturation 겹치기), `scene.js`(`draw` 세계를 화면에 바로 그리고 제자리 조명). 버전 1.1.4 / versionCode 80.
+- 결과: 엔진 평균 13.0→5.5ms/틱, 50ms 넘는 틱 107→22(2,400틱), 화면 약 20→7.5ms/장. 조명 전후 그림 차이 최대 2/255.
+- 검증: 관련 테스트 83/83, 전체는 CI. 실기기 미검증.
+- 남은 일(사용자 결정 대기): 3 바닥·사물 미리 그려 두기, 4 슈퍼범 옆잎 미리 굽기, 5 배터리 절약(30fps) 설정. 남은 엔진 순간 멈춤은 길을 못 찾는 경우의 탐색.
