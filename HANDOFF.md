@@ -953,4 +953,5 @@
 - 변경: `rig.js`(`brush`: 손은 몸 옆, 몸 기울임 0.07, 앞잎 기울임 `leafTilt` 0.14+0.1×톡, `tapAmount`·`leafTip`·`tapFx` 반짝임·튀어 나가는 잎응애, `drawCore` `leafTilt` 옵션), `scene.js`(털어 주는 동안 대상 친구 쪽 보기), `skills.js` `side`(잎 끝이 닿는 거리, 걸어서 설 수 있는 최소 거리 유지), `assets/forest/rig/leaves.png`(정수리 덮기, 커밋 `efe5439`). 버전 1.2.7 / versionCode 93.
 - 시안 그림은 스크래치에서만 만들었고 저장소에 넣지 않음. 결과 화면 `docs/qa-1.2.7`.
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증.
+- 추가(같은 PR, 사용자 "1,2로 가고" → 시안 N "ㅇㅋ 이렇게 해서 pr해줘. 그리고 너무 렉걸리지 않는 로직으로"): `skills.js` `wetBy`(샘터·웅덩이·호숫가 곁, 비·안개·폭풍 날 어디서든), `scene.js` `drawMist`·`mistCloud`(한 번 구운 물안개 그림, 엘리시당 drawImage 5번)·`dewGlint`, 친구 위 층에 그림. 테스트 `skills` SK-1.2.7. 관련 36+27개 통과. 화면 `docs/qa-1.2.7/ellisii-mist.png`.
 - 한계: 어린 리들리는 서는 거리가 걸음 최소 거리로 정해져 잎 끝이 친구 잎에 조금 못 미칠 수 있음.
