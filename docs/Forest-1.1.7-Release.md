@@ -3,10 +3,10 @@
 2026-11-21. 사용자 요청: "일정시간 월드를 비디오 녹화하는 기능 넣을 수 있나" → "그냥 최대 시간은 1분으로 지정해두고, 그 안에서 찍다가 정지하는 게 좋을 거 같음".
 
 변경 내용(화면·Android 셸, 게임 규칙·저장 불변):
-- **녹화 버튼(`index.html`·`forest-app.js`·`forest.css`):** 오른쪽 위 사진 버튼 아래에 영상 아이콘. 누르면 녹화를 시작하고, 버튼이 빨간 정지 표시와 남은 시간(1:00부터 줄어듦)으로 바뀐다. 다시 누르면 멈추고 저장한다. 1분이 되면 저절로 멈춘다. 앱이 뒤로 가면(화면 꺼짐 등) 그때까지 찍은 것을 저장한다.
+- **녹화 버튼(`index.html`·`forest-app.js`·`forest.css`):** 오른쪽 위 사진 버튼 아래에 캠코더 아이콘(사진 아이콘과 같은 모양, 사용자 요청). 누르면 녹화를 시작하고, 버튼이 빨간 정지 표시와 남은 시간(1:00부터 줄어듦)으로 바뀐다. 다시 누르면 멈추고 저장한다. 1분이 되면 저절로 멈춘다. 앱이 뒤로 가면(화면 꺼짐 등) 그때까지 찍은 것을 저장한다.
 - **찍히는 것:** 사진처럼 월드 그림판만(버튼·안내·카드 없음, 친구 선택 링은 녹화 동안 숨김). 끌어 보기·확대·축소한 그대로 담긴다. 초당 30장, 약 2.5Mbps(1분 약 19MB). 게임 소리(배경음·효과음)도 함께 녹음한다(소리 크기 설정 그대로, `audio.js` `stream`).
 - **형식:** 기기가 지원하면 MP4, 아니면 WebM. 크롬 확인: MP4(H.264 영상 + Opus 소리).
 - **저장(`MainActivity.java` `videoBegin`·`videoChunk`·`videoEnd`):** Android는 갤러리 `동영상/여백의 숲`에 1초마다 조금씩 바로 써서 1분 영상도 메모리에 한꺼번에 들고 있지 않는다. Android 10 이상 MediaStore라 권한이 필요 없다. 실패하면 만들던 파일을 지운다. 브라우저에서는 파일로 내려받는다.
 - 저장 스키마·규칙 식별자 불변. 버전 1.1.7 / versionCode 83.
 
-검증: `package`·`android-shell-dex` 통과, UI PASS, `MainActivity.java` javac(Android 15 API) 컴파일 확인. 실제 크롬(Playwright)에서 3초 녹화 → 멈춤 → MP4 내려받기, 영상·소리 트랙 확인(786×1308). 화면 `docs/qa-1.1.7/runtime/recording.png`. 전체는 CI. **Android 실기기 미검증**(WebView의 MP4 지원 여부, 갤러리 저장, 녹화 중 렉).
+검증: `package`·`android-shell-dex` 통과, UI PASS, `MainActivity.java` javac(Android 15 API) 컴파일 확인. 실제 크롬(Playwright)에서 3초 녹화 → 멈춤 → MP4 내려받기, 영상·소리 트랙 확인(786×1308). 화면 `docs/qa-1.1.7/runtime/recording.png`·`buttons.png`. 전체는 CI. **Android 실기기 미검증**(WebView의 MP4 지원 여부, 갤러리 저장, 녹화 중 렉).

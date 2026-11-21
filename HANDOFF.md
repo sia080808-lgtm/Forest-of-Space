@@ -860,3 +860,4 @@
 - 변경: `forest-app.js`(`startRecording`·`stopRecording`·`recFormat`·`recButton`, canvas `captureStream(30)` + MediaRecorder 1초 조각, 60초 자동 정지, `pause()`에서 멈춤), `audio.js`(`stream()` 게임 소리 트랙), `scene.js`(녹화 중 선택 링 숨김 `recording`), `index.html`·`forest.css`(녹화 버튼·남은 시간), `MainActivity.java`(`videoBegin`/`videoChunk`/`videoEnd` → MediaStore `Movies/여백의 숲`, 람다 없음, 상한 320MB). 버전 1.1.7 / versionCode 83.
 - 판단(사용자가 정하지 않은 것): 소리는 함께 녹음(소리 크기 설정 그대로), 버튼은 사진 아래 따로 둠.
 - 검증: `package`·`android-shell-dex` 통과, UI PASS, javac 컴파일, 크롬 3초 녹화 MP4(H.264+Opus) 확인. 전체는 CI. Android 실기기(WebView MP4 지원·갤러리 저장·렉) 미검증.
+- 아이콘: 사용자 "기본 버튼 아이콘은 위에 카메라 아이콘 처럼 비디오 캠코더 아이콘" → 사진 아이콘과 같은 각진 몸통·위 볼록·렌즈 원 + 옆 렌즈통.
