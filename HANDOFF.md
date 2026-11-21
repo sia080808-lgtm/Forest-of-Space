@@ -770,3 +770,12 @@
 - SRS: `docs/Forest-Climate-Water-SRS-v2.35.md`·`.pdf`(4쪽, CW-01~12), v2.34 머리에 대체 안내.
 - 남은 일: 바위 볕이 남아도 쉼터를 먼저 골라 바위 사용 0~8%, 둘째 해 영양 적정 86~95%, 마른 숲 겨울 화면 확인.
 - 병합·릴리스: PR #58(https://github.com/sia080808-lgtm/Forest-of-Space/pull/58) main 병합 `88ede76735d9975d145219286a0e5dc83f635494`(사용자 "ㄱㄱ"; head `888a67c` 기준 simulation·CodeQL 성공. 첫 CI가 10분 제한에 걸려 산책 범위 성능 문제를 고침). 프리릴리스 v1.0.1 `Forest-of-Space-1.0.1.apk` 74,324,201 bytes, SHA-256 `16f6b9ca64313ef821a53d950f33efb6270d88e5cf0e4aec0043a4910299079a` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode73/1.0.1. APK는 사용자에게 파일로 전달.
+
+### SMALL-FIXES-1.0.2-20261121 — 햇살 바위 사용, 시작한 일 5분 제한, 마른 숲 겨울 호수 화면, 기후 설명
+
+- 담당: Claude Code. 요청: "작은 수정들 검토 먼저 ㄱㄱ", 화면 "B로 하되 시안 줘" → "저걸로 가자". 기준 main `88ede76`(1.0.1 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `objects.js`(추운 날 바위 점수 30+볕×0.5, 시작한 일 최대 300초 `HOLD`), `scene.js`(`openWater`: 얼지 않은 겨울 호수는 얼음 그림 알파로 잘라 낸 물만), `forest-app.js`(기후 설명). 버전 1.0.2 / versionCode 74. SRS v2.35 CW-13·PDF 갱신.
+- 판단: 마른 숲 겨울 영양 위험 7~9%는 1.0.1 '시작한 일 끝까지'가 원인(솜깍지 100이 영양을 분당 2 빼앗아 거름 먹기가 끝나지 않고 정돈 못 함). 5분 제한으로 해결(엘리시 최저 6.6 → 37.7).
+- 검증: `npm test` 339/339, `npm run test:ui` PASS, 시안 렌더(스크래치, 저장소 미포함) 사용자 확인. 실기기 미검증.
+- 남은 일: 마른 숲 둘째 해 8시간 재측정(5분 제한 뒤), 실기기.
+
