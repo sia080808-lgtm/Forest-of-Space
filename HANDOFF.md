@@ -852,3 +852,4 @@
 - 결과: 크롬 한 장 약 170→15ms(전체 보기 70→13ms). 전후 픽셀 비교 25장, 바뀐 픽셀 0~0.2%. 비교 그림 `docs/qa-1.1.6/runtime/before-after.png`.
 - 고치며 찾은 것: 그늘 아래 친구 그림판 영역을 친구 리그 좌표가 아닌 세계 좌표로 잡아 친구가 사라짐, 납작하게 비튼 거름 조각의 해상도를 낮게 재 흐려짐, 젖은 바위를 원본 크기로 구워 조금 거칠어짐 — 모두 고치고 다시 비교.
 - 검증: 렌더 관련 테스트 통과(`render.test` 가짜 그림판 보강·슈퍼범 옆잎 검사 조정), 전체는 CI. Android 실기기 미검증.
+- 병합·릴리스: PR #67(https://github.com/sia080808-lgtm/Forest-of-Space/pull/67) main 병합 `78e0342e6e2595e166dbe815d9ecb70d6bf098b1`(사용자 "ㄱㄱ"; head `ebd36b8` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.6 `Forest-of-Space-1.1.6.apk` 74,344,747 bytes, SHA-256 `d3e26d4fdc8a5c1dee3a4ee801d53d895430403458f22c6081cbc3575f5d37bd` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode82/1.1.6. APK는 사용자에게 파일로 전달.
