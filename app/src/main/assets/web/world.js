@@ -167,7 +167,13 @@ function fxStep(s,event){const st=s.world.lake,fx=st.fx??={},t=s.worldTick,c=sea
  if(frozen(s))for(const p of friends)if(onIce(s,p)&&p.mood<FX.iceCap)p.mood=Math.min(FX.iceCap,p.mood+FX.iceMood);}
 // 0.9.4 물가에서 물 마시기: the shore point nearest a friend (just outside the water, walkable is checked by the caller);
 // none while the lake is closed or frozen.
-function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;const q=nearShore(s,p);return q&&{x:q.x,y:q.y};}
+// 1.2.5 (user: "호수 가는 길에서 멈추는 버그"): two thirsty friends picked the same nearest shore spot; the second could find no
+// way into a spot the first was standing on and stood still on the way until it left (2+ minutes). A spot another friend
+// stands on or is already walking to is now skipped for the next nearest free one.
+const SHORE_GAP=.08;
+function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;const taken=(s.individuals||[]).filter(z=>z.active&&z.id!==p.id).flatMap(z=>[{x:z.x,y:z.y},...(z.stroll?.lake?[{x:z.stroll.x,y:z.stroll.y}]:[])]);
+ const b=bounds(s),free=RING.filter(q=>q.x>=1.25&&q.x<=b.x1-.03&&q.y>=b.y0+.03&&q.y<=b.y1-.03&&!taken.some(t=>Math.hypot(t.x-q.x,t.y-q.y)<SHORE_GAP));
+ let best=null,bd=1e9;for(const q of free){const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;best=q;}}if(!best)best=nearShore(s,p);return best&&{x:best.x,y:best.y};}
 function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeStep(s,event);fxStep(s,event);return;}const st=s.world.lake??={ready:false,scents:0};
  // 1.0.1 (user: "봄 1시간 보낸 뒤 호수지역은 해금"): the shore opens by itself when the first spring is over (one season
  // after the calendar began), with no friend count or east-edge walks, so every forest has open water before its first
