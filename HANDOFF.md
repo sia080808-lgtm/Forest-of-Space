@@ -880,3 +880,10 @@
 - 수정: `MainActivity.java` 조각을 `cacheDir/recording.part`에 모으고 `videoEnd`에서 MediaExtractor→MediaMuxer(MPEG_4/WEBM, MediaStore fd "rwt")로 다시 묶음, 실패 시 원본 복사, 임시 파일 삭제. `forest-app.js` 저장 중 안내. 버전 1.1.9 / versionCode 85.
 - 검증: javac 컴파일, `android-shell-dex`·`package` 통과, 크롬 흐름 확인. MediaMuxer 변환 자체는 Android에서만 실행되어 미검증.
 - 병합·릴리스: PR #70(https://github.com/sia080808-lgtm/Forest-of-Space/pull/70) main 병합 `145ab75f5d3484cdb668a1bcd1a63302b8c66186`(사용자 "ㄱㄱ"; head `a931541` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.9 `Forest-of-Space-1.1.9.apk` 74,352,939 bytes, SHA-256 `d3b1c066c345dedc29f8b94b7fe7e3732369365f5dbb18157d75d1be23b84129` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode85/1.1.9. APK는 사용자에게 파일로 전달.
+
+### ADMIN-SETTINGS-SHELTER-1.2.0-20261121 — 관리자 모드 패널, 새 설정 화면, 쉼터 끌어 옮기기·좌우 뒤집기
+
+- 담당: Claude Code. 요청: 관리자창 GUI·기능 보강, 관리자/인게임 병렬 → 시안 확인, 설정 화면 GUI → 시안, "쉼터공간 빼버리자", 쉼터 드래그 앤 드롭·미러, "PR까지만 · 한꺼번에 업데이트". 기준 main `145ab75`(1.1.9 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `forest-app.js`(관리자 패널 `renderAdmin`·`adminOverlay`·`adminRun`·`adminFocus`, 배속·날씨 고정은 tick 루프에서(UI 전용, 저장 안 함), 관리자 모드 스위치는 localStorage `forest-admin-mode`, 옛 `adminPage` 삭제, 새 `settingsPage`, 쉼터 편집 끌기·뒤집기), `admin.js`(`set`·`skillReady`·`creature`·`rockSun`·`climateAuto`·`fireflies`, `climate`는 고정으로 표시), `creatures.js`(`arrive` 내보냄), `shelter.js`(`sourceX`·`entry` 뒤집기, `flip` 검증, 'flip' 종류, 추가 시 겹침 검사, 넓은 숲 배치·물 위 금지, `build`에서 flip 지우기), `carry.js`(쉼터 끌기), `scene.js`(뒤집힌 쉼터 그림), `object-cards.js`(좌우 뒤집기 버튼), `index.html`·`forest.css`. 버전 1.2.0 / versionCode 86.
+- 검증: `admin-panel`·`shelter-flip` 새 테스트, 관련 테스트, `npm run test:ui` PASS(`tools/ui-smoke.mjs`를 새 설정·패널 흐름으로 갱신, 검수 화면은 패널 '보기' 탭에서 열기). 크롬 화면 `docs/qa-1.2.0/runtime`. 전체는 CI. Android 실기기 미검증.
+- 남은 것: `tools/admin-review.cjs`는 옛 관리자 페이지 기준이라 다시 맞춰야 함(CI 미사용). 병합은 사용자 지시대로 하지 않음.
