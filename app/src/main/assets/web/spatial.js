@@ -98,8 +98,9 @@ function placement(s,id,p,correct=true){
 }
 function gait(p,s){if(s.weather.wind>=60)return {kind:p.energy<40?'walk':'run',speed:GU*(p.energy<40?1:1.6)};
  if(p.Q>=16)p.wetSlow=true;else if(p.Q<12)p.wetSlow=false;
- if(p.wetSlow||p.energy<40||p.action==='rest')return {kind:'slow',speed:GU*.6};
- if(p.drinkCycle)return {kind:'hurry',speed:GU*1.3};return {kind:'walk',speed:GU};}
+ // 1.1.5 기운: below 15% the friend trudges slower still (0.45), at 80% and over its plain walk is a little brisker (1.15)
+ if(p.wetSlow||p.energy<40||p.action==='rest')return {kind:'slow',speed:GU*(p.energy<15?.45:.6)};
+ if(p.drinkCycle)return {kind:'hurry',speed:GU*1.3};return {kind:'walk',speed:GU*(p.energy>=80?1.15:1)};}
 // 1.1.4 (user: "렉이 조금씩 걸리는데" → "1,2번 ㄱㄱ"): a walking friend used to search its whole way again every second
 // (route was ~75% of the engine and one tick could take 0.3 s). The way is now kept on the friend (saved, so a reloaded
 // game walks the same) and reused while the destination is the same and the next stretch is still clear; it is searched
