@@ -70,6 +70,10 @@ function pileM(p){return p.cap?100*p.S/p.cap:0;}
 const SEASONAL={WINTER_SPRING_T:20,WINTER_SPRING_CHANCE:.45};
 const seasonOf=s=>s.environment?dep('environment').season(s):null;
 const winter=s=>seasonOf(s)==='winter';
+// 1.0.2 (user: "겨울엔 벌레들도 안 나오지 않음?"): in winter leaf and soil pests rest whatever the temperature: no growth or
+// breeding, density falls 2 a minute, and they do not spread by touch or fly; a warm dry winter (마른 숲 건기, 50) no longer
+// lets mealybugs grow all winter
+const WINTER_REST=2;
 function springOk(s,p){const T=s.climate.T,M=pileM(p);return p.O>=3&&s.worldTick-p.born>=60&&M>=35&&M<=75&&p.W<=1&&T>=(winter(s)?SEASONAL.WINTER_SPRING_T:40)&&T<=75;}
 function ellisiiNear(s,p){return s.individuals.some(q=>q.active&&!q.mounted&&q.species==='bonbon'&&q.B>=35&&q.energy>=40&&Math.hypot(q.x-p.x,q.y-p.y)<.2);}
 // 엘레판's spread leaf is a real shade for the friends under it (same as the shade plant for leaf drying)
@@ -148,7 +152,7 @@ function antStep(s,g){const L=dep('litter'),st=state(s);
 // leaf is moist again; -4/min while the friend tidies its leaves or rests in the shelter (no growth there). Leaf burden
 // 2/min x density/100 (ECO-14). Under 5 for 60 s = recovered; that friend gets 300 s before a new arrival.
 function miteStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host);if(!p||!live(p))return;const l=leaf(s,p);
- let d=g.density;if(l.inside)d-=MITE.CLEAN/60;else if(!l.wet&&l.T>=MITE.FIT_T&&l.H<=MITE.FIT_H)d+=MITE.GROW/60*trait(p).miteGrow;else if(l.wet||l.H>MITE.HOLD_H)d-=MITE.DECLINE/60;
+ let d=g.density;if(winter(s))d-=WINTER_REST/60;else if(l.inside)d-=MITE.CLEAN/60;else if(!l.wet&&l.T>=MITE.FIT_T&&l.H<=MITE.FIT_H)d+=MITE.GROW/60*trait(p).miteGrow;else if(l.wet||l.H>MITE.HOLD_H)d-=MITE.DECLINE/60;
  if(p.action==='groom')d-=MITE.CLEAN/60;g.density=Math.max(0,Math.min(MITE.MAX,d));
  harm(s,p,'damage',Math.min(MITE.HURT,MITE.HURT*g.density/100)/60);
  g.low=g.density<MITE.GONE?g.low+1:0;if(g.low>=MITE.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause[p.id]=s.worldTick+MITE.PAUSE;st.log.cleared++;event?.(s,'creature',`${p.name}의 잎이 다시 건강해졌어요. 잎응애가 거의 사라졌어요.`);}}
@@ -169,9 +173,9 @@ function keeperArrivals(s,event){const st=state(s);if(winter(s))return;
 // Site moisture 50~70 = steady, under 50 or snow = -6/min across stages. Larvae burden the roots of friends at the site.
 function gnatStep(s,g,event){const st=state(s),z=site(s,g.site);if(!z){st.groups=st.groups.filter(x=>x!==g);return;}
  const fit=gnatFit(s,z),M=siteM(z),down=!fit&&(M<GNAT.HOLD_M||s.weather.kind==='snow'||s.climate.T<GNAT.T_MIN||s.climate.T>GNAT.T_MAX);g.fit=fit?g.fit+1:0;
- if(fit&&g.fit>=STABLE){const room=Math.max(0,GNAT.MAX-gnatTotal(g));g.eggs+=Math.min(room,GNAT.BREED/60*Math.min(1,g.adults/4));}
+ if(fit&&g.fit>=STABLE&&!winter(s)){const room=Math.max(0,GNAT.MAX-gnatTotal(g));g.eggs+=Math.min(room,GNAT.BREED/60*Math.min(1,g.adults/4));}
  const e2l=g.eggs/GNAT.EGG,l2a=g.larvae/GNAT.LARVA;g.eggs-=e2l;g.larvae+=e2l-l2a;g.adults+=l2a-g.adults/GNAT.ADULT_LIFE;
- if(down){const tot=gnatTotal(g);if(tot>0){const k=Math.max(0,1-GNAT.DECLINE/60/tot);g.eggs*=k;g.larvae*=k;g.adults*=k;}}
+ if(down||winter(s)){const tot=gnatTotal(g);if(tot>0){const k=Math.max(0,1-GNAT.DECLINE/60/tot);g.eggs*=k;g.larvae*=k;g.adults*=k;}}
  for(const p of s.individuals)if(live(p)&&Math.hypot(p.x-z.x,p.y-z.y)<GNAT.NEAR)harm(s,p,'burden',Math.min(GNAT.HURT,GNAT.HURT*g.larvae/100)/60);
  // a group that flew in (0.6.38) gets one egg-to-adult cycle (270 s) before the 'almost gone' check counts
  g.low=gnatTotal(g)<GNAT.GONE&&!(g.from&&s.worldTick-g.since<GNAT.EGG+GNAT.LARVA)?g.low+1:0;if(g.low>=GNAT.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause['site:'+g.site]=s.worldTick+GNAT.PAUSE;st.log.cleared++;event?.(s,'creature','낙엽 자리가 말라 뿌리날파리가 거의 사라졌어요.');}}
@@ -187,7 +191,7 @@ function soilStep(s,g,event){const st=state(s),z=site(s,g.site),f=z&&gnatAt(s,g.
 // growth there. Nutrition burden 2/min x density/100 (shared cap). Honeydew density/100 x 4/min, -2/min, max 100 (ECO-15).
 // Egg sacs (density >= 20) let 점박이 come. Under 5 for 60 s = recovered, 300 s before a new arrival on that friend.
 function mealyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host);if(!p||!live(p))return;const T=s.climate.T,inside=!!dep('shelter').inside?.(s,p);
- const wet=['rain','fog','snow'].includes(s.weather.kind);let d=g.density;if(inside)d-=MEALY.CLEAN/60;else if(T<MEALY.T_MIN||T>MEALY.T_MAX)d-=MEALY.DECLINE/60;else if(!wet)d+=MEALY.GROW/60;
+ const wet=['rain','fog','snow'].includes(s.weather.kind);let d=g.density;if(winter(s))d-=WINTER_REST/60;else if(inside)d-=MEALY.CLEAN/60;else if(T<MEALY.T_MIN||T>MEALY.T_MAX)d-=MEALY.DECLINE/60;else if(!wet)d+=MEALY.GROW/60;
  if(p.action==='groom')d-=MEALY.CLEAN/60;g.density=Math.max(0,Math.min(MEALY.MAX,d));
  g.honey=Math.max(0,Math.min(MEALY.HONEY_MAX,g.honey+(MEALY.HONEY*g.density/100-MEALY.HONEY_DECAY)/60));
  harm(s,p,'nutrition',Math.min(MEALY.HURT,MEALY.HURT*g.density/100)/60);
@@ -240,7 +244,7 @@ function drop(s,g){if(!g.carry)return;const L=dep('litter');L.land(s,g.carry.fro
 // ----- step -------------------------------------------------------------------------------------------------------
 const pairKey=(a,b)=>a.id<b.id?a.id+'|'+b.id:b.id+'|'+a.id;
 function touching(s,a,b){const Sh=dep('shelter');return live(a)&&live(b)&&!Sh.inside?.(s,a)&&!Sh.inside?.(s,b)&&Math.hypot(a.x-b.x,a.y-b.y)<TOUCH.NEAR;}
-function contactStep(s,event){const st=state(s),ps=s.individuals.filter(live),keep={};
+function contactStep(s,event){if(winter(s))return;const st=state(s),ps=s.individuals.filter(live),keep={};
  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const a=ps[i],b=ps[j];if(!touching(s,a,b))continue;const k=pairKey(a,b),n=(st.touch[k]||0)+1;keep[k]=n;
   if(n<TOUCH.HOLD||(n-TOUCH.HOLD)%TOUCH.EVERY||(st.touchRest[k]||0)>s.worldTick)continue;
   for(const kind of ['mite','mealy'])for(const [from,to] of [[a,b],[b,a]]){const src=groups(s).find(g=>g.kind===kind&&g.host===from.id);
@@ -252,7 +256,7 @@ function contactStep(s,event){const st=state(s),ps=s.individuals.filter(live),ke
    st.touchRest[k]=s.worldTick+TOUCH.REST;st.log.spread=(st.log.spread||0)+1;
    event?.(s,'creature',`${kind==='mite'?'잎응애':'솜깍지'}가 ${from.name}의 잎에서 맞닿은 ${to.name}의 잎으로 옮겨 붙었어요.`,{kind,from:from.id,to:to.id,amount:moved});}}
  st.touch=keep;for(const k of Object.keys(st.touchRest))if(st.touchRest[k]<=s.worldTick)delete st.touchRest[k];}
-function flyStep(s,event){const st=state(s);
+function flyStep(s,event){if(winter(s))return;const st=state(s);
  for(const g of groups(s).filter(g=>g.kind==='gnat')){g.flyAt??=g.since+FLY.EVERY;if(s.worldTick<g.flyAt)continue;g.flyAt=s.worldTick+FLY.EVERY;
   if(g.adults<FLY.MIN_ADULTS||groups(s).filter(x=>x.kind==='gnat').length>=2||small(st)>=MAXG)continue;const from=site(s,g.site);if(!from)continue;
   const to=sites(s).filter(z=>z.id!==g.site&&!gnatAt(s,z.id)&&!(st.pause['site:'+z.id]>s.worldTick)&&(st.gnatReady[z.id]||0)>=STABLE&&Math.hypot(z.x-from.x,z.y-from.y)<FLY.RANGE).sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y))[0];

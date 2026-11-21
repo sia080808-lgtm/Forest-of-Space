@@ -161,7 +161,7 @@ function option(s,p,id,kind,reason,free=false){
   const target={water:50,energy:80,nutrition:50,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
   if(id==='moss'&&needs(p).energy&&needs(p).mood)score+=20*Math.max((75-p.energy)/75,(80-p.mood)/80);
-  if(reason==='energy')score+=(rates[id]||0)*8;/* 1.0.1: a friend that feels the cold rests in the warm shelter on a cold day */if(['energy','sleep'].includes(reason)&&dep('traits').ofPet(p).cold<0&&dep('vitals').isCold(s))score+=id==='shelter'?60:id==='rock'&&dep('vitals').rockSun(s)>5?45:0;if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
+  if(reason==='energy')score+=(rates[id]||0)*8;/* 1.0.1: a friend that feels the cold rests in the warm shelter on a cold day */if(['energy','sleep'].includes(reason)&&dep('traits').ofPet(p).cold<0&&dep('vitals').isCold(s))score+=id==='shelter'?60:id==='rock'&&dep('vitals').rockSun(s)>5?30+dep('vitals').rockSun(s)*.5:0;/* 1.0.2: a sun rock that holds a lot of sun (over 60) is chosen before the shelter */if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
   return {...t,score,travelSeconds:seconds};
@@ -208,6 +208,9 @@ function lakeDrink(s,p,current){if(p.stroll?.lake&&(p.stroll.arrivedAt!=null||s.
  const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!(sp.water<2||dl<ds*.8))return false;
  if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,lake:'drink'};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
 function ambleSpot(s,p,rng){const Space=dep('spatial');for(let k=0;k<6;k++){const a=rng(s,'behavior')*6.283,r=.06+rng(s,'behavior')*.08,q={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r*.7};if(Space.walkable(s,q,p.id))return q;}return null;}
+// 1.0.2: a started task is held at most 5 minutes; after that the friend chooses again (a feed that cannot reach its
+// target, e.g. while mealybugs drain 영양 faster than it eats, must not block grooming forever)
+const HOLD=300;
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
@@ -223,7 +226,7 @@ function choose(s,p,rng){
  // 1.0.1: finish what was started. Without this a friend whose 수분 and 영양 sit right on the band edge flipped between
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
  // gives way only when 수분 or 영양 falls 3 below the band (danger and a sharper urgency still interrupt).
- if(valid&&!emergencyChange&&!danger){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
+ if(valid&&!emergencyChange&&!danger&&s.worldTick-(current.since??s.worldTick)<HOLD){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
  if(valid&&!emergencyChange&&current.reason==='safety'&&danger){p.nextObjectChoice=s.worldTick+5;return;}
  if(!current&&!danger&&!Object.values(n).some(Boolean)&&p.action==='groom'&&p.actionSeconds>0)return;
  if(!current&&s.worldTick<(p.nextObjectChoice||0)&&!danger&&grade>1)return;
