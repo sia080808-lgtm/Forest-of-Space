@@ -918,3 +918,11 @@
 - 추가(사용자 "16배로 … 쉼터로 절대 안들어가" → "봄에 큰비로 … 아무도 안 들어가" → "밤에도 아무도 안 들어감", 같은 PR #74): 엔진 재현 — 큰비 한낮 친구 5명 중 엘레판 우산(1명) 밖 친구들이 `underLeaf`로 계속 기다림, 보슬비 밤엔 앉은 친구에게 막힌 자리를 반복 예약. `objects.js` `underLeaf`(이미 우산을 편 엘레판은 제외), `shelter.js` `reserve`·`move`(닿지 못한 자리 90초 제외 `shelterAvoid`). 검사 `shelter-sleep` 1.2.3(고치기 전 1명→3명). 관련 106개 통과(테스트 하나는 진행 중 상태에 배치 검사를 걸었던 것을 뺌).
 - 추가(사용자 "목부작으로 쉬기 … 자세히보기 들어가면 존재함 … pr", "성장 경험도 바 형태로 … pr", 같은 PR #74): 자세히 보기의 목부작 스위치·문구 삭제, 불러올 때 목부작 친구 정원으로(앱 층, 엔진 처리 유지). 카드 `growthStat`(현재 레벨 구간 n / m, Lv10 최대), 네 막대 열 정렬 CSS, 카드 실시간 갱신이 옛 순서로 값을 쓰던 버그 수정(`stats` 다시 그리기). `tools/ui-smoke.mjs` 목부작 단계를 '스위치 없음' 확인으로. UI PASS.
 - 추가(사용자 "애니메이션 모드와 대표장면 검수 … 하나로 통일 … GUI시안" → 시안 → "상태는 지우는 거" → "니 뜻대로 … pr", 같은 PR #74): 검수실(장면·친구 두 탭) — `renderInspector` 칩 UI·`inspect-set/tab/env/ten` 처리, `inspector.js` 배속 상한 16·`energy` 설정, 옛 select·JSON 덤프·`stage2-review.html/.js`·`tools/stage2-review-smoke.mjs`·`openStageLab` 삭제, `tools/ui-smoke.mjs` `choose`를 칩 클릭으로. UI PASS, 검수 관련 테스트 통과. SH 장면의 쉼터 판정 표시(빨간 상자·'reserved / 3' 글자, `scene.js` `shelterDebug`)는 그대로.
+- 병합·릴리스: PR #74(https://github.com/sia080808-lgtm/Forest-of-Space/pull/74) main 병합 `814c4fae2c068b65ea90f8392c56c0724beb1ea2`(사용자 "머지"; head `65f7c8a` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.3 `Forest-of-Space-1.2.3.apk` 74,365,079 bytes, SHA-256 `fa171a9c6c81667e570a3edbe7833af1a6ba8349fb27908c8cd7727c45cedb30` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode89/1.2.3, `stage2-review` 파일 없음. APK는 사용자에게 파일로 전달.
+
+### STORM-COVER-1.2.4-20261121 — 폭풍에 아무도 쉼터로 안 들어가던 문제
+
+- 담당: Claude Code. 요청: 사용자 1.2.3 실기기 화면(여름 2일째 · 폭풍) "폭풍치는데 아무도 안 들어가는 이유가 뭐냐". 기준 main `814c4fa`(1.2.3 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인(엔진 재현): 폭풍 110초 중 전조 20초·끝 30초는 비 0.35·바람 45라 보슬비로 취급, 가장 센 60초에 쉼터가 차면 safety 친구가 입구에서 계속 기다림, 바위틈은 한 바람 방향·마른 때만 써서 폭풍에 늘 막힘. 1.2.3에서 큰비만 재현하고 폭풍을 따로 보지 않아 놓쳤다.
+- 수정: `objects.js` `stormy`(폭풍 전체를 큰비로, `rainy`·`rainCover`·비 피하기 분기), 꽉 찬 쉼터 8초 포기에 safety 포함, 바위틈 바람 반감 모든 방향·비/바람 피하기에는 젖어도 사용. 테스트 `shelter-sleep` 1.2.4. 버전 1.2.4 / versionCode 90.
+- 검증: 관련 129개 + shelter-sleep 6개 통과, 전체는 CI. 실기기 미검증.
