@@ -935,3 +935,12 @@
 - 수정: 다른 친구가 서 있거나 가는 지점(0.08 안)은 건너뜀(`SHORE_GAP`). 테스트 `lake.test` 1.2.5. 버전 1.2.5 / versionCode 91.
 - 검증: 관련 33개·package 통과(고치기 전 실패 확인), 전체는 CI. 실기기 미검증.
 - 병합·릴리스: PR #76(https://github.com/sia080808-lgtm/Forest-of-Space/pull/76) main 병합 `7d9bbf17e7a49ddab7b3722c1f338b7fca199417`(사용자 "머지해"; head `cf793ac` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.5 `Forest-of-Space-1.2.5.apk` 74,365,079 bytes, SHA-256 `22c540393c7431e2387f5cc02ab0f6623bda3718f243390f72e15f3e8fc04b53` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode91/1.2.5. APK는 사용자에게 파일로 전달.
+
+### COVER-SKILLS-1.2.6-20261121 — 큰비·눈에 피하지 않던 원인 4가지, 슬라이드 원상복구, 검수실 삭제·스킬 보기
+
+- 담당: Claude Code. 요청: 사용자 "겨울에도 안 들어가고 큰 비에도 … 원인 분석" → 원인 보고 → "묶어줘 pr"; 같은 PR에 "슬라이드 … 원상복구되는 오류 싹 다 디버깅", "검수실 기능 삭제 · 스킬 사용 키". 기준 main `7d9bbf1`(1.2.5 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인(엔진 재현, 2게임시간 진행한 6명 정원 + 관리자 큰비): 엘레판 곁 우산 기다리기 교착(우산은 할 일 없는 두 친구에게만 펴지는데 기다리는 친구가 하던 일을 유지), 비 피하는 친구끼리 쉼터 자리 양보, 영양 40 옛 기준 때문에 할 일 없는 친구가 쉼터 자리 차지, 큰비 속 배고픈 친구가 닫힌 거름 자리를 찾아 헤맴. 리들리 잎 털기 자리가 다른 친구 몸 안이던 버그도 함께.
+- 변경: `objects.js`(`gaveUpLeaf`·`leafWait` 10초·`leafGiveUp` 120초, `heavyRain`), `shelter.js`(`holds`, `recovered` 영양 띠 하한), `skills.js`(`side` 다른 친구 피하기, `force`), `admin.js`(`skillShow`), `forest-app.js`(옆 슬라이드 위치 기억·복원 `slides`, `renderPage`·`renderEditor` 같은 화면 세로 위치 유지, 검수실 코드 삭제, 친구 탭 '스킬 보기'), `index.html`(검수실 패널·`inspector.js`·`stage2-fixtures.js` 불러오기 삭제), `tools/ui-smoke.mjs`. 버전 1.2.6 / versionCode 92.
+- 측정: 큰비 180초 비를 피한 비율 44% → 81%(시드 6개), 서늘한 숲 겨울 눈 70%.
+- 검증: 새 테스트 3개(고치기 전 코드로 실패 확인), 관련 210개·UI PASS, 크롬 슬라이드 확인. 전체는 CI. 실기기 미검증.
+- 결정 대기: 강풍 90초 뒤 45로 약해지는 규칙(관리자 고정 포함), 촉촉한 숲 겨울 맑은 날을 추위로 볼지.
