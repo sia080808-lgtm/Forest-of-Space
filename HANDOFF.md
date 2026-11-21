@@ -788,3 +788,4 @@
 - 측정(친구 6명 × 3시드 × 2게임시간): 성장 경험 11.94 → 12.29(+2.9%), 바위 시간 3.4% 그대로.
 - 검증: `rig`(1.0.3 검사)·`render`·`package`·`traits`·`seasons` 통과, 전체는 CI. 화면 `docs/qa-1.0.3/runtime`. 실기기 미검증.
 - 다음: 기운 높음/낮음 동작(1.0.4 예정), 과습/수분 부족, 영양 과잉/결핍.
+- 병합·릴리스: PR #60(https://github.com/sia080808-lgtm/Forest-of-Space/pull/60) main 병합 `213a327ff6926a5ff156710fcbf6b4b327b2f980`(사용자 "ㄱㄱ"; head `e817bf2` 기준 simulation·CodeQL 성공). 프리릴리스 v1.0.3 `Forest-of-Space-1.0.3.apk` 74,324,201 bytes, SHA-256 `8e8ac292b0f892933d3bbf513c74dece94cf2aa80459cf468aed2a67127bd972` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode75/1.0.3. APK는 사용자에게 파일로 전달.
