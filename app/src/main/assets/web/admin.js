@@ -8,7 +8,7 @@
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
 // '로' after a vowel or ㄹ, '으로' after other final consonants (numbers read in Korean)
 function ro(w){const t=String(w),c=t.charCodeAt(t.length-1);if(/[0-9]$/.test(t))return t+('036'.includes(t.slice(-1))?'으로':'로');if(c<0xac00||c>0xd7a3)return t+'로';const j=(c-0xac00)%28;return t+(j===0||j===8?'로':'으로');}
-const TIMES=Object.freeze({morning:[60,'아침'],noon:[400,'한낮'],dusk:[640,'해 질 녘'],night:[800,'깊은 밤'],dawn:[1100,'새벽']});
+const TIMES=Object.freeze({morning:[60,'아침'],noon:[400,'한낮'],dusk:[570,'해 질 녘'],night:[1000,'깊은 밤'],dawn:[1170,'새벽']});// 1.2.1: each lands inside its own phase of Environment.timeKey (해 질 녘 540–600, 깊은 밤 900–1140, 새벽 1140–1200)
 const SEASONS=Object.freeze(['봄','여름','가을','겨울']);
 const WEATHER=Object.freeze({
  sun:['sun',20,15,'맑음'],cloud:['cloud',35,25,'흐림'],drizzle:['rain',30,25,'보슬비'],rain:['rain',80,35,'큰비'],
@@ -21,7 +21,7 @@ const pick=(F,s,who)=>s.individuals.filter(p=>who==='all'?p.active:p.id===who);
 function water(s,p,next){const d=next-p.B;p.B=next;s.ledger.admin=(s.ledger.admin||0)+d;}
 function root(s,p,next){const d=next-p.Q;p.Q=next;s.ledger.admin=(s.ledger.admin||0)+d;}
 // time: jump forward to the next moment of that time of day (the clock never goes back)
-function time(F,s,key){const t=TIMES[key];if(!t)throw Error('시간을 고를 수 없어요.');const now=((s.worldTick%1200)+1200)%1200;let d=t[0]-now;if(d<=0)d+=1200;s.worldTick+=d;return ro(t[1])+' 시간을 옮겼어요.';}
+function time(F,s,key){const t=TIMES[key];if(!t)throw Error('시간을 고를 수 없어요.');const now=((s.worldTick%1200)+1200)%1200;let d=t[0]-now;if(d<=0)d+=1200;s.worldTick+=d;/* 1.2.1 (user: "아침 한낮이런거 누르면 해당 시간으로만 가야하는데 계절 앞뒤로 바뀌는 버그"): the jump only moves the time of day — the season calendar moves with it so the season and its day stay put */if(s.environment?.calendar)s.environment.calendar.start+=d;return ro(t[1])+' 시간을 옮겼어요.';}
 function advance(F,s,seconds){if(![60,600,1200].includes(seconds))throw Error('진행 시간을 고를 수 없어요.');F.advance(s,seconds);return (seconds/60)+'분을 실제로 진행했어요.';}
 // season: move the calendar so that today is the first day of that season (10 seconds in)
 function season(F,s,i){if(![0,1,2,3].includes(i))throw Error('계절을 고를 수 없어요.');const E=F.Environment;E.init(s);const len=E.SEASON_LEN;s.environment.calendar={...(s.environment.calendar||{}),start:s.worldTick-i*len-10};return SEASONS[i]+' 첫날로 바꿨어요.';}
@@ -31,7 +31,10 @@ function weather(F,s,key){const w=WEATHER[key];if(!w)throw Error('날씨를 고�
  if(W.kind!=='rain'&&kind==='rain')W.rainEpoch=(W.rainEpoch||0)+1;if(W.kind==='rain'&&kind!=='rain'){W.lastRainEnd=s.worldTick;W.lastRainEpoch=W.rainEpoch;}
  Object.assign(W,{kind,intensity:w[1],wind:w[2],transition:0,strongSeconds:0,remaining:240,streak:1});e.windTarget=w[2];e.windFrom=w[2];delete e.visualFrom;delete e.precipFrom;
  return (snowy?'겨울이라 '+w[3]+' 대신 '+ro('눈'):ro(w[3]))+' 날씨를 바꿨어요.';}
-function climate(F,s,id){F.Environment.changeClimate(s,id);s.environment.climateMode='fixed';return ro(F.Environment.CLIMATES[id].name)+' 기후를 바꿔요.';}
+// 1.2.1 (user: "관리자모드에서 기후 바꾸는 기능에서 계속 서늘한 숲으로만 선택되는 버그"): the admin pick only queued a 30 s change
+// (like the player setting), so the old climate stayed lit and nothing seemed to happen. The admin switches at once (the
+// usual 60 s blend of temperature and humidity still applies).
+function climate(F,s,id){const E=F.Environment;E.init(s);if(!E.CLIMATES[id])throw Error('기후를 확인해 주세요.');const e=s.environment;if(e.climate!==id){e.climateFrom={T:s.climate.T,H:s.climate.H,L:s.climate.L};e.climate=id;e.climateBlend=60;e.seasonStart=s.worldTick;}delete e.pendingClimate;e.climateMode='fixed';return '기후를 '+ro(E.CLIMATES[id].name)+' 바꿨어요.';}
 // friends
 function level(F,s,who,lv){if(!Number.isInteger(lv)||lv<1||lv>F.LEVELS.length)throw Error('레벨을 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');for(const p of list){p.xp=F.LEVELS[lv-1];p.growthSeconds=0;}return (who==='all'?'정원 친구 모두':list[0].name)+' 레벨을 '+ro(lv)+' 맞췄어요.';}
 function resetLevels(F,s){for(const p of s.individuals){p.xp=0;p.growthSeconds=0;}return '모든 친구의 레벨을 1로 되돌렸어요. 성장 경험도 0이에요.';}
@@ -48,8 +51,14 @@ function unlockShelter(F,s){F.Shelter.init?.(s);s.shelters.unlocked=true;return 
 function unlockObjects(F,s){for(const m of Object.values(s.objects.upgrades))m.unlocked=3;return '샘터·이끼·낙엽 자리 넓히기를 3단계까지 열었어요.';}
 // objects
 function spring(F,s,full){const cap=F.Objects.capacity(s,'spring'),next=full?cap:0,d=next-s.spring.water;s.spring.water=next;s.ledger.admin=(s.ledger.admin||0)+d;return full?'샘터를 가득 채웠어요.':'샘터를 비웠어요.';}
-function compost(F,s){const z=s.patches.find(p=>p.id==='litter');z.U=Math.max(z.U,30);return '낙엽 자리에 거름을 30만큼 채웠어요.';}
-function leaves(F,s){const z=s.patches.find(p=>p.id==='litter');z.O=Math.max(z.O,10);return '낙엽 자리에 낙엽 10장을 놓았어요.';}
+// 1.2.1 (user: "낙엽자리 관리자 기능 직관적이지 않음"): these used to raise the spot only up to 10 leaves / 30 compost, so a
+// second press did nothing. They now add, up to the spot's capacity, and floorLeaves drops leaves on the forest floor the
+// way the wind does (sector and floor limits kept), which is where friends find most leaves now.
+function compost(F,s){const z=s.patches.find(p=>p.id==='litter'),room=Math.max(0,F.Objects.capacity(s,'litter')-z.O-z.U),n=Math.min(30,room);if(n<=0)throw Error('낙엽 자리가 가득 찼어요.');z.U+=n;return '낙엽 자리에 거름을 '+Math.round(n)+'만큼 더했어요.';}
+function leaves(F,s){const z=s.patches.find(p=>p.id==='litter'),room=Math.max(0,F.Objects.capacity(s,'litter')-z.O-z.U),n=Math.floor(Math.min(10,room));if(n<=0)throw Error('낙엽 자리가 가득 찼어요.');z.O+=n;return '낙엽 자리에 낙엽 '+n+'장을 더했어요.';}
+function floorLeaves(F,s){const L=F.Litter;L.init?.(s);const N=L.COLS*L.ROWS;let n=0;
+ for(let k=0;k<60&&n<10;k++){if(L.floor(s)+1>L.LCAP)break;const i=(s.worldTick*7+k*11)%N,inSector=L.leaves(s).filter(l=>l.sector===i).length+L.piles(s).filter(p=>p.sector===i).reduce((v,p)=>v+p.O,0);if(inSector>=L.SECTOR)continue;const pile=L.piles(s).find(p=>p.sector===i),q=pile||L.spot(s,i,16);if(!q)continue;L.land(s,i,q);s.objects.ledger.leafInput+=1;n++;}
+ if(!n)throw Error('숲 바닥에 낙엽을 더 놓을 자리가 없어요.');return '숲 바닥에 낙엽 '+n+'장을 떨어뜨렸어요.';}
 // small neighbours: send every group home except the porter ants (they may be carrying a real leaf)
 function clearCreatures(F,s){const c=s.objects?.creatures;if(!c)throw Error('작은 이웃 기록이 없어요.');const n=c.groups.length;c.groups=c.groups.filter(g=>g.kind==='ant');return '작은 이웃 '+(n-c.groups.length)+'무리를 돌려보냈어요(짐꾼개미는 남겨요).';}
 // ----- 1.2.0 관리자 모드 패널 (user: "관리자 모드 따로보고 인게임모드 병렬로") -----
@@ -71,10 +80,10 @@ function creature(F,s,kind,id){const C=F.Creatures,st=s.objects?.creatures;if(!s
  const p=one(s,id);if(p.species!=='ridley')throw Error('짐꾼개미는 리들리 곁에만 둥지를 틀어요.');if(G.some(g=>g.kind==='ant'&&g.host===p.id))throw Error(p.name+' 곁에는 이미 개미 둥지가 있어요.');const q=C.nestSpot(s,p);if(!q)throw Error('둥지를 틀 빈자리가 없어요.');
  G.push({id:'cr:'+st.nextId++,kind:'ant',...base,nest:q,host:p.id,away:0,hungry:0});st.antLast=s.worldTick;st.seen.ant=1;return p.name+' 곁에 짐꾼개미 둥지를 불렀어요.';}
 function rockSun(F,s,full){const z=s.patches.find(p=>p.id==='rock');if(!z)throw Error('햇살 바위가 없어요.');z.sun=full?100:0;return full?'햇살 바위에 볕을 가득 채웠어요.':'햇살 바위의 볕을 비웠어요.';}
-function climateAuto(F,s){delete s.environment.climateMode;return '기후가 다시 계절마다 바뀌어요.';}
+function climateAuto(F,s){delete s.environment.climateMode;delete s.environment.pendingClimate;return '기후가 다시 계절마다 바뀌어요.';}
 // fireflies right away: the first summer night, clear and calm, and the fireflies out
 function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 아직 열리지 않았어요.');const E=F.Environment;if(E.season(s)!=='summer')season(F,s,1);time(F,s,'night');weather(F,s,'sun');s.world.lake.fx??={};s.world.lake.fx.fire={night:Math.floor((s.worldTick-620)/1200),on:true,seen:false};return '여름 밤으로 옮기고 반딧불을 띄웠어요.';}
-const ACTIONS=Object.freeze({time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,rockSun,creature,clearCreatures});
+const ACTIONS=Object.freeze({time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,floorLeaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
 return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,CALL,ACTIONS,run});
 });

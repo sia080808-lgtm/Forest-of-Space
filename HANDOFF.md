@@ -896,3 +896,4 @@
 - 변경: `forest-app.js`(기후 카드는 예약 기후 `pendingClimate`로 선택 표시·안내, 같은 기후는 예약 지움, 화면 설정 라이트/다크 두 가지·UI만, 시작마다 `welcome` 보임), `environment.js` `lighting`(테마로 시간 고정 안 함, `previewTime`만), `scene.js`·`audio.js`(밤 판정이 월드 시간만). 테스트: `tools/ui-smoke.mjs`(첫 화면·테마 두 가지), `lifecycle.test.cjs`(배경음 숲 시간). 버전 1.2.1 / versionCode 87.
 - 검증: UI PASS, lifecycle·render·seasons·package 통과, 크롬 기후 카드 확인. 전체는 CI. 실기기 미검증.
 - 남은 것: QA 도구 몇 개(`tools/render-review.cjs`·`viewport-review.cjs` 등)가 `settings.theme`로 밤 그림을 만들던 방식 — `previewTime`으로 고쳐야 함(CI 미사용).
+- 추가(같은 PR #72): 관리자 패널 스크롤 유지·밀다 끝난 터치 무시·'스킬 대기 없애기' 색, 친구 고르면 확대·따라가기(탭 유지), 이웃 부르면 클로즈업, 시간 버튼이 계절을 바꾸지 않음(달력 시작점 같이 이동, 시각 값 맞춤), 실제로 진행을 프레임마다 나눠 진행(진행 표시·멈추기), 관리자 기후 즉시 변경, 사물 탭 현재 값·낙엽 버튼 더하기·숲 바닥 낙엽 떨어뜨리기, 보기 탭 스킬 범위 친구 고르기·설명·원 안 친구 표시, 사물 상태(햇살 바위 볕·이끼·바위틈·낙엽 자리·웅덩이). 크롬 화면 `docs/qa-1.2.1/runtime`.

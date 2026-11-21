@@ -86,7 +86,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-action="climate-set"][data-v="C04"]');assert.equal(saved.environment.climateMode,'fixed');click('[data-action="climate-set"][data-v="season"]');assert.equal(saved.environment.climateMode,undefined);
  adminPanel('time');const panel=win.document.getElementById('admin-panel');assert.equal(panel.hidden,false);assert.equal(panel.querySelectorAll('.adm-tab').length,8);
  const t0=getState().worldTick,run=args=>{const b=[...panel.querySelectorAll('[data-action="admin-run"]')].find(x=>x.dataset.args===JSON.stringify(args));assert.ok(b,'button '+args);b.click();};
- run(['time','night']);assert.ok(getState().worldTick>t0);assert.equal(((saved.worldTick%1200)+1200)%1200,800);
+ run(['time','night']);assert.ok(getState().worldTick>t0);assert.equal(((saved.worldTick%1200)+1200)%1200,1000);
  click('[data-tab-id="weather"]');run(['weather','rain']);assert.equal(getState().weather.kind==='rain'||getState().weather.kind==='snow',true);
  click('[data-tab-id="friend"]');const id=getState().individuals.find(p=>p.active).id;win.__qa.scene.onSelect('pet',id);assert.ok(panel.querySelector('[data-admin-set="B"]'),'friend sliders');
  const sl=panel.querySelector('[data-admin-set="B"]');sl.value='80';sl.dispatchEvent(new win.Event('change',{bubbles:true}));assert.equal(saved.individuals.find(p=>p.id===id).B,80);
