@@ -12,7 +12,7 @@ test('SHF-03 a mirrored added shelter is saved, validated and kept after a save 
  a.ok(spot,'a free spot exists');Sh.build(s,'shelter-0','add',{...spot,flip:true});const f=s.shelters.facilities.find(f=>!f.base);a.equal(f.flip,true);a.doesNotThrow(()=>Sh.validate(s));
  const back=F.migrate(JSON.parse(JSON.stringify(s)));a.equal(back.shelters.facilities.find(f=>!f.base).flip,true);
  Sh.build(s,f.id,'flip',{flip:false});a.equal('flip' in f,false);a.equal(f.x,spot.x);});
-test('SHF-04 the base shelter can be mirrored in place (not moved) and friends still rest inside it',()=>{const s=world([R,R,R]);a.throws(()=>Sh.plan(s,'shelter-0','move',{x:.3,y:.3}));
+test('SHF-04 the base shelter can be mirrored in place and friends still rest inside it (1.2.6: it may be moved too, never put away)',()=>{const s=world([R,R,R]);a.throws(()=>Sh.plan(s,'shelter-0','store'));
  Sh.build(s,'shelter-0','flip',{flip:true,x:.5,y:.5});const b=s.shelters.facilities[0];a.equal(b.flip,true);a.equal(b.x,.23);a.equal(b.y,.29);a.doesNotThrow(()=>Sh.validate(s));
  for(let t=0;t<60;t++)F.step(s);a.equal(s.individuals.filter(p=>Sh.inside(s,p)).length,3);});
 test('SHF-05 a shelter record with a non-boolean flip is rejected',()=>{const s=world([]);s.shelters.facilities[0].flip='yes';a.throws(()=>Sh.validate(s));});

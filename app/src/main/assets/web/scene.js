@@ -391,7 +391,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
 
   // 돌돌이 (SRS sheet 01): walks slowly in front of the crevice; curls into a ball when a friend comes close or the wind is
   // strong (render only — the visit itself is the engine's neighbour rule)
-  if(s.neighbor.stage==='visiting'){const p=s.patches.find(x=>x.id==='crevice'),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;const bx=p.x+.04,by=p.y+.02;
+  if(s.neighbor.stage==='visiting'&&s.patches.some(x=>x.id==='crevice')){const p=s.patches.find(x=>x.id==='crevice'),Art=typeof ForestCreatureArt!=='undefined'?ForestCreatureArt:null;const bx=p.x+.04,by=p.y+.02;
    const rolled=s.weather.wind>=60||s.individuals.some(q=>q.active&&!q.mounted&&Math.hypot(q.x-bx,q.y-by)<.08),still=s.settings.reducedMotion,tt=still?0:this.phase;
    // 0.6.38: it curls up (and opens again) over 0.7 s instead of switching pictures; reduced motion snaps
    const want=rolled?1:0,dtp=Math.max(0,Math.min(.1,this.phase-(this.pillPhase??this.phase)));this.pillPhase=this.phase;this.pillRoll??=want;this.pillRoll+=Math.sign(want-this.pillRoll)*Math.min(Math.abs(want-this.pillRoll),dtp/.7);if(still)this.pillRoll=want;

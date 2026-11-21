@@ -15,6 +15,7 @@ const quota=s=>seasonDaily(BASE_DAILY[level(s,'litter')-1],envSeason(s));// 0.7.
 const rates={rock:1,moss:2,shade:1.5,crevice:1,shelter:3};   // SRS v2.34: shelter 4 -> 3 (photosynthesis shares the work of 기운)
 const names={moss:'이끼 자리',spring:'샘터',litter:'낙엽 자리',rock:'햇살 바위',shade:'잎 그늘',crevice:'바위틈',shelter:'쉼터'};
 const isPile=id=>typeof id==='string'&&id.startsWith('pile:');
+const stash=(s,id)=>(s.objects?.stored||[]).find(p=>p.id===id);   // 1.2.6 보관함
 const patch=(s,id)=>id==='spring'?s.spring:isPile(id)?dep('litter').pile(s,id):s.patches.find(p=>p.id===id);
 const nameOf=id=>isPile(id)?'낙엽더미':names[id];
 // Piles share the litter spot's upgrade record and play/nutrition rules.
@@ -28,7 +29,7 @@ function init(s){
  {const o=s.objects,k=OLD_DAILY.indexOf(o.dayQuota);if(k>=0)o.dayQuota=BASE_DAILY[k];}
  for(const id of ['moss','spring','litter'])s.objects.upgrades[id]??={level:1,useSeconds:0,stageUseSeconds:0,pressureSeconds:0,pressureEvidence:false,unlocked:1};
  s.spring.capacity=capacity(s,'spring');s.spring.snowWater??=0;
- const m=patch(s,'moss');m.cap=capacity(s,'moss');m.pool=0;m.drain=0;
+ const m=patch(s,'moss')||stash(s,'moss');m.cap=capacity(s,'moss');m.pool=0;m.drain=0;
  if(s.shelters){dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}
  return s;
 }
@@ -104,7 +105,7 @@ function windAt(s,p,q,id){
  let a=W.wind(s,probe);/* 1.2.4: tucked into the crevice a friend is out of the wind from any side (it was only from one wind direction, so in a storm the crevice was never usable) */if(id==='crevice')a*=.5;return a;
 }
 function effectsValid(s,p,t){
- const z=patch(s,t.object),W=dep('weather-care'),a=t.object==='shelter'?s.weather.wind*.2:windAt(s,p,t,t.object);
+ const z=patch(s,t.object);if(!z)return false;const W=dep('weather-care'),a=t.object==='shelter'?s.weather.wind*.2:windAt(s,p,t,t.object);
  if(t.object==='shelter')return true;
  if(t.object==='moss')return a<60&&dep('environment').precipitation(s,'rain')<.6&&p.burden<40&&!p.wetRecovery&&p.wet85Seconds<30&&!s.patches.some(z=>z.id!=='moss'&&z.W>1&&Math.hypot(p.x-z.x,p.y-z.y)<.06);
  if(t.kind==='drink'||t.kind==='edgeDrink')return (s.spring.water>eps||(s.spring.snowWater||0)>eps)&&a<60;
@@ -154,7 +155,7 @@ function points(s,p,id,kind){
  return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
 }
 function option(s,p,id,kind,reason,free=false){
- const Space=dep('spatial'),Sh=dep('shelter');
+ const Space=dep('spatial'),Sh=dep('shelter');if(!patch(s,id))return {fail:'stored',object:id,kind};   /* 1.2.6: put away in the 보관함 */
  // 0.6.37: the crevice gap holds one friend at a time (its rest spot is a narrow strip right in front of the stones since
  // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
  // body on the way, gave up and chose the crevice again, so it looked frozen "heading to the crevice".
@@ -258,7 +259,7 @@ function choose(s,p,rng){
  const rainWaters=dep('environment').precipitation(s,'rain')>=.25&&p.B>=20;
  // 1.2.1: with nothing to drink (empty spring, no snow, dry moss) a thirsty friend no longer stands in the open waiting — it
  // falls through to cover/warmth/rest and comes back when water arrives
- const canDrink=s.spring.water>=1||(s.spring.snowWater||0)>.01||patch(s,'moss').S>=1||patch(s,'crevice').W>0;
+ const canDrink=s.spring.water>=1||(s.spring.snowWater||0)>.01||(patch(s,'moss')?.S||0)>=1||(patch(s,'crevice')?.W||0)>0;
  // 0.6.28 plant side of the small-neighbour ecology: a friend with pests on its leaves tidies them more and seeks shade or
  // water (moist leaves slow spider mites), and avoids playing in litter where root-fly larvae live (it still feeds there
  // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
@@ -266,10 +267,10 @@ function choose(s,p,rng){
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
  // SRS v2.36 SK-03: a friend 베이치 showed water to goes only there (no wasted walk to an empty spring)
  else if(n.water&&!rainWaters&&p.guideTo&&p.guideTo.until>s.worldTick&&(p.guideTo.kind==='puddle'?puddleDrink(s,p,current,p.guideTo.id):p.guideTo.kind==='lake'?lakeDrink(s,p,current,true):false))return;
- else if(n.water&&!rainWaters&&p.guideTo&&p.guideTo.until>s.worldTick&&['crevice','spring'].includes(p.guideTo.kind)){if(p.guideTo.kind==='crevice'&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');else if(s.spring.water>=1){add('spring','drink','water');add('spring','edgeDrink','water');}}
+ else if(n.water&&!rainWaters&&p.guideTo&&p.guideTo.until>s.worldTick&&['crevice','spring'].includes(p.guideTo.kind)){if(p.guideTo.kind==='crevice'&&(patch(s,'crevice')?.W||0)>0)add('crevice','rootDrink','water');else if(s.spring.water>=1){add('spring','drink','water');add('spring','edgeDrink','water');}}
  else if(n.water&&!rainWaters&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&puddleDrink(s,p,current,null))return;
  else if(n.water&&!rainWaters&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
- else if(n.water&&!rainWaters&&canDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
+ else if(n.water&&!rainWaters&&canDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&(patch(s,'moss')?.S||0)>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&(patch(s,'crevice')?.W||0)>0)add('crevice','rootDrink','water');}
  // SRS v2.34 생존 우선: once 수분 or 영양 is in its bad band it is fixed before resting (a low 기운 caused by hunger must not
  // keep a friend resting while it starves)
  /* 1.2.6: in heavy rain or a storm the compost spots are closed (unsafe_weather), so a hungry friend wandered in the downpour looking for them; it takes cover first unless 영양 is critical */else if(n.nutrition&&!(heavyRain(s,p)&&p.nutrition>=20)&&(p.nutrition<dep('vitals').band(p).lo||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
@@ -403,13 +404,13 @@ function reason(s,p){
  if(p.stroll&&!t){if(p.stroll.cool)return p.stroll.arrivedAt==null?'더위를 식히러 물가로 가고 있어요':'물가에서 더위를 식히고 있어요';if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',sleep_here:'쉴 자리가 없어 그 자리에서 잠들었어요',brace_here:'바람이 세서 그 자리에 몸을 낮추고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
- if(t.object==='moss')return patch(s,'moss').S<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';
+ if(t.object==='moss')return (patch(s,'moss')?.S||0)<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';
  if(t.kind==='splash')return p.motion?.water>0?'샘터에서 물장구를 치며 물도 마시고 있어요':'샘터에서 살짝 물장구를 치고 있어요';
  return ({nutrition:'분해된 낙엽에서 영양을 얻고 있어요',litterPlay:'낙엽을 가지고 놀고 있어요',splash:'샘터에서 물장구를 치며 물도 마시고 있어요',drink:'물가에서 천천히 물을 마시고 있어요',edgeDrink:'마른 가장자리에서 물을 마시고 있어요',rootDrink:'바위틈에 남은 물기를 느끼고 있어요'})[t.kind]||nameOf(t.object)+'에서 쉬고 있어요';
 }
 function validate(s){
  const st=s.objects,f=(v,max=1e15)=>Number.isFinite(v)&&v>=0&&v<=max;
- if(s.spring.capacity!==capacity(s,'spring')||patch(s,'moss').cap!==capacity(s,'moss'))throw Error('오브젝트 용량 기록을 확인해 주세요.');
+ if(s.spring.capacity!==capacity(s,'spring')||(patch(s,'moss')||stash(s,'moss')).cap!==capacity(s,'moss'))throw Error('오브젝트 용량 기록을 확인해 주세요.');
  if(!st||st.version!==1||!Number.isSafeInteger(st.nextSession)||st.nextSession<1||!Number.isInteger(st.dayIndex)||!f(st.dayIndex)||!f(st.arrivedToday,st.dayQuota+eps)||!daily.includes(st.dayQuota)||!f(st.playBoostUntil)||!f(st.decomposedTotal))throw Error('오브젝트 순환 기록을 확인해 주세요.');
  for(const [id,m]of Object.entries(st.upgrades)){if(!capacities[id]||![1,2,3].includes(m.level)||![1,2,3].includes(m.unlocked)||m.unlocked<m.level||!f(m.useSeconds)||!f(m.stageUseSeconds)||!f(m.pressureSeconds,10)||typeof m.pressureEvidence!=='boolean')throw Error('확장 기록을 확인해 주세요.');}
  if(Object.keys(st.upgrades).length!==3||!f(st.ledger.leafInput)||!f(st.ledger.absorbed)||!f(s.spring.water,s.spring.capacity+eps)||!f(s.spring.snowWater,36+eps))throw Error('자원 원장을 확인해 주세요.');
