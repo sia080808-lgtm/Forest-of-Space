@@ -31,7 +31,7 @@ function weather(F,s,key){const w=WEATHER[key];if(!w)throw Error('날씨를 고�
  if(W.kind!=='rain'&&kind==='rain')W.rainEpoch=(W.rainEpoch||0)+1;if(W.kind==='rain'&&kind!=='rain'){W.lastRainEnd=s.worldTick;W.lastRainEpoch=W.rainEpoch;}
  Object.assign(W,{kind,intensity:w[1],wind:w[2],transition:0,strongSeconds:0,remaining:240,streak:1});e.windTarget=w[2];e.windFrom=w[2];delete e.visualFrom;delete e.precipFrom;
  return (snowy?'겨울이라 '+w[3]+' 대신 '+ro('눈'):ro(w[3]))+' 날씨를 바꿨어요.';}
-function climate(F,s,id){F.Environment.changeClimate(s,id);return ro(F.Environment.CLIMATES[id].name)+' 기후를 바꿔요.';}
+function climate(F,s,id){F.Environment.changeClimate(s,id);s.environment.climateMode='fixed';return ro(F.Environment.CLIMATES[id].name)+' 기후를 바꿔요.';}
 // friends
 function level(F,s,who,lv){if(!Number.isInteger(lv)||lv<1||lv>F.LEVELS.length)throw Error('레벨을 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');for(const p of list){p.xp=F.LEVELS[lv-1];p.growthSeconds=0;}return (who==='all'?'정원 친구 모두':list[0].name)+' 레벨을 '+ro(lv)+' 맞췄어요.';}
 function resetLevels(F,s){for(const p of s.individuals){p.xp=0;p.growthSeconds=0;}return '모든 친구의 레벨을 1로 되돌렸어요. 성장 경험도 0이에요.';}
@@ -52,7 +52,29 @@ function compost(F,s){const z=s.patches.find(p=>p.id==='litter');z.U=Math.max(z.
 function leaves(F,s){const z=s.patches.find(p=>p.id==='litter');z.O=Math.max(z.O,10);return '낙엽 자리에 낙엽 10장을 놓았어요.';}
 // small neighbours: send every group home except the porter ants (they may be carrying a real leaf)
 function clearCreatures(F,s){const c=s.objects?.creatures;if(!c)throw Error('작은 이웃 기록이 없어요.');const n=c.groups.length;c.groups=c.groups.filter(g=>g.kind==='ant');return '작은 이웃 '+(n-c.groups.length)+'무리를 돌려보냈어요(짐꾼개미는 남겨요).';}
-const ACTIONS=Object.freeze({time,advance,season,weather,climate,level,resetLevels,stats,summon,welcome,dismiss,openLake,fillLake,unlockShelter,unlockObjects,spring,compost,leaves,clearCreatures});
+// ----- 1.2.0 관리자 모드 패널 (user: "관리자 모드 따로보고 인게임모드 병렬로") -----
+const one=(s,id)=>{const p=s.individuals.find(q=>q.id===id&&q.active);if(!p)throw Error('친구를 찾지 못했어요.');return p;};
+// a friend's value straight from a slider: water (B, booked in the water ledger), nutrition, energy (% of the friend's pool), level
+function set(F,s,id,key,value){const list=id==='all'?s.individuals.filter(p=>p.active):[one(s,id)];if(!list.length)throw Error('친구를 찾지 못했어요.');const v=Number(value);if(!Number.isFinite(v))throw Error('값을 확인해 주세요.');
+ const name={B:'수분',nutrition:'영양',energy:'기운',level:'레벨'}[key];if(!name)throw Error('바꿀 수 없는 값이에요.');
+ for(const p of list){if(key==='B')water(s,p,clamp(Math.round(v)));else if(key==='nutrition')p.nutrition=clamp(Math.round(v));else if(key==='energy'){p.energy=clamp(Math.round(v));p.mood=p.energy;p.moodSync=p.mood;}else{const lv=Math.round(v);if(lv<1||lv>F.LEVELS.length)throw Error('레벨을 고를 수 없어요.');p.xp=F.LEVELS[lv-1];p.growthSeconds=0;}p.nextObjectChoice=s.worldTick;}
+ return (id==='all'?'정원 친구 모두':list[0].name)+' '+name+'을 '+(key==='level'?'Lv.'+Math.round(v):Math.round(v))+(key==='level'?'로':'')+' 맞췄어요.';}
+function skillReady(F,s,id){const list=id==='all'?s.individuals.filter(p=>p.active):[one(s,id)];for(const p of list){p.skillRest={};p.nextObjectChoice=s.worldTick;}return (id==='all'?'정원 친구 모두':list[0].name)+' 고유 스킬 대기 시간을 없앴어요.';}
+// small neighbours called on purpose (the arrival conditions are skipped; the creature rules apply from the next second)
+const CALL={mite:'잎응애',mealy:'솜깍지',keeper:'잎지기',lady:'점박이',gnat:'뿌리날파리',soilmite:'흙지기',spring:'톡토기',ant:'짐꾼개미'};
+function creature(F,s,kind,id){const C=F.Creatures,st=s.objects?.creatures;if(!st||!CALL[kind])throw Error('부를 수 없는 이웃이에요.');const G=st.groups,base={since:s.worldTick,bad:0,lastWork:s.worldTick,carry:null},pests=['mite','gnat','mealy'];
+ if(pests.includes(kind)){const on=new Set(G.filter(g=>pests.includes(g.kind)).map(g=>g.kind));if(!on.has(kind)&&on.size>=2)throw Error('해충은 한 번에 두 종류까지만 머물러요. 생물 탭에서 돌려보낸 뒤 불러 주세요.');}
+ if(['mite','mealy','keeper','lady'].includes(kind)){const p=one(s,id);if(G.some(g=>g.kind===kind&&g.host===p.id))throw Error(p.name+'에게는 이미 '+CALL[kind]+'가 있어요.');
+  if(kind==='mite'||kind==='mealy')C.arrive(s,{kind,host:p.id});else G.push({id:'cr:'+st.nextId++,kind,host:p.id,...base,eaten:0,...(kind==='lady'?{stage:'adult'}:{})});st.seen[kind]=1;return p.name+' 잎에 '+CALL[kind]+'를 불렀어요.';}
+ if(kind==='gnat'||kind==='soilmite'){if(G.some(g=>g.kind===kind&&g.site==='litter'))throw Error('낙엽 자리에 이미 '+CALL[kind]+'가 있어요.');if(kind==='gnat')C.arrive(s,{kind,site:'litter'});else G.push({id:'cr:'+st.nextId++,kind,site:'litter',...base,eaten:0});st.seen[kind]=1;return '낙엽 자리에 '+CALL[kind]+'를 불렀어요.';}
+ if(kind==='spring'){const L=F.Litter,pile=L?.piles?.(s).find(z=>!G.some(g=>g.kind==='spring'&&g.pile===z.id));if(!pile)throw Error('톡토기가 머물 낙엽 더미가 없어요.');C.arrive(s,{kind,pile:pile.id});return '낙엽 더미에 톡토기를 불렀어요.';}
+ const p=one(s,id);if(p.species!=='ridley')throw Error('짐꾼개미는 리들리 곁에만 둥지를 틀어요.');if(G.some(g=>g.kind==='ant'&&g.host===p.id))throw Error(p.name+' 곁에는 이미 개미 둥지가 있어요.');const q=C.nestSpot(s,p);if(!q)throw Error('둥지를 틀 빈자리가 없어요.');
+ G.push({id:'cr:'+st.nextId++,kind:'ant',...base,nest:q,host:p.id,away:0,hungry:0});st.antLast=s.worldTick;st.seen.ant=1;return p.name+' 곁에 짐꾼개미 둥지를 불렀어요.';}
+function rockSun(F,s,full){const z=s.patches.find(p=>p.id==='rock');if(!z)throw Error('햇살 바위가 없어요.');z.sun=full?100:0;return full?'햇살 바위에 볕을 가득 채웠어요.':'햇살 바위의 볕을 비웠어요.';}
+function climateAuto(F,s){delete s.environment.climateMode;return '기후가 다시 계절마다 바뀌어요.';}
+// fireflies right away: the first summer night, clear and calm, and the fireflies out
+function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 아직 열리지 않았어요.');const E=F.Environment;if(E.season(s)!=='summer')season(F,s,1);time(F,s,'night');weather(F,s,'sun');s.world.lake.fx??={};s.world.lake.fx.fire={night:Math.floor((s.worldTick-620)/1200),on:true,seen:false};return '여름 밤으로 옮기고 반딧불을 띄웠어요.';}
+const ACTIONS=Object.freeze({time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
-return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,ACTIONS,run});
+return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,CALL,ACTIONS,run});
 });

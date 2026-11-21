@@ -21,6 +21,7 @@ class ForestCarry {
   if(this.pointers.size>1){this.clearCandidate();if(this.held||this.scene.drag){this.cancel(false);this.scene.drag=null;this.blocked=true;this.consume(e);return;}this.startPinch();this.consume(e);return;}
   this.start={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false};
   if(this.held)return;const point=this.scene.point(e);
+  if(this.scene.facilityGrab?.(point)){this.scene.drag='facility';return;}   /* 1.2.0: a shelter being placed follows the finger */
   if(this.scene.editing){const p=this.scene.patchAt(point);if(p?.id===this.scene.selectedPatch&&this.scene.handleHit(point,p))this.scene.drag=p.id;return;}
   if(this.session?.mode==='choose')return;
   if(this.scene.inputLocked)return;const pet=b?this.getState().individuals.find(p=>p.id===b.dataset.pet):this.scene.petAt(point);if(!pet)return;
@@ -35,12 +36,12 @@ class ForestCarry {
   if(this.held){if(e.pointerId===this.session.pointer)this.preview(e);this.consume(e);return;}
   if(this.pinch){const pts=[...this.pointers.values()];if(pts.length===2){const r=this.scene.canvas.getBoundingClientRect(),dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);this.scene.camera.zoom(this.pinch.z*dist/this.pinch.distance,(pts[0].x+pts[1].x)/2-r.left,(pts[0].y+pts[1].y)/2-r.top,this.pinch.anchor);this.scene.cameraChanged();}this.consume(e);return;}
   const start=this.start;if(!start||start.id!==e.pointerId)return;if(Math.hypot(e.clientX-start.x,e.clientY-start.y)>8){start.moved=true;this.clearCandidate();}
-  if(start.moved){if(this.scene.drag){this.scene.preview[this.scene.drag]=this.scene.point(e);this.scene.onMove(this.scene.drag);}else {this.scene.camera.pan(e.clientX-start.lastX,e.clientY-start.lastY);this.scene.cameraChanged();}this.consume(e);}start.lastX=e.clientX;start.lastY=e.clientY;
+  if(start.moved){if(this.scene.drag==='facility')this.scene.facilityDrag(this.scene.point(e));else if(this.scene.drag){this.scene.preview[this.scene.drag]=this.scene.point(e);this.scene.onMove(this.scene.drag);}else {this.scene.camera.pan(e.clientX-start.lastX,e.clientY-start.lastY);this.scene.cameraChanged();}this.consume(e);}start.lastX=e.clientX;start.lastY=e.clientY;
  }
  up(e){if(!this.pointers.has(e.pointerId))return;this.clearCandidate();const held=this.held,pinch=this.pinch,start=this.start;this.pointers.delete(e.pointerId);
   if(this.blocked||pinch){this.blocked=this.pointers.size>0;this.pinch=null;this.start=null;this.consume(e);}
   else if(held&&this.session.pointer===e.pointerId){this.preview(e);this.finish();this.consume(e);}
-  else if(start&&!start.moved){const p=this.scene.point(e);if(this.session?.mode==='choose'){this.preview(e);this.finish();}else if(this.scene.editing){const patch=this.scene.patchAt(p);if(patch){this.scene.selectedPatch=patch.id;this.scene.onMove(patch.id);}}else if(!this.scene.inputLocked)this.scene.selectAt(p);this.consume(e);}else this.consume(e);
+  else if(start&&!start.moved&&this.scene.drag!=='facility'){const p=this.scene.point(e);if(this.session?.mode==='choose'){this.preview(e);this.finish();}else if(this.scene.editing){const patch=this.scene.patchAt(p);if(patch){this.scene.selectedPatch=patch.id;this.scene.onMove(patch.id);}}else if(!this.scene.inputLocked)this.scene.selectAt(p);this.consume(e);}else this.consume(e);
   this.scene.drag=null;this.start=null;this.scene.saveCamera();if(this.world.hasPointerCapture?.(e.pointerId))this.world.releasePointerCapture(e.pointerId);
  }
  finish(){const session=this.session;if(!session)return;const q=session.result;if(q?.ok){const success=this.commit(s=>Forest.relocate(s,session.id,q));if(success)this.scene.landed(session.id);}else this.notice('내려놓을 수 없어 원래 자리를 유지해요.');this.cancel();}
