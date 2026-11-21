@@ -34,7 +34,7 @@ test('SK-LV 1.1.3 skill levels: 코로나 Lv10 sweeps 5 at once, 리들리 Lv10 
  const s=game();solo(s);const st=s.objects.litter;st.leaves=[];st.piles=[];const sec=L.sectorOf({x:.3,y:.6});
  st.piles.push({id:'pile:'+st.nextPile++,sector:sec,x:.3,y:.6,O:2,U:0,S:50,cap:100,W:0,playBoostUntil:0,born:0});
  for(let i=0;i<6;i++)st.leaves.push({id:st.nextLeaf++,sector:L.sectorOf({x:.22+i*.03,y:.66}),x:.22+i*.03,y:.66,rot:0,moved:0});
- const co=friend(s,'jureong',.2,.7,{xp:150}),f0=L.floor(s);for(let i=0;i<60;i++)run(s,1);a.equal(st.piles[0].O,7,'5 swept onto the pile');a.equal(st.leaves.length,1);a.ok(Math.abs(L.floor(s)-f0)<1e-9);
+ friend(s,'jureong',.2,.7,{xp:150});const f0=L.floor(s);for(let i=0;i<60;i++)run(s,1);a.equal(st.piles[0].O,7,'5 swept onto the pile');a.equal(st.leaves.length,1);a.ok(Math.abs(L.floor(s)-f0)<1e-9);
  const r=friend(s,'ridley',.6,.4,{xp:150}),e=friend(s,'neolbi',.7,.41);const cr=s.objects.creatures;cr.groups.push({id:'cr:'+cr.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:90,low:0});
  for(let i=0;i<60;i++)run(s,1);a.equal(C.onLeaf(s,e.id).mite.density,0,'Lv10 brushes them all off');a.ok(r.skillRest.brush-s.worldTick<=120);
  const row=(sp,xp)=>({species:sp,xp});a.equal(K.lv(row('bosong',0),'dig','amount'),8);a.equal(K.lv(row('bosong',8),'dig','amount'),10);a.equal(K.lv(row('bosong',115),'dig','rest'),480);
