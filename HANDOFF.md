@@ -955,3 +955,4 @@
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증.
 - 추가(같은 PR, 사용자 "1,2로 가고" → 시안 N "ㅇㅋ 이렇게 해서 pr해줘. 그리고 너무 렉걸리지 않는 로직으로"): `skills.js` `wetBy`(샘터·웅덩이·호숫가 곁, 비·안개·폭풍 날 어디서든), `scene.js` `drawMist`·`mistCloud`(한 번 구운 물안개 그림, 엘리시당 drawImage 5번)·`dewGlint`, 친구 위 층에 그림. 테스트 `skills` SK-1.2.7. 관련 36+27개 통과. 화면 `docs/qa-1.2.7/ellisii-mist.png`.
 - 한계: 어린 리들리는 서는 거리가 걸음 최소 거리로 정해져 잎 끝이 친구 잎에 조금 못 미칠 수 있음.
+- 병합·릴리스: PR #78(https://github.com/sia080808-lgtm/Forest-of-Space/pull/78) main 병합 `f3ea2ece9261daabd8aa08629e08c710bf732d87`(사용자 "이랗게 해서 머지 ㄱㄱ"; head `8270455` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.7 `Forest-of-Space-1.2.7.apk` 74,373,271 bytes, SHA-256 `8b07e2130458925a5e413b79ee55590e234915efc4af783ae4f7acc107c967ad` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode93/1.2.7. 베이치 물 찾기 확인(사용자 질문): 친구 4명 2게임시간 3정원 모두 웅덩이 4번·안내 1~3번. APK는 사용자에게 파일로 전달.
