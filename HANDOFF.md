@@ -915,3 +915,4 @@
 - 수정: `springtail`로 부르기, 두 무리 상한, `forest-app.js` `adminFocusNeighbour`가 `g.pile` 더미로 확대. 테스트 ADM-05. 버전 1.2.3 / versionCode 89.
 - 추가(사용자 "앱을 닫아두면 경험치 못 얻게 pr", 같은 PR #74): `engine.js` `offlineStep`에서 성장 경험 쌓기 삭제(`growth`·`GROWTH_SEASON` 함께 삭제), `engine.test` CARE-04를 '성장 없음·기운 회복'으로 다시 씀.
 - 검증: `admin-panel`(고치기 전 같은 문구로 실패)·`admin`·`package` 11/11, `engine` 24/24, 전체는 CI. 실기기 미검증.
+- 추가(사용자 "16배로 … 쉼터로 절대 안들어가" → "봄에 큰비로 … 아무도 안 들어가" → "밤에도 아무도 안 들어감", 같은 PR #74): 엔진 재현 — 큰비 한낮 친구 5명 중 엘레판 우산(1명) 밖 친구들이 `underLeaf`로 계속 기다림, 보슬비 밤엔 앉은 친구에게 막힌 자리를 반복 예약. `objects.js` `underLeaf`(이미 우산을 편 엘레판은 제외), `shelter.js` `reserve`·`move`(닿지 못한 자리 90초 제외 `shelterAvoid`). 검사 `shelter-sleep` 1.2.3(고치기 전 1명→3명). 관련 106개 통과(테스트 하나는 진행 중 상태에 배치 검사를 걸었던 것을 뺌).

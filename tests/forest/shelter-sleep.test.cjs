@@ -27,3 +27,10 @@ test('SL-04 a friend left inside the spring basin or the shelter walls walks out
  for(const q of [{x:s.spring.x+.05,y:s.spring.y},{x:.287,y:.066},{x:.449,y:.106}]){Object.assign(p,q);a.ok(Sp.route(s,p,Sp.socket(s,'spring'),p.id)||Sp.route(s,p,{x:.6,y:.6},p.id),JSON.stringify(q));}
  Object.assign(p,{x:.449,y:.106});let stuck=0;for(let t=0;t<120;t++){F.step(s);if(!p.objectTask&&p.objectWait?.reason==='blocked_path')stuck++;}a.ok(stuck<10,'stuck '+stuck);
 });
+// 1.2.3 (user: "봄에 큰비로 … 아무도 안 들어가", "밤에도 아무도 안 들어감"): with 엘레판's umbrella already over one friend, the
+// other friends near it waited for it forever in the rain; and a seat blocked by a friend already sitting was booked again all night
+test('1.2.3 heavy rain at noon and a drizzly night both fill the shelter seats',()=>{const F=require('../../app/src/main/assets/web/engine'),A=require('../../app/src/main/assets/web/admin.js'),assert=require('node:assert/strict');
+ const make=()=>{const s=F.create(5,4);s.started=true;s.environment.tutorialDone=true;for(const [sp,x,y] of [['bonbon',.6,.55],['neolbi',.3,.6],['bosong',.42,.5],['jureong',.5,.7]])s.individuals.push({...F.clone(s.individuals[0]),id:'p-'+sp,species:sp,name:sp,x,y,active:true});F.valid(s);return s;};
+ const inside=s=>s.individuals.filter(p=>p.shelter?.phase==='restingInside').length;
+ let s=make();A.run(F,s,'time','noon');A.run(F,s,'weather','rain');for(let t=0;t<60;t++){s.weather.remaining=Math.max(s.weather.remaining,30);F.step(s);}assert.equal(inside(s),3);
+ s=make();A.run(F,s,'time','noon');A.run(F,s,'weather','drizzle');for(let t=0;t<450;t++){s.weather.remaining=Math.max(s.weather.remaining,30);F.step(s);}assert.equal(s.worldTick%1200>=800,true);assert.equal(inside(s),3);});
