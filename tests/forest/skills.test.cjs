@@ -21,19 +21,32 @@ test('SK-AC03 a thirsty friend is shown the puddle and drinks only there; anyone
 test('SK-AC04 with no damp soil 베이치 shows a thirsty friend the nearest real water',()=>{const s=game();solo(s);for(const z of s.patches)z.S=0;const c=s.patches.find(z=>z.id==='crevice');c.W=5;s.spring.water=0;
  const b=friend(s,'bosong',c.x+.1,c.y+.05),r=friend(s,'ridley',c.x+.18,c.y+.06,{B:20});run(s,2);a.equal(r.guideTo?.kind,'crevice');a.equal(b.skill?.k,'guide');a.ok(b.skillRest.guide>s.worldTick);});
 
-test('SK-AC05 코로나 rakes the loose leaves of a sector into one pile where they lie; the floor-leaf count stays the same',()=>{const s=game();solo(s);const st=s.objects.litter;st.leaves=[];st.piles=[];
+test('SK-AC05 코로나 Lv1 sweeps one loose leaf onto another so they make a pile; the floor-leaf count stays the same',()=>{const s=game();solo(s);const st=s.objects.litter;st.leaves=[];st.piles=[];
  const sec=L.sectorOf({x:.3,y:.6});for(let i=0;i<3;i++)st.leaves.push({id:st.nextLeaf++,sector:sec,x:.27+i*.03,y:.6+i*.01,rot:0,moved:0});
- const co=friend(s,'jureong',.2,.66);const f0=L.floor(s);let raked=0;
+ const co=friend(s,'jureong',.2,.66,{xp:0});const f0=L.floor(s);let raked=0;
  for(let i=0;i<120;i++){run(s,1);a.ok(Math.abs(L.floor(s)-f0)<1e-9,'floor count at '+i);if(co.skill?.phase==='rake')raked++;}
- const pile=st.piles.find(p=>p.sector===sec);a.ok(pile,'a pile was made in that sector');a.equal(pile.O,3);a.equal(st.leaves.length,0);a.equal(raked,6,'2 s a leaf');
+ const pile=st.piles.find(p=>p.sector===sec);a.ok(pile,'a pile was made in that sector');a.equal(pile.O,2,'one leaf swept onto another');a.equal(st.leaves.length,1);a.equal(raked,2,'2 s a leaf');
  a.ok(co.skillRest.rake>0,'cooldown was set');a.equal(K.today(s,co),1);a.ok(co.energy<80,'cost 기운');
- st.leaves.push({id:st.nextLeaf++,sector:L.sectorOf({x:.6,y:.4}),x:.6,y:.4,rot:0,moved:0});run(s,5);a.equal(co.skill,undefined,'a single leaf is not raked');});
+ co.skillRest={};run(s,60);a.equal(pile.O,3,'next time it sweeps the last leaf onto the pile');a.equal(st.leaves.length,0);
+ co.skillRest={};st.leaves.push({id:st.nextLeaf++,sector:L.sectorOf({x:.9,y:.2}),x:.9,y:.2,rot:0,moved:0});run(s,5);a.equal(co.skill,undefined,'a lone leaf far from anything is not raked');});
 
-test('SK-AC06 리들리 brushes 15 off a friend whose leaves carry pests, holding it still for 20 s',()=>{const s=game();solo(s);const r=friend(s,'ridley',.4,.55),e=friend(s,'neolbi',.52,.56);
+test('SK-LV 1.1.3 skill levels: 코로나 Lv10 sweeps 5 at once, 리들리 Lv10 brushes all, values follow the table',()=>{
+ const s=game();solo(s);const st=s.objects.litter;st.leaves=[];st.piles=[];const sec=L.sectorOf({x:.3,y:.6});
+ st.piles.push({id:'pile:'+st.nextPile++,sector:sec,x:.3,y:.6,O:2,U:0,S:50,cap:100,W:0,playBoostUntil:0,born:0});
+ for(let i=0;i<6;i++)st.leaves.push({id:st.nextLeaf++,sector:L.sectorOf({x:.22+i*.03,y:.66}),x:.22+i*.03,y:.66,rot:0,moved:0});
+ friend(s,'jureong',.2,.7,{xp:150});const f0=L.floor(s);for(let i=0;i<60;i++)run(s,1);a.equal(st.piles[0].O,7,'5 swept onto the pile');a.equal(st.leaves.length,1);a.ok(Math.abs(L.floor(s)-f0)<1e-9);
+ const r=friend(s,'ridley',.6,.4,{xp:150}),e=friend(s,'neolbi',.7,.41);const cr=s.objects.creatures;cr.groups.push({id:'cr:'+cr.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:90,low:0});
+ for(let i=0;i<60;i++)run(s,1);a.equal(C.onLeaf(s,e.id).mite.density,0,'Lv10 brushes them all off');a.ok(r.skillRest.brush-s.worldTick<=120);
+ const row=(sp,xp)=>({species:sp,xp});a.equal(K.lv(row('bosong',0),'dig','amount'),8);a.equal(K.lv(row('bosong',8),'dig','amount'),10);a.equal(K.lv(row('bosong',115),'dig','rest'),480);
+ a.equal(K.lv(row('jureong',0),'rake','count'),1);a.equal(K.lv(row('jureong',115),'rake','count'),4);a.equal(K.lv(row('ridley',40),'brush','amount'),50);
+ a.deepEqual(K.umbrella(row('neolbi',0)),{rain:.5,wind:.4,limit:70});a.deepEqual(K.umbrella(row('neolbi',115)),{rain:.8,wind:.65,limit:80});a.deepEqual(K.share(row('superbum',40)),{total:14,nest:45});
+ const v=K.levelLines(row('ridley',115));a.equal(v.level,9);a.equal(v.next.level,10);a.match(v.next.line,/모두/);a.equal(K.levelLines(row('bosong',115)).next,null,'no step left for 베이치 at Lv9');});
+
+test('SK-AC06 리들리 brushes 15 off a friend whose leaves carry pests, holding it still for 20 s',()=>{const s=game();solo(s);const r=friend(s,'ridley',.4,.55,{xp:0}),e=friend(s,'neolbi',.52,.56);
  const st=s.objects.creatures;st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:30,low:0});
  let held=0;for(let i=0;i<60;i++){run(s,1);if(e.skillHold===r.id)held++;}a.equal(C.onLeaf(s,e.id).mite.density,15);a.ok(held>=19&&held<=21,'held '+held);a.ok(r.skillRest.brush>s.worldTick);a.equal(K.today(s,r),1);});
 
-test('SK-AC07 beside moss a well 엘리시 moistens the leaves near it and calls natural enemies sooner',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');const e=friend(s,'bonbon',moss.x+.05,moss.y+.03),q=friend(s,'ridley',e.x+.08,e.y),far=friend(s,'ridley',e.x+.5,e.y);
+test('SK-AC07 beside moss a well 엘리시 moistens the leaves near it and calls natural enemies sooner',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');const e=friend(s,'bonbon',moss.x+.05,moss.y+.03,{xp:0}),q=friend(s,'ridley',e.x+.08,e.y),far=friend(s,'ridley',e.x+.5,e.y);
  a.equal(K.moistLeaf(s,q),15);a.equal(K.moistLeaf(s,far),0);a.ok(K.assist(s,q));a.ok(!K.assist(s,far));e.energy=20;a.equal(K.moistLeaf(s,q),0,'not while tired');});
 
 test('SK-AC08·09 a thirsty, tired or endangered friend does not start (and stops); a cooling-down skill waits',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');moss.S=5;s.spring.water=s.spring.capacity*.2;

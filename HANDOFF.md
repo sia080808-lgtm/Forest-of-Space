@@ -816,3 +816,10 @@
 - 변경: `world.js`(`SWIM`·`swim`·`swimTarget`·`swimOk`·`hrnd`, 물달팽이 0.3 안 시든 수련으로 기어감, 잠자리 날개돋이 상한, 검증 `tx/ty/rest/mv`), `scene.js`(위치 따라 그리기·방향·개구리 헤엄). 버전 1.1.2 / versionCode 78.
 - 판단: 이동 목적지는 해시로 골라 `rng.lake` 흐름(찾아오는 생물)은 그대로.
 - 검증: `lake.test.cjs` 1.1.2 검사, `lake`·`admin`·`render`·`package` 통과, 전체는 CI. 실기기 미검증.
+- 병합·릴리스: PR #63(https://github.com/sia080808-lgtm/Forest-of-Space/pull/63) main 병합 `aabbcf716d863212b1fda053c940006182ffd6b5`(사용자 "ㄱㄱ 1.1.3, 끝나면 1.1.2도 머지"; head `7db38d6` 기준 simulation·CodeQL 성공, 같은 브랜치라 1.1.3 작업 전에 먼저 병합). 프리릴리스 v1.1.2 `Forest-of-Space-1.1.2.apk` 74,336,555 bytes, SHA-256 `645c3f6069bef45262073da126603a8e66400a3616c53b7358984aa5ecadd832` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode78/1.1.2. APK는 사용자에게 파일로 전달.
+
+### SKILL-LEVELS-1.1.3-20261121 — 고유 스킬 레벨 수치표 (SRS v2.37)
+
+- 담당: Claude Code. 요청: "레벨별로 … 스킬의 수치값 변하는 메커니즘 있음?" → 수치표 → 엘레판 막는 %, 코로나 1~5장, 리들리 Lv10 전부 → "ㄱㄱ 1.1.3". 기준 main `aabbcf7`(1.1.2 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `skills.js`(`LEVEL`·`lv`·`levelOf`·`tier`·`umbrella`·`share`·`levelLines`, 코로나 새 방식 `rakeFor`·act), `weather-care.js`(우산 비·바람·한계 `U`, `limit` 내보냄), `social.js`(둥지 최대·나눔 합계 `SH`, 우산 한계), `engine.js`(둥지 물 검증 50), `forest-app.js`(스킬 칸 문구). 버전 1.1.3 / versionCode 79. SRS `docs/Forest-Skill-Levels-SRS-v2.37.md`·`.pdf`.
+- 검증: `skills.test` 10/10(SK-AC05 다시 씀, SK-LV 추가), 관련 테스트, 전체는 CI. 실기기 미검증.
