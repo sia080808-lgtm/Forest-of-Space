@@ -20,6 +20,17 @@ function rain(c,s,w,h,t){const p=rainProfile(s);if(!p.count||w<=0||h<=0)return;
  }c.restore();
 }
 function particles(c,s,w,h,t,assets,area=1){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,reduced=s.settings.reducedMotion,factor=reduced?.3:1,rain=E.precipitation(s,'rain'),snowfall=E.precipitation(s,'snow');const nr=Math.round(100*rain*factor),ns=Math.max(0,Math.min(Math.round(70*snowfall*factor*area),Math.round(120*area)-nr));c.save();c.fillStyle='#f7f8ed';for(let i=0;i<ns;i++){const x=((i*79.3+Math.sin(t*.8+i)*8+t*s.weather.wind*.20)%w+w)%w,y=(i*117.7+t*(12+i%13))%h;c.globalAlpha=.5+(i%4)*.1;c.beginPath();c.arc(x,y,.9+(i%3)*.4,0,Math.PI*2);c.fill();}if(s.weather.wind>=40&&assets?.terrain){const count=Math.max(0,Math.min(Math.round((s.weather.wind>=70?12:5)*factor*area),Math.round(120*area)-nr-ns));for(let i=0;i<count;i++){const x=((i*93.7+t*s.weather.wind*.6)%w+w)%w,y=(i*71.3+Math.sin(t+i)*14)%h;c.save();c.translate(x,y);c.rotate(t*(.5+i%3)+i);c.globalAlpha=.35;c.drawImage(assets.terrain,733,689,132,68,-4,-2,8,4);c.restore();}}if(s.weather.kind==='fog'){const bands=Math.max(3,Math.round(3*Math.sqrt(area)));for(let i=0;i<bands;i++){const y=h*((i+1)/(bands+1))+Math.sin(t*.08+i)*12,g=c.createLinearGradient(0,y-50,0,y+50);g.addColorStop(0,'#d5dfd600');g.addColorStop(.5,'#d5dfd638');g.addColorStop(1,'#d5dfd600');c.globalAlpha=1;c.fillStyle=g;c.fillRect(0,y-50,w,100);}}c.restore();}
-function grade(c,buffer,s,w,h){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,p=E.lighting(s);c.save();c.filter=`brightness(${p.brightness}) saturate(${p.saturation})`;c.drawImage(buffer,0,0,w,h);c.filter='none';for(const t of p.tints){if(t.alpha<=0)continue;c.fillStyle=`rgba(${t.color.map(Math.round).join(',')},${t.alpha})`;c.fillRect(0,0,w,h);}c.restore();}
-return {canvas,snow,mask,rainProfile,rain,particles,grade};
+// 1.1.4 (렉 줄이기): the whole-frame CSS filter (brightness/saturate) was ~65% of a frame's drawing. The same light is
+// now made with plain composites that the GPU does cheaply: brightness below 1 multiplies by a grey, above 1 adds the
+// picture again with 'lighter' (x·b exactly), and saturation below 1 lays grey with the 'saturation' blend at 1−s.
+// Saturation above 1 (at most 1.05, a summer noon) is left as it is.
+function light(c,s,w,h,src){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,p=E.lighting(s),b=p.brightness,sat=p.saturation;c.save();
+ if(b<.995){const v=Math.round(255*b);c.globalCompositeOperation='multiply';c.fillStyle=`rgb(${v},${v},${v})`;c.fillRect(0,0,w,h);}
+ else if(b>1.005&&src){c.globalCompositeOperation='lighter';c.globalAlpha=Math.min(1,b-1);c.drawImage(src,0,0,w,h);c.globalAlpha=1;}
+ if(sat<.995){c.globalCompositeOperation='saturation';c.globalAlpha=1-sat;c.fillStyle='#808080';c.fillRect(0,0,w,h);c.globalAlpha=1;}
+ c.globalCompositeOperation='source-over';for(const t of p.tints){if(t.alpha<=0)continue;c.fillStyle=`rgba(${t.color.map(Math.round).join(',')},${t.alpha})`;c.fillRect(0,0,w,h);}c.restore();}
+function grade(c,buffer,s,w,h){c.drawImage(buffer,0,0,w,h);light(c,s,w,h,buffer);}
+// the world was drawn straight onto c: light it in place (no second full-screen copy; brighter than 1 re-adds c itself)
+function gradeOver(c,s,w,h){light(c,s,w,h,c.canvas);}
+return {canvas,snow,mask,rainProfile,rain,particles,grade,gradeOver};
 });

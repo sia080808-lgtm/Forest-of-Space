@@ -53,9 +53,16 @@ function clearFriends(s,p,a,b){
   return distance(z,{x:a.x+t*dx,y:a.y+t*dy/ASPECT})<r-1e-8;
  });
 }
+// 1.1.4: "can it get there" checks (choosing what to do, the shelter queue) ask the same question again and again
+// while a friend stands still. A route that ignores friends depends only on the layout, the friend's size and its
+// shelter, and the two points, so the same question gets the same answer from a small cache (no change in behaviour).
+const routeMemo=new WeakMap();
+function layoutKey(s){const o=obstacles(s);let k=o.map(z=>z.id+':'+z.x+','+z.y+','+z.rx+','+z.ry).join(';')+'|'+(s.world?.regions||[]).join(',')+'|'+(World.frozen?.(s)?1:0);for(const f of s.shelters?.facilities||[])k+='|'+f.id+','+f.level+','+f.x+','+f.y;return k;}
 function route(s,start,end,id,avoidFriends=false){
- const precise=routeOnce(s,start,end,id,avoidFriends);if(precise||LEGACY)return precise;
- LEGACY=true;try{return routeOnce(s,start,end,id,avoidFriends);}finally{LEGACY=false;}
+ let memo=null,key=null;if(!avoidFriends&&start&&end&&s&&typeof s==='object'){const p=id&&s.individuals?.find(x=>x.id===id);key=(LEGACY?'L':'P')+'|'+(p?diameter(p)+'|'+(p.shelter?.facilityId||''):'-')+'|'+start.x+','+start.y+'|'+end.x+','+end.y;
+  const lk=layoutKey(s);memo=routeMemo.get(s);if(!memo||memo.lk!==lk){memo={lk,map:new Map()};routeMemo.set(s,memo);}if(memo.map.has(key)){const r=memo.map.get(key);return r&&r.map(q=>({...q}));}}
+ let out=routeOnce(s,start,end,id,avoidFriends);if(!out&&!LEGACY){LEGACY=true;try{out=routeOnce(s,start,end,id,avoidFriends);}finally{LEGACY=false;}}
+ if(memo){if(memo.map.size>4000)memo.map.clear();memo.map.set(key,out&&out.map(q=>({x:q.x,y:q.y})));}return out;
 }
 function routeOnce(s,start,end,id,avoidFriends){
  const obs=obstacles(s),actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>segment(s,a,b,id,obs)&&(!actor||clearFriends(s,actor,a,b));
@@ -93,7 +100,21 @@ function gait(p,s){if(s.weather.wind>=60)return {kind:p.energy<40?'walk':'run',s
  if(p.Q>=16)p.wetSlow=true;else if(p.Q<12)p.wetSlow=false;
  if(p.wetSlow||p.energy<40||p.action==='rest')return {kind:'slow',speed:GU*.6};
  if(p.drinkCycle)return {kind:'hurry',speed:GU*1.3};return {kind:'walk',speed:GU};}
-function travel(s,p,destination){if(p.species==='neolbi'&&(p.canopyProgress||0)>0){p.canopyClosing=true;p.canopy=false;return {kind:'idle',path:[{x:p.x,y:p.y}],distance:0,arrived:false};}delete p.canopyClosing;const plan=route(s,p,destination,p.id,true),g=gait(p,s),path=[{x:p.x,y:p.y}];let left=g.speed;
+// 1.1.4 (user: "렉이 조금씩 걸리는데" → "1,2번 ㄱㄱ"): a walking friend used to search its whole way again every second
+// (route was ~75% of the engine and one tick could take 0.3 s). The way is now kept on the friend (saved, so a reloaded
+// game walks the same) and reused while the destination is the same and the next stretch is still clear; it is searched
+// again when that stretch is blocked, the destination changes, the way runs out, or every REPLAN seconds (so a shorter
+// way that opened up is still found). A straight clear line to the destination always wins over the kept way.
+const REPLAN=8,NOWAY=3;   // a failed search (the slowest kind) is not repeated for NOWAY seconds
+function keptPlan(s,p,destination){const wp=p.walkPlan;if(!wp||Math.abs(wp.tx-destination.x)>1e-9||Math.abs(wp.ty-destination.y)>1e-9||s.worldTick-wp.at>=REPLAN||!wp.pts)return null;
+ if(!wp.pts.length)return s.worldTick-wp.at<NOWAY&&Math.abs(wp.fx-p.x)<1e-9&&Math.abs(wp.fy-p.y)<1e-9?false:null;
+ while(wp.pts.length>1&&distance(p,wp.pts[0])<1e-6)wp.pts.shift();
+ const was=LEGACY;LEGACY=!!wp.legacy;try{const obs=obstacles(s),ok=q=>segment(s,p,q,p.id,obs)&&clearFriends(s,p,p,q);
+  if(wp.pts.length>1&&ok(destination))return [destination];return ok(wp.pts[0])?wp.pts:null;}finally{LEGACY=was;}}
+function planFor(s,p,destination){const kept=keptPlan(s,p,destination);if(kept)return kept;if(kept===false)return null;
+ let legacy=false,plan=routeOnce(s,p,destination,p.id,true);if(!plan&&!LEGACY){LEGACY=true;try{plan=routeOnce(s,p,destination,p.id,true);legacy=!!plan;}finally{LEGACY=false;}}
+ p.walkPlan=plan?{tx:destination.x,ty:destination.y,at:s.worldTick,legacy,pts:plan.map(q=>({x:q.x,y:q.y}))}:{tx:destination.x,ty:destination.y,at:s.worldTick,legacy:false,pts:[],fx:p.x,fy:p.y};return plan;}
+function travel(s,p,destination){if(p.species==='neolbi'&&(p.canopyProgress||0)>0){p.canopyClosing=true;p.canopy=false;return {kind:'idle',path:[{x:p.x,y:p.y}],distance:0,arrived:false};}delete p.canopyClosing;const plan=planFor(s,p,destination),g=gait(p,s),path=[{x:p.x,y:p.y}];let left=g.speed;
  if(!plan)return {kind:'idle',path,distance:0,arrived:false};
  let moved=0;for(const q of plan){const d=distance(p,q),n=Math.min(d,left);if(d){const nx=p.x+(q.x-p.x)*n/d,ny=p.y+(q.y-p.y)*n/d;if(!clearFriends(s,p,p,{x:nx,y:ny}))break;p.x=nx;p.y=ny;}moved+=n;left-=n;path.push({x:p.x,y:p.y});if(left<=1e-9)break;}
  return {kind:moved>1e-8?g.kind:'idle',path,distance:moved,duration:moved/g.speed,arrived:distance(p,destination)<.001};
