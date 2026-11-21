@@ -74,9 +74,9 @@ test('SE-0.8.4 the dry-forest rescue follows the season: snow in winter, none in
  const w=win('C01');w.environment.rainRescuePending=false;w.weather.kind='snow';w.weather.intensity=60;w.weather.transition=0;w.environment.precipFrom=null;w.environment.effectiveRainSeconds=119;w.environment.dryActiveSeconds=10;F.step(w);a.equal(w.environment.dryActiveSeconds,0,'snow counts as water for the rescue timer');
 });
 test('SE-1.0.2 winter pests rest: in a warm dry winter (마른 숲, T 50+) mealybugs do not grow and fade; no spread by touch in winter',()=>{
- const F=require('../../app/src/main/assets/web/engine'),C=F.Creatures||require('../../app/src/main/assets/web/creatures');const s=F.create(0,3);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;s.environment.climate='C04';s.environment.climateMode='fixed';
+ const F=require('../../app/src/main/assets/web/engine');const s=F.create(0,3);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;s.environment.climate='C04';s.environment.climateMode='fixed';
  s.environment.calendar.start=s.worldTick-3*3600-50;for(let i=0;i<5;i++)F.step(s);const p=s.individuals[0];
  s.objects.creatures.groups.push({id:'cr:t1',kind:'mealy',since:s.worldTick,bad:0,lastWork:s.worldTick,carry:null,host:p.id,density:60,honey:0,low:0});
  for(let i=0;i<300;i++)F.step(s);const g=s.objects.creatures.groups.find(g=>g.id==='cr:t1');
- require('node:assert/strict').ok(F.Environment.season(s)==='winter'&&s.climate.T>=50,'warm winter');require('node:assert/strict').ok(g&&g.density<=50,'mealybugs faded '+(g&&g.density));F.valid(s);
+ a.ok(F.Environment.season(s)==='winter'&&s.climate.T>=50,'warm winter');a.ok(g&&g.density<=50,'mealybugs faded '+(g&&g.density));F.valid(s);
 });
