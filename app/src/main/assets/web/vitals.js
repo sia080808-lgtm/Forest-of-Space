@@ -23,7 +23,8 @@ const isDay=s=>{const t=dayTime(s);return t<620||t>=1150;};
 // (엘리시·코로나) wake at 1050, the others at 1100
 function sleepTime(s,p){const t=dayTime(s);if(t>=750&&t<1050)return true;if(!p)return t>=620&&t<1150;if(t>=620&&t<750)return p.energy<50;if(t>=1050&&t<1150)return !['bonbon','jureong'].includes(p.species)&&t<1100;return false;}
 // the sun rock stores sun on bright days (0..100) and a friend resting on it draws it
-const SUN=Object.freeze({clear:2/60,cloud:.5/60,use:2/60});
+// 1.0.1 (user: "맑은 날은 분당 5, 흐린 날은 분당 2"): the rock fills faster so it still holds some sun in a cloudy winter
+const SUN=Object.freeze({clear:5/60,cloud:2/60,use:2/60});
 function rockSun(s){const r=s.patches?.find(z=>z.id==='rock');return r&&Number.isFinite(r.sun)?r.sun:0;}   // read only (cards and the screen call it)
 function sunStep(s,light){const r=s.patches?.find(z=>z.id==='rock');if(!r)return;if(!Number.isFinite(r.sun))r.sun=0;if(!isDay(s))return;const k=s.weather.kind;
  if(k==='sun'&&light(s,r)>=60)r.sun=Math.min(100,r.sun+SUN.clear);else if(k==='cloud')r.sun=Math.min(100,r.sun+SUN.cloud);}
