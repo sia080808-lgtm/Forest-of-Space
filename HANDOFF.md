@@ -780,3 +780,10 @@
 - 추가(사용자 "겨울엔 벌레들도 안 나오지 않음?" → "ㅇㅇ ㄱㄱ"): `creatures.js` 겨울 해충 쉬기(`WINTER_REST` 2/분, 뿌리날파리 번식 멈춤, 접촉·공중 전이 멈춤). `seasons` SE-1.0.2 추가. 관련 테스트 49/49.
 - 남은 일: 마른 숲 둘째 해 8시간 재측정(5분 제한 뒤), 실기기.
 - 병합·릴리스: PR #59(https://github.com/sia080808-lgtm/Forest-of-Space/pull/59) main 병합 `7a3d78747f8cfa141ffe784721f109bf52773564`(사용자 "ㄱㄱ"; head `964ba02` 기준 simulation·CodeQL 성공, CodeQL 안 쓰는 변수 1건 같은 PR에서 정리). 프리릴리스 v1.0.2 `Forest-of-Space-1.0.2.apk` 74,324,201 bytes, SHA-256 `ed440001dc9f5bc21e45d6b207e8e5d478fd79948ee585877084593c29d09b4b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode74/1.0.2. APK는 사용자에게 파일로 전달.
+
+### PHOTO-BASK-1.0.3-20261121 — 광합성·볕 쬐기 동작 구분
+
+- 담당: Claude Code. 요청: "광합성 동작과 볕쬐기 동작 구분시키자"(그 뒤 기운·수분·영양 상태별 동작·외형 순서) → 시안 → "햇살 바위 광합성은 빛 원을 더 크게" 반영. 기준 main `7a3d787`(1.0.2 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `rig.js`(`photo`·`bask` 렌더 동작, 빛 알갱이 `motes`·주황빛·아지랑이 `warmth`), `scene.js`(가만히 선 친구가 광합성 '좋음/조금 벗어남'이면 `photo`, 볕 남은 햇살 바위에서 쉬면 `bask`, 낮이면 큰 빛 알갱이; 표정), `vitals.js`(`photoGrade` 분리·내보냄, `restingAt` 내보냄). 버전 1.0.3 / versionCode 75.
+- 검증: `rig`(1.0.3 검사)·`render`·`package`·`traits`·`seasons` 통과, 전체는 CI. 화면 `docs/qa-1.0.3/runtime`. 실기기 미검증.
+- 다음: 기운 높음/낮음 동작(1.0.4 예정), 과습/수분 부족, 영양 과잉/결핍.

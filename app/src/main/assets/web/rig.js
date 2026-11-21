@@ -76,11 +76,11 @@ function specks(c,t,height){const u=mod(t,GROOM);if(u<.4||u>1.6)return;const k=(
 // 광합성: standing in good light, the friend stretches a little taller toward the sun (top left, like the world light),
 // breathes slowly with its eyes closed happily, and small light motes drift up off its leaves.
 // 볕 쬐기 (on the sun rock): it sits low and spreads out, eyes sleepily closed, breathing deep and slow, wrapped in a warm
-// glow with a faint heat shimmer rising.
+// glow with a faint heat shimmer rising; when it photosynthesises there too (by day) its light motes are bigger (user).
 const PHOTO=5,BASK=6;
-function motes(c,t,height,reduced){c.save();c.translate(FEET[0],FEET[1]);
+function motes(c,t,height,reduced,big=1){c.save();c.translate(FEET[0],FEET[1]);
  const beam=c.createLinearGradient(-height*.9,-height*1.9,height*.2,-height*.2);beam.addColorStop(0,'rgba(255,246,200,0)');beam.addColorStop(.55,'rgba(255,246,200,.30)');beam.addColorStop(1,'rgba(255,246,200,0)');c.fillStyle=beam;c.beginPath();c.moveTo(-height*1.1,-height*2);c.lineTo(-height*.35,-height*2);c.lineTo(height*.62,-height*.05);c.lineTo(-height*.62,-height*.05);c.closePath();c.fill();
- for(let i=0;i<9;i++){const u=reduced?.3+i*.07:mod(t*.45+i/9,1),x=height*(-.4+.8*((i*37%11)/11))+Math.sin(t*1.3+i)*height*.03,y=-height*(.5+.8*u),a=Math.sin(u*Math.PI),r=height*(.024+.012*(i%3));
+ for(let i=0;i<9;i++){const u=reduced?.3+i*.07:mod(t*.45+i/9,1),x=height*(-.4+.8*((i*37%11)/11))+Math.sin(t*1.3+i)*height*.03,y=-height*(.5+.8*u),a=Math.sin(u*Math.PI),r=height*(.024+.012*(i%3))*big;
   const g=c.createRadialGradient(x,y,0,x,y,r*3);g.addColorStop(0,'rgba(255,252,214,'+a+')');g.addColorStop(.3,'rgba(236,240,150,'+a*.7+')');g.addColorStop(1,'rgba(228,236,150,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r*3,0,7);c.fill();}
  c.restore();}
 function warmth(c,t,height,reduced,over){c.save();c.translate(FEET[0],FEET[1]);
@@ -102,7 +102,7 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
  if(kind==='photo'){const b=photoBody(t,opt.reduced);c.save();c.translate(FEET[0],FEET[1]);c.rotate(b.rot);c.scale(1/Math.sqrt(b.sy),b.sy);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle',expression:opt.expression||'happy'});c.restore();motes(c,t,h,opt.reduced);return;}
  if(kind==='bask'){const b=baskBody(t,opt.reduced);warmth(c,t,h,opt.reduced,false);c.save();c.translate(FEET[0],FEET[1]);c.scale(b.sx,b.sy);c.translate(-FEET[0],-FEET[1]);
-  drawCore(c,assets,{...opt,kind:'idle',sit:.5,expression:opt.expression||'sleepy'});c.restore();warmth(c,t,h,opt.reduced,true);return;}
+  drawCore(c,assets,{...opt,kind:'idle',sit:.5,expression:opt.expression||'sleepy'});c.restore();warmth(c,t,h,opt.reduced,true);if(opt.photo)motes(c,t,h,opt.reduced,1.8);return;}
  if(kind==='groom'&&!OWN_GROOM.includes(sp)&&!opt.reduced){const m=shake(t);c.save();c.translate(FEET[0]+m.dx,FEET[1]);c.rotate(m.rot);c.scale(1/Math.sqrt(m.sq),m.sq);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle'});c.restore();specks(c,t,h);return;}
  // 0.6.34: a friend whose leaves carry spider mites (the leaf-damaging pest) shivers now and then, every species alike:

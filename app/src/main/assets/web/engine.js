@@ -15,7 +15,7 @@ const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorl
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.0.2', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.0.3', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
