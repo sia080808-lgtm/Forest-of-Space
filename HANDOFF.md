@@ -871,3 +871,4 @@
 - 원인: `toBase64`가 데이터 URL을 첫 쉼표로 잘랐는데 MIME `video/mp4;codecs=avc1,mp4a.40.2`에 쉼표가 있어 base64가 아닌 문자열을 `videoChunk`로 넘김 → Java 디코드 실패 → `videoEnd(false)`. 1.1.7 검증은 브라우저 내려받기 경로만 봐서 놓쳤다(내 검증 누락).
 - 수정: `;base64,` 뒤를 씀. 크롬에서 RidleyNative 흉내(read/save/video*)로 맵 끌기·전체 보기 중 녹화 → 조각 2개·1,093,334 bytes, end true(고치기 전 0개·false). 버전 1.1.8 / versionCode 84.
 - 미검증: Android 실기기.
+- 병합·릴리스: PR #69(https://github.com/sia080808-lgtm/Forest-of-Space/pull/69) main 병합 `7513d12f0ec5f7a7bba141334e1465c2cc0046e6`(사용자 "ㄱㄱ"; head `f84264a` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.8 `Forest-of-Space-1.1.8.apk` 74,348,843 bytes, SHA-256 `e73f9bb73c330beadc2eacef235373344aaffefdc013be6e2ce9f4e3ee0efde9` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode84/1.1.8. APK는 사용자에게 파일로 전달.
