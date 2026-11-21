@@ -53,3 +53,5 @@
 .hexstats polygon.me{fill:#9fbf8a88;stroke:var(--green);stroke-width:1.5}.hexstats text{font-size:8px;fill:var(--ink);stroke:none}
 .stat b{white-space:nowrap}
 #record.recording{width:auto;min-width:34px;padding:0 9px 0 7px;border-radius:17px;gap:5px;display:flex;align-items:center;opacity:.95;background:#fffaf0cc;color:#a33a2c;border-color:#a33a2c66}.rec-stop{width:10px;height:10px;border-radius:2px;background:#c0392b;animation:recblink 1s ease-in-out infinite}.rec-time{font-size:11px;font-variant-numeric:tabular-nums}.night #record.recording{background:#202823cc;color:#f0a596}@keyframes recblink{50%{opacity:.35}}
+
+.editor .facility-flip{margin:2px 0 8px;min-height:40px;font-size:13.5px}.editor .facility-flip[aria-pressed=true]{border-color:var(--green);color:var(--green)}
