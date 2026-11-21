@@ -14,14 +14,14 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0}={}){
- if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit});
- if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit});
- if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit}))return;
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0}={}){
+ if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop});
+ if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop});
+ if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop}))return;
  const p=pose(kind,phase,reduced,wiggle);c.save();c.translate(0,p.bob);
  for(const [i,x]of [515,795].entries()){c.save();c.translate(x,930);c.rotate(i?p.right:p.left);c.drawImage(assets[definition.legs[i]],-49,-45,98,202.385);c.restore();}
  // 0.8.7 sit (stroll rest): the legs stay on the ground, everything above settles over them like 엘리시
- c.translate(0,sit*70);
+ c.translate(0,sit*70+droop*30);
  c.save();c.globalAlpha*=bodyAlpha;c.drawImage(assets[definition.body],0,0);c.restore();
  if(bodyAlpha===1){
   const e=expression|| (kind==='rest'?'sleepy':kind==='groom'||kind==='drink'?'focused':kind==='held'?'surprised':'neutral');
@@ -30,10 +30,10 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
   else {c.save();c.strokeStyle='#efe4c7';c.fillStyle='#efe4c7';c.lineWidth=9;c.lineCap='round';
    for(const x of [592,762]){c.beginPath();if(e==='sleepy'||blink){c.moveTo(x-17,793);c.quadraticCurveTo(x,809,x+17,793);}else if(e==='happy'){c.moveTo(x-16,796);c.quadraticCurveTo(x,775,x+16,796);}else if(e==='sad'){c.moveTo(x-15,796);c.lineTo(x+15,803);}else {c.moveTo(x,775);c.lineTo(x,812);}c.stroke();}
    if(e==='surprised'){c.beginPath();c.ellipse(678,849,13,17,0,0,Math.PI*2);c.fill();}else if(e!=='sleepy'){c.beginPath();c.moveTo(664,849);c.lineTo(690,849);c.stroke();}c.restore();}
-  c.save();c.translate(640,690);c.rotate(restBlend*.04+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
+  c.save();c.translate(640,690);c.rotate(restBlend*.04+droop*.07+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.scale(1+droop*.05,1-droop*.06);c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12+droop*34);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
  }
  const hands=kind==='splash'?[[420,935+Math.sin(phase*7)*16,.2],[930,935-Math.sin(phase*7)*16,-.2]]:kind==='drink'?[[500,870,.2],[930,935,-.2]]:kind==='litter'?litterHands(phase,reduced):kind==='brush'?brushHands(phase,reduced):null;
- for(const [x,y,angle]of (hands||[[391,906+restBlend*10,['walk','slow','hurry','run','duck','step','avoid'].includes(kind)?p.swing:.2],[968-210*p.reach,898-232*p.reach+p.stroke,-.2-.5*p.reach]])){c.save();c.translate(x,y);c.rotate(angle);c.drawImage(assets[definition.palm],-43,-52,86,104);c.restore();}
+ for(const [x,y,angle]of (hands||[[391,906+restBlend*10+droop*34,['walk','slow','hurry','run','duck','step','avoid'].includes(kind)?p.swing:.2],[968-210*p.reach,898-232*p.reach+p.stroke+droop*34,-.2-.5*p.reach]])){c.save();c.translate(x,y);c.rotate(angle);c.drawImage(assets[definition.palm],-43,-52,86,104);c.restore();}
  c.restore();
 }
 // ----- 0.6.33 shared clips: 낙엽 놀이 (scoop and fling leaves over the head) and 머리 정돈 -----------------------------
@@ -94,10 +94,36 @@ function warmth(c,t,height,reduced,over){c.save();c.translate(FEET[0],FEET[1]);
  c.restore();}
 function photoBody(t,reduced){if(reduced)return {sy:1.05,rot:-.06};const b=Math.sin(mod(t,PHOTO)/PHOTO*Math.PI*2);return {sy:1.05+.02*b,rot:-.06-.012*b};}
 function baskBody(t,reduced){if(reduced)return {sx:1.08,sy:.93};const b=Math.sin(mod(t,BASK)/BASK*Math.PI*2);return {sx:1.08+.015*b,sy:.93+.02*b};}
+// ----- 1.1.5 기운 높음·낮음 (opt.vigor: 'high' 80% 이상 · 'low' 40% 아래 · 'faint' 15% 아래), render only -------------
+// high: bouncy steps and a little hop in place every 3 s, happy eyes, three sparkles drifting up.
+// low: the friend's own leaves/hood/arms sag (rig option droop), sad eyes, grey gloom lines over the head; standing, it
+// breathes in (straightens a little) and sighs out every 4 s with a curl of breath. faint: sags most, sways, a sweat drop.
+const VIGOR_KINDS=['idle','walk','slow','hurry'],SIGH=4;
+// per species (fractions of the drawn height): gloom/sparkle base over the head, and the mouth the sigh leaves from
+const VTOP={ridley:.82,bonbon:1.12,neolbi:1.08,bosong:.86,jureong:1.22,superbum:.84,duri:.82},VMOUTH={ridley:[.28,.38],bonbon:[.3,.42],neolbi:[.32,.32],bosong:[.16,.34],jureong:[.36,.26],superbum:[.24,.3],duri:[.28,.38]};
+function sparkle(c,x,y,r,a){c.save();c.globalAlpha=a;c.fillStyle='#ffe9a0';c.strokeStyle='rgba(214,170,70,.8)';c.lineWidth=r*.15;c.beginPath();for(let i=0;i<8;i++){const q=i*Math.PI/4,rr=i%2?r*.35:r;c.lineTo(x+Math.cos(q)*rr,y+Math.sin(q)*rr);}c.closePath();c.fill();c.stroke();c.restore();}
+function gloom(c,x,y,h,a,t,reduced){c.save();c.globalAlpha=a;c.strokeStyle='rgba(70,70,90,.55)';c.lineWidth=h*.012;c.lineCap='round';
+ for(let i=0;i<3;i++){const x0=x+h*(-.12+.12*i);c.beginPath();for(let k=0;k<=6;k++){const yy=y-k*h*.022,xx=x0+Math.sin(k*1.4+(reduced?0:t*1.5)+i)*h*.012;k?c.lineTo(xx,yy):c.moveTo(xx,yy);}c.stroke();}c.restore();}
+function sigh(c,x,y,h,a,k){c.save();c.globalAlpha=a;c.lineCap='round';c.translate(x,y);c.scale(k,k);
+ for(const [w,col] of [[h*.05,'rgba(255,255,255,.9)'],[h*.018,'rgba(150,160,170,.55)']]){c.strokeStyle=col;c.lineWidth=w;c.beginPath();c.moveTo(0,0);c.bezierCurveTo(h*.12,-h*.02,h*.2,h*.06,h*.17,h*.12);c.bezierCurveTo(h*.15,h*.17,h*.09,h*.15,h*.11,h*.11);c.stroke();}c.restore();}
+function sweat(c,x,y,r){c.save();c.fillStyle='rgba(170,210,235,.95)';c.strokeStyle='rgba(80,120,150,.7)';c.lineWidth=r*.15;c.beginPath();c.moveTo(x,y-r*1.6);c.quadraticCurveTo(x+r,y-r*.2,x,y+r*.6);c.quadraticCurveTo(x-r,y-r*.2,x,y-r*1.6);c.fill();c.stroke();c.restore();}
+function vigor(c,assets,opt,kind,sp,t,h){const v=opt.vigor,red=opt.reduced,walk=kind!=='idle',top=FEET[1]-h*(VTOP[sp]||.82),mouth=VMOUTH[sp]||[.28,.38];
+ let dy=0,sq=1,rot=0,dx=0,droop=0,expr=opt.expression,u=mod(t+(opt.seed||0)*1.3,SIGH)/SIGH,br=0;
+ if(v==='high'){if(!expr||expr==='neutral')expr='happy';if(!red){if(walk){const b=Math.abs(Math.sin(t*Math.PI*2.4));dy=-b*h*.1;sq=b<.15?.94:1.03;}else{const q=mod(t+(opt.seed||0),3);if(q<.7){const b=Math.sin(q/.7*Math.PI);dy=-b*h*.1;sq=1+.04*b;}}}}
+ else{if(!expr||['neutral','happy'].includes(expr))expr='sad';
+  if(v==='low'){br=walk||red?0:u<.45?Math.sin(u/.45*Math.PI/2):Math.cos((u-.45)/.55*Math.PI/2);droop=walk?.75:.85-.3*br;}
+  else {droop=1;if(!red){const w=Math.sin(t*1.4);rot=w*.06;dx=w*h*.035;}}}
+ c.save();c.translate(FEET[0]+dx,FEET[1]);c.rotate(rot);c.scale(1/Math.sqrt(sq),sq);c.translate(0,dy);c.translate(-FEET[0],-FEET[1]);
+ draw(c,assets,{...opt,vigorDone:true,droop,expression:expr});c.restore();
+ if(v==='high'){if(!red)for(let i=0;i<3;i++){const q=mod(t*.8+i/3,1);sparkle(c,FEET[0]+h*(-.35+.35*i),top-h*.1-q*h*.25+dy,h*.05,Math.sin(q*Math.PI));}return;}
+ const gt=top+h*(v==='faint'?.06:.04);gloom(c,FEET[0]-h*.05+dx,gt-h*.02,h,v==='faint'?.85:.6,t,red);
+ if(v==='low'&&!walk&&!red&&u>.45&&u<.9){const q=(u-.45)/.45;sigh(c,FEET[0]+h*mouth[0],FEET[1]-h*mouth[1]-q*h*.05,h,Math.sin(q*Math.PI),.8+.5*q);}
+ if(v==='faint')sweat(c,FEET[0]+h*mouth[0]+dx,gt+h*.2,h*.06);}
 // 0.6.34: friends with arms (리들리·베이치) keep their hand-on-head grooming; 엘레판·슈퍼범 their own leaf moves
 const ITCH=7,NO_ITCH=['held','rest','sleep','nightrest','moss','land','bask'];
 const OWN_GROOM=['neolbi','superbum','ridley','bosong','bonbon','jureong'];
 function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridley',t=opt.phase||0,h=H[sp]||1000;
+ if(opt.vigor&&!opt.vigorDone&&VIGOR_KINDS.includes(kind))return vigor(c,assets,opt,kind,sp,t,h);
  if(kind==='litter'){
   if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
   const b=playBody(t);c.save();c.translate(FEET[0],FEET[1]);c.scale(1/Math.sqrt(b.sq),b.sq);c.translate(0,b.dy);c.translate(-FEET[0],-FEET[1]);

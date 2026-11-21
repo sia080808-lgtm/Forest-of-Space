@@ -31,3 +31,11 @@ test('1.0.3 슈퍼 광합성: on the sun rock the same water gives 1.5x the 기�
   const [a,c]=require(web+'/traits.js').ofPet(p).light;s.climate.L=(a+c)/2;if(onRock){Object.assign(p,F.Space.rockTop(s));p.objectTask={object:'rock',kind:'rest',reason:'energy',since:0};p.objectArrived=true;}
   const e0=p.energy,led={physiology:0,evaporation:0};const out=V.step(s,p,{light:F.light(s,p),inside:false,moving:false,held:false,ledger:led});return {out,de:p.energy-e0};};
  const g=run(false),k=run(true);a.equal(g.out.grade,'good');a.equal(k.out.grade,'good');a.ok(Math.abs(k.out.water-g.out.water)<1e-9);a.ok(Math.abs(k.out.xp-g.out.xp*V.ROCK_BOOST)<1e-9);a.ok(k.de>g.de);});
+test('1.1.5 기운 높음·낮음·바닥 change every species drawing (droop, hop, sigh), only for idle/walk, reduced is static, options unchanged',async()=>{const images=await assets(),can=createCanvas(320,320),c=can.getContext('2d');
+ const shot=o=>{c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,300);c.scale(.2,.2);c.translate(-627,-1065.9);R.draw(c,images,o);return Buffer.from(c.getImageData(0,0,320,320).data);};
+ for(const species of ['ridley','bonbon','neolbi','bosong','jureong','superbum']){const base=shot({species,kind:'idle',phase:3});
+  for(const vigor of ['high','low','faint']){const o={species,kind:'idle',phase:vigor==='high'?.35:3,vigor};const before=JSON.stringify(o);a.notDeepEqual(shot(o),shot({species,kind:'idle',phase:o.phase}),species+' '+vigor);a.equal(JSON.stringify(o),before);}
+  a.notDeepEqual(shot({species,kind:'idle',phase:3,droop:1}),base,species+' droop');
+  a.deepEqual(shot({species,kind:'rest',phase:3,vigor:'low'}),shot({species,kind:'rest',phase:3}),species+' rest ignores vigor');
+  a.deepEqual(shot({species,kind:'idle',phase:1,vigor:'faint',reduced:true}),shot({species,kind:'idle',phase:7,vigor:'faint',reduced:true}),species+' reduced static');}
+});
