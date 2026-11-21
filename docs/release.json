@@ -6,7 +6,7 @@
   "package": "com.ridleydesk.mobile",
   "apk_built": false,
   "apk_note": "Built and signed by release-apk.yml on merge (AGP/D8, original key)",
-  "full_suite_passed": 340,
+  "full_suite_passed": 351,
   "failures_final": 0,
   "ui": "Happy DOM flow pass",
   "render": "docs/qa-1.1.0/runtime/skills.png",
