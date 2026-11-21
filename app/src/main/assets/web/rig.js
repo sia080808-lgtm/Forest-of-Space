@@ -102,6 +102,8 @@ function draw(c,assets,opt={}){const kind=opt.kind||'idle',sp=opt.species||'ridl
   if(opt.reduced){drawCore(c,assets,{...opt,kind:['ridley','bosong'].includes(sp)?'litter':'idle'});leafToss(c,0,h);return;}
   const b=playBody(t);c.save();c.translate(FEET[0],FEET[1]);c.scale(1/Math.sqrt(b.sq),b.sq);c.translate(0,b.dy);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:['ridley','superbum','bosong'].includes(sp)?'litter':'idle',litterUp:litterUp(t),expression:opt.expression==='focused'?'happy':opt.expression});c.restore();leafToss(c,t,h);return;}
+ // SRS v2.36 코로나 긁어모으기: the body sweeps side to side over the feet (its long leaves sweep the ground)
+ if(kind==='rake'){const u=opt.reduced?0:Math.sin(t*4.2);c.save();c.translate(FEET[0],FEET[1]);c.rotate(.09*u);c.translate(-FEET[0]+u*24,-FEET[1]);drawCore(c,assets,{...opt,kind:'idle',expression:opt.expression||'focused'});c.restore();return;}
  if(kind==='photo'){const b=photoBody(t,opt.reduced);c.save();c.translate(FEET[0],FEET[1]);c.rotate(b.rot);c.scale(1/Math.sqrt(b.sy),b.sy);c.translate(-FEET[0],-FEET[1]);
   drawCore(c,assets,{...opt,kind:'idle',expression:opt.expression||'happy'});c.restore();motes(c,t,h,opt.reduced,opt.photo?1.8:1);return;}
  if(kind==='bask'){const b=baskBody(t,opt.reduced);warmth(c,t,h,opt.reduced,false);c.save();c.translate(FEET[0],FEET[1]);c.scale(b.sx,b.sy);c.translate(-FEET[0],-FEET[1]);

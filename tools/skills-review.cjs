@@ -15,7 +15,8 @@ for(const f of fs.readdirSync(web+'/fonts').filter(f=>/\.(ttf|otf)$/.test(f)))tr
  const scenes=[
   ['베이치 · 물 찾기 (숨은 물 웅덩이)',s=>{const m=s.patches.find(z=>z.id==='moss');const b=pet(s,'bosong','베이치',m.x+.07,m.y+.07);b.motion.kind='sniff';b.skill={k:'dig',phase:'sniff',start:0,at:0,from:'moss',x:b.x,y:b.y};
    s.skills={puddles:[{id:'pd:1',x:m.x+.12,y:m.y+.09,W:6,from:'moss',born:0,by:b.id}],nextId:2,seen:{}};const r=pet(s,'ridley','리들리',m.x+.2,m.y+.1,{B:25});r.guideTo={kind:'puddle',id:'pd:1',x:m.x+.12,y:m.y+.09,until:999,by:b.id};return b;}],
-  ['코로나 · 낙엽 모으기',s=>{const c=pet(s,'jureong','코로나',.42,.62);c.skill={k:'carry',phase:'back',start:0,n:1,rot:.4,to:{sector:0,x:.5,y:.62}};c.motion={kind:'walk',distance:.01,tick:-1};return c;}],
+  ['코로나 · 낙엽 긁어모으기',s=>{const L=require(web+'/litter'),st=s.objects.litter;st.leaves=[];st.piles=[];const c=pet(s,'jureong','코로나',.42,.62);const sec=L.sectorOf({x:.42,y:.6});
+   for(const [dx,dy,r] of [[-.12,.015,.4],[.12,.006,2.1],[.085,.035,1.2]])st.leaves.push({id:st.nextLeaf++,sector:sec,x:.42+dx,y:.6+dy,rot:r,moved:0});c.motion.kind='rake';c.skill={k:'rake',phase:'rake',start:0,at:0,sector:sec,ids:st.leaves.map(l=>l.id),cx:.42,cy:.63,x:c.x,y:c.y};return c;}],
   ['리들리 · 잎 털어 주기',s=>{const e=pet(s,'neolbi','엘레판',.5,.6);const st=s.objects.creatures;st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:40,low:0});
    const r=pet(s,'ridley','리들리',.43,.604);r.motion.kind='brush';r.skill={k:'brush',target:e.id,phase:'do',start:0,at:0};e.skillHold=r.id;return r;}],
   ['엘리시 · 촉촉한 잎 곁',s=>{const m=s.patches.find(z=>z.id==='moss');const e=pet(s,'bonbon','엘리시',m.x+.04,m.y+.03);pet(s,'bosong','베이치',e.x+.08,e.y+.02);return e;}]];

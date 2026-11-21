@@ -351,9 +351,6 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(!s.settings.reducedMotion){const u=(t*.4)%1;c.globalAlpha=.4*(1-u);c.beginPath();c.ellipse(x,y,rx*(.3+.5*u),ry*(.3+.5*u),0,0,7);c.stroke();}c.restore();}
   for(const e of K.misters(s)){const x=e.x*w,y=e.y*h,r=K.SK.mist.range*w;c.save();const b=s.settings.reducedMotion?0:Math.sin(t*.8)*.05;
    const g=c.createRadialGradient(x,y-r*.1,r*.1,x,y-r*.1,r);g.addColorStop(0,'rgba(214,232,226,'+(.30+b)+')');g.addColorStop(1,'rgba(214,232,226,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y-r*.1,r,r*.55,0,0,7);c.fill();c.restore();}}
- // 코로나 carrying a loose leaf on its long leaves (SK-04)
- carriedLeaf(p,pos){const c=this.ctx,t=p.skill;if(!(t?.k==='carry'&&t.phase==='back'))return;const sz=48*Forest.Shelter.growth(p),x=pos.x*this.w,y=pos.y*this.h-sz*.62;
-  c.save();c.translate(x,y);c.rotate(t.rot||0);const L=sz*.16;c.fillStyle='#c99a4c';c.beginPath();c.moveTo(-L,0);c.quadraticCurveTo(-L*.2,-L*.62,L,0);c.quadraticCurveTo(-L*.2,L*.62,-L,0);c.fill();c.strokeStyle='#8d5a2b';c.lineWidth=L*.1;c.beginPath();c.moveTo(-L*.9,0);c.lineTo(L*.95,0);c.stroke();c.restore();}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
@@ -405,7 +402,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip();
    if(!carry&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.carriedLeaf(p,pos);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
    // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)

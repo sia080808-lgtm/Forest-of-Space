@@ -793,6 +793,7 @@
 ### SKILLS-1.1.0-20261121 — 친구 고유 스킬 (SRS v2.36)
 
 - 담당: Claude Code. 요청: 고유 스킬 점검 → "일단 이거 먼저 하자" → 제안 → 베이치는 원래 물 찾기(v2.22 보송) → "ㅇㅇ괜찮네 ㄱㄱ". 기준 main `213a327`(1.0.3 병합), 브랜치 `claude/festive-curie-mjk5mw`.
-- 변경: 새 `skills.js`(베이치 웅덩이·안내, 코로나 낙엽 나르기, 리들리 잎 털기, 엘리시 습도·천적 보조, 횟수·처음 기록·카드 문구·검증), `engine.js`(prepare/act 연결, 물 합계에 웅덩이, 검증, 환영 복제 키), `objects.js`(웅덩이 마시기 `puddleDrink`, 안내 받은 친구는 그 물만, `lakeDrink` forced), `creatures.js`(`brush`, 잎 습도, 천적 준비 2배 `assistStep`/`due` — 엘리시 없으면 기존과 같은 판정), `litter.js`(들고 가는 잎 바닥 낙엽에 셈), `scene.js`(웅덩이·물안개·낙엽), `rig.js`(`brush` 손), `forest-app.js`(카드 문구·고유 스킬 칸·도감), `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`(스크립트). 버전 1.1.0 / versionCode 76. SRS `docs/Forest-Skills-SRS-v2.36.md`·`.pdf`.
+- 변경: 새 `skills.js`(베이치 웅덩이·안내, 코로나 낙엽 긁어모으기, 리들리 잎 털기, 엘리시 습도·천적 보조, 횟수·처음 기록·카드 문구·검증), `engine.js`(prepare/act 연결, 물 합계에 웅덩이, 검증, 환영 복제 키), `objects.js`(웅덩이 마시기 `puddleDrink`, 안내 받은 친구는 그 물만, `lakeDrink` forced), `creatures.js`(`brush`, 잎 습도, 천적 준비 2배 `assistStep`/`due` — 엘리시 없으면 기존과 같은 판정), `litter.js`(들고 가는 잎 바닥 낙엽에 셈), `scene.js`(웅덩이·물안개·낙엽), `rig.js`(`brush` 손), `forest-app.js`(카드 문구·고유 스킬 칸·도감), `index.html`·`stage2-review.html`·`tools/ui-smoke.mjs`(스크립트). 버전 1.1.0 / versionCode 76. SRS `docs/Forest-Skills-SRS-v2.36.md`·`.pdf`.
 - 검증: `skills.test.cjs` 9개 추가, 관련 19개 파일 142/142, UI PASS, 전체는 CI. 측정·화면은 릴리스 노트. 실기기 미검증.
+- 코로나 스킬 변경(사용자 "1번 ㄱㄱ"): 한 장씩 나르기 → 한 칸 낱잎을 그 자리에서 긁어모아 더미로(`litter.gather`, `rig.js` `rake`). 들고 다니는 잎 없음.
 - 다음: 상태별 동작(기운 → 수분 → 영양), 레벨에 따른 스킬 강화(미정).

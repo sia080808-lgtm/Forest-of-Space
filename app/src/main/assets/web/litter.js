@@ -48,6 +48,9 @@ function land(s,i,q){
  if(here.length>=PILE){const c={x:here.reduce((v,l)=>v+l.x,0)/here.length,y:here.reduce((v,l)=>v+l.y,0)/here.length};const at=blocked(s,c,.0)?{x:here.at(-1).x,y:here.at(-1).y}:c;st.leaves=st.leaves.filter(l=>l.sector!==i);newPile(s,i,here.length,at);return 'formed';}
  return 'loose';
 }
+// SRS v2.36 SK-04 코로나 긁어모으기: these loose leaves of one sector become one pile at `at` (or join the sector's pile)
+function gather(s,i,ids,at){const st=state(s),take=st.leaves.filter(l=>l.sector===i&&ids.includes(l.id));if(!take.length)return 0;st.leaves=st.leaves.filter(l=>!take.includes(l));
+ const p=piles(s).find(p=>p.sector===i);if(p)p.O+=take.length;else{const q=blocked(s,at,.0)?{x:take[0].x,y:take[0].y}:at;newPile(s,i,take.length,q);}return take.length;}
 function pick(s){
  const down=new Set(downwind(s)),open=[...Array(COLS*ROWS).keys()].filter(i=>sectorRaw(s,i)+1<=SECTOR+eps);if(!open.length)return null;
  const w=open.map(i=>down.has(i)?2:1),total=w.reduce((a,b)=>a+b,0);let r=rnd(s)*total;for(let k=0;k<open.length;k++){r-=w[k];if(r<0)return open[k];}return open.at(-1);
@@ -132,5 +135,5 @@ function validate(s){
  if(floor(s)>Math.max(LCAP,legacy)+1e-6)throw Error('바닥 낙엽이 상한을 넘었어요.');
  if(compost(s)>ucap(s)+(s.objects.overflow||0)+1e-6)throw Error('부식층 영양이 상한을 넘었어요.');
 }
-return {land,spot,antCarry,COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
+return {gather,land,spot,antCarry,COLS,ROWS,LCAP,SECTOR,PILE,init,step,relocate,validate,floor,compost,sectorOf,bounds,downwind,factor,rates,pile,piles,leaves,sectorRaw};
 });
