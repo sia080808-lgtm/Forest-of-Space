@@ -53,9 +53,8 @@ adminPanel();const beforeLab=JSON.parse(JSON.stringify(getState()));
 click('[data-action="inspect"]');choose('scenario','EC02');assert.equal(scene.inspector.scenario,'EC02');assert.deepEqual(JSON.parse(JSON.stringify(getState())),beforeLab);assert.equal(win.RidleyApp.back(),true);assert.equal(scene.inspector,null);assert.deepEqual(JSON.parse(JSON.stringify(getState())),beforeLab);
 // Detail controls must target the selected individual, and roster saves must preserve identity.
 const companion=JSON.parse(JSON.stringify(getState().individuals[0]));companion.id='ridley-qa-owned';companion.name='검수 친구';companion.active=false;companion.mounted=false;getState().individuals.push(companion);
-click('[data-tab="friends"]');click('[data-action="detail"][data-id="ridley-qa-owned"]');click('[data-toggle="mounted"]');
-assert.equal(getState().individuals[0].mounted,false);assert.equal(getState().individuals[1].mounted,true);
-click('[data-toggle="mounted"]');click('[data-action="roster"]');assert.equal(getState().individuals[1].active,true);assert.equal(saved.individuals[1].id,'ridley-qa-owned');
+click('[data-tab="friends"]');click('[data-action="detail"][data-id="ridley-qa-owned"]');/* 1.2.3: 목부작으로 쉬기 is gone from the detail page */assert.equal(win.document.querySelector('[data-toggle="mounted"]'),null);
+click('[data-action="roster"]');assert.equal(getState().individuals[1].active,true);assert.equal(saved.individuals[1].id,'ridley-qa-owned');
 // Facility editor performs the same guarded transaction as normal placement.
 getState().individuals.forEach((p,i)=>{p.x=.5+i*.2;p.y=.65;F.Shelter.release(p,getState().worldTick);});getState().shelters.unlocked=true;getState().patches.find(p=>p.id==='rock').y=.40;
 click('[data-tab="world"]');win.__qa.scene.onSelect('facility','shelter-0');assert.match(win.document.getElementById('select-card').textContent,/전체 3공간/);

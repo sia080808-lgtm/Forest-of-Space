@@ -121,3 +121,6 @@
 .region-entry h3{margin:14px 0 6px}.region-entry p{margin:6px 0}.region-art{height:150px;border-radius:14px;background-size:cover;background-color:var(--wash);display:grid;place-items:center}.region-entry.unmet{background:var(--wash)}.region-entry.unmet .region-art{background:none;border:1px dashed var(--line);height:90px}.region-art span{font-family:Gowun;font-size:32px;color:#999989}
 .adm input[type=range]{touch-action:pan-y}.adm-body{touch-action:pan-y}
 .adm-prog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 10px;border-radius:12px;background:var(--wash);font-size:13px}
+/* 1.2.3 친구 카드: 네 막대가 같은 열에 서도록 이름·막대·숫자 칸 너비를 고정 */
+.stats .stat{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:6px;align-items:center}.stats .stat b{text-align:right;font-size:10.5px;font-variant-numeric:tabular-nums;min-width:44px;letter-spacing:-.2px}.stats .stat progress,.stats .stat .track{width:100%;min-width:0}
+.stat.grow progress{accent-color:#b59a5a}.stat.grow progress::-webkit-progress-value{background:#c2a865}
