@@ -51,7 +51,7 @@ function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1
 function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
 // SRS v2.36 리들리 잎 털어 주기: both hands reach out in front and brush up and down in turn
-function brushHands(t,reduced){const a=reduced?0:Math.sin(t*9),b=reduced?0:Math.sin(t*9+Math.PI);return [[930+a*18,760+a*40,-.9+a*.2],[1010+b*18,820+b*40,-.7+b*.2]];}
+function brushHands(t,reduced){const a=reduced?0:Math.sin(t*9),b=reduced?0:Math.sin(t*9+Math.PI);return [[1060+a*28,660+a*55,-1.1+a*.25],[1140+b*28,730+b*55,-.9+b*.25]];}
 // shiver (0.6.34: the common motion of a friend with spider mites on its leaves; 0.6.33 used it for grooming): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
  const k=u-1.35;return {rot:.035*Math.sin(Math.min(1,k/2.4)*Math.PI*2)*(1-Math.min(1,k/2.65)),dx:0,sq:1};}
