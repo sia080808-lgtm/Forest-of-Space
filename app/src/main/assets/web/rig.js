@@ -32,7 +32,7 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
    if(e==='surprised'){c.beginPath();c.ellipse(678,849,13,17,0,0,Math.PI*2);c.fill();}else if(e!=='sleepy'){c.beginPath();c.moveTo(664,849);c.lineTo(690,849);c.stroke();}c.restore();}
   c.save();c.translate(640,690);c.rotate(restBlend*.04+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
  }
- const hands=kind==='splash'?[[420,935+Math.sin(phase*7)*16,.2],[930,935-Math.sin(phase*7)*16,-.2]]:kind==='drink'?[[500,870,.2],[930,935,-.2]]:kind==='litter'?litterHands(phase,reduced):null;
+ const hands=kind==='splash'?[[420,935+Math.sin(phase*7)*16,.2],[930,935-Math.sin(phase*7)*16,-.2]]:kind==='drink'?[[500,870,.2],[930,935,-.2]]:kind==='litter'?litterHands(phase,reduced):kind==='brush'?brushHands(phase,reduced):null;
  for(const [x,y,angle]of (hands||[[391,906+restBlend*10,['walk','slow','hurry','run','duck','step','avoid'].includes(kind)?p.swing:.2],[968-210*p.reach,898-232*p.reach+p.stroke,-.2-.5*p.reach]])){c.save();c.translate(x,y);c.rotate(angle);c.drawImage(assets[definition.palm],-43,-52,86,104);c.restore();}
  c.restore();
 }
@@ -50,6 +50,8 @@ function playBody(t){const u=mod(t,PLAY);if(u<.8){const e=ease(u/.8);return {dy:
 function litterUp(t){const u=mod(t,PLAY);return u<.8?0:u<1.1?ease((u-.8)/.3):u<1.6?1:1-ease((u-1.6)/.5);}
 function litterHands(t,reduced){if(reduced)return [[420,960,.2],[860,960,-.2]];const up=litterUp(t);
  return [[420-70*up,960-200*up,.2-.6*up],[860+70*up,960-200*up,-.2+.6*up]];}
+// SRS v2.36 리들리 잎 털어 주기: both hands reach out in front and brush up and down in turn
+function brushHands(t,reduced){const a=reduced?0:Math.sin(t*9),b=reduced?0:Math.sin(t*9+Math.PI);return [[930+a*18,760+a*40,-.9+a*.2],[1010+b*18,820+b*40,-.7+b*.2]];}
 // shiver (0.6.34: the common motion of a friend with spider mites on its leaves; 0.6.33 used it for grooming): crouch, a quick shiver that fades, then a satisfied tilt
 function shake(t){const u=mod(t,GROOM);if(u<.35)return {rot:0,dx:0,sq:1-.06*ease(u/.35)};if(u<1.35){const k=(u-.35)/1;return {rot:.085*Math.sin(k*2*Math.PI*8)*(1-k),dx:10*Math.sin(k*2*Math.PI*8)*(1-k),sq:.97+.03*k};}
  const k=u-1.35;return {rot:.035*Math.sin(Math.min(1,k/2.4)*Math.PI*2)*(1-Math.min(1,k/2.65)),dx:0,sq:1};}

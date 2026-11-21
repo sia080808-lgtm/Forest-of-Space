@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -198,15 +198,23 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
   if(m.arrived)t.arrivedAt=s.worldTick;else if(t.stalled>=3||s.worldTick>t.deadline){delete p.stroll;p.nextObjectChoice=s.worldTick;}return m;}
  if(t.lake==='drink'){const W=dep('world');if(!W.lakeOpen(s)||W.frozen(s)){delete p.stroll;p.nextObjectChoice=s.worldTick;return null;}const n=Math.max(0,Math.min(LAKE_DRINK.rate,LAKE_DRINK.target-p.B));p.B+=n;s.ledger.lake=(s.ledger.lake||0)+n;
   if(p.B>=LAKE_DRINK.target-eps||s.worldTick-t.arrivedAt>=LAKE_DRINK.most){delete p.stroll;p.objectNeeds??=needs(p);p.objectNeeds.water=false;p.justDrank=p.B>=LAKE_DRINK.target-eps;p.drinkCycle=false;p.nextObjectChoice=s.worldTick;}return {kind:n>0?'drink':'idle',water:n,distance:0};}
+ if(t.puddle){const d=dep('skills').puddles(s).find(x=>x.id===t.puddle),n=d?Math.max(0,Math.min(LAKE_DRINK.rate,LAKE_DRINK.target-p.B,d.W)):0;if(d){d.W-=n;p.B+=n;}
+  if(!d||d.W<=eps||p.B>=LAKE_DRINK.target-eps||s.worldTick-t.arrivedAt>=LAKE_DRINK.most){delete p.stroll;if(p.guideTo?.id===t.puddle)delete p.guideTo;p.objectNeeds??=needs(p);p.objectNeeds.water=p.B<LAKE_DRINK.target-eps;p.justDrank=p.B>=LAKE_DRINK.target-eps;p.drinkCycle=false;p.nextObjectChoice=s.worldTick;}return {kind:n>0?'drink':'idle',water:n,distance:0};}
  if(s.worldTick-t.arrivedAt>=t.linger){delete p.stroll;p.nextObjectChoice=s.worldTick;}return null;}
 // 0.9.4 물가에서 물 마시기 (SRS v2.33 LK-07): once the shore is open (not frozen), a thirsty friend walks to the water's edge
 // to drink when it is nearer than the spring or the spring is nearly empty. The lake never runs dry; what a friend drinks
 // is recorded as lake inflow (ledger.lake) so the water balance still closes. Uses the walk record (p.stroll.lake).
 const LAKE_DRINK=Object.freeze({rate:10/60,target:50,deadline:120,linger:60,most:420});   // same pace as the spring (10 a minute), at most 7 minutes at the water
 // 1.0: a lake walk is only kept while it can still happen; a friend inside the shelter (whose move runs first) does not start one
-function lakeDrink(s,p,current){if(p.stroll?.lake&&(p.stroll.arrivedAt!=null||s.worldTick<=p.stroll.deadline))return true;if(p.stroll?.lake)delete p.stroll;if(p.shelter?.phase&&p.shelter.phase!=='outside')return false;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
- const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!(sp.water<2||dl<ds*.8))return false;
+function lakeDrink(s,p,current,forced=false){if(p.stroll?.lake&&(p.stroll.arrivedAt!=null||s.worldTick<=p.stroll.deadline))return true;if(p.stroll?.lake)delete p.stroll;if(p.shelter?.phase&&p.shelter.phase!=='outside')return false;const W=dep('world'),Space=dep('spatial'),q=W.shorePoint?.(s,p);if(!q||!Space.walkable(s,q,p.id))return false;
+ const sp=s.spring,dl=Math.hypot(q.x-p.x,q.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!forced&&!(sp.water<2||dl<ds*.8))return false;
  if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,lake:'drink'};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
+// SRS v2.36 SK-03: drink from a puddle 베이치 dug up (same pace as the spring, up to 50) when it was shown to this friend,
+// or is nearer than the spring (0.8 of its distance), or the spring is nearly empty. Uses the walk record (p.stroll.puddle).
+function puddleDrink(s,p,current,forced){if(p.stroll?.puddle&&(p.stroll.arrivedAt!=null||s.worldTick<=p.stroll.deadline))return true;if(p.stroll?.puddle)delete p.stroll;if(p.shelter?.phase&&p.shelter.phase!=='outside')return false;
+ const Space=dep('spatial'),list=dep('skills').puddles(s).filter(d=>d.W>=.5&&(!forced||d.id===forced)).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id)),d=list[0];if(!d)return false;
+ const sp=s.spring,dd=Math.hypot(d.x-p.x,d.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!forced&&!(sp.water<2||dd<ds*.8))return false;if(!Space.route(s,p,d))return false;
+ if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:d.x,y:d.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,puddle:d.id};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
 function ambleSpot(s,p,rng){const Space=dep('spatial');for(let k=0;k<6;k++){const a=rng(s,'behavior')*6.283,r=.06+rng(s,'behavior')*.08,q={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r*.7};if(Space.walkable(s,q,p.id))return q;}return null;}
 // 1.0.2: a started task is held at most 5 minutes; after that the friend chooses again (a feed that cannot reach its
 // target, e.g. while mealybugs drain 영양 faster than it eats, must not block grooming forever)
@@ -236,6 +244,10 @@ function choose(s,p,rng){
  // when nothing else has nutrient). Same RNG draws as before, so choices stay deterministic.
  const P=s.objects?.creatures?dep('creatures').pressure(s,p):{leaf:false,mite:false,gnatSites:[]},clean=ids=>ids.filter(id=>!P.gnatSites.includes(id)),lastInfested=ids=>[...ids.filter(id=>!P.gnatSites.includes(id)),...ids.filter(id=>P.gnatSites.includes(id))];
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
+ // SRS v2.36 SK-03: a friend 베이치 showed water to goes only there (no wasted walk to an empty spring)
+ else if(n.water&&p.guideTo&&p.guideTo.until>s.worldTick&&(p.guideTo.kind==='puddle'?puddleDrink(s,p,current,p.guideTo.id):p.guideTo.kind==='lake'?lakeDrink(s,p,current,true):false))return;
+ else if(n.water&&p.guideTo&&p.guideTo.until>s.worldTick&&['crevice','spring'].includes(p.guideTo.kind)){if(p.guideTo.kind==='crevice'&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');else if(s.spring.water>=1){add('spring','drink','water');add('spring','edgeDrink','water');}}
+ else if(n.water&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&puddleDrink(s,p,current,null))return;
  else if(n.water&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
  else if(n.water&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||s.spring.water<s.spring.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&patch(s,'moss').S>=1&&p.Q<12)add('moss','moss','water');if(p.B>=20&&patch(s,'crevice').W>0)add('crevice','rootDrink','water');}
  // SRS v2.34 생존 우선: once 수분 or 영양 is in its bad band it is fixed before resting (a low 기운 caused by hunger must not
