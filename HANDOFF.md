@@ -842,3 +842,4 @@
 - 걷는 속도(사용자 "속도 넣어"): `spatial.js` `gait` 기운 80% 이상 걸음 1.15배, 15% 아래 0.45배(40% 아래 0.6배는 기존).
 - 판단: 몸 전체를 누르는 첫 시안과 띠 왜곡 시안은 버림(찌그러짐·줄무늬).
 - 검증: `rig.test` 7/7(1.1.5 검사 추가), `render`·`superbum`·`ellisii-legacy` 25/25, `package` 3/3, 전체는 CI. 화면 `docs/qa-1.1.5/runtime/vigor.png`. 실기기 미검증.
+- 병합·릴리스: PR #66(https://github.com/sia080808-lgtm/Forest-of-Space/pull/66) main 병합 `530a3c2730a16b566359b57062443c9ea255641c`(사용자 "ㄱㄱ"; head `582223f` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.5 `Forest-of-Space-1.1.5.apk` 74,344,747 bytes, SHA-256 `f049617d0549f55679235f8a25ea0abb9b9721fcbdbce6cbead8523a1e9f5871` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode81/1.1.5. APK는 사용자에게 파일로 전달.
