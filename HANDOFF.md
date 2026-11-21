@@ -769,3 +769,4 @@
 - 추가: 햇살 바위 충전 맑음 5/분·흐림 2/분(사용자 결정), 산책 범위 지금 자리 0.9 안(CI 시뮬레이션이 10분 제한에 걸린 원인: 호수 동쪽 끝까지 간 친구의 먼 길찾기). 로컬 339/339, PR #58 CI 통과.
 - SRS: `docs/Forest-Climate-Water-SRS-v2.35.md`·`.pdf`(4쪽, CW-01~12), v2.34 머리에 대체 안내.
 - 남은 일: 바위 볕이 남아도 쉼터를 먼저 골라 바위 사용 0~8%, 둘째 해 영양 적정 86~95%, 마른 숲 겨울 화면 확인.
+- 병합·릴리스: PR #58(https://github.com/sia080808-lgtm/Forest-of-Space/pull/58) main 병합 `88ede76735d9975d145219286a0e5dc83f635494`(사용자 "ㄱㄱ"; head `888a67c` 기준 simulation·CodeQL 성공. 첫 CI가 10분 제한에 걸려 산책 범위 성능 문제를 고침). 프리릴리스 v1.0.1 `Forest-of-Space-1.0.1.apk` 74,324,201 bytes, SHA-256 `16f6b9ca64313ef821a53d950f33efb6270d88e5cf0e4aec0043a4910299079a` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode73/1.0.1. APK는 사용자에게 파일로 전달.
