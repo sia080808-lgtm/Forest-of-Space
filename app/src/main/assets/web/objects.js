@@ -217,6 +217,10 @@ function choose(s,p,rng){
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
  if(valid&&!emergencyChange&&s.worldTick<(p.nextObjectChoice||0))return;
+ // 1.0.1: finish what was started. Without this a friend whose 수분 and 영양 sit right on the band edge flipped between
+ // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
+ // gives way only when 수분 or 영양 falls 3 below the band (danger and a sharper urgency still interrupt).
+ if(valid&&!emergencyChange&&!danger){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
  if(valid&&!emergencyChange&&current.reason==='safety'&&danger){p.nextObjectChoice=s.worldTick+5;return;}
  if(!current&&!danger&&!Object.values(n).some(Boolean)&&p.action==='groom'&&p.actionSeconds>0)return;
  if(!current&&s.worldTick<(p.nextObjectChoice||0)&&!danger&&grade>1)return;
