@@ -871,3 +871,11 @@
 - 원인: `toBase64`가 데이터 URL을 첫 쉼표로 잘랐는데 MIME `video/mp4;codecs=avc1,mp4a.40.2`에 쉼표가 있어 base64가 아닌 문자열을 `videoChunk`로 넘김 → Java 디코드 실패 → `videoEnd(false)`. 1.1.7 검증은 브라우저 내려받기 경로만 봐서 놓쳤다(내 검증 누락).
 - 수정: `;base64,` 뒤를 씀. 크롬에서 RidleyNative 흉내(read/save/video*)로 맵 끌기·전체 보기 중 녹화 → 조각 2개·1,093,334 bytes, end true(고치기 전 0개·false). 버전 1.1.8 / versionCode 84.
 - 미검증: Android 실기기.
+- 병합·릴리스: PR #69(https://github.com/sia080808-lgtm/Forest-of-Space/pull/69) main 병합 `7513d12f0ec5f7a7bba141334e1465c2cc0046e6`(사용자 "ㄱㄱ"; head `f84264a` 기준 simulation·CodeQL 성공). 프리릴리스 v1.1.8 `Forest-of-Space-1.1.8.apk` 74,348,843 bytes, SHA-256 `e73f9bb73c330beadc2eacef235373344aaffefdc013be6e2ce9f4e3ee0efde9` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode84/1.1.8. APK는 사용자에게 파일로 전달.
+
+### VIDEO-LENGTH-1.1.9-20261121 — 영상이 몇 초로만 보이던 문제
+
+- 담당: Claude Code. 요청: 사용자 1.1.8 실기기 "꽤 오래 녹음했는데 정작 3초 녹화되는데". 기준 main `7513d12`(1.1.8 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인 판단: 크롬 MediaRecorder(1초 조각)가 만든 fragmented MP4를 약 20초 찍어 분석 — 내용은 끝까지(484장), 머리말 `mvhd` 길이 0, `mdhd` 영상 0.21초·소리 0.13초, `mehd` 없음. 갤러리가 머리말 길이를 써서 짧게 보이는 것으로 판단(실기기 파일 미확인).
+- 수정: `MainActivity.java` 조각을 `cacheDir/recording.part`에 모으고 `videoEnd`에서 MediaExtractor→MediaMuxer(MPEG_4/WEBM, MediaStore fd "rwt")로 다시 묶음, 실패 시 원본 복사, 임시 파일 삭제. `forest-app.js` 저장 중 안내. 버전 1.1.9 / versionCode 85.
+- 검증: javac 컴파일, `android-shell-dex`·`package` 통과, 크롬 흐름 확인. MediaMuxer 변환 자체는 Android에서만 실행되어 미검증.

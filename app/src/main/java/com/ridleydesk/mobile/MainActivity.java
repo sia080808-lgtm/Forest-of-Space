@@ -4,7 +4,12 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.MediaCodec;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMuxer;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -24,9 +29,11 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /** Offline Android shell. The bridge is reachable only by bundled assets. */
@@ -181,24 +188,21 @@ public final class MainActivity extends Activity {
                 return false;
             }
         }
-        /* 1.1.7 video: the page streams a recording of the world canvas here in pieces (begin, chunk..., end) straight into
-           the gallery (Movies/여백의 숲), so a one-minute video never has to sit in memory as one string. */
-        private OutputStream videoOut; private Uri videoUri; private long videoBytes;
+        /* 1.1.7 video: the page streams a recording of the world canvas here in pieces (begin, chunk..., end), so a one-minute
+           video never has to sit in memory as one string. 1.1.9: the pieces go to a temporary file first. The browser's recorder
+           writes a fragmented file whose header says the video is 0 s long, so galleries showed only a few seconds; at the end it
+           is copied sample by sample into a normal video file (MediaMuxer) with the real length, and saved to Movies/여백의 숲.
+           If that copy fails on some phone, the recording is saved as it came. */
+        private OutputStream videoOut; private File videoTmp; private String videoName, videoMime; private long videoBytes;
         @JavascriptInterface public synchronized boolean videoBegin(String name, String mime) {
             videoEnd(false);
             if (!"video/mp4".equals(mime) && !"video/webm".equals(mime)) return false;
             String ext = "video/mp4".equals(mime) ? "mp4" : "webm";
-            String file = (name == null || !name.matches("[\\p{L}\\p{N}._-]{1,80}\\." + ext)) ? "Forest-of-Space." + ext : name;
+            videoName = (name == null || !name.matches("[\\p{L}\\p{N}._-]{1,80}\\." + ext)) ? "Forest-of-Space." + ext : name;
+            videoMime = mime;
             try {
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Video.Media.DISPLAY_NAME, file);
-                v.put(MediaStore.Video.Media.MIME_TYPE, mime);
-                v.put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/여백의 숲");
-                v.put(MediaStore.Video.Media.IS_PENDING, 1);
-                videoUri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v);
-                if (videoUri == null) return false;
-                videoOut = getContentResolver().openOutputStream(videoUri, "w");
-                if (videoOut == null) throw new IllegalStateException();
+                videoTmp = new File(getCacheDir(), "recording.part");
+                videoOut = new FileOutputStream(videoTmp, false);
                 videoBytes = 0;
                 return true;
             } catch (Exception e) { videoEnd(false); return false; }
@@ -214,15 +218,74 @@ public final class MainActivity extends Activity {
             } catch (Exception e) { videoEnd(false); return false; }
         }
         @JavascriptInterface public synchronized boolean videoEnd(boolean keep) {
-            Uri uri = videoUri; OutputStream out = videoOut; videoUri = null; videoOut = null;
-            boolean ok = keep && uri != null && out != null && videoBytes > 0;
+            OutputStream out = videoOut; File tmp = videoTmp; videoOut = null; videoTmp = null;
+            boolean ok = keep && out != null && tmp != null && videoBytes > 0;
             if (out != null) { try { out.close(); } catch (Exception e) { ok = false; } }
-            if (uri == null) return false;
+            Uri uri = null;
             try {
-                if (ok) { ContentValues v = new ContentValues(); v.put(MediaStore.Video.Media.IS_PENDING, 0); getContentResolver().update(uri, v, null, null); }
-                else getContentResolver().delete(uri, null, null);
-            } catch (Exception e) { ok = false; }
+                if (ok) {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Video.Media.DISPLAY_NAME, videoName);
+                    v.put(MediaStore.Video.Media.MIME_TYPE, videoMime);
+                    v.put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/여백의 숲");
+                    v.put(MediaStore.Video.Media.IS_PENDING, 1);
+                    uri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v);
+                    if (uri == null) throw new IllegalStateException();
+                    try { remux(tmp, uri, "video/webm".equals(videoMime)); }
+                    catch (Exception e) { copyFile(tmp, uri); }
+                    v.clear();
+                    v.put(MediaStore.Video.Media.IS_PENDING, 0);
+                    getContentResolver().update(uri, v, null, null);
+                }
+            } catch (Exception e) {
+                ok = false;
+                if (uri != null) { try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { } }
+            }
+            if (tmp != null) tmp.delete();
             return ok;
+        }
+        private void copyFile(File src, Uri dst) throws Exception {
+            try (InputStream in = new FileInputStream(src); OutputStream o = getContentResolver().openOutputStream(dst, "wt")) {
+                if (o == null) throw new IllegalStateException();
+                byte[] buf = new byte[1 << 16]; int n;
+                while ((n = in.read(buf)) > 0) o.write(buf, 0, n);
+            }
+        }
+        private void remux(File src, Uri dst, boolean webm) throws Exception {
+            MediaExtractor ex = new MediaExtractor(); MediaMuxer mx = null; ParcelFileDescriptor pfd = null;
+            try {
+                ex.setDataSource(src.getPath());
+                pfd = getContentResolver().openFileDescriptor(dst, "rwt");
+                if (pfd == null) throw new IllegalStateException();
+                mx = new MediaMuxer(pfd.getFileDescriptor(), webm ? MediaMuxer.OutputFormat.MUXER_OUTPUT_WEBM : MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+                int n = ex.getTrackCount(), size = 1 << 21; int[] map = new int[n];
+                for (int i = 0; i < n; i++) {
+                    MediaFormat f = ex.getTrackFormat(i); String m = f.getString(MediaFormat.KEY_MIME);
+                    if (m == null || !(m.startsWith("video/") || m.startsWith("audio/"))) { map[i] = -1; continue; }
+                    ex.selectTrack(i); map[i] = mx.addTrack(f);
+                    if (f.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) size = Math.max(size, f.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE));
+                }
+                mx.start();
+                ByteBuffer buf = ByteBuffer.allocate(size); MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+                long base = -1; int count = 0;
+                while (true) {
+                    int len = ex.readSampleData(buf, 0);
+                    if (len < 0) break;
+                    int t = ex.getSampleTrackIndex(); long ts = ex.getSampleTime();
+                    if (base < 0) base = ts;
+                    if (t >= 0 && t < n && map[t] >= 0) {
+                        info.set(0, len, Math.max(0, ts - base), (ex.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0 ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0);
+                        mx.writeSampleData(map[t], buf, info); count++;
+                    }
+                    ex.advance();
+                }
+                if (count == 0) throw new IllegalStateException();
+                mx.stop();
+            } finally {
+                if (mx != null) { try { mx.release(); } catch (Exception ignored) { } }
+                ex.release();
+                if (pfd != null) { try { pfd.close(); } catch (Exception ignored) { } }
+            }
         }
         @JavascriptInterface public void theme(final boolean dark) {
             runOnUiThread(new Runnable() { @Override public void run() {
