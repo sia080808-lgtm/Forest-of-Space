@@ -5,7 +5,7 @@ const game=()=>{const s=F.create(0,2);s.started=true;s.environment.tutorialDone=
 const friend=(s,species,x,y,more={})=>{const q=JSON.parse(JSON.stringify(s.individuals[0]));Object.assign(q,{id:'f-'+species+'-'+s.individuals.length,species,name:species,x,y,B:60,energy:80,nutrition:60,mood:80,damage:0,burden:0,xp:40,active:true,mounted:false,wetRecovery:false,leafRecovery:false,objectTask:null},more);delete q.objectTask;delete q.stroll;s.individuals.push(q);return q;};
 const solo=s=>{s.individuals[0].active=false;};
 const bal=s=>F.totalWater(s)-s.ledger.rain+s.ledger.evaporation+s.ledger.outflow+s.ledger.physiology-(s.ledger.lake||0)-(s.ledger.admin||0);
-const run=(s,n,ids)=>{for(let i=0;i<n;i++){s.worldTick++;K.prepare(s,{});for(const p of s.individuals.filter(p=>p.active))K.act(s,p,{});}};
+const run=(s,n)=>{for(let i=0;i<n;i++){s.worldTick++;K.prepare(s,{});for(const p of s.individuals.filter(p=>p.active))K.act(s,p,{});}};
 
 test('SK-AC01·02 베이치 digs up damp soil water into a puddle (water conserved) that goes back to the soil after 600 s',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');
  for(const z of s.patches)z.S=0;moss.S=5;s.spring.water=s.spring.capacity*.2;const b=friend(s,'bosong',moss.x+.08,moss.y+.06);const w0=bal(s),S0=moss.S;
@@ -14,7 +14,7 @@ test('SK-AC01·02 베이치 digs up damp soil water into a puddle (water conserv
  const S1=moss.S;run(s,K.SK.dig.life+5);a.equal(K.puddles(s).length,0,'gone after its life');a.ok(moss.S>S1,'the rest went back into the soil');a.ok(Math.abs(bal(s)-w0)<1e-9);});
 
 test('SK-AC03 a thirsty friend is shown the puddle and drinks only there; anyone drinks from a nearer puddle',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');moss.S=5;s.spring.water=s.spring.capacity*.6;
- const b=friend(s,'bosong',moss.x+.08,moss.y+.06),r=friend(s,'ridley',moss.x+.2,moss.y+.08,{B:20});const w0=bal(s);
+ friend(s,'bosong',moss.x+.08,moss.y+.06);const r=friend(s,'ridley',moss.x+.2,moss.y+.08,{B:20}),w0=bal(s);
  run(s,40);const d=K.puddles(s)[0];a.ok(d);a.equal(r.guideTo?.kind,'puddle');a.equal(r.guideTo.id,d.id);
  for(let i=0;i<200&&!(r.B>40);i++)F.step(s);a.ok(r.B>20,'drank');a.ok(Math.abs(bal(s)-w0)<1e-6,'water balance '+(bal(s)-w0));});
 
