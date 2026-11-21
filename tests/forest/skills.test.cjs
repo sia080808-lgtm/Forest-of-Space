@@ -49,6 +49,15 @@ test('SK-AC06 리들리 brushes 15 off a friend whose leaves carry pests, holdin
 test('SK-AC07 beside moss a well 엘리시 moistens the leaves near it and calls natural enemies sooner',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');const e=friend(s,'bonbon',moss.x+.05,moss.y+.03,{xp:0}),q=friend(s,'ridley',e.x+.08,e.y),far=friend(s,'ridley',e.x+.5,e.y);
  a.equal(K.moistLeaf(s,q),15);a.equal(K.moistLeaf(s,far),0);a.ok(K.assist(s,q));a.ok(!K.assist(s,far));e.energy=20;a.equal(K.moistLeaf(s,q),0,'not while tired');});
 
+test('SK-1.2.7 엘리시 also keeps leaves moist beside the spring, a puddle or the lakeshore, and anywhere on rain or fog days',()=>{const s=game();solo(s);const W=require(web+'/world'),Sh=require(web+'/shelter'),moss=s.patches.find(z=>z.id==='moss');
+ let spot=null;for(let x=.1;x<=.9&&!spot;x+=.05)for(let y=.1;y<=.9&&!spot;y+=.05){const q={x,y};if(Math.hypot(x-moss.x,y-moss.y)>.3&&Math.hypot(x-s.spring.x,y-s.spring.y)>.3)spot=q;}
+ const e=friend(s,'bonbon',spot.x,spot.y,{xp:0}),on=()=>K.misters(s).some(m=>m.id===e.id);a.ok(!Sh.inside(s,e));
+ a.ok(!on(),'dry, sunny and away from water: off');
+ e.x=s.spring.x+.1;e.y=s.spring.y+.05;s.spring.water=5;a.ok(on(),'beside the spring');s.spring.water=0;a.ok(!on(),'not by an empty spring');
+ e.x=spot.x;e.y=spot.y;s.skills={puddles:[],nextId:2,seen:{}};s.skills.puddles=[{id:'pd:1',x:spot.x+.08,y:spot.y,W:4,from:'moss',born:s.worldTick,by:'x'}];a.ok(on(),'beside a puddle');s.skills.puddles=[];
+ s.weather.kind='rain';s.weather.intensity=50;s.weather.transition=0;a.ok(on(),'rain day');s.weather.kind='fog';a.ok(on(),'fog day');s.weather.kind='sun';s.weather.intensity=0;a.ok(!on());
+ W.openLake(s);e.x=W.LAKE.cx-W.LAKE.ru*1.15;e.y=W.LAKE.cy;a.ok(!W.inWater(s,e)&&W.waterD(e.x,e.y)<1.3);a.ok(on(),'on the lakeshore');});
+
 test('SK-AC08·09 a thirsty, tired or endangered friend does not start (and stops); a cooling-down skill waits',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');moss.S=5;s.spring.water=s.spring.capacity*.2;
  const b=friend(s,'bosong',moss.x+.08,moss.y+.06,{B:10});run(s,5);a.equal(K.puddles(s).length,0,'thirsty 베이치 does not dig');b.B=60;b.energy=20;run(s,5);a.equal(K.puddles(s).length,0,'tired');
  b.energy=80;s.weather.wind=70;run(s,5);a.equal(K.puddles(s).length,0,'strong wind');s.weather.wind=10;b.skillRest={dig:s.worldTick+100};run(s,30);a.equal(K.puddles(s).length,0,'cooling down');

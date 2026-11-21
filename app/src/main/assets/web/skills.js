@@ -42,7 +42,7 @@ const INFO=Object.freeze({
  neolbi:{name:'잎 우산',line:'비가 오면 넓은 잎을 펴서 곁의 친구를 비에서 지켜 줘요.'},
  jureong:{name:'낙엽 모으기',line:'흩어진 낱잎을 늘어진 잎으로 한데 긁어모아 낙엽 더미로 만들어요. 낱잎은 썩지 않지만 더미에서는 거름이 돼요.'},
  ridley:{name:'잎 털어 주기',line:'잎응애·솜깍지가 붙은 친구의 잎을 손으로 털어 줘요. 짐꾼개미도 리들리를 따라와요.'},
- bonbon:{name:'촉촉한 잎 곁',line:'이끼 곁에 있으면 둘레 친구들의 잎을 촉촉하게 해 잎응애를 막고, 천적을 빨리 불러요.'}
+ bonbon:{name:'촉촉한 잎 곁',line:'이끼·샘터·웅덩이·호숫가 곁이나 비·안개 오는 날이면 둘레 친구들의 잎을 촉촉하게 해 잎응애를 막고, 천적을 빨리 불러요.'}
 });
 const FIRST=Object.freeze({superbum:'슈퍼범이 처음으로 빗물을 나눠 주었어요.',bosong:'베이치가 처음으로 숨은 물을 찾았어요.',neolbi:'엘레판이 처음으로 잎 우산을 펴 주었어요.',jureong:'코로나가 처음으로 낙엽을 모았어요.',ridley:'리들리가 처음으로 친구의 잎을 털어 주었어요.',bonbon:'엘리시 곁의 잎이 촉촉해졌어요.'});
 const KINDS=['dig','guide','rake','brush'],eps=1e-9,DAY=1200;
@@ -97,9 +97,16 @@ const ga=n=>{const c=n.charCodeAt(n.length-1)-44032;return c>=0&&c<11172&&c%28?'
 function startBrush(s,p,held,busy){if(!ready(s,p,'brush'))return false;const Sh=dep('shelter');
  const r=s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.id!==held&&!busy.has(q.id)&&!q.skill&&!q.skillHold&&!Sh.inside?.(s,q)&&!q.shelter?.facilityId&&dist(q,p)<lv(p,'brush','reach')&&pest(s,q)>=SK.brush.min).sort((a,b)=>pest(s,b)-pest(s,a)||a.id.localeCompare(b.id))[0];
  if(!r||!dep('spatial').route(s,p,side(s,p,r)))return false;p.skill={k:'brush',target:r.id,phase:'go',start:s.worldTick};return true;}
-/* 1.2.6: the spot beside the friend must also be clear of the other friends — it could fall inside a third friend's body (a big 슈퍼범 next to it), the walk there never found a way and the brush gave up every time */function side(s,p,r){const Space=dep('spatial'),gap=.4*(Space.diameter(p)+Space.diameter(r))+.01,clear=q=>Space.walkable(s,q,p.id)&&!s.individuals.some(z=>z.id!==p.id&&z.id!==r.id&&z.active&&!z.mounted&&Math.hypot(z.x-q.x,z.y-q.y)<.4*(Space.diameter(p)+Space.diameter(z)));const L=p.x<=r.x?-1:1;for(const [dx,dy] of [[L,.004],[-L,.004],[L*.7,.04],[-L*.7,.04],[0,.06]]){const q={x:r.x+dx*gap,y:r.y+dy};if(clear(q))return q;}for(const dx of [L,-L]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
+/* 1.2.6: the spot beside the friend must also be clear of the other friends — it could fall inside a third friend's body (a big 슈퍼범 next to it), the walk there never found a way and the brush gave up every time *//* 1.2.7: 리들리 now taps with the curled tip of its front leaf (about 0.69 of its drawn width ahead of its centre), so it stands where that tip just meets the friend's leaves (rig.js tapFx) */function side(s,p,r){const Space=dep('spatial'),Sh=dep('shelter'),sz=q=>Space.diameter(q)/.0666667,gap=Math.max(.4*(Space.diameter(p)+Space.diameter(r))+.01,.046*Sh.growth(p)*sz(p)+.0347*Sh.growth(r)*sz(r)-.005),   /* never closer than the walk lets two friends stand */clear=q=>Space.walkable(s,q,p.id)&&!s.individuals.some(z=>z.id!==p.id&&z.id!==r.id&&z.active&&!z.mounted&&Math.hypot(z.x-q.x,z.y-q.y)<.4*(Space.diameter(p)+Space.diameter(z)));const L=p.x<=r.x?-1:1;for(const [dx,dy] of [[L,.004],[-L,.004],[L*.7,.04],[-L*.7,.04],[0,.06]]){const q={x:r.x+dx*gap,y:r.y+dy};if(clear(q))return q;}for(const dx of [L,-L]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
 // ---- 엘리시 촉촉한 잎 곁 (always on while it holds) ----
-function misters(s){return s.individuals.filter(p=>p.species===SK.mist.species&&p.active&&!p.mounted&&p.energy>=40&&p.B>=band(p).warnLo&&!dep('shelter').inside?.(s,p)&&s.patches.some(z=>z.id==='moss'&&dist(z,p)<SK.mist.moss));}
+// 1.2.7 (user: "엘리시는 이끼에서만 스킬쓰나" → "1,2로 가고"): besides moss, 엘리시 keeps leaves moist beside other water —
+// the spring (with water), a puddle, the open lakeshore — and anywhere on a rain or fog day. Only cheap distance checks.
+function wetBy(s,p){const near=SK.mist.moss;if(s.patches.some(z=>z.id==='moss'&&dist(z,p)<near))return true;
+ if(s.spring&&s.spring.water>0&&dist(s.spring,p)<near)return true;if(puddles(s).some(d=>d.W>0&&dist(d,p)<near))return true;
+ const W=dep('world');if(W?.lakeOpen?.(s)&&!W.frozen(s)&&W.waterD(p.x,p.y)<SHORE)return true;
+ const E=dep('environment');return !!s.environment?.storm||!!E&&(E.precipitation(s,'rain')>=.15||E.precipitation(s,'fog')>=.3);}
+const SHORE=1.3;   // lake shape distance: the shore sits at about 1.07, so 1.3 is about 0.2 out on the land
+function misters(s){return s.individuals.filter(p=>p.species===SK.mist.species&&p.active&&!p.mounted&&p.energy>=40&&p.B>=band(p).warnLo&&!dep('shelter').inside?.(s,p)&&wetBy(s,p));}
 function moistLeaf(s,q){return misters(s).reduce((v,e)=>dist(e,q)<lv(e,'mist','range')?Math.max(v,lv(e,'mist','humid')):v,0);}
 function assist(s,q){return !!q&&misters(s).some(e=>dist(e,q)<lv(e,'mist','assist'));}
 // ---- puddles (SK-03) ----

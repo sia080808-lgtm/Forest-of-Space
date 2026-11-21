@@ -1,4 +1,5 @@
 'use strict';
+const MIST_PARTS=Object.freeze([[-1,0,.9],[1,.15,1],[0,-.25,.7],[-.6,.3,.6],[.6,.35,.6]]);   // 1.2.7 엘리시 물안개 숨결: [side, rise, size] of each cloud
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
  // 0.8.0 사계절: seasonal pictures of the fern frame, the fern clumps and the leaf-shade plant (tools/build-season-art.py,
@@ -377,8 +378,23 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    const g=c.createRadialGradient(x,y,0,x,y,rx);g.addColorStop(0,'rgba(150,186,190,.62)');g.addColorStop(.7,'rgba(160,192,192,.42)');g.addColorStop(1,'rgba(170,196,190,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill();
    c.strokeStyle='rgba(236,244,240,.55)';c.lineWidth=.6;c.beginPath();c.ellipse(x-rx*.15,y-ry*.2,rx*.45,ry*.3,0,Math.PI*1.1,Math.PI*1.8);c.stroke();
    if(!s.settings.reducedMotion){const u=(t*.4)%1;c.globalAlpha=.4*(1-u);c.beginPath();c.ellipse(x,y,rx*(.3+.5*u),ry*(.3+.5*u),0,0,7);c.stroke();}c.restore();}
-  for(const e of K.misters(s)){const x=e.x*w,y=e.y*h,r=K.SK.mist.range*w;c.save();const b=s.settings.reducedMotion?0:Math.sin(t*.8)*.05;
-   const g=c.createRadialGradient(x,y-r*.1,r*.1,x,y-r*.1,r);g.addColorStop(0,'rgba(214,232,226,'+(.30+b)+')');g.addColorStop(1,'rgba(214,232,226,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y-r*.1,r,r*.55,0,0,7);c.fill();c.restore();}}
+  /* 1.2.7 물안개 숨결 (user: "수묵화 느낌" → "주변에 미스트 치는 것 처럼" → "예뻤으면 좋겠는데 과하지 않고" → "너무 렉걸리지 않는 로직으로"):
+     every 5 s a soft watercolour mist blooms from the fronds, drifts out to both sides over 4 s and fades; as it fades a
+     dew glint shows on each friend it keeps moist. The mist is one cloud picture baked once (no blur filter per frame):
+     five drawImage calls per 엘리시. Reduced motion: a faint still mist. */
+  }
+ // drawn over the friends (after the leaf-shade canopy), under weather and lighting
+ drawMist(c,w,h,t){const s=this.state(),K=typeof ForestSkills!=='undefined'?ForestSkills:null;if(!K)return;
+  const ms=K.misters(s);if(!ms.length)return;const cl=this.mistCloud();if(!cl)return;const still=!!s.settings.reducedMotion;
+  for(const e of ms){const x=e.x*w,y=e.y*h,size=this.petSize(e),reach=K.lv(e,'mist','range')*w,off=(e.id.length*1.37)%5,u=still?.45:((t+off)%5)/5*1.25;if(u>1)continue;
+   const ease=1-Math.pow(1-Math.min(1,u/.8),2.4),al=(still?.55:Math.sin(u*Math.PI))*.9,top=y-size*.8;
+   for(const [dx,dy,k] of MIST_PARTS){const r=(.45+.8*ease)*k*size*.55;c.globalAlpha=al*k;c.drawImage(cl,x+dx*reach*.62*ease-r*1.3,top+(dy-.25*ease+.4*u)*size*.6-r*.6,r*2.6,r*1.2);}
+   c.globalAlpha=1;if(!still&&u>.75){const g=Math.sin((u-.75)/.25*Math.PI);if(g>0)for(const q of s.individuals)if(q.id!==e.id&&q.active&&!q.mounted&&Math.hypot(q.x-e.x,q.y-e.y)<reach/w)this.dewGlint(c,q.x*w,q.y*h-this.petSize(q)*.7,g);}}}
+ mistCloud(){if(this.mistImg!==undefined)return this.mistImg;this.mistImg=null;if(typeof document==='undefined')return null;const cv=document.createElement('canvas');cv.width=160;cv.height=74;const q=cv.getContext('2d');if(!q)return null;
+  const rnd=i=>{const v=Math.sin(i*127.1+311.7)*43758.5453;return v-Math.floor(v);};for(let k=0;k<7;k++){const cx=80+(rnd(k)-.5)*60,cy=37+(rnd(k+9)-.5)*16,rr=24+14*rnd(k+5);
+   const g=q.createRadialGradient(cx,cy,0,cx,cy,rr);g.addColorStop(0,'rgba(255,255,255,.42)');g.addColorStop(.55,'rgba(226,236,238,.26)');g.addColorStop(.85,'rgba(170,192,200,.10)');g.addColorStop(1,'rgba(170,192,200,0)');q.fillStyle=g;q.beginPath();q.ellipse(cx,cy,rr*1.3,rr*.6,0,0,7);q.fill();}
+  return this.mistImg=cv;}
+ dewGlint(c,x,y,a){c.save();c.globalAlpha=a;c.fillStyle='rgba(255,255,255,.95)';c.beginPath();c.ellipse(x,y,1.3,1.6,0,0,7);c.fill();c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=.6;const L=3*a;c.beginPath();c.moveTo(x-L,y);c.lineTo(x+L,y);c.moveTo(x,y-L);c.lineTo(x,y+L);c.stroke();c.restore();}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
@@ -425,7 +441,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
      const g=this.creviceGeom();behind=seated||!!g&&pos.y*this.h<g.px(0,352).y;}}
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
-   this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}
+   this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
    // 0.6.35: a friend tucked into the crevice is not drawn where the small front stone stands or below it (its feet and
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip();
@@ -452,6 +468,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   // Foreground leaf pass: visitors render under the continuous canopy.
   for(const pass of this.hoodPasses){c.save();c.setTransform(...pass.matrix);c.filter=pass.filter;c.globalAlpha=pass.alpha;ForestNeolbi.front(c,pass.rain?this.assets.neolbiRainCanopy:this.assets.neolbiCanopy,pass.open);ForestNeolbi.frontSnow(c,this.assets.neolbiCanopy,pass.open,pass.snow);ForestNeolbi.surface(c,pass.open,pass.wet,pass.time,pass.rain,pass.reduced);c.restore();}
   for(const p of patches.filter(p=>p.id==='shade'))this.canopy(p);
+  this.drawMist(c,w,h,phase);
   if(this.carry){const q=this.carry.result||this.carry.origin,p=q.ok?q:(this.carry.pointerPoint||this.carry.origin);c.strokeStyle=q.ok?'#638361':'#b56950';c.fillStyle=q.ok?'#91ab7926':'#b5695026';c.lineWidth=2;c.setLineDash([4,3]);c.beginPath();c.ellipse(p.x*w,p.y*h,22,8,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);}
   if(this.carry?.mode==='drag'){const pet=s.individuals.find(p=>p.id===this.carry.id);if(pet)this.pet(pet,this.carry.hover,'held',phase,night,true);}
   if(this.editing){for(const p of [...patches,{...s.spring,...this.preview.spring,id:'spring',name:'샘터'}]){if(p.id==='shelter')continue;const selected=p.id===this.selectedPatch;c.strokeStyle=selected?'#526443':'#7c866e88';c.fillStyle=selected?'#aab78c28':'#ffffff15';c.lineWidth=selected?2:1;c.setLineDash(selected?[]:[3,4]);c.beginPath();c.ellipse(p.x*w,p.y*h,w*.08,h*.025,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);c.fillStyle='#fffcf5ee';const textw=c.measureText(p.name).width+16;c.fillRect(p.x*w-textw/2,p.y*h+10,textw,20);c.fillStyle='#43513b';c.font=(11/this.camera.scale)+'px Pretendard';c.textAlign='center';c.fillText(p.name,p.x*w,p.y*h+24);if(selected){c.fillStyle='#526443';c.beginPath();c.arc(p.x*w,p.y*h,6/this.camera.scale,0,Math.PI*2);c.fill();}}}

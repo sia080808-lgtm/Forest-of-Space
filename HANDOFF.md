@@ -945,4 +945,13 @@
 - 검증: 새 테스트 3개(고치기 전 코드로 실패 확인), 관련 210개·UI PASS, 크롬 슬라이드 확인. 전체는 CI. 실기기 미검증.
 - 결정 대기: 강풍 90초 뒤 45로 약해지는 규칙(관리자 고정 포함), 촉촉한 숲 겨울 맑은 날을 추위로 볼지.
 - 추가(사용자 "꾸미기에서 쉼터도 옮기기 · 오브젝트 보관하기 · 꾸미기 창에 보관함 · gui 직관적이게 · 여기까지 pr", 같은 PR #77): `engine.js` `STORABLE`·`storeObject`·`unstoreObject`(보관한 사물은 `s.objects.stored`, 물 그대로·저장 검사 6구역 합산), `objects.js` `stash`·보관 사물 안전 처리, `shelter.js` 처음 쉼터 옮기기 허용(보관은 거부)·기본 쉼터 좌표 검사 완화, `forest-app.js` 꾸미기 창 다시 그림(`renderEditorNow`·`resumeEditor`·`editorReturn`), `object-cards.js` 처음 쉼터 '옮기기', `forest.css`. 함께 찾은 기존 버그: 사물 물이 −7e-18로 남아 저장 검사 실패(1.2.5도 재현) → `snapTiny`. 새 `storage.test.cjs` 4개, `shelter-flip` SHF-04 조정(처음 쉼터 옮기기 허용), 관련 106개·UI PASS, 크롬 꾸미기 화면 확인.
+- 병합·릴리스: PR #77(https://github.com/sia080808-lgtm/Forest-of-Space/pull/77) main 병합 `dc57fadfacdefb712654d07d8b1e5fe1469a3a8a`(사용자 "머지"; head `e6f8332` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.6 `Forest-of-Space-1.2.6.apk` 74,369,175 bytes, SHA-256 `3dcb02472fa29795bac58748d6c175e3e8d7e8fe2bfa2f3e87a67bfe4d71466b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode92/1.2.6. APK는 사용자에게 파일로 전달.
 
+### RIDLEY-TAP-1.2.7-20261121 — 리들리 잎 털기를 머리 잎 끝으로 톡톡, 정수리 덮기
+
+- 담당: Claude Code. 요청: 잎 털기 손이 허공에서 왔다 갔다 → 시안 A~C → "머리 끝에 손처럼 생긴 잎으로" → 시안 D·E → "정수리 살짝 보이는 것만 덮어줘" → "E로 가고 pr". 기준 main `dc57fad`(1.2.6 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `rig.js`(`brush`: 손은 몸 옆, 몸 기울임 0.07, 앞잎 기울임 `leafTilt` 0.14+0.1×톡, `tapAmount`·`leafTip`·`tapFx` 반짝임·튀어 나가는 잎응애, `drawCore` `leafTilt` 옵션), `scene.js`(털어 주는 동안 대상 친구 쪽 보기), `skills.js` `side`(잎 끝이 닿는 거리, 걸어서 설 수 있는 최소 거리 유지), `assets/forest/rig/leaves.png`(정수리 덮기, 커밋 `efe5439`). 버전 1.2.7 / versionCode 93.
+- 시안 그림은 스크래치에서만 만들었고 저장소에 넣지 않음. 결과 화면 `docs/qa-1.2.7`.
+- 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증.
+- 추가(같은 PR, 사용자 "1,2로 가고" → 시안 N "ㅇㅋ 이렇게 해서 pr해줘. 그리고 너무 렉걸리지 않는 로직으로"): `skills.js` `wetBy`(샘터·웅덩이·호숫가 곁, 비·안개·폭풍 날 어디서든), `scene.js` `drawMist`·`mistCloud`(한 번 구운 물안개 그림, 엘리시당 drawImage 5번)·`dewGlint`, 친구 위 층에 그림. 테스트 `skills` SK-1.2.7. 관련 36+27개 통과. 화면 `docs/qa-1.2.7/ellisii-mist.png`.
+- 한계: 어린 리들리는 서는 거리가 걸음 최소 거리로 정해져 잎 끝이 친구 잎에 조금 못 미칠 수 있음.
