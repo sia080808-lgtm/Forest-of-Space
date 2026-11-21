@@ -945,4 +945,4 @@
 - 검증: 새 테스트 3개(고치기 전 코드로 실패 확인), 관련 210개·UI PASS, 크롬 슬라이드 확인. 전체는 CI. 실기기 미검증.
 - 결정 대기: 강풍 90초 뒤 45로 약해지는 규칙(관리자 고정 포함), 촉촉한 숲 겨울 맑은 날을 추위로 볼지.
 - 추가(사용자 "꾸미기에서 쉼터도 옮기기 · 오브젝트 보관하기 · 꾸미기 창에 보관함 · gui 직관적이게 · 여기까지 pr", 같은 PR #77): `engine.js` `STORABLE`·`storeObject`·`unstoreObject`(보관한 사물은 `s.objects.stored`, 물 그대로·저장 검사 6구역 합산), `objects.js` `stash`·보관 사물 안전 처리, `shelter.js` 처음 쉼터 옮기기 허용(보관은 거부)·기본 쉼터 좌표 검사 완화, `forest-app.js` 꾸미기 창 다시 그림(`renderEditorNow`·`resumeEditor`·`editorReturn`), `object-cards.js` 처음 쉼터 '옮기기', `forest.css`. 함께 찾은 기존 버그: 사물 물이 −7e-18로 남아 저장 검사 실패(1.2.5도 재현) → `snapTiny`. 새 `storage.test.cjs` 4개, `shelter-flip` SHF-04 조정(처음 쉼터 옮기기 허용), 관련 106개·UI PASS, 크롬 꾸미기 화면 확인.
-
+- 병합·릴리스: PR #77(https://github.com/sia080808-lgtm/Forest-of-Space/pull/77) main 병합 `dc57fadfacdefb712654d07d8b1e5fe1469a3a8a`(사용자 "머지"; head `e6f8332` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.6 `Forest-of-Space-1.2.6.apk` 74,369,175 bytes, SHA-256 `3dcb02472fa29795bac58748d6c175e3e8d7e8fe2bfa2f3e87a67bfe4d71466b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode92/1.2.6. APK는 사용자에게 파일로 전달.
