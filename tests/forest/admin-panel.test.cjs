@@ -13,3 +13,8 @@ test('ADM-03 small neighbours called on purpose stay valid; at most two pest kin
 test('ADM-04 sun rock, climate back to every season, fireflies need the lake',()=>{let s=world();[s]=run(s,'rockSun',true);a.equal(s.patches.find(p=>p.id==='rock').sun,100);
  [s]=run(s,'climate','C04');a.equal(s.environment.climateMode,'fixed');[s]=run(s,'climateAuto');a.equal(s.environment.climateMode,undefined);a.throws(()=>run(s,'fireflies'),/호수/);
  F.World.openLake(s);[s]=run(s,'fireflies');a.equal(F.Environment.season(s),'summer');a.equal(F.World.fireflies(s),true);});
+// 1.2.3 (user: "톡토기 누르니까 작은이웃 기록을 확인해주세요"): the springtail button made a group of kind 'spring' that the save check rejects
+test('ADM-05 calling a springtail makes a valid springtail on a leaf pile; at most two',()=>{let s=world();const L=F.Litter,pile=(id,x)=>({id,sector:L.sectorOf({x,y:.5}),x,y:.5,O:12,U:0,S:55,cap:100,W:0,playBoostUntil:0,born:0});
+ s.objects.litter.piles=s.objects.litter.piles.filter(p=>![.1,.6,1.1].some(x=>p.sector===L.sectorOf({x,y:.5})));s.objects.litter.leaves=s.objects.litter.leaves.filter(l=>![.1,.6,1.1].some(x=>l.sector===L.sectorOf({x,y:.5})));s.objects.litter.piles.push(pile('pile:90',.1),pile('pile:91',.6),pile('pile:92',1.1));s.objects.creatures.groups=s.objects.creatures.groups.filter(g=>g.kind!=='springtail');
+ [s]=run(s,'creature','spring','');[s]=run(s,'creature','spring','');const sp=s.objects.creatures.groups.filter(g=>g.kind==='springtail');a.equal(sp.length,2);a.notEqual(sp[0].pile,sp[1].pile);a.ok(s.objects.creatures.seen.springtail);
+ a.throws(()=>run(s,'creature','spring',''),/두 무리/);for(let i=0;i<60;i++)F.step(s);a.doesNotThrow(()=>F.valid(s));});

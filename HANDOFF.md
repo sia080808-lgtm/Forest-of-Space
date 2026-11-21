@@ -906,3 +906,15 @@
 - 원인: 친구가 작아지면(레벨 초기화 뒤 그림 단계 하강) 잎 위 눈(`snowWater`)이 한도(12×잎 넓이)를 넘은 채 저장됨 → 불러올 때 `Environment.validate` 실패. 엔진에서 같은 상태로 1.2.1 코드 실패 재현.
 - 수정: `environment.js` `fitSnow`(init에서 — 불러오기·매 단계) 한도 넘는 눈을 `ledger.outflow`로. 테스트 `snow-fit.test.cjs`. 버전 1.2.2 / versionCode 88.
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기에서 같은 기록이 열리는지 미확인.
+- 병합·릴리스: PR #73(https://github.com/sia080808-lgtm/Forest-of-Space/pull/73) main 병합 `3ef001f8c1091205efc432b07fa992f74d2ebbd7`(사용자 "ㄱㄱ"; head `47d6b1d` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.2 `Forest-of-Space-1.2.2.apk` 74,369,323 bytes, SHA-256 `69b2034909614094408faa222384e0076295d6c76a4710dd3408f228eb7dcae9` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode88/1.2.2. APK는 사용자에게 파일로 전달.
+
+### SPRINGTAIL-CALL-1.2.3-20261121 — 관리자 톡토기 부르기가 저장 검사에 걸리던 문제
+
+- 담당: Claude Code. 요청: 사용자 1.2.2 "톡토기 누르니까 작은이웃 기록을 확인해주세요라고 뜨는데" → "pr ㄱㄱ". (그 전 '관리자 버튼 눌림 표시' PR은 사용자 "방금pr취소"로 만들기 전에 되돌림.) 기준 main `3ef001f`(1.2.2 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `admin.js` `creature`가 톡토기를 `kind:'spring'`으로 만들어 `Creatures.validate`가 거절(엔진 이름표 `springtail`).
+- 수정: `springtail`로 부르기, 두 무리 상한, `forest-app.js` `adminFocusNeighbour`가 `g.pile` 더미로 확대. 테스트 ADM-05. 버전 1.2.3 / versionCode 89.
+- 추가(사용자 "앱을 닫아두면 경험치 못 얻게 pr", 같은 PR #74): `engine.js` `offlineStep`에서 성장 경험 쌓기 삭제(`growth`·`GROWTH_SEASON` 함께 삭제), `engine.test` CARE-04를 '성장 없음·기운 회복'으로 다시 씀.
+- 검증: `admin-panel`(고치기 전 같은 문구로 실패)·`admin`·`package` 11/11, `engine` 24/24, 전체는 CI. 실기기 미검증.
+- 추가(사용자 "16배로 … 쉼터로 절대 안들어가" → "봄에 큰비로 … 아무도 안 들어가" → "밤에도 아무도 안 들어감", 같은 PR #74): 엔진 재현 — 큰비 한낮 친구 5명 중 엘레판 우산(1명) 밖 친구들이 `underLeaf`로 계속 기다림, 보슬비 밤엔 앉은 친구에게 막힌 자리를 반복 예약. `objects.js` `underLeaf`(이미 우산을 편 엘레판은 제외), `shelter.js` `reserve`·`move`(닿지 못한 자리 90초 제외 `shelterAvoid`). 검사 `shelter-sleep` 1.2.3(고치기 전 1명→3명). 관련 106개 통과(테스트 하나는 진행 중 상태에 배치 검사를 걸었던 것을 뺌).
+- 추가(사용자 "목부작으로 쉬기 … 자세히보기 들어가면 존재함 … pr", "성장 경험도 바 형태로 … pr", 같은 PR #74): 자세히 보기의 목부작 스위치·문구 삭제, 불러올 때 목부작 친구 정원으로(앱 층, 엔진 처리 유지). 카드 `growthStat`(현재 레벨 구간 n / m, Lv10 최대), 네 막대 열 정렬 CSS, 카드 실시간 갱신이 옛 순서로 값을 쓰던 버그 수정(`stats` 다시 그리기). `tools/ui-smoke.mjs` 목부작 단계를 '스위치 없음' 확인으로. UI PASS.
+- 추가(사용자 "애니메이션 모드와 대표장면 검수 … 하나로 통일 … GUI시안" → 시안 → "상태는 지우는 거" → "니 뜻대로 … pr", 같은 PR #74): 검수실(장면·친구 두 탭) — `renderInspector` 칩 UI·`inspect-set/tab/env/ten` 처리, `inspector.js` 배속 상한 16·`energy` 설정, 옛 select·JSON 덤프·`stage2-review.html/.js`·`tools/stage2-review-smoke.mjs`·`openStageLab` 삭제, `tools/ui-smoke.mjs` `choose`를 칩 클릭으로. UI PASS, 검수 관련 테스트 통과. SH 장면의 쉼터 판정 표시(빨간 상자·'reserved / 3' 글자, `scene.js` `shelterDebug`)는 그대로.
