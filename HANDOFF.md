@@ -1025,3 +1025,4 @@
 - 원인: `scene.js` 호수 빗방울이 0.9.3 물가 띠(x 1.36~1.86)에만, 0.9.5 호수 확장(x 1.5~3.0) 뒤에도 그대로.
 - 수정: `World.LAKE` 가운데·반지름 범위 전체, 개수 ×2.2(밀도 유지). 렌더 전용. 버전 1.2.14 / versionCode 100.
 - 검증: 렌더 비교 `docs/qa-1.2.14`, `render`·`lake`·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 병합·릴리스: PR #85(https://github.com/sia080808-lgtm/Forest-of-Space/pull/85) main 병합 `833dffa21e85a813faba23f1ef60dae10b6f28fc`(사용자 "ㄱㄱ"; head `fee2976` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.14 `Forest-of-Space-1.2.14.apk` 75,094,707 bytes, SHA-256 `953a80fac3c8279bcd0a5370f834080a8c56483638ffa006e4810c1b1a2196aa` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode100/1.2.14. APK는 사용자에게 파일로 전달.
