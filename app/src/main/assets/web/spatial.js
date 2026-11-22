@@ -117,7 +117,9 @@ function planFor(s,p,destination){const kept=keptPlan(s,p,destination);if(kept)r
  p.walkPlan=plan?{tx:destination.x,ty:destination.y,at:s.worldTick,legacy,pts:plan.map(q=>({x:q.x,y:q.y}))}:{tx:destination.x,ty:destination.y,at:s.worldTick,legacy:false,pts:[],fx:p.x,fy:p.y};return plan;}
 function travel(s,p,destination){if(p.species==='neolbi'&&(p.canopyProgress||0)>0){p.canopyClosing=true;p.canopy=false;return {kind:'idle',path:[{x:p.x,y:p.y}],distance:0,arrived:false};}delete p.canopyClosing;const plan=planFor(s,p,destination),g=gait(p,s),path=[{x:p.x,y:p.y}];let left=g.speed;
  if(!plan)return {kind:'idle',path,distance:0,arrived:false};
- let moved=0;for(const q of plan){const d=distance(p,q),n=Math.min(d,left);if(d){const nx=p.x+(q.x-p.x)*n/d,ny=p.y+(q.y-p.y)*n/d;if(!clearFriends(s,p,p,{x:nx,y:ny}))break;p.x=nx;p.y=ny;}moved+=n;left-=n;path.push({x:p.x,y:p.y});if(left<=1e-9)break;}
+ /* 1.2.9 (user: "길을 막고 있으면 그 자리에서 두세 번 서성이다가 지나가더라"): a corner of the kept way that the friend had already
+ walked through was kept as its next point, so the next second it turned back to it and paced to and fro until the way was
+ searched again (up to 8 s). A corner it reaches is now dropped from the kept way */const wp=p.walkPlan?.pts;let moved=0;for(const q of plan){const d=distance(p,q),n=Math.min(d,left);if(d){const nx=p.x+(q.x-p.x)*n/d,ny=p.y+(q.y-p.y)*n/d;if(!clearFriends(s,p,p,{x:nx,y:ny}))break;p.x=nx;p.y=ny;}moved+=n;left-=n;path.push({x:p.x,y:p.y});if(n>=d-1e-12&&wp&&wp.length>1&&Math.abs(wp[0].x-q.x)<1e-9&&Math.abs(wp[0].y-q.y)<1e-9)wp.shift();if(left<=1e-9)break;}
  return {kind:moved>1e-8?g.kind:'idle',path,distance:moved,duration:moved/g.speed,arrived:distance(p,destination)<.001};
 }
 return {diameter,obstacles,context,GU,ASPECT,distance,socket,walkable,segment,route,placement,gait,travel,rockTop,onRock};
