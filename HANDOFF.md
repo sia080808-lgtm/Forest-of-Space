@@ -966,3 +966,4 @@
 - 검증: UI PASS, `package` 통과, 크롬 첫 장면·순서·건너뛰기·콘솔 오류 없음. 전체는 CI. 실기기 미검증.
 - 남은 일: 밤 시안(C)을 숲의 시간에 맞춰 바꾸기는 아직(사용자 "일단 낮 시안").
 - 추가(같은 PR #79, 사용자 "인게임 안개 연출은 안개 느낌이 안듦" → 시안 C → 번지기 → "섞어봐" → "좋네 저거 pr한 다음 머지해"): `world-effects.js` `fog`(곱하기 0.22, 구운 덩어리 3장, 흐르는 5개+가장자리 12개), `particles`의 옛 가로 띠 삭제, `scene.js` `draw`에서 조명 뒤에 호출. `render`·`update218` 25개·UI PASS, 렌더 `docs/qa-1.2.8/fog.png`.
+- 병합·릴리스: PR #79(https://github.com/sia080808-lgtm/Forest-of-Space/pull/79) main 병합 `265089f7257785c9529341c231a007b44f5470e7`(사용자 "좋네 저거 pr한 다음 머지해"; head `60d1e62` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.8 `Forest-of-Space-1.2.8.apk` 74,398,002 bytes, SHA-256 `28c70891e5055de5d0f41dc98fbfaa8612e029b74bf22c1df96e8e9c5b2e2e4e` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode94/1.2.8, APK 안 `fog`·`welcome.js` 포함. APK는 사용자에게 파일로 전달.
