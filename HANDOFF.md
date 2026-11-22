@@ -1018,3 +1018,10 @@
 - 확인 필요: 사용자가 원하는 '꾸미기에서 옮기기'가 지금 방식(쉼터 칩 → 쉼터 옮기기 화면 → 꾸미기로 돌아옴)인지, 다른 사물처럼 꾸미기 화면 안에서 바로 끌기인지.
 - 추가(사용자 "쉼터 끝부분 이거 남음 … 누끼 … 다른 오브젝트들도 마찬가지"): `tools/cut-shelter-art.py`(쉼터 그림 4계절 알파: 아치·굴 안 유지, 종이색 거리로 부드럽게, 떨어진 조각 제거), `tools/cut-spring-art.py`(샘터 돌 그림을 `spring-art.png`+계절 3장으로 따로 땀, 돌 윗면 구멍 메움), `scene.js` 샘터는 `springArt` 우선. 다른 사물 그림은 이미 깔끔(물색 위 확인). UI PASS, 렌더 관련 통과, 비교 `docs/qa-1.2.13`.
 - 병합·릴리스: PR #84(https://github.com/sia080808-lgtm/Forest-of-Space/pull/84) main 병합 `563458e7c170119ee503c82ec657578167804269`(사용자 "머지"; head `6a17b97` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.13 `Forest-of-Space-1.2.13.apk` 75,094,707 bytes, SHA-256 `01580e0d1f9d86ee0f10c15805214f6c3cc3e2ebcded604acda65e8b2037143e` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode99/1.2.13, `spring-art` 4장 포함. APK는 사용자에게 파일로 전달.
+
+### LAKE-RAIN-1.2.14-20261122 — 비 올 때 호수 전체에 빗방울
+
+- 담당: Claude Code. 요청: 사용자 "비 올때 호수 전체에 빗방울 떨어지지 않음." 기준 main `563458e`(1.2.13 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `scene.js` 호수 빗방울이 0.9.3 물가 띠(x 1.36~1.86)에만, 0.9.5 호수 확장(x 1.5~3.0) 뒤에도 그대로.
+- 수정: `World.LAKE` 가운데·반지름 범위 전체, 개수 ×2.2(밀도 유지). 렌더 전용. 버전 1.2.14 / versionCode 100.
+- 검증: 렌더 비교 `docs/qa-1.2.14`, `render`·`lake`·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
