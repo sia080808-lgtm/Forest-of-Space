@@ -985,3 +985,4 @@
 - 원인: `objects.js` 쉼터 후보가 걸어가는 중(자리 미예약) 친구를 세지 않아 여러 친구가 꽉 찰 쉼터를 고르고, 늦은 친구는 입구 대기 8초 → 다른 곳 → 다시 쉼터.
 - 수정: 쉼터로 가는 다른 친구의 인원·공간을 빼고 남을 때만 후보, 바람 60 이상은 예외. 테스트 `shelter-sleep` 1.2.10, SH24-04·SH-AC05 기대 조정. 버전 1.2.10 / versionCode 96.
 - 검증: 관련 157개 통과, 측정 입구 기다림 비 8→0·해 질 녘 7→1. 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 병합·릴리스: PR #81(https://github.com/sia080808-lgtm/Forest-of-Space/pull/81) main 병합 `e59a1ee890a426d7cf3150ecd1bc88b0b01f040f`(사용자 "머지해"; head `dcb6f28` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.10 `Forest-of-Space-1.2.10.apk` 74,402,098 bytes, SHA-256 `0ee0254037f0a394191cdbd56c051ee88dd1463ffedcec225cb3acdea83aca9b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode96/1.2.10. APK는 사용자에게 파일로 전달.
