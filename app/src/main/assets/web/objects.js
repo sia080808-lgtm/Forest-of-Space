@@ -149,7 +149,8 @@ function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)r
  return t.reason==='energy'?!n.energy:t.reason==='mood'?!n.mood:false;
 }
 function points(s,p,id,kind){
- if(id==='shelter'){if(p.restCooldown>s.worldTick)return [];const Sh=dep('shelter');if(Sh.inside(s,p))return [{x:p.x,y:p.y}];return s.shelters.facilities.filter(f=>Sh.room(s,f,p)).flatMap(f=>{const q=Sh.seat(s,f,p,q=>!!dep('spatial').route(s,p,Sh.entry(f,q),p.id));return q?[Sh.entry(f,q)]:[];});}
+ if(id==='shelter'){if(p.restCooldown>s.worldTick)return [];const Sh=dep('shelter');if(Sh.inside(s,p))return [{x:p.x,y:p.y}];/* 1.2.10 (user: "쉼터 찾으러 가다가 쉼터 차 있으면 … 다시 쉴 곳 찾다가 차 있던 쉼터 갔다가 … 무한 뺑뺑이"): friends that had already picked the shelter but were not seated or booked yet were not counted, so at nightfall or in rain everyone picked it, walked to the door, waited 8 s, gave up and came back two minutes later. A full shelter (seats taken, booked or already chosen by others) is now not picked at all, except when the wind is dangerous, where waiting at the door is still the safest */const danger=dep('weather-care').wind(s,p)>=60,pend=danger?[]:s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.objectTask?.object==='shelter'&&!q.shelter?.facilityId),open=f=>Sh.room(s,f,p)&&(danger||(()=>{const v=Sh.ledger(s,f,p.id);return v.friends+pend.length<v.seats&&v.free-pend.reduce((n,q)=>n+Sh.units(q),0)>=Sh.units(p);})());
+  return s.shelters.facilities.filter(open).flatMap(f=>{const q=Sh.seat(s,f,p,q=>!!dep('spatial').route(s,p,Sh.entry(f,q),p.id));return q?[Sh.entry(f,q)]:[];});}
  const r=region(s,id,kind),g=scale(s,id),large=dep('shelter').units(p)>4;
  const offsets=kind==='edgeDrink'?[[0,0]]:large?[[0,0],[-.015,0],[.015,0]]:[[0,0],[-.035,0],[.035,0],[-.065,0],[.065,0],[0,.014],[0,-.014]];
  return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));

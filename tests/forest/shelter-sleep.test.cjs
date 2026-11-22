@@ -82,3 +82,15 @@ test('1.2.9 a thirsty friend in the shelter walks out to the lake when the sprin
   for(let i=0;i<300&&!drank;i++){dry();F.step(s,1);if(p.B>=V.band(p).mid-1)drank=true;}
   a.ok(drank,`still thirsty: ${p.B.toFixed(1)}`);a.ok(F.valid(s),'save check');
 });
+
+// 1.2.10 (user: "쉼터 찾으러 가다가 쉼터 차 있으면 … 다시 차 있던 쉼터 갔다가 … 무한 뺑뺑이"): friends that had picked the
+// shelter but were not booked yet were not counted, so in rain everyone walked to the door, waited 8 s and gave up.
+test('1.2.10 friends do not walk to a shelter that others have already filled', () => {
+  const A=require('../../app/src/main/assets/web/admin.js');let waits=0;
+  for(const seed of [1,2,3]){const s=F.create(0,seed);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
+   const base=s.individuals[0];for(const [sp,x,y] of [['bonbon',.45,.55],['neolbi',.6,.4],['bosong',.3,.6],['jureong',.7,.7],['superbum',.5,.8],['ridley',.62,.62]]){const q=F.clone(base);Object.assign(q,{id:'k'+sp+String(x).replace('.',''),species:sp,name:sp,x,y,motion:{kind:'idle',distance:0,tick:0}});delete q.walkPlan;s.individuals.push(q);}
+   F.valid(s);for(let i=0;i<300;i++)F.step(s,1);A.run(F,s,'time','noon');A.run(F,s,'weather','rain');const prev={};
+   for(let i=0;i<900;i++){s.weather.until=s.worldTick+999;F.step(s,1);for(const p of s.individuals){const w=p.shelter?.phase==='waitingOutside'&&p.objectTask?.object==='shelter';if(w&&!prev[p.id])waits++;prev[p.id]=w;}}
+   a.ok(F.valid(s));}
+  a.ok(waits<=1,`waited at a full shelter door ${waits} times`);
+});
