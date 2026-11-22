@@ -1026,3 +1026,10 @@
 - 수정: `World.LAKE` 가운데·반지름 범위 전체, 개수 ×2.2(밀도 유지). 렌더 전용. 버전 1.2.14 / versionCode 100.
 - 검증: 렌더 비교 `docs/qa-1.2.14`, `render`·`lake`·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
 - 병합·릴리스: PR #85(https://github.com/sia080808-lgtm/Forest-of-Space/pull/85) main 병합 `833dffa21e85a813faba23f1ef60dae10b6f28fc`(사용자 "ㄱㄱ"; head `fee2976` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.14 `Forest-of-Space-1.2.14.apk` 75,094,707 bytes, SHA-256 `953a80fac3c8279bcd0a5370f834080a8c56483638ffa006e4810c1b1a2196aa` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode100/1.2.14. APK는 사용자에게 파일로 전달.
+
+### TAP-DETAIL-1.2.15-20261122 — 화면 아래쪽 친구를 누르면 바로 자세히 보기로 넘어가던 문제
+
+- 담당: Claude Code. 요청: 사용자 "화면 아래에서 케릭터 누르면 바로 케릭터 자세히 들어가는 버그 있음 디바깅 pr". 기준 main `833dffa`(1.2.14 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `carry.js` pointerup에서 `selectAt`→카드가 손가락 아래에 열리고, 뒤따르는 클릭(일부 WebView는 손가락 아래 요소로 보냄)이 카드의 '자세히 보기'를 누름. 0.7초 클릭 막기가 canvas·친구 버튼만 대상이었음.
+- 수정: 막는 대상에 `#select-card`·`#hint` 추가. `tools/ui-smoke.mjs` 1.2.15 단계(고치기 전 실패), 시계가 멈춘 테스트라 쉼터 카드 단계 앞에 `now+=1000`. 버전 1.2.15 / versionCode 101.
+- 검증: UI PASS, `package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.

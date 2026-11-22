@@ -4,7 +4,7 @@ class ForestCarry {
  constructor(world,scene,getState,commit,notice){Object.assign(this,{world,scene,getState,commit,notice});this.pointers=new Map();this.session=null;this.candidate=null;this.blocked=false;this.suppressUntil=0;
   for(const [event,method]of [['pointerdown','down'],['pointermove','move'],['pointerup','up'],['pointercancel','abort']])world.addEventListener(event,e=>this[method](e),true);
   world.addEventListener('lostpointercapture',e=>{if(this.pointers.has(e.pointerId))this.abort(e);});
-  world.addEventListener('click',e=>{if(performance.now()<this.suppressUntil&&(e.target===scene.canvas||e.target.closest('[data-pet]'))){e.preventDefault();e.stopImmediatePropagation();}},true);
+  /* 1.2.15: a tap on a friend near the bottom opens its card under the finger on pointerup; the click that follows (some WebViews send it to whatever is under the finger, not the captured world) then pressed the card's 자세히 보기 — swallow it on the card too (and the hint that sits in the same spot) */world.addEventListener('click',e=>{if(performance.now()<this.suppressUntil&&(e.target===scene.canvas||e.target.closest('[data-pet],#select-card,#hint'))){e.preventDefault();e.stopImmediatePropagation();}},true);
   document.addEventListener('pointerdown',e=>{if(e.isPrimary===false&&this.pointers.size&&e.target!==scene.canvas&&!e.target.closest('[data-pet]')){this.cancel(false);this.blocked=true;this.start=null;this.pinch=null;this.scene.drag=null;this.suppressUntil=performance.now()+700;}},true);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')this.cancel();});
  }
