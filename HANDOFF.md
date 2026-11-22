@@ -955,3 +955,14 @@
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증.
 - 추가(같은 PR, 사용자 "1,2로 가고" → 시안 N "ㅇㅋ 이렇게 해서 pr해줘. 그리고 너무 렉걸리지 않는 로직으로"): `skills.js` `wetBy`(샘터·웅덩이·호숫가 곁, 비·안개·폭풍 날 어디서든), `scene.js` `drawMist`·`mistCloud`(한 번 구운 물안개 그림, 엘리시당 drawImage 5번)·`dewGlint`, 친구 위 층에 그림. 테스트 `skills` SK-1.2.7. 관련 36+27개 통과. 화면 `docs/qa-1.2.7/ellisii-mist.png`.
 - 한계: 어린 리들리는 서는 거리가 걸음 최소 거리로 정해져 잎 끝이 친구 잎에 조금 못 미칠 수 있음.
+- 병합·릴리스: PR #78(https://github.com/sia080808-lgtm/Forest-of-Space/pull/78) main 병합 `f3ea2ece9261daabd8aa08629e08c710bf732d87`(사용자 "이랗게 해서 머지 ㄱㄱ"; head `8270455` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.7 `Forest-of-Space-1.2.7.apk` 74,373,271 bytes, SHA-256 `8b07e2130458925a5e413b79ee55590e234915efc4af783ae4f7acc107c967ad` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode93/1.2.7. 베이치 물 찾기 확인(사용자 질문): 친구 4명 2게임시간 3정원 모두 웅덩이 4번·안내 1~3번. APK는 사용자에게 파일로 전달.
+
+### ENTRY-1.2.8-20261122 — 새 입장 화면, 켤 때 흰 화면이 먼저 뜨던 문제
+
+- 담당: Claude Code. 요청: 입장 화면 시안(A 여백·B 숲의 창·C 밤의 숲 → 개선 → 낮·밤 조합 → 낮: 리들리·엘리시·슈퍼범이 왼쪽에서 걸어 들어옴·반딧불·잘 보이는 버튼 → 안개가 걷히는 연출) → "이걸로 일단 하고, 앱 켜자마자 흰색 화면 … 디버깅해서 pr". 기준 main `f3ea2ec`(1.2.7 병합) + HANDOFF `de716b1`, 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `#welcome`이 `hidden`으로 시작해 스크립트를 다 읽은 뒤(boot) 보였다 → 그 전엔 빈 앱 틀만 보임. Android 창·WebView 배경은 이미 크림색.
+- 변경: `index.html`(입장 화면 새 구조, 처음부터 보임, 그림 미리 불러오기, `welcome.js`), `forest.css`(입장 화면 CSS, 첫 장면 순서 애니메이션, 옛 welcome 스타일 삭제), 새 `welcome.js`(걷는 친구·반딧불·안개 캔버스, 게임 그림 불러온 뒤 시작, 건너뛰기, 동작 줄이기), `forest-app.js`(`welcomeStart`·`welcomeSkip`, 들어가면 멈춤, home에서 다시), `assets/forest/welcome-paper.jpg`, `tools/ui-smoke.mjs`(welcome.js 불러오기). 버전 1.2.8 / versionCode 94.
+- 시안 그림은 스크래치에서 만들었고 결과 화면만 `docs/qa-1.2.8`에 넣음.
+- 검증: UI PASS, `package` 통과, 크롬 첫 장면·순서·건너뛰기·콘솔 오류 없음. 전체는 CI. 실기기 미검증.
+- 남은 일: 밤 시안(C)을 숲의 시간에 맞춰 바꾸기는 아직(사용자 "일단 낮 시안").
+- 추가(같은 PR #79, 사용자 "인게임 안개 연출은 안개 느낌이 안듦" → 시안 C → 번지기 → "섞어봐" → "좋네 저거 pr한 다음 머지해"): `world-effects.js` `fog`(곱하기 0.22, 구운 덩어리 3장, 흐르는 5개+가장자리 12개), `particles`의 옛 가로 띠 삭제, `scene.js` `draw`에서 조명 뒤에 호출. `render`·`update218` 25개·UI PASS, 렌더 `docs/qa-1.2.8/fog.png`.
