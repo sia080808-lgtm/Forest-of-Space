@@ -19,7 +19,7 @@ function rain(c,s,w,h,t){const p=rainProfile(s);if(!p.count||w<=0||h<=0)return;
   c.strokeStyle='#e8f0eb';c.lineWidth=p.width*depth*(.8+.4*r1);c.globalAlpha=Math.min(1,a);c.stroke();
  }c.restore();
 }
-function particles(c,s,w,h,t,assets,area=1){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,reduced=s.settings.reducedMotion,factor=reduced?.3:1,rain=E.precipitation(s,'rain'),snowfall=E.precipitation(s,'snow');const nr=Math.round(100*rain*factor),ns=Math.max(0,Math.min(Math.round(70*snowfall*factor*area),Math.round(120*area)-nr));c.save();c.fillStyle='#f7f8ed';for(let i=0;i<ns;i++){const x=((i*79.3+Math.sin(t*.8+i)*8+t*s.weather.wind*.20)%w+w)%w,y=(i*117.7+t*(12+i%13))%h;c.globalAlpha=.5+(i%4)*.1;c.beginPath();c.arc(x,y,.9+(i%3)*.4,0,Math.PI*2);c.fill();}if(s.weather.wind>=40&&assets?.terrain){const count=Math.max(0,Math.min(Math.round((s.weather.wind>=70?12:5)*factor*area),Math.round(120*area)-nr-ns));for(let i=0;i<count;i++){const x=((i*93.7+t*s.weather.wind*.6)%w+w)%w,y=(i*71.3+Math.sin(t+i)*14)%h;c.save();c.translate(x,y);c.rotate(t*(.5+i%3)+i);c.globalAlpha=.35;c.drawImage(assets.terrain,733,689,132,68,-4,-2,8,4);c.restore();}}if(s.weather.kind==='fog'){const bands=Math.max(3,Math.round(3*Math.sqrt(area)));for(let i=0;i<bands;i++){const y=h*((i+1)/(bands+1))+Math.sin(t*.08+i)*12,g=c.createLinearGradient(0,y-50,0,y+50);g.addColorStop(0,'#d5dfd600');g.addColorStop(.5,'#d5dfd638');g.addColorStop(1,'#d5dfd600');c.globalAlpha=1;c.fillStyle=g;c.fillRect(0,y-50,w,100);}}c.restore();}
+function particles(c,s,w,h,t,assets,area=1){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,reduced=s.settings.reducedMotion,factor=reduced?.3:1,rain=E.precipitation(s,'rain'),snowfall=E.precipitation(s,'snow');const nr=Math.round(100*rain*factor),ns=Math.max(0,Math.min(Math.round(70*snowfall*factor*area),Math.round(120*area)-nr));c.save();c.fillStyle='#f7f8ed';for(let i=0;i<ns;i++){const x=((i*79.3+Math.sin(t*.8+i)*8+t*s.weather.wind*.20)%w+w)%w,y=(i*117.7+t*(12+i%13))%h;c.globalAlpha=.5+(i%4)*.1;c.beginPath();c.arc(x,y,.9+(i%3)*.4,0,Math.PI*2);c.fill();}if(s.weather.wind>=40&&assets?.terrain){const count=Math.max(0,Math.min(Math.round((s.weather.wind>=70?12:5)*factor*area),Math.round(120*area)-nr-ns));for(let i=0;i<count;i++){const x=((i*93.7+t*s.weather.wind*.6)%w+w)%w,y=(i*71.3+Math.sin(t+i)*14)%h;c.save();c.translate(x,y);c.rotate(t*(.5+i%3)+i);c.globalAlpha=.35;c.drawImage(assets.terrain,733,689,132,68,-4,-2,8,4);c.restore();}}c.restore();}
 // 1.1.4 (렉 줄이기): the whole-frame CSS filter (brightness/saturate) was ~65% of a frame's drawing. The same light is
 // now made with plain composites that the GPU does cheaply: brightness below 1 multiplies by a grey, above 1 adds the
 // picture again with 'lighter' (x·b exactly), and saturation below 1 lays grey with the 'saturation' blend at 1−s.
@@ -32,5 +32,23 @@ function light(c,s,w,h,src){const E=typeof module==='object'?require('./environm
 function grade(c,buffer,s,w,h){c.drawImage(buffer,0,0,w,h);light(c,s,w,h,buffer);}
 // the world was drawn straight onto c: light it in place (no second full-screen copy; brighter than 1 re-adds c itself)
 function gradeOver(c,s,w,h){light(c,s,w,h,c.canvas);}
-return {canvas,snow,mask,rainProfile,rain,particles,grade,gradeOver};
+// 1.2.8 안개 (user: "인게임 안개 연출은 안개 느낌이 안듦" → 시안 C(먹빛 안개 덩어리) → "시야가 너무 안나오고 … 번지기" → "섞어봐" →
+// "좋네"): a thin haze of a few large, very soft wisps drifting over everything, and thicker wisps gathered at the screen edges,
+// with the middle kept clear. Screen space, after the lighting. The wisps are baked once (blur only while baking) and each frame
+// is a dozen and a half drawImage calls. Render only; still when motion is reduced.
+const frnd=(i,k)=>{const v=Math.sin(i*91.7+k*13.3)*43758.5453;return v-Math.floor(v);};
+const WISP=200,wisps=[];
+function wisp(n){if(wisps[n])return wisps[n];const W=WISP*1.8,H=WISP*.75,cx=W/2,cy=H/2,raw=canvas(W,H),c=raw.getContext('2d');
+ const blob=(x,y,w,h,a,col)=>{const r=w/2,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${col},${a})`);g.addColorStop(.55,`rgba(${col},${a*.55})`);g.addColorStop(1,`rgba(${col},0)`);c.save();c.translate(x,y);c.scale(1,h/w);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();};
+ blob(cx,cy+WISP*.08,WISP*1.1,WISP*.26,.1,'124,142,150');
+ for(let k=0;k<8;k++){const a=frnd(n*8+k,3)*6.28,d=WISP*.38*frnd(n*8+k,4);blob(cx+Math.cos(a)*d,cy+Math.sin(a)*d*.3,WISP*(.35+.4*frnd(n*8+k,5)),WISP*.17,.3,'252,252,250');}
+ const out=canvas(W,H),o=out.getContext('2d');if('filter' in o){o.filter='blur(13px)';}o.drawImage(raw,0,0);wisps[n]=out;return out;}
+const HAZE=[...Array(5)].map((_,i)=>({x:frnd(i,1)*1.2-.1,y:.08+frnd(i,2)*.88,v:.004+frnd(i,7)*.006,n:i%3,k:.7+frnd(i,3)*.6}));
+const EDGE=[...Array(12)].map((_,i)=>{const sd=i%4,r1=frnd(i+40,1),r2=frnd(i+40,2);const [x,y]=sd===0?[r1,.03+r2*.12]:sd===1?[r1,.88+r2*.1]:sd===2?[-.1+r2*.16,r1]:[.94+r2*.16,r1];return {x,y,a:frnd(i+40,3)*6.28,n:(i+1)%3,k:.7+frnd(i+40,6)*.6};});
+function fog(c,s,w,h,t){const E=typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment,amt=Math.min(1,Math.max(0,E.precipitation(s,'fog'))/.7);if(amt<=.01)return;
+ const still=s.settings.reducedMotion,tt=still?0:t;c.save();c.globalCompositeOperation='multiply';c.fillStyle=`rgba(190,200,202,${.22*amt})`;c.fillRect(0,0,w,h);c.restore();
+ const put=(p,size,alpha,x,y)=>{const im=wisp(p.n),dw=size*p.k*w*1.8,dh=size*p.k*w*.75;c.globalAlpha=alpha;c.drawImage(im,x*w-dw/2,y*h-dh/2,dw,dh);};
+ c.save();for(const p of HAZE){const x=((p.x+tt*p.v+.4)%1.7+1.7)%1.7-.4;put(p,.7,.9*amt,x,p.y);}
+ for(const p of EDGE)put(p,.44,amt,p.x+Math.sin(tt*.07+p.a)*.02,p.y+Math.cos(tt*.05+p.a)*.01);c.restore();}
+return {canvas,snow,mask,rainProfile,rain,particles,grade,gradeOver,fog};
 });
