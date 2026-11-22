@@ -18,7 +18,7 @@ test('SK-AC03 a thirsty friend is shown the puddle and drinks only there; anyone
  run(s,40);const d=K.puddles(s)[0];a.ok(d);a.equal(r.guideTo?.kind,'puddle');a.equal(r.guideTo.id,d.id);
  for(let i=0;i<200&&!(r.B>40);i++)F.step(s);a.ok(r.B>20,'drank');a.ok(Math.abs(bal(s)-w0)<1e-6,'water balance '+(bal(s)-w0));});
 
-test('SK-AC04 with no damp soil 베이치 shows a thirsty friend the nearest real water',()=>{const s=game();solo(s);for(const z of s.patches)z.S=0;const c=s.patches.find(z=>z.id==='crevice');c.W=5;s.spring.water=0;
+test('SK-AC04 with no damp soil 베이치 shows a thirsty friend the nearest real water',()=>{const s=game();solo(s);for(const z of s.patches)z.S=0;const c=s.patches.find(z=>z.id==='crevice');c.W=12;s.spring.water=0;
  const b=friend(s,'bosong',c.x+.1,c.y+.05),r=friend(s,'ridley',c.x+.18,c.y+.06,{B:20});run(s,2);a.equal(r.guideTo?.kind,'crevice');a.equal(b.skill?.k,'guide');a.ok(b.skillRest.guide>s.worldTick);});
 
 test('SK-AC05 코로나 Lv1 sweeps one loose leaf onto another so they make a pile; the floor-leaf count stays the same',()=>{const s=game();solo(s);const st=s.objects.litter;st.leaves=[];st.piles=[];
@@ -75,3 +75,8 @@ test('SK skill info and card lines exist for every friend kind',()=>{for(const s
 test('1.2.12 a friend 베이치 showed to a spring that ran dry looks for other water at once instead of idling for the 120 s guide',()=>{const s=game();solo(s);require(web+'/world').openLake(s);const moss=s.patches.find(z=>z.id==='moss');s.spring.water=0;
  const r=friend(s,'ridley',moss.x,moss.y,{B:22});r.guideTo={kind:'spring',id:'spring',x:moss.x,y:moss.y,until:s.worldTick+120,by:'x'};r.nextObjectChoice=s.worldTick;
  for(let i=0;i<60;i++)F.step(s);a.equal(r.guideTo,undefined,'the stale guide is dropped');a.ok(r.B>22,'drank elsewhere within a minute (B '+r.B.toFixed(1)+')');});
+
+test('1.2.12 베이치 does not show a nearly empty spring (or one other friends are already heading to); it shows the lake instead',()=>{const s=game();solo(s);require(web+'/world').openLake(s);for(const z of s.patches)z.S=0;s.patches.find(z=>z.id==='crevice').W=0;
+ const sp=s.spring;sp.water=4;const b=friend(s,'bosong',sp.x+.1,sp.y+.05),r=friend(s,'ridley',sp.x+.06,sp.y+.04,{B:20});run(s,2);a.equal(r.guideTo?.kind,'lake','4 water is not a real drink');
+ delete r.guideTo;b.skillRest={};b.skill=undefined;sp.water=30;run(s,2);a.equal(r.guideTo?.kind,'spring','enough water: the nearer spring');
+ delete r.guideTo;b.skillRest={};b.skill=undefined;sp.water=15;const o=friend(s,'jureong',sp.x+.3,sp.y,{B:20});o.guideTo={kind:'spring',id:undefined,x:sp.x,y:sp.y,until:s.worldTick+100,by:b.id};run(s,2);a.equal(r.guideTo?.kind,'lake','what is left after the other friend is not enough');});

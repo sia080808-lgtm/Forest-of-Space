@@ -66,10 +66,17 @@ function today(s,p){return p.skillDay&&p.skillDay.d===Math.floor(s.worldTick/DAY
 function soilSpots(s,from){return s.patches.filter(z=>z.id!=='shelter'&&z.cap>0&&z.S>=SK.dig.minS&&dist(z,from)<SK.dig.soil).sort((a,b)=>b.S-a.S||dist(a,from)-dist(b,from)||a.id.localeCompare(b.id));}
 function puddleSpot(s,z,p){const Space=dep('spatial'),sock=Space.socket(s,z.id,p.id);for(const q of [sock,{x:z.x+.06,y:z.y+.05},{x:z.x-.06,y:z.y+.05},{x:z.x,y:z.y+.08},{x:z.x+.09,y:z.y},{x:z.x-.09,y:z.y},{x:z.x,y:z.y+.11}])if(q&&Space.walkable(s,q,p.id)&&!puddles(s).some(d=>dist(d,q)<.05))return {x:q.x,y:q.y};return null;}
 // the nearest real water a thirsty friend can be shown (SK-03 동료 안내)
+// 1.2.12 (user: "베이치가 무슨 물을 알려준다고 빈 샘터를 가리킴?"): the spring or crevice is shown only while it still holds a
+// real drink for this friend (what it needs up to the middle of its band, at most 10 ≈ a minute of drinking) after what the
+// friends already heading there will drink; a nearly empty spring used to be shown and was gone before the friend arrived.
+// The lake never runs dry; a puddle is the one 베이치 just dug for it.
+const DRINK_MIN=10;
+function need(q){return Math.max(1,Math.min(DRINK_MIN,band(q).mid-q.B));}
+function enough(s,r,kind,have){const others=s.individuals.filter(q=>q.id!==r.id&&q.active&&(q.guideTo?q.guideTo.kind===kind:q.objectTask?.object===kind&&q.objectTask.reason==='water'));return have-others.reduce((n,q)=>n+need(q),0)>=need(r);}
 function waterFor(s,r){const W=dep('world'),out=[];for(const d of puddles(s))if(d.W>=1)out.push({kind:'puddle',id:d.id,x:d.x,y:d.y});
- const c=s.patches.find(z=>z.id==='crevice');if(c&&c.W>=1)out.push({kind:'crevice',x:c.x,y:c.y});
+ const c=s.patches.find(z=>z.id==='crevice');if(c&&c.W>=1&&enough(s,r,'crevice',c.W))out.push({kind:'crevice',x:c.x,y:c.y});
  if(W.lakeOpen?.(s)&&!W.frozen?.(s)){const q=W.shorePoint?.(s,r);if(q)out.push({kind:'lake',x:q.x,y:q.y});}
- if(s.spring.water>=2)out.push({kind:'spring',x:s.spring.x,y:s.spring.y});
+ if(s.spring.water>=2&&enough(s,r,'spring',s.spring.water))out.push({kind:'spring',x:s.spring.x,y:s.spring.y});
  const order=['puddle','crevice','lake','spring'];return out.sort((a,b)=>dist(a,r)-dist(b,r)||order.indexOf(a.kind)-order.indexOf(b.kind))[0]||null;}
 function show(s,r,w,by){if(!w)return;r.guideTo={kind:w.kind,id:w.id,x:w.x,y:w.y,until:s.worldTick+SK.guide.hold,by:by.id};r.nextObjectChoice=s.worldTick;}
 function startBosong(s,p,ctx){const D=SK.dig,friends=s.individuals.filter(q=>q.id!==p.id&&thirsty(q)&&dist(q,p)<lv(p,'dig','reach')&&!q.guideTo).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id));
