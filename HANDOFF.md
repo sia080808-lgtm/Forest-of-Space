@@ -986,3 +986,9 @@
 - 수정: 쉼터로 가는 다른 친구의 인원·공간을 빼고 남을 때만 후보, 바람 60 이상은 예외. 테스트 `shelter-sleep` 1.2.10, SH24-04·SH-AC05 기대 조정. 버전 1.2.10 / versionCode 96.
 - 검증: 관련 157개 통과, 측정 입구 기다림 비 8→0·해 질 녘 7→1. 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
 - 병합·릴리스: PR #81(https://github.com/sia080808-lgtm/Forest-of-Space/pull/81) main 병합 `e59a1ee890a426d7cf3150ecd1bc88b0b01f040f`(사용자 "머지해"; head `dcb6f28` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.10 `Forest-of-Space-1.2.10.apk` 74,402,098 bytes, SHA-256 `0ee0254037f0a394191cdbd56c051ee88dd1463ffedcec225cb3acdea83aca9b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode96/1.2.10. APK는 사용자에게 파일로 전달.
+
+### SRS-2.38-20261122 — 1.1.4~1.2.10 변경을 SRS에 반영 (문서만)
+
+- 담당: Claude Code. 요청: 사용자 "SRS는 업데이트 했나?" → "ㄱㄱ". 기준 main `e59a1ee`(1.2.10 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 새 문서: `docs/Forest-Life-SRS-v2.38.md`·`.pdf`(4쪽, `tools/build-srs-pdf.cjs`, 쪽 그림 확인). L38-01~12: 원칙, 비·추위·폭풍 피하기, 엘레판 우산 기다리기, 쉼터(예약·비켜 주기·꽉 찬 쉼터 고르지 않기), 물가 지점·쉼터 안 목마름, 걷는 길·기운 걸음, 닫아 둔 동안 성장 없음·엘리시 곁 범위, 꾸미기·관리자·설정, 화면(렌더 전용), 저장에 더한 값, 수락 기준↔테스트, 남은 일.
+- 코드·버전 변경 없음(APK 1.2.10 그대로). 제품 테스트는 새로 돌리지 않음(문서만).
