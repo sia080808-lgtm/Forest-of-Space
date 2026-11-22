@@ -992,3 +992,4 @@
 - 담당: Claude Code. 요청: 사용자 "SRS는 업데이트 했나?" → "ㄱㄱ". 기준 main `e59a1ee`(1.2.10 병합), 브랜치 `claude/festive-curie-mjk5mw`.
 - 새 문서: `docs/Forest-Life-SRS-v2.38.md`·`.pdf`(4쪽, `tools/build-srs-pdf.cjs`, 쪽 그림 확인). L38-01~12: 원칙, 비·추위·폭풍 피하기, 엘레판 우산 기다리기, 쉼터(예약·비켜 주기·꽉 찬 쉼터 고르지 않기), 물가 지점·쉼터 안 목마름, 걷는 길·기운 걸음, 닫아 둔 동안 성장 없음·엘리시 곁 범위, 꾸미기·관리자·설정, 화면(렌더 전용), 저장에 더한 값, 수락 기준↔테스트, 남은 일.
 - 코드·버전 변경 없음(APK 1.2.10 그대로). 제품 테스트는 새로 돌리지 않음(문서만).
+- 병합: PR #82(https://github.com/sia080808-lgtm/Forest-of-Space/pull/82) main 병합 `df8be1ff476be9bda44314e6e154605dfb4905b6`(사용자 "머지"; head `56e8786` 기준 simulation·CodeQL 성공). 문서만이라 앱 버전·APK는 1.2.10 그대로.
