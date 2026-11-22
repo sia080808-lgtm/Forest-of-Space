@@ -61,3 +61,24 @@ test('1.2.9 엘리시 does not walk in and out of the shelter while 리들리 re
   for(let i=0;i<1100;i++){F.step(s,1);if(i<760)continue;const p=s.individuals.find(x=>x.id==='ell'),ph=p.shelter?.phase;if(ph!==prev&&ph==='entering')enters++;if(ph==='restingInside')rested=true;prev=ph;}
   a.ok(rested,'엘리시 sat down in the shelter');a.ok(enters<=3,`entered ${enters} times in 340 s`);a.ok(F.valid(s),'save check');
 });
+
+// 1.2.9 (user: "길을 막고 있으면 그 자리에서 두세 번 서성이다가 지나가더라"): a corner of the kept way already walked through
+// stayed as the next point, so the friend turned back to it and paced to and fro until the way was searched again.
+test('1.2.9 a friend walking round another does not pace back and forth', () => {
+  const s=F.create(0,2);s.started=true;s.environment.tutorialDone=true;
+  const q=JSON.parse(JSON.stringify(s.individuals[0]));Object.assign(q,{id:'ell',species:'bonbon',name:'엘리시',x:.45,y:.55,walkPlan:null,motion:{kind:'idle',distance:0,tick:0}});s.individuals.push(q);
+  let flips=0,last=null;
+  for(let i=0;i<1100;i++){const p=s.individuals.find(x=>x.id==='ell'),x=p.x,y=p.y;F.step(s,1);if(i<760)continue;const dx=p.x-x,dy=p.y-y,d=Math.hypot(dx,dy);if(d<1e-5){last=null;continue;}if(last&&dx*last[0]+dy*last[1]<-.8*d*Math.hypot(...last))flips++;last=[dx,dy];}
+  a.ok(flips<=1,`turned back ${flips} times`);
+});
+
+// 1.2.9 (user: "리들리는 … 수분이 적정치 아래인데 자고 있더라"): a friend asleep in the shelter never went to the lake, so with
+// the spring dry it stayed thirsty through the night.
+test('1.2.9 a thirsty friend in the shelter walks out to the lake when the spring is dry', () => {
+  const W=require('../../app/src/main/assets/web/world'),V=require('../../app/src/main/assets/web/vitals');
+  const s=game(3),p=s.individuals[0];p.xp=20;W.openLake(s);const day=()=>((s.worldTick%1200)+1200)%1200;while(day()!==800)F.step(s,1);
+  const dry=()=>{s.spring.water=0;s.spring.snowWater=0;for(const z of s.patches)z.S=0;s.weather.kind='sun';s.weather.intensity=0;s.weather.transition=0;s.environment.precipFrom=null;s.weather.until=s.worldTick+999;};
+  a.equal(p.shelter.phase,'restingInside');p.B=V.band(p).lo-2;let drank=false;
+  for(let i=0;i<300&&!drank;i++){dry();F.step(s,1);if(p.B>=V.band(p).mid-1)drank=true;}
+  a.ok(drank,`still thirsty: ${p.B.toFixed(1)}`);a.ok(F.valid(s),'save check');
+});
