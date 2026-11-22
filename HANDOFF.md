@@ -1008,3 +1008,11 @@
 - 추가(사용자 "베이치가 무슨 물을 알려준다고 빈 샘터를 가리킴?" → "ㅇㅇ"): `skills.js` `waterFor` 샘터·바위틈은 그 친구가 마실 만큼(적정 가운데까지, 최대 10) 남았을 때만, 이미 가는 친구 몫 빼고. 테스트 1개 추가(고치기 전 실패), SK-AC04 바위틈 물 5→12.
 - 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
 - 병합·릴리스: PR #83(https://github.com/sia080808-lgtm/Forest-of-Space/pull/83, 1.2.11+1.2.12) main 병합 `35d34160966b8dd40598b3c0353490ed118c9e95`(사용자 "머지"; head `f0cdded` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.12 `Forest-of-Space-1.2.12.apk` 74,402,098 bytes, SHA-256 `3bd22aede4c7b35557ba019093d4d28a240e69e27ea40d2643bb68a6cd38ff7b` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode98/1.2.12. APK는 사용자에게 파일로 전달.
+
+### SHELTER-SOCIAL-1.2.13-20261122 — 쉼터를 옮기면 저장 검사에 막히던 문제
+
+- 담당: Claude Code. 요청: 사용자 "쉼터도 꾸미기에서 옮기는 기능으로 수정필요함. 그리고 쉼터 옮길 때 교감, 물 수정 확인 필요하면서 안되는 거임?". 기준 main `35d3416`(1.2.12 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `shelter.js` `build`가 `layoutRevision`만 올리고 `Social.invalidate`·`Obj.invalidate`를 하지 않아, 진행 중인 교감(CANOPY·A04·A12)의 `layout`이 어긋나 `Social.validate`가 거절.
+- 수정: `build`에서 두 invalidate를 먼저 호출(engine `layout`과 같음). 테스트 `storage` 1.2.13(고치기 전 실패). 버전 1.2.13 / versionCode 99.
+- 검증: 관련 테스트 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 확인 필요: 사용자가 원하는 '꾸미기에서 옮기기'가 지금 방식(쉼터 칩 → 쉼터 옮기기 화면 → 꾸미기로 돌아옴)인지, 다른 사물처럼 꾸미기 화면 안에서 바로 끌기인지.

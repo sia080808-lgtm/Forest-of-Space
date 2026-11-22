@@ -15,3 +15,10 @@ test('ST-03 the first shelter can be moved (it still cannot be put away)',()=>{c
  a.throws(()=>F.Shelter.build(s,f.id,'store'),/하나 남겨/);
  let moved=false;for(const [dx,dy] of [[.03,.03],[.05,0],[0,.05],[-.03,.04]]){try{F.Shelter.build(s,f.id,'move',{x:f.x+dx,y:f.y+dy});moved=true;break;}catch(e){}}a.ok(moved,'moved');F.valid(s);});
 test('ST-04 a rounding crumb below zero in a patch is set to zero (the save check passes)',()=>{const s=game();s.patches.find(p=>p.id==='shade').S=-6.9e-18;F.step(s);F.valid(s);const t=JSON.parse(JSON.stringify(s));t.patches.find(p=>p.id==='moss').S=-1e-17;F.valid(F.migrate(t));});
+
+test('1.2.13 moving, flipping or storing a shelter while friends share a moment (엘레판 그늘) ends that moment instead of failing the save check',()=>{
+ const F=require('../../app/src/main/assets/web/engine'),Sh=require('../../app/src/main/assets/web/shelter'),So=require('../../app/src/main/assets/web/social');
+ const mk=()=>{const s=F.create(1,2);s.started=true;s.worldTick=300;const b=s.individuals[0],e=JSON.parse(JSON.stringify(b));Object.assign(e,{id:'e1',species:'neolbi',name:'엘',x:b.x+.06,y:b.y});s.individuals.push(e);
+  s.social.sessions.push({id:'social-'+(++s.social.serial),type:'CANOPY',ids:['e1',b.id],key:'CANOPY:'+['e1',b.id].sort().join(':'),phase:'approach',elapsed:0,started:300,layout:s.layoutRevision,steps:0,total:0,rain:0,lastTick:-1});So.validate(s);return s;};
+ const s=mk(),f=s.shelters.facilities[0];Sh.build(s,f.id,'move',{x:f.x+.06,y:f.y});require('node:assert/strict').equal(s.social.sessions.length,0);So.validate(s);
+ const t=mk();Sh.build(t,t.shelters.facilities[0].id,'flip',{flip:true});So.validate(t);});
