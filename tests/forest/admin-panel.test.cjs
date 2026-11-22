@@ -23,7 +23,10 @@ test('ADM-05 calling a springtail makes a valid springtail on a leaf pile; at mo
 test('1.2.6 스킬 보기 runs every friend\'s skill',()=>{const F=require('../../app/src/main/assets/web/engine'),A=require('../../app/src/main/assets/web/admin.js'),S=require('../../app/src/main/assets/web/skills.js'),assert=require('node:assert/strict');
  const s=F.create(5,4);s.started=true;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;for(const [sp,x,y] of [['bonbon',.6,.55],['neolbi',.3,.6],['bosong',.42,.5],['jureong',.5,.7],['superbum',.7,.4]])s.individuals.push({...F.clone(s.individuals[0]),id:'p-'+sp,species:sp,name:sp,x,y,active:true});
  F.valid(s);for(let i=0;i<600;i++)F.step(s);A.run(F,s,'time','morning');A.run(F,s,'weather','sun');for(let i=0;i<5;i++)F.step(s);
+ // 1.2.9: start every friend healthy (who happens to be thirsty or resting in the shelter after 600 s depends on its walks)
+ for(const p of s.individuals)Object.assign(p,{B:50,nutrition:50,energy:Math.max(p.energy,60)});
  const want={ridley:'brush:do',bosong:'dig:sniff',jureong:'rake:rake',neolbi:'soc:CANOPY',superbum:'soc:A04',bonbon:'mist'};
- for(const p of s.individuals){const t=F.clone(s);A.run(F,t,'skillShow',p.id);F.valid(t);const q=t.individuals.find(z=>z.id===p.id),seen=new Set();
+ for(const p of s.individuals){const t=F.clone(s),me=()=>t.individuals.find(z=>z.id===p.id);for(let k=0;k<300&&(F.Shelter.inside(t,me())||me().shelter?.facilityId);k++)F.step(t);if(p.species==='neolbi'){assert.throws(()=>A.run(F,F.clone(t),'skillShow',p.id),/젖은 이끼/);for(const z of t.patches)if(z.id==='moss')z.S=0;const h=me(),r=t.individuals.find(z=>z.species==='bonbon');for(let k=0;k<32;k++){const a=k*Math.PI/8,q={x:h.x+Math.cos(a)*(.1+.01*(k>>4)),y:h.y+Math.sin(a)*.06};if(F.Space.walkable(t,q,r.id)){r.x=q.x;r.y=q.y;delete r.walkPlan;break;}}F.valid(t);}   // and a friend is brought beside it   // 1.2.9: by wet moss the umbrella cannot open, and 스킬 보기 now says so
+  A.run(F,t,'skillShow',p.id);F.valid(t);const q=t.individuals.find(z=>z.id===p.id),seen=new Set();
   for(let i=0;i<90;i++){F.step(t);if(q.skill)seen.add(q.skill.k+':'+q.skill.phase);const a=t.social.sessions.find(a=>a.ids[0]===q.id);if(a)seen.add('soc:'+a.type);if(S.misters(t).some(e=>e.id===q.id))seen.add('mist');}
   F.valid(t);assert.ok(seen.has(want[p.species]),p.species+' '+[...seen]);}});
