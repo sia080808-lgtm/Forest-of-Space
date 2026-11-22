@@ -51,3 +51,13 @@ test('1.2.6 a garden played for 2 hours, then heavy rain at noon: most friends t
 test('1.2.6 heavy rain: a hungry friend takes cover instead of wandering to compost that is closed',()=>{const A=require('../../app/src/main/assets/web/admin.js');const s=play();for(let i=0;i<200;i++)F.step(s);A.run(F,s,'time','noon');A.run(F,s,'weather','rain');
  const p=s.individuals.find(q=>q.species==='bonbon');Object.assign(p,{nutrition:30,B:50,energy:90});F.Objects.release(s,p,'interrupt');p.nextObjectChoice=0;for(let t=0;t<6;t++){s.weather.remaining=Math.max(s.weather.remaining,30);F.step(s);}
  a.notEqual(p.objectTask?.reason,'nutrition');a.ok(['shelterRain','safety'].includes(p.objectTask?.reason)||s.social.sessions.some(x=>x.ids.includes(p.id)),'covering: '+p.objectTask?.reason+' / '+p.objectWait?.reason);});
+
+// 1.2.9 (user: "엘리시 쉼터에 들어갔다 나왔다 … 반복만 하고 있음"): with 리들리 resting by the door, 엘리시 took longer than its booking
+// to walk round it, so the booking ran out a tick before it sat down; it walked out and booked the same seat again every 29 s.
+test('1.2.9 엘리시 does not walk in and out of the shelter while 리들리 rests at the door', () => {
+  const s=F.create(0,2);s.started=true;s.environment.tutorialDone=true;
+  const q=JSON.parse(JSON.stringify(s.individuals[0]));Object.assign(q,{id:'ell',species:'bonbon',name:'엘리시',x:.45,y:.55,walkPlan:null,motion:{kind:'idle',distance:0,tick:0}});s.individuals.push(q);
+  let prev='',enters=0,rested=false;
+  for(let i=0;i<1100;i++){F.step(s,1);if(i<760)continue;const p=s.individuals.find(x=>x.id==='ell'),ph=p.shelter?.phase;if(ph!==prev&&ph==='entering')enters++;if(ph==='restingInside')rested=true;prev=ph;}
+  a.ok(rested,'엘리시 sat down in the shelter');a.ok(enters<=3,`entered ${enters} times in 340 s`);a.ok(F.valid(s),'save check');
+});

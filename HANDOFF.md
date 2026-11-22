@@ -967,3 +967,11 @@
 - 남은 일: 밤 시안(C)을 숲의 시간에 맞춰 바꾸기는 아직(사용자 "일단 낮 시안").
 - 추가(같은 PR #79, 사용자 "인게임 안개 연출은 안개 느낌이 안듦" → 시안 C → 번지기 → "섞어봐" → "좋네 저거 pr한 다음 머지해"): `world-effects.js` `fog`(곱하기 0.22, 구운 덩어리 3장, 흐르는 5개+가장자리 12개), `particles`의 옛 가로 띠 삭제, `scene.js` `draw`에서 조명 뒤에 호출. `render`·`update218` 25개·UI PASS, 렌더 `docs/qa-1.2.8/fog.png`.
 - 병합·릴리스: PR #79(https://github.com/sia080808-lgtm/Forest-of-Space/pull/79) main 병합 `265089f7257785c9529341c231a007b44f5470e7`(사용자 "좋네 저거 pr한 다음 머지해"; head `60d1e62` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.8 `Forest-of-Space-1.2.8.apk` 74,398,002 bytes, SHA-256 `28c70891e5055de5d0f41dc98fbfaa8612e029b74bf22c1df96e8e9c5b2e2e4e` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode94/1.2.8, APK 안 `fog`·`welcome.js` 포함. APK는 사용자에게 파일로 전달.
+
+### SHELTER-BOOKING-1.2.9-20261122 — 엘리시가 쉼터에 들어갔다 나왔다 반복
+
+- 담당: Claude Code. 요청: 사용자 1.2.8(블루스택 Android 13) 화면 "엘리시 쉼터에 들어갔다 나왔다 … 반복만 하고 있음. 원인 찾고 디버깅 PR". 기준 main `265089f`(1.2.8 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인(엔진 재현, 친구 2명 새 숲 시드 2): 리들리가 입구 쪽 자리에 앉아 있으면 엘리시가 돌아가느라 예약 시간(이동 시간+5초, 최대 30초)을 넘겨, 자리에 닿은 순간 `prepare`의 만료 검사로 `exiting` → 다시 예약, 29초 주기.
+- 수정: `shelter.js` 예약 시간 이동×1.5+10(최대 60), 만료는 멈춰 있을 때(`stalled>0`·입구 밖)만, 끝난 뒤 60초 지나면 무조건. (자리에 닿은 그 틱에 앉게 하는 안은 SH-AC01 '움직인 틱에는 안에서 쉬지 않음'에 걸려 뺐다.) 테스트 `shelter-sleep` 1.2.9. 버전 1.2.9 / versionCode 95.
+- 검증: 관련 91개 통과, 시드 6개 300초 최대 입장 5~10 → 2~3. 전체는 CI. 실기기 미검증.
+- 참고: 블루스택은 기본 인스턴스가 Android 9(Pie)라 minSdk 29 APK가 설치되지 않음 → 사용자에게 Android 13 인스턴스 안내(설치·실행 확인됨).
