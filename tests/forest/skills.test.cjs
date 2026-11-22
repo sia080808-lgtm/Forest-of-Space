@@ -71,3 +71,7 @@ test('SK-AC10 skill records survive a save round trip and bad ones are refused',
 
 test('SK skill info and card lines exist for every friend kind',()=>{for(const sp of ['superbum','bosong','neolbi','jureong','ridley','bonbon'])a.ok(K.INFO[sp]?.name&&K.INFO[sp].line);
  const s=game();const r=friend(s,'ridley',.4,.5);r.skill={k:'brush',target:s.individuals[0].id,phase:'do',start:s.worldTick};a.match(K.status(s,r),/잎을 털어 주고 있어요/);});
+
+test('1.2.12 a friend 베이치 showed to a spring that ran dry looks for other water at once instead of idling for the 120 s guide',()=>{const s=game();solo(s);require(web+'/world').openLake(s);const moss=s.patches.find(z=>z.id==='moss');s.spring.water=0;
+ const r=friend(s,'ridley',moss.x,moss.y,{B:22});r.guideTo={kind:'spring',id:'spring',x:moss.x,y:moss.y,until:s.worldTick+120,by:'x'};r.nextObjectChoice=s.worldTick;
+ for(let i=0;i<60;i++)F.step(s);a.equal(r.guideTo,undefined,'the stale guide is dropped');a.ok(r.B>22,'drank elsewhere within a minute (B '+r.B.toFixed(1)+')');});
