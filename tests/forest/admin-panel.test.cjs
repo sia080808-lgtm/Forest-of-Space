@@ -30,3 +30,9 @@ test('1.2.6 스킬 보기 runs every friend\'s skill',()=>{const F=require('../.
   A.run(F,t,'skillShow',p.id);F.valid(t);const q=t.individuals.find(z=>z.id===p.id),seen=new Set();
   for(let i=0;i<90;i++){F.step(t);if(q.skill)seen.add(q.skill.k+':'+q.skill.phase);const a=t.social.sessions.find(a=>a.ids[0]===q.id);if(a)seen.add('soc:'+a.type);if(S.misters(t).some(e=>e.id===q.id))seen.add('mist');}
   F.valid(t);assert.ok(seen.has(want[p.species]),p.species+' '+[...seen]);}});
+// 1.2.11 (user: 강풍이 90초 뒤 45로 약해지는 규칙 — 보통 게임은 그대로, 관리자 '날씨 고정'은 고정): the locked wind keeps blowing
+test('1.2.11 admin weather lock keeps a gale blowing; without the lock it fades to 45 after 90 s',()=>{const A=require('../../app/src/main/assets/web/admin'),fs=require('node:fs'),path=require('node:path');
+ const src=fs.readFileSync(path.join(__dirname,'../../app/src/main/assets/web/forest-app.js'),'utf8');a.match(src,/adminOn&&adminLock\)\{[^}]*strongSeconds=0/,'the app tick resets the fade timer while locked');
+ const s=F.create(0,3);s.started=true;s.environment.tutorialDone=true;A.run(F,s,'weather','gale');
+ for(const lock of [false,true]){const t=F.clone(s);let min=999;for(let i=0;i<300;i++){if(lock){t.weather.remaining=Math.max(t.weather.remaining||0,30);t.weather.strongSeconds=0;}F.step(t);if(i>20)min=Math.min(min,t.weather.wind);}
+  if(lock)a.ok(min>=60,'locked gale stays strong: '+min);else a.ok(min<=45,'unlocked gale fades: '+min);}});
