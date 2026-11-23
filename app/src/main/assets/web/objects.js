@@ -135,6 +135,11 @@ function rainCover(s,p){const E=dep('environment');return (stormy(s)||E.precipit
 function coldCall(s,p){const V=dep('vitals');if(!V.isCold(s)||dep('traits').ofPet(p).cold>=0||p.mounted)return false;if(dep('shelter').inside(s,p)||V.restingAt(p,'rock')&&V.rockSun(s)>0)return false;return true;}
 // 1.2.1: a friend waits by 엘레판 for its leaf only when that can really happen (both healthy enough for a leaf umbrella,
 // 엘레판 outside and not tied up) or the umbrella is already over it; otherwise it takes cover like everyone else
+/* 1.2.19 (user: "우산문제도 pr"): two friends under 엘레판's leaf umbrella can stand right by the shelter door for the whole rain. A friend
+   heading in (슈퍼범, 코로나) then found no way, re-booked, found no way again … — each failed search is the slowest thing the engine
+   does (~0.1 s), every few seconds, all rain long. A door it cannot get through now counts like a full shelter: after 8 s it goes
+   somewhere else, and keeps away for 5 minutes (a full shelter: 2). */
+function blockedDoor(p){const a=p.shelter;return !!a&&(a.phase==='rerouting'||a.phase==='waitingOutside'&&a.waitReason==='path'||a.phase==='moving'&&!!p.walkPlan&&Array.isArray(p.walkPlan.pts)&&!p.walkPlan.pts.length);}
 function underLeaf(s,p){if(s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids.includes(p.id)))return true;const W=dep('weather-care');if(!W.leafFit(s,p)||gaveUpLeaf(s,p))return false;/* 1.2.3 (user: "봄에 큰비로 … 아무도 안 들어가"): the umbrella holds one friend; once 엘레판 has opened it over someone else the other friends nearby stopped waiting forever in the rain — now only a 엘레판 whose umbrella is still free counts */return s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&!z.mounted&&!dep('shelter').inside(s,z)&&!s.social?.sessions?.some(a=>a.ids.includes(z.id))&&!gaveUpLeaf(s,z)&&W.leafFit(s,z)&&s.weather.wind<W.limit(z)&&Math.hypot(z.x-p.x,z.y-p.y)<.3);}
 // 엘레판 stays out in the rain only while a friend it could hold its leaf over is close by and outside
 /* 1.2.6 (user: "겨울에도 … 큰 비에도 안들어가"): the wait for 엘레판's leaf umbrella could never end — the umbrella only opens for two friends with nothing else to do (and not beside wet moss), but the waiting friends kept what they were doing (엘리시 asleep on the sun rock, 엘레판 asleep on the moss) and stood in the downpour. A friend that has waited 10 s without the umbrella opening gives up on it for 2 minutes and takes cover */function gaveUpLeaf(s,p){return p.leafGiveUp>s.worldTick;}
@@ -245,7 +250,7 @@ function choose(s,p,rng){
  // 1.2.4: a friend sheltering from strong wind (safety) also gives up a full shelter after 8 s and takes the crevice, rock or shade instead of standing in the storm.
  // 0.8.3: a friend waiting outside a full shelter (seats taken while it walked there) gives it up after 8 s and rests
  // elsewhere instead of waiting all night (sleep, rain, a free visit); a tired friend or one sheltering from a storm keeps waiting.
- {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free','warm','safety'].includes(c.reason)&&p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){release(s,p,'full');p.restCooldown=s.worldTick+120;p.nextObjectChoice=0;}}}
+ {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free','warm','safety'].includes(c.reason)&&(p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)||blockedDoor(p))){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){const door=blockedDoor(p);release(s,p,'full');p.restCooldown=s.worldTick+(door?300:120);p.nextObjectChoice=0;}}}
  const current=p.objectTask,danger=(Sh.inside(s,p)?s.weather.wind:W.wind(s,p))>=60||p.burden>=40||p.wetRecovery||((p.leafRecovery||p.damage>=10)&&p.B>=40&&p.nutrition>=40);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);

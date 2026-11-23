@@ -107,8 +107,12 @@ function gait(p,s){if(s.weather.wind>=60)return {kind:p.energy<40?'walk':'run',s
 // again when that stretch is blocked, the destination changes, the way runs out, or every REPLAN seconds (so a shorter
 // way that opened up is still found). A straight clear line to the destination always wins over the kept way.
 const REPLAN=8,NOWAY=3;   // a failed search (the slowest kind) is not repeated for NOWAY seconds
-function keptPlan(s,p,destination){const wp=p.walkPlan;if(!wp||Math.abs(wp.tx-destination.x)>1e-9||Math.abs(wp.ty-destination.y)>1e-9||s.worldTick-wp.at>=REPLAN||!wp.pts)return null;
- if(!wp.pts.length)return s.worldTick-wp.at<NOWAY&&Math.abs(wp.fx-p.x)<1e-9&&Math.abs(wp.fy-p.y)<1e-9?false:null;
+function keptPlan(s,p,destination){const wp=p.walkPlan;if(!wp||!wp.pts||s.worldTick-wp.at>=REPLAN)return null;
+ /* 1.2.19 (user: "우산문제도 pr"): a target that drifts a little every second (the spot next to a friend standing under 엘레판's leaf
+    umbrella by the shelter door) missed this cache each time, so the slowest kind of search — one that finds no way — ran every
+    second (~60 ms a tick for one friend). A failed search now also covers targets within 0.03 of the one that failed. */
+ if(!wp.pts.length)return s.worldTick-wp.at<NOWAY&&Math.abs(wp.fx-p.x)<1e-9&&Math.abs(wp.fy-p.y)<1e-9&&Math.hypot(wp.tx-destination.x,wp.ty-destination.y)<.03?false:null;
+ if(Math.abs(wp.tx-destination.x)>1e-9||Math.abs(wp.ty-destination.y)>1e-9)return null;
  while(wp.pts.length>1&&distance(p,wp.pts[0])<1e-6)wp.pts.shift();
  const was=LEGACY;LEGACY=!!wp.legacy;try{const obs=obstacles(s),ok=q=>segment(s,p,q,p.id,obs)&&clearFriends(s,p,p,q);
   if(wp.pts.length>1&&ok(destination))return [destination];return ok(wp.pts[0])?wp.pts:null;}finally{LEGACY=was;}}
