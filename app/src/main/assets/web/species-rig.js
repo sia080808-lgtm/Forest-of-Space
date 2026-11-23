@@ -41,7 +41,7 @@ function duriActor(c,k,x,y,t,pose={}){
  crown(c,k,t,{...pose,rest});
  for(let i=0;i<2;i++){const h=hands[i];c.drawImage(A.palm,h.x-1.35,h.y-1.6,2.7,3.2);}
  if(pose.leafHeld){const h=hands[pose.handSide??1];leaf(c,0,h.x,h.y-1,1.05,Math.sin(t*4)*.3,0,false);}
- if(mode==='drink')drop(c,hands[0].x,hands[0].y-.9,.6);
+ if(mode==='drink')ellipse(c,hands[0].x,hands[0].y-.9,.5,.7,'#a8ccd1');
  c.restore();return {hands:hands.map(h=>({x:x+h.x*g,y:y+(h.y+bob-lift+rest*.9)*g})),face:{x:x,y:y+(fy+bob-lift)*g},width:bw*g,height:bh*g};
 }
 function img(c,d,r,x,y,w,h){c.drawImage(d.im,...r,x,y,w,h);if(r===d.leaf&&d.snow>0){const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;if(!d.snowLeaf){d.snowLeaf=createCanvas(r[2],r[3]);d.snowLeaf.getContext('2d').drawImage(d.im,...r,0,0,r[2],r[3]);}E.snow(c,d.snowLeaf,d.snow,x,y,w,h);}}

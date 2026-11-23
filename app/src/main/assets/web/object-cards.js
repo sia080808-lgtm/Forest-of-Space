@@ -4,7 +4,12 @@ const O=F.Objects,Sh=F.Shelter,escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'
 const number=v=>Number(Math.max(0,v).toFixed(2)).toString(),amount=v=>v>0&&v<.1?'0.1 미만':Number(Math.max(0,v).toFixed(1)).toString();
 const metric=(id,label,value,note='')=>({id,label,value,note});
 function usage(s,id){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.objectTask?.object===id),inside=ps.filter(p=>O.at(s,p));return {count:inside.length,moving:ps.length-inside.length,used:inside.reduce((n,p)=>n+Sh.units(p),0)/4,reserved:ps.filter(p=>!inside.includes(p)).reduce((n,p)=>n+Sh.units(p),0)/4};}
-function model(s,id){if(id==='shelter')id='shelter-0';const f=Sh.facility(s,id),z=f||O.patch(s,id);if(!z)return null;
+function model(s,id){if(id==='lily-boat'){
+ const b=s.world?.lake?.boat;if(!b)return null;
+ const rider=s.individuals.find(p=>p.id===b.rider);
+ return {id,name:'떠다니는 연잎',description:'물결 휴식 · 기운 ↑ 수분 ↑ 잎 해충 ↓',status:rider?F.Boat.reason(s,rider):F.World.frozen(s)?'호수가 얼어 쉬고 있어요':b.drift?'다른 물가로 떠가고 있어요':'물가에 떠 있어요',
+ metrics:[metric('rider','탑승자',rider?.name||'없음'),metric('capacity','정원','1명')],rows:[['행선지',b.cross?'동쪽 물가':'출발한 물가로 돌아와요']],effects:['기운 최대 +3 · 이슬 수분 최대 +2 · 솜깍지와 잎응애 각각 최대 −2'],actions:[],gauge:null};}
+ if(id==='shelter')id='shelter-0';const f=Sh.facility(s,id),z=f||O.patch(s,id);if(!z)return null;
  const m={id,name:f?['','기본 쉼터','넓은 쉼터','큰 쉼터'][f.level]:id==='spring'?'샘터':z.name,description:'',status:'',metrics:[],rows:[],effects:[],actions:[],gauge:null};
  const u=f?null:usage(s,id),meter=(label,value,max,tone='water')=>({label,max,parts:[{label,value,tone}],free:Math.max(0,max-value)});
  const sample=f?f:id==='spring'?s.spring:O.region(s,id,'rest'),light=Math.round(F.light(s,sample)),probe={...s.individuals[0],...sample,mounted:false,shelter:{phase:'outside'}};

@@ -11,3 +11,26 @@ test('species dispatch uses original species art, with no virtual arms on Elepha
 
 // A queued reservation must never paint the shelter source-paper over the pet.
 test('shelter foreground does not paint outside, approaching or waiting characters',()=>{const {scene,s,calls}=sceneFixture(),p=s.individuals[0],f=s.shelters.facilities[0];scene.assets.garden={name:'garden'};for(const phase of ['moving','waitingOutside','outside','entering','exiting']){p.shelter={phase,facilityId:f.id};const n=calls.filter(x=>x.k==='drawImage').length;scene.shelterFront(p,require('../../app/src/main/assets/web/shelter.js').entry(f));a.equal(calls.filter(x=>x.k==='drawImage').length,n,phase);}p.shelter={phase:'restingInside',facilityId:f.id};const q=F.Shelter.seat(s,f,p);a.ok(q);scene.shelterFront(p,q);a.ok(calls.some(x=>x.k==='drawImage'));a.ok(calls.filter(x=>x.k==='clip').length>=2);});
+
+test('lily motion uses every species rig through boarding, paddling, dew, shaking and landing',async()=>{
+ const {createCanvas,loadImage}=require('@napi-rs/canvas');
+ const {scene,s}=sceneFixture(),p=s.individuals[0];
+ for(const [key,file] of Object.entries(require('../../app/src/main/assets/web/rig.js').files))
+  scene.assets[key]=await loadImage(require('path').resolve(__dirname,'../../app/src/main/assets/web',file));
+ const canvas=createCanvas(240,240);scene.ctx=canvas.getContext('2d');scene.w=240;scene.h=240;
+ F.World.openLake(s);s.world.lake.boat={rider:p.id,start:100,duration:30};
+ for(const species of ['ridley','bonbon','neolbi','bosong','jureong','duri','superbum']){
+  p.species=species;
+  for(const age of [.8,2,6,10.5,13.3,29.5]){
+   s.worldTick=100+Math.floor(age);scene.tickAt=s.worldTick;scene.phase=100+age;
+   const pose=scene.lilyRidePose(p);
+   if(age===.8||age===29.5)a.ok(pose.hop>0);
+   if(age===6)a.ok(pose.paddle>0);
+   scene.ctx.clearRect(0,0,240,240);scene.pet(p,{x:.5,y:.6},'rest',scene.phase,false);
+   a.ok(scene.ctx.getImageData(0,0,240,240).data.some((v,i)=>i%4===3&&v>200),species);
+  }
+ }
+ s.settings.reducedMotion=true;a.equal(scene.lilyRidePose(p).hop,0);
+ delete s.world.lake.boat.rider;p.species='duri';
+ for(const kind of ['sniff','drink'])scene.pet(p,{x:.5,y:.6},kind,scene.phase,false);
+});

@@ -68,6 +68,15 @@ function routeOnce(s,start,end,id,avoidFriends){
  const obs=obstacles(s),actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>segment(s,a,b,id,obs)&&(!actor||clearFriends(s,actor,a,b));
  if(!end||!walkable(s,end,id,null,obs))return null;if(clear(start,end))return [end];
  const nodes=[{x:start.x,y:start.y},{x:end.x,y:end.y}];
+ // Give the visibility graph corners around open water for trips to and from the far bank.
+ const lake=World.LAKE;
+ if(Math.max(start.x,end.x)>lake.cx&&World.lakeOpen(s)&&!World.frozen(s)){
+  for(let k=0;k<16;k++){
+   const angle=k*Math.PI/8;
+   const q={x:lake.cx+Math.cos(angle)*lake.ru*1.19,y:lake.cy+Math.sin(angle)*lake.rv*1.19};
+   if(walkable(s,q,id,null,obs))nodes.push(q);
+  }
+ }
  // Expanded corners around fixed footprints form a small deterministic visibility graph.
  for(const z of obs){
   const rx=z.rx+.018,ry=z.ry+.018;

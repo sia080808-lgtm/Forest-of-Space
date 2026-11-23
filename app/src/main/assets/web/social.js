@@ -40,7 +40,7 @@ function shadeAt(p,q){return Neolbi.covers(p,q);}
 function shadeFactor(s,q){const fixed=s.patches.find(p=>p.id==='shade');let count=fixed&&Math.hypot(fixed.x-q.x,fixed.y-q.y)<.16?1:0;count+=shades(s).filter(p=>shadeAt(p,q)).length;return Math.min(.7,1-Math.pow(.65,count));}
 function unionArea(ps){let count=0;for(let y=.15;y<=.91;y+=.0125)for(let x=.08;x<=.92;x+=.0125)if(ps.some(p=>shadeAt(p,{x,y})))count++;return count;}
 function expanded(ps){return ps.length>=2&&unionArea(ps)>Math.max(...ps.map(p=>unionArea([p])))+2;}
-function available(s,p){return !s.social.sessions.some(a=>a.ids.includes(p.id));}
+function available(s,p){return p.id!==s.world?.lake?.boat?.rider&&!s.social.sessions.some(a=>a.ids.includes(p.id));}
 function stop(s,session,reason){s.social.sessions=s.social.sessions.filter(x=>x!==session);s.social.cooldowns[session.key]=s.worldTick+120;for(const id of session.ids){const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;p.socialUntil=s.worldTick+15;p.canopy=false;delete p.socialRole;delete p.protectedBy;if(reason==='unsafe'||reason==='interrupted'||reason==='layout'){p.canopyProgress=0;p.action='rest';p.target='shelter';}}}session.reason=reason;}
 function cancel(s,id){init(s);for(const a of [...s.social.sessions])if(a.ids.includes(id))stop(s,a,'interrupted');delete s.social.observations.EC03;const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
 function invalidate(s){init(s);for(const a of [...s.social.sessions])stop(s,a,'layout');s.social.observations={};for(const p of s.individuals){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
