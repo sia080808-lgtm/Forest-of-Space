@@ -37,10 +37,18 @@ class ForestScene {
  // paper-white with a faint cool grey wash along its edges, like snow left blank in an ink painting
  // 1.0.2 (user: B): in a winter whose lake stays open (마른 숲 건기) the snow still covers the shore; only the open water of
  // the lake picture shows, cut out with the ice picture's shape (render only, built once)
- openWater(){if(this._openWater!==undefined)return this._openWater;const f=this.assets.lakeFloor,i=this.assets.lakeIce;if(!f||!i||typeof document==='undefined'||!document.createElement)return this._openWater=f||null;
-  const cv=document.createElement('canvas');cv.width=f.width;cv.height=f.height;const q=cv.getContext('2d');q.drawImage(f,0,0);q.globalCompositeOperation='destination-in';q.drawImage(i,0,0,f.width,f.height);return this._openWater=cv;}
+ openWater(f=this.assets.lakeFloor){
+  const ice=this.assets.lakeIce;if(!f||!ice||typeof document==='undefined'||!document.createElement)return f||null;
+  this.openWaterCache??=new WeakMap();
+  if(!this.openWaterCache.has(f)){
+   const cv=document.createElement('canvas');cv.width=f.width;cv.height=f.height;
+   const q=cv.getContext('2d');q.drawImage(f,0,0);q.globalCompositeOperation='destination-in';q.drawImage(ice,0,0,f.width,f.height);
+   this.openWaterCache.set(f,cv);
+  }
+  return this.openWaterCache.get(f);
+ }
  // winter: the whole ground lies under snow (paper-white); the objects' winter pictures have snow-white edges
- snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);{const LW=typeof ForestWorld!=='undefined'?ForestWorld:Forest.World;if(LW?.lakeOpen?.(s)){const img=LW.frozen?.(s)===false?this.openWater():this.assets.lakeIce;if(img)c.drawImage(img,1.05*w,-.25*h,2.25*w,1.5*h);}}   /* 0.9.0: the lake freezes under the snow */
+ snowCover(c,w,h,s){const W=(typeof ForestWorld!=='undefined'?ForestWorld:Forest.World)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1};c.save();c.fillStyle='rgb(250,250,247)';c.fillRect(W.x0*w,W.y0*h,(W.x1-W.x0)*w,(W.y1-W.y0)*h);{const LW=typeof ForestWorld!=='undefined'?ForestWorld:Forest.World;if(LW?.lakeOpen?.(s)){const img=LW.frozen?.(s)===false?this.openWater():this.assets.lakeIce;if(img)c.drawImage(img,1.05*w,-.25*h,2.25*w,1.5*h);if(!LW.frozen(s))this.drawLakeLight(c,w,h,s);}}   /* 0.9.0: the lake freezes under the snow */
   // a few very faint, broad grey washes: the gentle rise and fall of the snow (barely visible, no clutter)
   for(let i=0;i<9;i++){const x=(W.x0+((i*.618034+.21)%1)*(W.x1-W.x0))*w,y=(W.y0+((i*.381966+.13)%1)*(W.y1-W.y0))*h,r=(.18+.08*(i%3))*w,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(170,178,184,.07)');g.addColorStop(1,'rgba(170,178,184,0)');c.save();c.translate(x,y);c.scale(1,.38);c.translate(-x,-y);c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.restore();}
   c.restore();}
@@ -75,7 +83,7 @@ class ForestScene {
  constructor(canvas,getState){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.state=getState;this.assets={};this.selected=null;this.editing=false;this.preview={};this.selectedPatch='moss';this.phase=0;this.display={};this.ready=false;this.onSelect=()=>{};this.onMove=()=>{};this.paused=false;this.drag=null;this.last=0;this.resize=new ResizeObserver(()=>this.measure());this.resize.observe(canvas);this.measure();
   let saved;try{saved=JSON.parse(localStorage.getItem('forest-camera-v2'));}catch{}this.camera=new ForestCamera(saved);this.measure();
  }
- async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
+ async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lakeDusk','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',lakeDusk:'assets/forest/lake/lake-dusk.webp',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
 
  prepareLitter(){const im=this.assets.terrain,c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.drawImage(im,512,512,512,512,0,0,512,512);const silhouette=document.createElement('canvas');silhouette.width=silhouette.height=512;const q=silhouette.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle='rgba(62,53,30,.19)';q.fillRect(0,0,512,512);this.litterShadow=silhouette;{/* 1.1.6: the litter shadow's soft edge is baked once (it was a blur filter every frame) */const soft=document.createElement('canvas');soft.width=soft.height=512;const sx=soft.getContext('2d');sx.filter='blur(.6px)';sx.drawImage(silhouette,0,0);this.litterShadowSoft=soft;}this.litterPicked=document.createElement('canvas');this.litterPicked.width=im.width;this.litterPicked.height=im.height;const v=this.litterPicked.getContext('2d');v.drawImage(im,0,0);v.save();v.globalCompositeOperation='destination-out';v.beginPath();v.ellipse(803,714,62,29,-.12,0,Math.PI*2);v.fill();v.restore();}
  measure(){const r=this.canvas.getBoundingClientRect();if(!r.width||!r.height)return;this.vw=r.width;this.vh=r.height;this.w=360;this.h=576;this.camera?.resize(r.width,r.height);const d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.max(1,r.width*d);this.canvas.height=Math.max(1,r.height*d);this.ctx.setTransform(d,0,0,d,0,0);this.cameraChanged();}
@@ -399,11 +407,22 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(st==='full'||st==='half'){if(tk==='night'||tk==='deep'||s.weather.kind==='rain'&&s.weather.intensity>=.6)st='bud';else if(st==='full'&&(tk==='dusk'||tk==='dawn'))st='half';}
    const im=A['lily_'+st];if(!im)continue;let hsh=0;for(const ch of l.id)hsh=(hsh*31+ch.charCodeAt(0))>>>0;const k=.85+(hsh%31)/100,dw=64*k,dh=dw*im.height/im.width,flip=hsh&1;
    c.save();c.translate(l.x*w,l.y*h+Math.sin(t*.8+hsh)*.35);if(flip)c.scale(-1,1);c.drawImage(im,-dw*160/320,-dh*130/220,dw,dh);c.restore();}}
- drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest;
+ drawLakeLight(c,w,h,s,includeFloor=false){
+  const W=Forest.World,L=W.LAKE;
+  const p=this.camera.screen({x:L.cx,y:L.cy}),rx=L.ru*w*this.camera.scale*1.25,ry=L.rv*h*this.camera.scale*1.25;
+  if(p.x+rx<0||p.x-rx>this.vw||p.y+ry<0||p.y-ry>this.vh)return;
+  const dusk=this.assets.lakeDusk;
+  if(typeof ForestEffects!=='undefined')return ForestEffects.lakeLight?.(c,s,L,w,h,this.phase,this.assets.lakeFloor,
+   dusk&&!includeFloor?()=>this.openWater(dusk):dusk,includeFloor);
+ }
+ drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest,s=this.state();
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
    // 0.9.0 동쪽 호수 물가 (0.9.5: the whole lake, art x 1.05..3.3) (fading in over the forest's east edge); only the open part shows (world clip)
-   if(A.lakeFloor&&Forest.World?.lakeOpen?.(this.state()))c.drawImage(A.lakeFloor,1.05*w,-.25*h,2.25*w,1.5*h);
-   if(Forest.World?.lakeOpen?.(this.state())){this.drawLilies(c,w,h);this.drawLakeLife(c,w,h);}
+   if(Forest.World?.lakeOpen?.(s)){
+    const lit=!Forest.World.frozen(s)&&this.drawLakeLight(c,w,h,s,true);
+    if(A.lakeFloor&&!lit)c.drawImage(A.lakeFloor,1.05*w,-.25*h,2.25*w,1.5*h);
+    this.drawLilies(c,w,h);this.drawLakeLife(c,w,h);
+   }
    for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);this.seasonal('fern'+i,f=>c.drawImage(f,-dw/2,-dh,dw,dh));c.restore();}}
   else{this.prepareShelter();c.drawImage(this.shelterPaper,0,0,w,h);}}
  // the fern frame: fixed to the screen edges at today's size (where the garden's edge ferns sat in the default view),

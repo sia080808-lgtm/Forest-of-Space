@@ -50,5 +50,121 @@ function fog(c,s,w,h,t){const E=typeof module==='object'?require('./environment.
  const put=(p,size,alpha,x,y)=>{const im=wisp(p.n),dw=size*p.k*w*1.8,dh=size*p.k*w*.75;c.globalAlpha=alpha;c.drawImage(im,x*w-dw/2,y*h-dh/2,dw,dh);};
  c.save();for(const p of HAZE){const x=((p.x+tt*p.v+.4)%1.7+1.7)%1.7-.4;put(p,.7,.9*amt,x,p.y);}
  for(const p of EDGE)put(p,.44,amt,p.x+Math.sin(tt*.07+p.a)*.02,p.y+Math.cos(tt*.05+p.a)*.01);c.restore();}
-return {canvas,snow,mask,rainProfile,rain,particles,grade,gradeOver,fog};
+const moons=[];
+const TWO_PI=2*Math.PI;
+const moonStrength=[0,.54,.73,.87,1,.87,.73,.54];
+const shimmerPoints=Array.from({length:72},(_,i)=>{
+ const along=frnd(i,21);
+ return {
+  x:(along-.5)*.92+(frnd(i,22)-.5)*(.53+along*.44),
+  y:(along-.5)*1.58,
+  taper:Math.sin(Math.PI*along)**.65,
+  length:frnd(i,23)**2,
+  offset:frnd(i,24)*TWO_PI,
+  rate:1+(i%3)*.21
+ };
+});
+const unit=x=>Math.max(0,Math.min(1,x));
+function smooth(a,b,t){
+ const x=unit((t-a)/(b-a));
+ return x*x*(3-2*x);
+}
+const environment=()=>typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment;
+function lakeLightProfile(s){
+ const E=environment();
+ const t=E.dayTime(s), forced=s.previewTime;
+ const morning=forced?Number(forced==='morning'):smooth(0,22,t)*(1-smooth(151,191,t));
+ const dusk=forced?Number(forced==='dusk'):smooth(523,552,t)*(1-smooth(589,620,t));
+ const night=forced?Number(forced==='night'||forced==='deep'):smooth(600,648,t)*(1-smooth(1100,1150,t));
+ // Sample the calendar at the start of this evening so a shifted calendar never changes the moon mid-night.
+ const evening=s.worldTick-t+600, epoch=s.environment?.calendar?.start??0;
+ const days=Math.floor(Math.max(0,evening-epoch)/E.DAY_SECONDS),phase=(days+1)%8;
+ const incident=unit((E.weatherProfile(s).brightness-.80)/(1-.80));
+ const precipitation=Math.max(E.precipitation(s,'rain'),E.precipitation(s,'snow'),E.precipitation(s,'fog'));
+ const clear=incident**2*(1-unit(precipitation))**2;
+ const calm=1-.63*smooth(18,65,s.weather.wind);
+ return {morning:morning*clear*calm,dusk:dusk*clear*calm,wash:dusk*incident*(1-unit(precipitation)*.86),moon:night*clear*calm*moonStrength[phase],phase};
+}
+function moonArt(phase){
+ if(moons[phase])return moons[phase];
+ const art=canvas(96,96),c=art.getContext('2d'),x=48,r=26;
+ const glow=c.createRadialGradient(x,x,2,x,x,43);
+ glow.addColorStop(0,'rgba(225,248,255,.63)');
+ glow.addColorStop(.4,'rgba(176,227,250,.27)');
+ glow.addColorStop(1,'rgba(135,200,236,0)');
+ c.fillStyle=glow;c.fillRect(0,0,96,96);
+ const wax=phase<=4, side=wax?1:-1;
+ const edge=Math.cos(phase*Math.PI/4)*r*side*1.333;
+ c.beginPath();
+ if(wax)c.arc(x,x,r,-Math.PI/2,Math.PI/2);
+ else c.arc(x,x,r,Math.PI/2,3*Math.PI/2);
+ c.bezierCurveTo(x+edge,x+side*r,x+edge,x-side*r,x,x-side*r);
+ c.closePath();
+ const face=c.createLinearGradient(32,30,65,66);
+ face.addColorStop(0,'#fffff8');face.addColorStop(1,'#c5e7f5');
+ c.fillStyle=face;c.fill();
+ moons[phase]=art;
+ return art;
+}
+const shimmerOpacity=[.25,.53,.91];
+const lakeShimmer={
+ morning:{ink:'#faffef',speed:1.25,len:14,x:-.02,width:1,strokes:72},
+ dusk:{ink:'#fff1be',speed:.90,len:24,x:-.08,width:1,strokes:64},
+ moon:{ink:'#f0fbff',speed:.76,len:22,x:-.19,width:.85,strokes:68}
+};
+function shimmer(c,kind,x,y,rx,ry,t,amount,still){
+ const spec=lakeShimmer[kind], moonWidth=kind==='moon'?.68+.36*amount:1;
+ c.strokeStyle=spec.ink;c.lineCap='round';
+ const buckets=[[],[],[]];
+ const count=still?24:spec.strokes;
+ for(let i=0;i<count;i++){
+  const p=shimmerPoints[i], wave=Math.sin(t*spec.speed*p.rate+p.offset);
+  const flash=(.5+.5*wave)**3*p.taper;
+  if(flash<.13)continue;
+  buckets[flash>.67?2:flash>.38?1:0].push({p,wave,flash});
+ }
+ for(let band=0;band<buckets.length;band++){
+  const points=buckets[band];
+  if(!points.length)continue;
+  c.beginPath();c.globalAlpha=amount*shimmerOpacity[band];c.lineWidth=1.05+band*.40;
+  for(const {p,wave,flash} of points){
+   const px=x+rx*(spec.x+p.x*spec.width*moonWidth)+wave*2.8,py=y+p.y*ry+wave*1.2;
+   const len=(2.4+p.length*spec.len)*(.7+.55*flash);
+   c.moveTo(px-len/2,py);c.lineTo(px+len/2,py+.22);
+  }
+  c.stroke();
+ }
+}
+function lakeLight(c,s,lake,w,h,t,floor,duskArt,includeFloor=false){
+ if(!environment()||!floor)return;
+ const p=lakeLightProfile(s), strongest=Math.max(p.morning,p.dusk,p.moon);
+ const fullDusk=includeFloor&&duskArt&&p.wash>=.995;
+ if(includeFloor)c.drawImage(fullDusk?duskArt:floor,1.05*w,-.25*h,2.25*w,1.5*h);
+ if(Math.max(strongest,p.wash)<.01)return includeFloor;
+ const x=lake.cx*w,y=lake.cy*h,rx=lake.ru*w,ry=lake.rv*h;
+ const still=s.settings.reducedMotion,time=still?0:t;
+ c.save();
+ const base=c.globalAlpha;
+ if(!fullDusk&&duskArt&&p.wash>=.01){
+  c.globalAlpha=base*p.wash;
+  c.drawImage(typeof duskArt==='function'?duskArt():duskArt,1.05*w,-.25*h,2.25*w,1.5*h);
+ }
+ if(strongest>=.01){
+  c.beginPath();c.ellipse(x,y,rx*.91,ry*.89,0,0,TWO_PI);c.clip();
+  c.globalCompositeOperation='screen';
+  if(p.moon>=.01){
+   const art=moonArt(p.phase),mx=x-rx*.19-48,my=y-66;
+   c.globalAlpha=base*p.moon;
+   for(let row=0;row<96;row+=8){
+    const dx=Math.sin(time*1.3+row*.105)*3;
+    c.drawImage(art,0,row,96,7,mx+dx,my+row,96,7);
+   }
+  }
+  const layers=[['morning',p.morning],['dusk',p.dusk],['moon',p.moon]];
+  for(const [kind,amount] of layers)if(amount>=.01)shimmer(c,kind,x,y,rx,ry,time,base*amount,still);
+ }
+ c.restore();
+ return includeFloor;
+}
+return {canvas,snow,mask,rainProfile,rain,particles,grade,gradeOver,fog,lakeLightProfile,lakeLight};
 });
