@@ -103,8 +103,13 @@ function moonArt(phase){
  const face=c.createLinearGradient(32,30,65,66);
  face.addColorStop(0,'#fffff8');face.addColorStop(1,'#c5e7f5');
  c.fillStyle=face;c.fill();
- moons[phase]=art;
- return art;
+ // Soften the reflected disk before sampling its ripples. Cache the result per phase.
+ const soft=canvas(art.width,art.height),ink=soft.getContext('2d');
+ if(!('filter' in ink)){moons[phase]=art;return art;}
+ ink.filter='blur(3.2px)';
+ ink.drawImage(art,0,0);
+ moons[phase]=soft;
+ return soft;
 }
 const shimmerOpacity=[.25,.53,.91];
 const lakeShimmer={
