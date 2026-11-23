@@ -31,4 +31,6 @@ test('lily motion uses every species rig through boarding, paddling, dew, shakin
   }
  }
  s.settings.reducedMotion=true;a.equal(scene.lilyRidePose(p).hop,0);
+ delete s.world.lake.boat.rider;p.species='duri';
+ for(const kind of ['sniff','drink'])scene.pet(p,{x:.5,y:.6},kind,scene.phase,false);
 });
