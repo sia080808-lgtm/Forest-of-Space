@@ -1047,3 +1047,4 @@
 - 변경: `skills.js` `selfBrush`(정돈이 끝날 때 `lv(p,'brush','amount')`만큼 자기 잎 해충, 대기 키 `self`(같은 rest 표, 친구 털기와 별도), 기운 1, 검증·`force`가 `self` 허용), `engine.js` 정돈 actionSeconds 1→0에서 호출, 스킬 설명 문구. 버전 1.2.17 / versionCode 103.
 - 판단: 사용자가 대기 시간은 정하지 않음 — 스킬 표의 대기를 그대로 쓰되 친구 털기와 따로 센다(자기 털기가 친구 돕기를 막지 않게).
 - 검증: `skills` 1.2.17, 관련 39개, UI PASS, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 병합·릴리스(1.2.15~1.2.17): PR #86(https://github.com/sia080808-lgtm/Forest-of-Space/pull/86) main 병합 `ee1f76f925686efda305dcb3a7feaa1b764a57d8`(사용자 "머지"; head `b0e1524` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.17 `Forest-of-Space-1.2.17.apk` 75,094,707 bytes, SHA-256 `71eba02ead180dda4b3a8a852942a3f330efbc0b39a4ae1765e2d6d7f32f6a1f` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode103/1.2.17. APK는 사용자에게 파일로 전달.
