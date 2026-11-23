@@ -12,7 +12,9 @@ const CLIMATES={C01:{name:'촉촉한 숲',T:60,H:75,weights:[20,20,45,15],season
 function fitSnow(s){if(!s.ledger)return;for(const p of s.individuals||[]){const cap=12*area(p);if(Number.isFinite(p.snowWater)&&p.snowWater>cap){s.ledger.outflow=(s.ledger.outflow||0)+p.snowWater-cap;p.snowWater=cap;}}
  for(const z of s.patches||[])for(const key of ['snowWater','roofSnow']){const cap=12*z.exposure;if(Number.isFinite(z[key])&&z[key]>cap){s.ledger.outflow=(s.ledger.outflow||0)+z[key]-cap;z[key]=cap;}}}
 function init(s){s.environment??={version:1,climate:'C01',lastStormEnd:-600,seasonStart:0};fitSnow(s);const e=s.environment;e.climate??='C01';e.lastStormEnd??=-600;e.seasonStart??=0;e.dryActiveSeconds??=0;e.effectiveRainSeconds??=0;e.rainRescuePending??=false;e.calendar??={start:s.worldTick};if(s.rng&&!s.rng.climate)s.rng.climate=((s.rng.weather^0x9e3779b9)>>>0)||1;s.ledger.snow??=0;s.ledger.condensation??=0;for(const p of s.patches){p.snowWater??=0;p.roofSnow??=0;}for(const p of s.individuals)p.snowWater??=0;return s;}
-function timeKey(s){const t=((s.worldTick%1200)+1200)%1200;return t<180?'morning':t<540?'noon':t<600?'dusk':t<900?'night':t<1140?'deep':'dawn';}
+const DAY_SECONDS=1200;
+function dayTime(s){return ((s.worldTick%DAY_SECONDS)+DAY_SECONDS)%DAY_SECONDS;}
+function timeKey(s){const t=dayTime(s);return t<180?'morning':t<540?'noon':t<600?'dusk':t<900?'night':t<1140?'deep':'dawn';}
 // 0.8.0 사계절 (SRS v2.31): spring → summer → autumn → winter, 3,600 s (3 game days) each, a year is 14,400 s. The calendar
 // starts at spring day 1 for a new game and, for an older save, at the moment it is first loaded. The climate stays the
 // forest's base character; the season adds to it (temperature, rain/fog weight, wind, share of the rain that falls as snow).
@@ -36,7 +38,7 @@ function mix(a,b,t){return {brightness:a.brightness+(b.brightness-a.brightness)*
 function weatherKey(s){return s.environment?.storm?'storm':s.weather.kind==='sun'&&s.weather.wind>=40?'wind':s.weather.kind;}
 function weatherProfile(s){const e=s.environment||{},key=weatherKey(s),to=profile(WEATHER[key]||WEATHER.sun);return e.visualFrom&&s.weather.transition>0?mix(e.visualFrom,to,1-s.weather.transition/10):to;}
 function lighting(s){const forced=s.previewTime;/* 1.2.1: the light/dark setting is for the app screens only; the world always follows its own clock */let t;
- if(forced)t=profile(TIMES[forced]);else{const centers=[90,360,570,750,1020,1170],keys=['morning','noon','dusk','night','deep','dawn'],tick=s.worldTick%1200;let idx=centers.findIndex(c=>c>tick);if(idx<0)idx=0;const prev=(idx+5)%6;let a=centers[prev],b=centers[idx],x=tick;if(idx===0){b+=1200;if(x<a)x+=1200;}t=mix(profile(TIMES[keys[prev]]),profile(TIMES[keys[idx]]),clamp((x-a)/(b-a),0,1));}
+ if(forced)t=profile(TIMES[forced]);else{const centers=[90,360,570,750,1020,1170],keys=['morning','noon','dusk','night','deep','dawn'],tick=dayTime(s);let idx=centers.findIndex(c=>c>tick);if(idx<0)idx=0;const prev=(idx+5)%6;let a=centers[prev],b=centers[idx],x=tick;if(idx===0){b+=1200;if(x<a)x+=1200;}t=mix(profile(TIMES[keys[prev]]),profile(TIMES[keys[idx]]),clamp((x-a)/(b-a),0,1));}
  const w=weatherProfile(s),se=seasonProfile(s);return {brightness:clamp(t.brightness*w.brightness,.58,1.08),saturation:clamp(t.saturation*w.saturation*se.saturation,.65,1.05),tints:se.alpha>0?[t,w,se]:[t,w]};}
 // 0.8.0: a light seasonal colour over the world (render only): fresh green spring, warm summer, amber autumn, cool winter
 // 0.8.1 (user: keep the default background colour): no seasonal colour over the world any more; the season shows in the
@@ -88,5 +90,5 @@ function water(s,p,coverFraction){const W=typeof module==='object'?require('./we
  return {ground:fog+melt,roofMelt,rootRain:precipitation(s,'rain')};}
 
 function validate(s){const e=s.environment;if(!e||e.version!==1||!CLIMATES[e.climate]||e.climateMode!==undefined&&!['season','fixed'].includes(e.climateMode)||!Number.isFinite(e.lastStormEnd)||!Number.isFinite(e.seasonStart)||e.calendar!==undefined&&!Number.isFinite(e.calendar?.start))throw Error('환경 기록을 확인해 주세요.');if(e.storm&&(!['prelude','peak','tail'].includes(e.storm.phase)||!Number.isFinite(e.storm.remaining)||e.storm.remaining<0||e.storm.remaining>60))throw Error('폭풍 기록을 확인해 주세요.');for(const p of s.individuals)if(!Number.isFinite(p.snowWater)||p.snowWater<0||p.snowWater>12*area(p)+1e-6)throw Error('친구의 적설 기록을 확인해 주세요.');for(const p of s.patches)for(const key of ['snowWater','roofSnow'])if(!Number.isFinite(p[key])||p[key]<0||p[key]>12*p.exposure+1e-6)throw Error('적설 기록을 확인해 주세요.');for(const k of ['snow','condensation'])if(!Number.isFinite(s.ledger[k])||s.ledger[k]<0)throw Error('환경 물 원장을 확인해 주세요.');}
-return {seasonProfile,SEASON_TINT,SEASON_LEN,YEAR,SEASONS,SEASON_NAMES,SEASON_FX,calendar,seasonFx,area,init,step,water,validate,lighting,weatherKey,weatherProfile,timeKey,precipitation,changeClimate,season,weights,SEASON_CLIMATE,FLAVOR,seasonClimate,CLIMATES,TIMES,WEATHER,NAMES};
+return {DAY_SECONDS,dayTime,seasonProfile,SEASON_TINT,SEASON_LEN,YEAR,SEASONS,SEASON_NAMES,SEASON_FX,calendar,seasonFx,area,init,step,water,validate,lighting,weatherKey,weatherProfile,timeKey,precipitation,changeClimate,season,weights,SEASON_CLIMATE,FLAVOR,seasonClimate,CLIMATES,TIMES,WEATHER,NAMES};
 });
