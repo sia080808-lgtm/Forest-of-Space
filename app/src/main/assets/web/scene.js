@@ -267,7 +267,7 @@ class ForestScene {
    leafTilt:reduced?0:press*.09-up*.04+paddle*.06-off*.09,
    paddle:reduced?0:paddle,dew:age>=10&&age<14.5,
    drop:reduced?0:Math.min(1,Math.max(0,(age-13)/1.5)),
-   forward:!!b.cross};
+   direction:b.cross?Math.sign(b.cross.landing.x-b.home.x):0};
  }
  pet(p,pos,kind,phase,night,held=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
@@ -276,14 +276,14 @@ class ForestScene {
   if(p.stroll?.gliding&&moving&&!held&&!reduced){c.rotate(.065*Math.sin(phase*3));}
   const ride=!held&&this.lilyRidePose(p);
   if(ride){
-   const face=ride.forward?1:(this.facing?.[p.id]||1);
+   const face=ride.direction||this.facing?.[p.id]||1;
    c.translate(0,-size*ride.hop);c.rotate(ride.tilt*face);
    if(ride.paddle){c.save();c.strokeStyle='rgba(235,248,244,.78)';c.lineWidth=.7;c.beginPath();
     c.ellipse(face*size*.35,0,2+ride.paddle*5,1+ride.paddle*2,0,0,Math.PI*2);c.stroke();c.restore();}
    if(ride.dew){c.save();c.fillStyle='rgba(172,217,224,.95)';c.beginPath();
     c.arc(face*size*(.18+ride.drop*.12),-size*(.72-ride.drop*.5),1.7,0,Math.PI*2);c.fill();c.restore();}
   }
-  if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}   /* 0.8.7: smelling the grass, leaning forward; (user "킁킁 할 때 살짝 까닥") every 1.1 s three quick little nods (킁킁킁), then a pause */c.scale(ride?.forward?1:p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:this.facing?.[p.id]||1,1);   /* 0.8.7 (user: "왼쪽으로 갈 땐 왼쪽 보고 오른쪽으로 갈 땐 오른쪽"): 엘레판 also faces where it walks, except while its leaf umbrella is open or closing (the friends' seats under it are on its right) */const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
+  if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}   /* 0.8.7: smelling the grass, leaning forward; (user "킁킁 할 때 살짝 까닥") every 1.1 s three quick little nods (킁킁킁), then a pause */c.scale(ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:this.facing?.[p.id]||1),1);   /* 0.8.7 (user: "왼쪽으로 갈 땐 왼쪽 보고 오른쪽으로 갈 땐 오른쪽"): 엘레판 also faces where it walks, except while its leaf umbrella is open or closing (the friends' seats under it are on its right) */const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
   const heldAge=held?Math.max(0,this.inspector?phase%3:phase-(this.carry?.phaseStart??phase)):0,wriggleAge=heldAge-.2,wiggle=held&&!reduced&&wriggleAge>=0&&wriggleAge<.8?Math.sin(wriggleAge*Math.PI*5)*Math.sin(wriggleAge*Math.PI/.8):0;
   const context=held?null:Forest.Space.context(s,pos);if(moving&&!reduced){if(context==='duck'||kind==='duck'){c.translate(0,1.5*growth);c.rotate(-.10);}if(context==='step'||kind==='step')c.translate(0,-Math.abs(stride)*2*growth);if(context==='avoid'||kind==='avoid')c.rotate(stride*.045);}
   const visual=this.visual||(this.visual={}),v=visual[p.id]||(visual[p.id]={rest:rest?1:0,phase:phase});

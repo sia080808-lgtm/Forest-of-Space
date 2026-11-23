@@ -90,7 +90,11 @@ function region(s,id,kind='rest'){
 }
 function fits(s,p,id,q,kind){
  const r=region(s,id,kind),f=footprint(p);if(!r)return false;
- return [[-f.rx,0],[f.rx,0],[0,-f.ry],[0,f.ry]].every(([x,y])=>((q.x+x-r.x)/r.rx)**2+((q.y+y-r.y)/r.ry)**2<=1+eps);
+ const inside=([x,y])=>((q.x+x-r.x)/r.rx)**2+((q.y+y-r.y)/r.ry)**2<=1+eps;
+ const feet=[[-f.rx,0],[f.rx,0],[0,-f.ry],[0,f.ry]];
+ // Compost can be reached from the edge. Playing or resting still needs the entire footprint.
+ if(kind==='nutrition'&&kindOf(id)==='litter')return inside([0,0])||feet.some(inside);
+ return feet.every(inside);
 }
 function groundAt(s,p){
  if(dep('shelter').inside(s,p))return patch(s,'shelter');
@@ -171,7 +175,12 @@ function points(s,p,id,kind){
   return s.shelters.facilities.filter(open).flatMap(f=>{const q=Sh.seat(s,f,p,q=>!!dep('spatial').route(s,p,Sh.entry(f,q),p.id));return q?[Sh.entry(f,q)]:[];});}
  const r=region(s,id,kind),g=scale(s,id),large=dep('shelter').units(p)>4;
  const offsets=kind==='edgeDrink'?[[0,0]]:large?[[0,0],[-.015,0],[.015,0]]:[[0,0],[-.035,0],[.035,0],[-.065,0],[.065,0],[0,.014],[0,-.014]];
- return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
+ const spots=offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
+ if(kind==='nutrition'&&kindOf(id)==='litter'){
+  const edge=r.rx+footprint(p).rx*.5;
+  spots.push({x:r.x-edge,y:r.y},{x:r.x+edge,y:r.y});
+ }
+ return spots;
 }
 function option(s,p,id,kind,reason,free=false,avoidFriends=false){
  const Space=dep('spatial'),Sh=dep('shelter');if(!patch(s,id))return {fail:'stored',object:id,kind};   /* 1.2.6: put away in the 보관함 */
@@ -184,7 +193,7 @@ function option(s,p,id,kind,reason,free=false,avoidFriends=false){
   const t={...q,object:id,kind,reason,free};
   if(!effectsValid(s,p,t)){fail=id==='spring'&&s.spring.water<=eps&&!((s.spring.snowWater||0)>eps)?'empty_water':kind==='litterPlay'&&patch(s,id).O<.5?'no_play_leaves':kind==='nutrition'&&patch(s,id).U<=eps?'no_nutrients':'unsafe_weather';continue;}
   // 1.0: eating compost only needs the friend beside it, so a big friend (grown 슈퍼범) is not shut out of 영양
-  if(id!=='shelter'&&kind!=='nutrition'&&!fits(s,p,id,q,kind))continue;
+  if(id!=='shelter'&&!fits(s,p,id,q,kind))continue;
   if(id!=='shelter'&&s.individuals.some(z=>z.id!==p.id&&z.active&&(z.objectTask?.object===id&&Space.distance(z.objectTask,q)<.4*(Space.diameter(p)+Space.diameter(z))||Space.distance(z,q)<.4*(Space.diameter(p)+Space.diameter(z))))){fail='capacity';continue;}
   if(!Space.walkable(s,q,p.id)){fail='blocked_path';continue;}
   const route=Space.route(s,p,q,p.id,avoidFriends);if(!route){fail='blocked_path';continue;}

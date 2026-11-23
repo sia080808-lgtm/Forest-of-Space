@@ -131,3 +131,43 @@ test('a leisure walk can aim for a dock, keep it until boarding and release it o
  p.stroll.deadline=s.worldTick;F.Boat.step(s,null,()=>0);assert.ok(b.drift);
  F.Objects.stroll(s,p);assert.equal(p.stroll?.board,undefined);assert.equal(original,b.x);
 });
+
+test('ordinary leisure visitors cross in either direction, reload afloat and linger on the opposite shore',()=>{
+ for(const direction of [1,-1])for(const approach of [false,true]){
+  let {s,p,b}=setup();
+  if(direction<0)Object.assign(b,F.World.nearShore(s,{x:3,y:.55}),{dock:2});
+  Object.assign(p,{x:b.x,y:b.y});
+  Object.assign(p.stroll,{x:p.x,y:p.y});
+  if(approach){p.x-=.04;delete p.stroll.arrivedAt;F.Boat.offerLoop(s,p,()=>0);assert.ok(p.stroll.board);}
+  // The first draw accepts a shore offer, the route draw chooses a crossing.
+  for(let tick=0;tick<6&&!b.rider;tick++){
+   const draws=approach?[.7,.4]:[0,.7,.4];
+   F.Boat.step(s,null,()=>draws.shift());
+   if(!b.rider){F.Objects.stroll(s,p);s.worldTick++;}
+  }
+  assert.equal(b.rider,p.id);assert.equal(Math.sign(b.cross.landing.x-b.home.x),direction);
+  const shore=direction>0?'동쪽 물가':'서쪽 물가';
+  assert.equal(cards.model(s,'lily-boat').rows[0][1],shore);assert.ok(F.Boat.reason(s,p).includes(shore));
+  F.advance(s,12);assert.ok(F.World.inWater(s,p));
+  s=F.migrate(JSON.parse(JSON.stringify(s)));p=s.individuals[0];b=s.world.lake.boat;
+  for(let i=0;i<36&&b.rider;i++)F.step(s);
+  assert.equal(b.rider,undefined);assert.equal(b.dock,direction>0?2:0);assert.equal(Math.sign(p.x-F.World.LAKE.cx),direction);
+  assert.ok(!F.World.inWater(s,p));assert.ok(p.stroll?.boatChecked&&p.stroll.arrivedAt!=null);
+  assert.ok(p.boatAfter>s.worldTick);F.valid(s);
+ }
+});
+test('ordinary boarding near nightfall keeps the short outing local',()=>{
+ const {s,p,b}=setup();s.worldTick=580;p.stroll.arrivedAt=580;p.stroll.deadline=640;
+ F.Boat.step(s,null,()=>.6);assert.equal(b.rider,p.id);assert.equal(b.cross,undefined);
+});
+
+test('a newly occupied leisure landing is replaced on the same bank, including its stroll goal',()=>{
+ const {s,p,b}=setup();F.Boat.step(s,null,()=>.65);assert.ok(b.cross);
+ const reserved=b.cross.landing;
+ s.individuals.push({...F.clone(p),id:'watcher',x:reserved.x,y:reserved.y});
+ s.worldTick+=b.duration;F.Boat.step(s,null,()=>0);
+ assert.equal(b.rider,undefined);assert.equal(b.dock,2);
+ assert.ok(F.Space.distance(p,reserved)>=F.Space.diameter(p));
+ assert.equal(p.stroll.x,p.x);assert.equal(p.stroll.y,p.y);
+ assert.ok(!F.World.inWater(s,p));F.valid(s);
+});

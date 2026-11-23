@@ -22,6 +22,22 @@ const canvas=win.document.getElementById('garden');
 const pointer=(target,type,x,y,id=1,primary=true)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,pointerId:id,isPrimary:primary}));
 const wp=(type,p,id=1)=>{const q=scene.camera.screen(p);pointer(canvas,type,q.x,q.y+72,id,id===1);};
 const original=JSON.parse(JSON.stringify(getState()));
+// Friend list and detail stay open while the simulation moves on from a litter task.
+{
+ const s=getState(),initial=F.clone(s),p=s.individuals[0];s.worldTick=200;s.environment.tutorialDone=true;
+ Object.assign(p,{x:.22,y:.65,B:55,nutrition:24,energy:80});
+ F.step(s);assert.equal(p.objectTask?.object,'litter');assert.ok(p.motion.distance>0);
+ click('[data-tab="friends"]');
+ const label=win.document.querySelector('#page .friend-card .sub');
+ assert.match(label.textContent,/낙엽 자리로 가고/);
+ F.advance(s,15);win.__qa.update();assert.match(label.textContent,/영양을 얻고/);assert.ok(label.isConnected);
+ click('#page .friend-card');const detail=win.document.querySelector('#page .panel > p');
+ assert.match(detail.textContent,/영양을 얻고/);
+ p.nutrition=75;F.advance(s,10);win.__qa.update();
+ assert.doesNotMatch(detail.textContent,/영양을 얻고/);assert.ok(detail.isConnected);
+ Object.assign(s,initial);click('[data-tab="world"]');
+}
+
 // 1.2.15: tapping a friend in the world opens its card under the finger; the click that follows must not press 자세히 보기
 {const p0=getState().individuals[0];wp('pointerdown',p0);wp('pointerup',p0);assert.match(win.document.getElementById('select-card').textContent,/리들리/);win.document.querySelector('#select-card [data-action="detail"]').click();assert.equal(win.document.getElementById('page').hidden,true,'tap on a friend does not open 자세히 보기');now+=1000;}
 click('[data-pet]');assert.match(win.document.getElementById('select-card').textContent,/리들리/);click('[data-action="move-pet"]');
