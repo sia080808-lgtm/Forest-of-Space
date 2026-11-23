@@ -328,7 +328,7 @@ function choose(s,p,rng){
 function prepare(s,held,rng){
  for(const p of [...s.individuals].sort((a,b)=>urgency(s,a)-urgency(s,b)||(a.objectWait?.since??s.worldTick)-(b.objectWait?.since??s.worldTick)||a.id.localeCompare(b.id))){
   if(!p.active||p.mounted||held===p.id){release(s,p,'interrupt');continue;}
-  if(s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
+  if(p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
   choose(s,p,rng);
  }
 }
