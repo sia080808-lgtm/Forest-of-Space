@@ -48,3 +48,33 @@ test('empty leaf drifts to another bank while a thirsty visitor stays ashore',()
  for(let i=0;i<60;i++){s.worldTick++;F.Boat.step(s,null,()=>0);}
  assert.ok(Math.abs(b.x-x)>.3);assert.equal(b.drift,undefined);
 });
+function crossing(){
+ const {s,p,b}=setup(),east=F.World.nearShore(s,{x:3,y:.55});
+ p.x=b.x-.35;p.y=b.y;
+ p.stroll={...east,far:true,view:true,since:s.worldTick,deadline:s.worldTick+225,linger:12};
+ F.Boat.offerCrossing(s,p,()=>0);
+ assert.ok(p.stroll.board);
+ return {s,p,b,east};
+}
+test('walk to west boat, save mid-crossing, land east and finish original stroll',()=>{
+ let {s,p,b,east}=crossing();
+ for(let i=0;i<80&&!b.rider;i++)F.step(s);
+ assert.equal(b.rider,p.id);assert.equal(p.stroll,undefined);
+ for(let i=0;i<12;i++)F.step(s);
+ assert.ok(F.World.inWater(s,p));s=F.migrate(JSON.parse(JSON.stringify(s)));
+ b=s.world.lake.boat;p=s.individuals.find(q=>q.id===b.rider);
+ assert.equal(b.cross.goal.x,east.x);
+ for(let i=0;i<80&&p.stroll?.arrivedAt==null;i++)F.step(s);
+ assert.ok(p.stroll?.arrivedAt);assert.equal(p.x,east.x);assert.equal(p.y,east.y);
+ assert.equal(b.rider,undefined);assert.equal(b.dock,2);
+});
+test('boat departure restores walking goal; interrupted crossing never completes east stroll',()=>{
+ const {s,p,b,east}=crossing();
+ b.drift={x:b.x,y:b.y,to:east,start:s.worldTick};F.Objects.stroll(s,p);
+ assert.equal(p.stroll.board,undefined);assert.equal(p.stroll.x,east.x);
+ const other=crossing();Object.assign(other.p,{x:other.b.x,y:other.b.y});
+ F.Boat.step(other.s,null,()=>0);assert.ok(other.b.cross);
+ other.s.weather.wind=30;other.s.worldTick++;F.Boat.step(other.s,null,()=>0);
+ assert.equal(other.b.cross,undefined);assert.equal(other.p.stroll,undefined);
+ assert.ok(!F.World.inWater(other.s,other.p));assert.ok(other.p.x<2.25);
+});
