@@ -199,10 +199,25 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
  // 1.0.1 물가 시원함: on a summer day half of the walks go to cool off by the open lake (only when it is reachable)
  // 1.2.18 (user: "왜 친구들이 호수가로 산책을 안 가냐" → "합리적인 비율 추천" → "ㄱㄱ"): the other seasons walk to the shore too, to look at the
  // lake — spring 30%, autumn 25%, an unfrozen winter 15% (summer keeps its 50%; a frozen lake keeps its ice walks below). Mostly the nearest
- // free shore; in the morning (before 400 of the 1,200 s day, so it is back well before dusk) a quarter of these go to any shore around the
+ // free shore; in the morning (before 400 of the 1,200 s day, so it is back well before dusk) one third of spring–autumn shore walks go to the eastern third of the
  // lake, the far east end included. 1.0.1 had kept walks within 0.9 because a friend far east re-planned very long paths every choice;
  // 1.1.4 keeps found paths, so an occasional far walk is cheap now (measured in the release note).
- {const V=dep('vitals'),E=dep('environment'),season=E.season(s),share=SHORE_WALK[season]??0;if(V.isDay(s)&&W.shorePoint&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&rng(s,'behavior')<share){const t=((s.worldTick%1200)+1200)%1200,far=t<400&&W.shoreAnywhere&&rng(s,'behavior')<.25;const q0=far?W.shoreAnywhere(s,p,rng(s,'behavior')):W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,...(season==='summer'?{cool:true}:{view:true}),...(far?{far:true}:{})};}}}
+ const season=dep('environment').season(s),share=SHORE_WALK[season]??0;
+ if(dep('vitals').isDay(s)&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&rng(s,'behavior')<share){
+  const morning=((s.worldTick%1200)+1200)%1200<400,eastOnly=season!=='winter';
+  const longWalk=morning&&rng(s,'behavior')<(eastOnly?1/3:.25);
+  const farShore=longWalk&&W.shoreAnywhere(s,p,rng(s,'behavior'),eastOnly);
+  const nearShore=W.shorePoint(s,p);
+  for(const shore of [farShore,nearShore]){
+   if(!shore)continue;
+   for(let i=0;i<6;i++){
+    const q={x:shore.x-.06+.12*rng(s,'behavior'),y:shore.y-.06+.12*rng(s,'behavior')};
+    if(shore===farShore&&eastOnly&&q.x<W.LAKE.cx+W.LAKE.ru/3)continue;
+    if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))
+     return {...q,...(season==='summer'?{cool:true}:{view:true}),...(shore===farShore?{far:true}:{})};
+   }
+  }
+ }
  // 0.9.3 겨울 얼음 놀이: when the lake is frozen, some walks go out onto the ice
  if(W.frozen?.(s)&&rng(s,'behavior')<.3){for(let i=0;i<6;i++){const q={x:1.3+(b.x1-1.3)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};if(W.onIce(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return q;}}
  // 1.0.1: a walk ends within 0.9 of where the friend is. Since the shore was widened (0.9.5) a walk could pick a spot at

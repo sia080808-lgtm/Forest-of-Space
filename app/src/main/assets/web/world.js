@@ -175,7 +175,7 @@ function shorePoint(s,p){if(!lakeOpen(s)||frozen(s))return null;const taken=(s.i
  const b=bounds(s),free=RING.filter(q=>q.x>=1.25&&q.x<=b.x1-.03&&q.y>=b.y0+.03&&q.y<=b.y1-.03&&!taken.some(t=>Math.hypot(t.x-q.x,t.y-q.y)<SHORE_GAP));
  let best=null,bd=1e9;for(const q of free){const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;best=q;}}if(!best)best=nearShore(s,p);return best&&{x:best.x,y:best.y};}
 /* 1.2.18 (user: "왜 친구들이 호수가로 산책을 안 가냐" → "왜 동쪽 끝까지 안가?" → "ㄱㄱ"): a free shore spot anywhere around the lake, picked with the behaviour stream — for the occasional long walk to the far shore */
-function shoreAnywhere(s,p,r){if(!lakeOpen(s)||frozen(s))return null;const b=bounds(s),free=RING.filter(q=>q.x>=1.25&&q.x<=b.x1-.03&&q.y>=b.y0+.03&&q.y<=b.y1-.03&&Math.hypot(q.x-p.x,q.y-p.y)>.6);return free.length?{...free[Math.min(free.length-1,Math.floor(r*free.length))]}:null;}
+function shoreAnywhere(s,p,r,eastOnly=false){if(!lakeOpen(s)||frozen(s))return null;const b=bounds(s),free=RING.filter(q=>q.x>=(eastOnly?LAKE.cx+LAKE.ru/3:1.25)&&q.x<=b.x1-.03&&q.y>=b.y0+.03&&q.y<=b.y1-.03&&Math.hypot(q.x-p.x,q.y-p.y)>.6);return free.length?{...free[Math.min(free.length-1,Math.floor(r*free.length))]}:null;}
 function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeStep(s,event);fxStep(s,event);return;}const st=s.world.lake??={ready:false,scents:0};
  // 1.0.1 (user: "봄 1시간 보낸 뒤 호수지역은 해금"): the shore opens by itself when the first spring is over (one season
  // after the calendar began), with no friend count or east-edge walks, so every forest has open water before its first
