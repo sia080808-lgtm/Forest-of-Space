@@ -22,6 +22,8 @@ const canvas=win.document.getElementById('garden');
 const pointer=(target,type,x,y,id=1,primary=true)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,pointerId:id,isPrimary:primary}));
 const wp=(type,p,id=1)=>{const q=scene.camera.screen(p);pointer(canvas,type,q.x,q.y+72,id,id===1);};
 const original=JSON.parse(JSON.stringify(getState()));
+// 1.2.15: tapping a friend in the world opens its card under the finger; the click that follows must not press 자세히 보기
+{const p0=getState().individuals[0];wp('pointerdown',p0);wp('pointerup',p0);assert.match(win.document.getElementById('select-card').textContent,/리들리/);win.document.querySelector('#select-card [data-action="detail"]').click();assert.equal(win.document.getElementById('page').hidden,true,'tap on a friend does not open 자세히 보기');now+=1000;}
 click('[data-pet]');assert.match(win.document.getElementById('select-card').textContent,/리들리/);click('[data-action="move-pet"]');
 wp('pointerdown',{x:.5,y:.65});assert.equal(saved.individuals[0].x,original.individuals[0].x,'commit on release only');wp('pointerup',{x:.5,y:.65});assert.equal(saved.individuals[0].x,.5);assert.ok(Math.abs(saved.individuals[0].y-.65)<1e-9);assert.equal(saved.individuals[0].B,original.individuals[0].B);
 click('[data-pet]');click('[data-action="move-pet"]');failed=true;wp('pointerdown',{x:.6,y:.65});wp('pointerup',{x:.6,y:.65});assert.equal(saved.individuals[0].x,.5,'failed write rollback');failed=false;
@@ -44,7 +46,7 @@ click('[data-tab="friends"]');click('[data-action="detail"][data-id="ridley-qa-o
 click('[data-action="roster"]');assert.equal(getState().individuals[1].active,true);assert.equal(saved.individuals[1].id,'ridley-qa-owned');
 // Facility editor performs the same guarded transaction as normal placement.
 getState().individuals.forEach((p,i)=>{p.x=.5+i*.2;p.y=.65;F.Shelter.release(p,getState().worldTick);});getState().shelters.unlocked=true;getState().patches.find(p=>p.id==='rock').y=.40;
-click('[data-tab="world"]');win.__qa.scene.onSelect('facility','shelter-0');assert.match(win.document.getElementById('select-card').textContent,/전체 3공간/);
+now+=1000;click('[data-tab="world"]');win.__qa.scene.onSelect('facility','shelter-0');assert.match(win.document.getElementById('select-card').textContent,/전체 3공간/);
 win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');assert.ok(scene.facilityPreview);click('[data-action="cancel-layout"]');assert.equal(scene.facilityPreview,null);assert.equal(getState().shelters.facilities[0].level,1);
 scene.onSelect('facility','shelter-0');win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');failed=true;click('[data-action="facility-save"]');assert.equal(getState().shelters.facilities[0].level,1);failed=false;click('[data-action="facility-save"]');assert.equal(saved.shelters.facilities[0].level,2);assert.equal(scene.facilityPreview,null);
 assert.equal(saved.shelters.facilities[0].level,2);

@@ -41,7 +41,7 @@ const INFO=Object.freeze({
  bosong:{name:'물 찾기',line:'비가 없을 때 촉촉한 흙에서 숨은 물을 찾아 웅덩이를 만들고, 목마른 친구에게 물이 있는 곳을 알려 줘요.'},
  neolbi:{name:'잎 우산',line:'비가 오면 넓은 잎을 펴서 곁의 친구를 비에서 지켜 줘요.'},
  jureong:{name:'낙엽 모으기',line:'흩어진 낱잎을 늘어진 잎으로 한데 긁어모아 낙엽 더미로 만들어요. 낱잎은 썩지 않지만 더미에서는 거름이 돼요.'},
- ridley:{name:'잎 털어 주기',line:'잎응애·솜깍지가 붙은 친구의 잎을 손으로 털어 줘요. 짐꾼개미도 리들리를 따라와요.'},
+ ridley:{name:'잎 털어 주기',line:'잎응애·솜깍지가 붙은 친구의 잎을 손으로 털어 줘요. 머리를 쓰다듬어 정돈할 때는 자기 잎도 같은 만큼 털어 내요. 짐꾼개미도 리들리를 따라와요.'},
  bonbon:{name:'촉촉한 잎 곁',line:'이끼·샘터·웅덩이·호숫가 곁이나 비·안개 오는 날이면 둘레 친구들의 잎을 촉촉하게 해 잎응애를 막고, 천적을 빨리 불러요.'}
 });
 const FIRST=Object.freeze({superbum:'슈퍼범이 처음으로 빗물을 나눠 주었어요.',bosong:'베이치가 처음으로 숨은 물을 찾았어요.',neolbi:'엘레판이 처음으로 잎 우산을 펴 주었어요.',jureong:'코로나가 처음으로 낙엽을 모았어요.',ridley:'리들리가 처음으로 친구의 잎을 털어 주었어요.',bonbon:'엘리시 곁의 잎이 촉촉해졌어요.'});
@@ -99,10 +99,12 @@ function startRake(s,p){if(!ready(s,p,'rake')||p.energy<lv(p,'rake','energy')||!
  let at=null;for(const q of [{x:c.x,y:c.y+.03},{x:c.x+.04,y:c.y+.02},{x:c.x-.04,y:c.y+.02},{x:c.x,y:c.y}])if(Space.walkable(s,q,p.id)){at=q;break;}if(!at||!Space.route(s,p,at))return false;
  p.skill={k:'rake',sector:c.sector,ids:c.ids.map(l=>l.id),pile:c.pile,anchor:c.anchor,cx:c.x,cy:c.y,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'rake',SK.rake.rest);return true;}
 // ---- 리들리 잎 털어 주기 ----
+/* 1.2.17 (user: "리들리 자기 머리 쓰다듬는 능력만 자기 고유 스킬 수치를 따라가도록 하자. 레벨업별"): when 리들리 finishes stroking its own head (머리 정돈), it brushes its own leaves by the same level amount as 잎 털어 주기 (15/30/50/75/all); this has its own wait of the same length (180 → 120 s) and the same energy cost, so tending itself never blocks helping a friend */
+function selfBrush(s,p,ctx={}){if(p.species!==SK.brush.species||!p.active||!ready(s,p,'self'))return 0;if(!(pest(s,p)>0))return 0;const n=dep('creatures').brush(s,p.id,lv(p,'brush','amount'));if(!(n>0))return 0;dep('vitals').energyPts(p,-SK.brush.cost);rest(s,p,'self',lv(p,'brush','rest'));ctx.event?.(s,'skill',p.name+' · 머리를 쓰다듬어 자기 잎을 털어 냈어요.',{individual:p.id});return n;}
 function pest(s,q){const o=dep('creatures').onLeaf(s,q.id);return Math.max(o.mite?.density||0,o.mealy?.density||0);}
 const ga=n=>{const c=n.charCodeAt(n.length-1)-44032;return c>=0&&c<11172&&c%28?'이':'가';};
 function startBrush(s,p,held,busy){if(!ready(s,p,'brush'))return false;const Sh=dep('shelter');
- const r=s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.id!==held&&!busy.has(q.id)&&!q.skill&&!q.skillHold&&!Sh.inside?.(s,q)&&!q.shelter?.facilityId&&dist(q,p)<lv(p,'brush','reach')&&pest(s,q)>=SK.brush.min).sort((a,b)=>pest(s,b)-pest(s,a)||a.id.localeCompare(b.id))[0];
+ const r=s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.id!==held&&!busy.has(q.id)&&!q.skill&&!q.skillHold&&!(q.objectTask&&!q.objectTask.free)&&!Sh.inside?.(s,q)&&!q.shelter?.facilityId&&dist(q,p)<lv(p,'brush','reach')&&pest(s,q)>=SK.brush.min).sort((a,b)=>pest(s,b)-pest(s,a)||a.id.localeCompare(b.id))[0];
  if(!r||!dep('spatial').route(s,p,side(s,p,r)))return false;p.skill={k:'brush',target:r.id,phase:'go',start:s.worldTick};return true;}
 /* 1.2.6: the spot beside the friend must also be clear of the other friends — it could fall inside a third friend's body (a big 슈퍼범 next to it), the walk there never found a way and the brush gave up every time *//* 1.2.7: 리들리 now taps with the curled tip of its front leaf (about 0.69 of its drawn width ahead of its centre), so it stands where that tip just meets the friend's leaves (rig.js tapFx) */function side(s,p,r){const Space=dep('spatial'),Sh=dep('shelter'),sz=q=>Space.diameter(q)/.0666667,gap=Math.max(.4*(Space.diameter(p)+Space.diameter(r))+.01,.046*Sh.growth(p)*sz(p)+.0347*Sh.growth(r)*sz(r)-.005),   /* never closer than the walk lets two friends stand */clear=q=>Space.walkable(s,q,p.id)&&!s.individuals.some(z=>z.id!==p.id&&z.id!==r.id&&z.active&&!z.mounted&&Math.hypot(z.x-q.x,z.y-q.y)<.4*(Space.diameter(p)+Space.diameter(z)));const L=p.x<=r.x?-1:1;for(const [dx,dy] of [[L,.004],[-L,.004],[L*.7,.04],[-L*.7,.04],[0,.06]]){const q={x:r.x+dx*gap,y:r.y+dy};if(clear(q))return q;}for(const dx of [L,-L]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
 // ---- 엘리시 촉촉한 잎 곁 (always on while it holds) ----
@@ -157,14 +159,14 @@ function act(s,p,ctx={}){const Space=dep('spatial'),Vit=dep('vitals');
   for(const l of ls){l.sector=sec;l.x=to.x;l.y=to.y;}const ids=ls.map(l=>l.id);if(!t.pile)ids.push(t.anchor);
   L.gather(s,sec,ids,{x:to.x,y:to.y});const n=ls.length;Vit.energyPts(p,-SK.rake.cost*n);bump(s,p,ctx);ctx.event?.(s,'skill',p.name+' · 흩어진 낙엽 '+n+'장을 '+(t.pile?'낙엽 더미로':'한데')+' 긁어모았어요.',{individual:p.id});stop(s,p);return {kind:'idle',distance:0};}
  if(t.k==='brush'){const r=s.individuals.find(q=>q.id===t.target);if(!r||!r.active||r.mounted||dep('shelter').inside?.(s,r)||r.shelter?.facilityId){stop(s,p);return null;}
-  if(t.phase==='go'){const at=side(s,p,r),m=walk(at);if(m.arrived||dist(p,at)<.02){if(r.objectTask&&!r.objectTask.free||r.skill){stop(s,p);return m;}t.phase='do';t.at=s.worldTick;r.skillHold=p.id;if(r.stroll&&!r.stroll.lake&&!r.stroll.puddle)delete r.stroll;}else if(age>SK.brush.go||t.stall>=4){stop(s,p);rest(s,p,'brush',60);}return m;}
+  if(t.phase==='go'){const at=side(s,p,r),m=walk(at);/* 1.2.16: a friend that had started drinking or eating by the time 리들리 got there made it give up with no wait and start again the next second, over and over (761 give-ups to 8 brushes in 4 × 2 game hours); now it waits beside the friend until the go time runs out, then rests a minute */if(m.arrived||dist(p,at)<.02){if(r.objectTask&&!r.objectTask.free||r.skill){if(age>SK.brush.go){stop(s,p);rest(s,p,'brush',60);}return m;}t.phase='do';t.at=s.worldTick;r.skillHold=p.id;if(r.stroll&&!r.stroll.lake&&!r.stroll.puddle)delete r.stroll;}else if(age>SK.brush.go||t.stall>=4){stop(s,p);rest(s,p,'brush',60);}return m;}
   if(s.worldTick-t.at<SK.brush.time)return {kind:'brush',distance:0};
   dep('creatures').brush(s,r.id,lv(p,'brush','amount'));Vit.energyPts(p,-SK.brush.cost);rest(s,p,'brush',lv(p,'brush','rest'));bump(s,p,ctx);ctx.event?.(s,'skill',p.name+' · '+r.name+'의 잎을 털어 주었어요.',{individual:p.id});stop(s,p);return {kind:'idle',distance:0};}
  stop(s,p);return null;}
 // 1.2.6 관리자 '스킬 보기' (user: "친구 항목에서 해당 케릭터의 스킬 연출 볼 수 있게 스킬 사용 키"): starts the skill now, skipping the
 // wait and the "is it needed" check (a thirsty friend, a low spring); the caller has already put the leaves, pests or soil water in place.
 // The skill then runs exactly as in play. Returns false when there is nothing to work on.
-function force(s,p){init(s);(p.skillRest??={});for(const k of KINDS)delete p.skillRest[k];
+function force(s,p){init(s);(p.skillRest??={});for(const k of [...KINDS,'self'])delete p.skillRest[k];
  if(p.species==='bosong'){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}return false;}
  if(p.species==='jureong'){const c=rakeFor(s,p);if(!c)return false;const Space=dep('spatial');let at=null;for(const q of [{x:c.x,y:c.y+.03},{x:c.x+.04,y:c.y+.02},{x:c.x-.04,y:c.y+.02},{x:c.x,y:c.y}])if(Space.walkable(s,q,p.id)){at=q;break;}if(!at||!Space.route(s,p,at))return false;
   p.skill={k:'rake',sector:c.sector,ids:c.ids.map(l=>l.id),pile:c.pile,anchor:c.anchor,cx:c.x,cy:c.y,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'rake',SK.rake.rest);return true;}
@@ -185,7 +187,7 @@ function status(s,p){const t=p.skill;if(p.skillHold){const h=s.individuals.find(
 const LINE=Object.freeze({
  bosong:p=>'웅덩이 물 최대 '+lv(p,'dig','amount')+' · 찾는 범위 '+lv(p,'dig','reach')+' · 대기 '+lv(p,'dig','rest')/60+'분',
  jureong:p=>'한 번에 낱잎 '+lv(p,'rake','count')+'장 · 기운 '+lv(p,'rake','energy')+'% 이상에서 시작',
- ridley:p=>(lv(p,'brush','amount')>=100?'해충을 모두':'해충 '+lv(p,'brush','amount')+'만큼')+' 털어 냄 · 범위 '+lv(p,'brush','reach')+' · 대기 '+lv(p,'brush','rest')/60+'분',
+ ridley:p=>(lv(p,'brush','amount')>=100?'해충을 모두':'해충 '+lv(p,'brush','amount')+'만큼')+' 털어 냄(자기 머리 정돈도 같음) · 범위 '+lv(p,'brush','reach')+' · 대기 '+lv(p,'brush','rest')/60+'분',
  bonbon:p=>'잎 습도 +'+lv(p,'mist','humid')+' (범위 '+lv(p,'mist','range')+') · 천적 부르는 범위 '+lv(p,'mist','assist'),
  superbum:p=>'한 번에 물 '+lv(p,'share','total')+'까지 나눔 · 둥지 최대 '+lv(p,'share','nest'),
  neolbi:p=>'비 '+Math.round(lv(p,'umbrella','rain')*100)+'% · 바람 '+Math.round(lv(p,'umbrella','wind')*100)+'% 막음 · 바람 '+lv(p,'umbrella','limit')+'까지 버팀'});
@@ -194,9 +196,9 @@ function levelLines(p){const f=LINE[p?.species];if(!f)return null;const L=levelO
 function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='object'||!Array.isArray(st.puddles)||st.puddles.length>SK.dig.max||!Number.isInteger(st.nextId)||st.nextId<1||typeof st.seen!=='object')throw Error('고유 스킬 기록을 확인해 주세요.');
   for(const d of st.puddles)if(typeof d.id!=='string'||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!(d.W>=0&&d.W<=LEVEL.dig.amount.at(-1)+eps)||![...s.patches,...(s.objects?.stored||[])].some(z=>z.id===d.from)||!(d.born<=s.worldTick))throw Error('웅덩이 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
-  if(p.skillRest!==undefined&&(typeof p.skillRest!=='object'||Object.entries(p.skillRest).some(([k,v])=>!KINDS.includes(k)||!Number.isFinite(v))))throw Error('고유 스킬 기록을 확인해 주세요.');
+  if(p.skillRest!==undefined&&(typeof p.skillRest!=='object'||Object.entries(p.skillRest).some(([k,v])=>!KINDS.includes(k)&&k!=='self'||!Number.isFinite(v))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side});
+return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush});
 });

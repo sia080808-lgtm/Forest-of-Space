@@ -1025,3 +1025,25 @@
 - 원인: `scene.js` 호수 빗방울이 0.9.3 물가 띠(x 1.36~1.86)에만, 0.9.5 호수 확장(x 1.5~3.0) 뒤에도 그대로.
 - 수정: `World.LAKE` 가운데·반지름 범위 전체, 개수 ×2.2(밀도 유지). 렌더 전용. 버전 1.2.14 / versionCode 100.
 - 검증: 렌더 비교 `docs/qa-1.2.14`, `render`·`lake`·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 병합·릴리스: PR #85(https://github.com/sia080808-lgtm/Forest-of-Space/pull/85) main 병합 `833dffa21e85a813faba23f1ef60dae10b6f28fc`(사용자 "ㄱㄱ"; head `fee2976` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.14 `Forest-of-Space-1.2.14.apk` 75,094,707 bytes, SHA-256 `953a80fac3c8279bcd0a5370f834080a8c56483638ffa006e4810c1b1a2196aa` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode100/1.2.14. APK는 사용자에게 파일로 전달.
+
+### TAP-DETAIL-1.2.15-20261122 — 화면 아래쪽 친구를 누르면 바로 자세히 보기로 넘어가던 문제
+
+- 담당: Claude Code. 요청: 사용자 "화면 아래에서 케릭터 누르면 바로 케릭터 자세히 들어가는 버그 있음 디바깅 pr". 기준 main `833dffa`(1.2.14 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 원인: `carry.js` pointerup에서 `selectAt`→카드가 손가락 아래에 열리고, 뒤따르는 클릭(일부 WebView는 손가락 아래 요소로 보냄)이 카드의 '자세히 보기'를 누름. 0.7초 클릭 막기가 canvas·친구 버튼만 대상이었음.
+- 수정: 막는 대상에 `#select-card`·`#hint` 추가. `tools/ui-smoke.mjs` 1.2.15 단계(고치기 전 실패), 시계가 멈춘 테스트라 쉼터 카드 단계 앞에 `now+=1000`. 버전 1.2.15 / versionCode 101.
+- 검증: UI PASS, `package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+
+### BRUSH-WAIT-1.2.16-20261122 — 리들리 잎 털기 그만두기 반복
+
+- 담당: Claude Code. 요청: 스킬 작동 질문 → 측정 → "원인 찾아서 고쳐". 같은 브랜치·PR #86(1.2.15 미병합) 위.
+- 원인: `skills.js` brush 도착 시 대상이 non-free objectTask(물·거름)면 rest 없이 stop → 다음 틱 재시작 반복(시드 4개×2시간 그만둠 1,280 : 완료 8).
+- 수정: `startBrush`에서 바쁜 친구 제외, 도착 시 바쁘면 go 30초까지 기다림·넘으면 rest 60. 측정 후 출발 8·완료 7·그만둠 0. 버전 1.2.16 / versionCode 102.
+- 검증: `skills` 1.2.16(고치기 전 실패), `skills`·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+
+### SELF-BRUSH-1.2.17-20261123 — 리들리 머리 정돈이 고유 스킬 수치로 자기 잎을 털어 냄
+
+- 담당: Claude Code. 요청: 사용자 "리들리 자기 머리 쓰다듬는 능력만 자기 고유 스킬 수치를 따라가도록 하자. 레벨업별". 같은 브랜치·PR #86(1.2.15·1.2.16 미병합) 위.
+- 변경: `skills.js` `selfBrush`(정돈이 끝날 때 `lv(p,'brush','amount')`만큼 자기 잎 해충, 대기 키 `self`(같은 rest 표, 친구 털기와 별도), 기운 1, 검증·`force`가 `self` 허용), `engine.js` 정돈 actionSeconds 1→0에서 호출, 스킬 설명 문구. 버전 1.2.17 / versionCode 103.
+- 판단: 사용자가 대기 시간은 정하지 않음 — 스킬 표의 대기를 그대로 쓰되 친구 털기와 따로 센다(자기 털기가 친구 돕기를 막지 않게).
+- 검증: `skills` 1.2.17, 관련 39개, UI PASS, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
