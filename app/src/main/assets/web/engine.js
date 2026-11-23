@@ -13,6 +13,7 @@ const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.Fo
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
+const Boat=typeof module==='object'?require('./lily-boat.js'):globalThis.ForestLilyBoat;
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
@@ -61,7 +62,16 @@ function step(s,{visible=true,held=null}={}){
  s.worldTick++;Env.step(s,rng,event);const w=s.weather;if(held&&(w.wind>=60||s.individuals.find(p=>p.id===held)?.B<20))held=null;
  Obj.resources(s);Creatures.step(s,event);
  // Conservative transfer: each patch debits one pool, and every external loss is ledgered.
- Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);const participants=Social.prepare(s,held);Skills.prepare(s,{held,busy:participants,event,discovery,visible});const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
+ // Existing riders can land before the planners run. New riders board only after
+ // shelter, social and species-specific skills have had their ordinary turn.
+ const previousRider=s.world?.lake?.boat?.rider;
+ if(previousRider)Boat.step(s,held,rng);
+ Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);
+ const participants=Social.prepare(s,held),aboard=s.world?.lake?.boat?.rider;
+ Skills.prepare(s,{held,busy:aboard?new Set([...participants,aboard]):participants,event,discovery,visible});
+ if(!previousRider)Boat.step(s,held,rng);
+ const rider=s.world?.lake?.boat?.rider;
+ const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
   // Movable leaf canopy physically shields patches within its radius; intercepted water
@@ -99,6 +109,7 @@ function step(s,{visible=true,held=null}={}){
   // SRS v2.34 능력치: bands, photosynthesis growth, drying, compost, mood and leaf damage folded into 기운 (vitals.js)
   Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});
   if((p.wetRecovery||p.leafRecovery||p.burden>=40||p.damage>=30)&&participants.has(p.id)){Social.cancel(s,p.id);participants.delete(p.id);}
+  if(p.id===rider){p.motion.kind='rest';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
@@ -190,11 +201,11 @@ function unstoreObject(s,id){const st=s.objects?.stored||[],i=st.findIndex(p=>p.
  for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{validateLayout(trial,{});}catch(e){continue;}
   Social.invalidate(s);Obj.invalidate(s);st.splice(i,1);if(!st.length)delete s.objects.stored;s.patches.push({...p,x:q.x,y:q.y});for(const z of s.individuals)delete z.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');return {x:q.x,y:q.y};}
  throw Error('꺼내 놓을 빈자리가 없어요. 다른 사물을 조금 옮겨 주세요.');}
-function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);Social.cancel(s,id);const p=s.individuals.find(x=>x.id===id);Obj.release(s,p,'move');Sh.release(p,s.worldTick);p.x=result.x;p.y=result.y;const f=Sh.cover(s,p);if(f)p.shelter={phase:'entering',facilityId:f.id,x:p.x,y:p.y,units:Sh.units(p),since:s.worldTick,expires:s.worldTick+10,revision:f.revision,stalled:0};p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}
+function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);Social.cancel(s,id);const p=s.individuals.find(x=>x.id===id);Boat.leaveForMove(s,p);Obj.release(s,p,'move');Sh.release(p,s.worldTick);p.x=result.x;p.y=result.y;const f=Sh.cover(s,p);if(f)p.shelter={phase:'entering',facilityId:f.id,x:p.x,y:p.y,units:Sh.units(p),since:s.worldTick,expires:s.worldTick+10,revision:f.revision,stalled:0};p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}
 function valid(s){
  if(!s||s.schema!==1||s.app!=='ForestOfSpace'||s.rules!==RULES)throw Error('이 버전에서 읽을 수 있는 여백의 숲 백업이 아니에요.');
  const finite=(v,min=0,max=1e15)=>Number.isFinite(v)&&v>=min&&v<=max;
- World.validate(s);const wb=World.bounds(s);
+ World.validate(s);Boat.validate(s);const wb=World.bounds(s);
  if(!finite(s.savedAt)||!finite(s.worldTick)||!Number.isInteger(s.worldTick)||!finite(s.layoutRevision)||!['game','landscape'].includes(s.mode)||typeof s.started!=='boolean')throw Error('시계 또는 모드 기록이 올바르지 않아요.');
  if(!s.weather||!['sun','cloud','rain','fog','snow'].includes(s.weather.kind)||!finite(s.weather.remaining,0,240)||!finite(s.weather.streak,1,2)||!finite(s.weather.intensity,0,100)||!finite(s.weather.wind,0,100)||!finite(s.weather.strongSeconds)||!finite(s.weather.transition,0,10)||!Number.isFinite(s.weather.lastRainEnd))throw Error('날씨 기록을 확인해 주세요.');
  if(!s.climate||['T','H','L'].some(k=>!finite(s.climate[k],0,100)))throw Error('기후 기록을 확인해 주세요.');
@@ -220,7 +231,7 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');snapTiny(s);Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&!Space.walkable(s,p,p.id)&&!Space.onRock?.(s,p)&&!['rock','crevice'].includes(p.objectTask?.object)){/* 1.0: a friend on top of the sun rock, or climbing onto it / into the crevice, stays there (it walks out of a stone by itself) */const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}World.init(s);Obj.litterInit(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
+ if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');snapTiny(s);Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&s.world?.lake?.boat?.rider!==p.id&&!Space.walkable(s,p,p.id)&&!Space.onRock?.(s,p)&&!['rock','crevice'].includes(p.objectTask?.object)){/* 1.0: a friend on top of the sun rock, or climbing onto it / into the crevice, stays there (it walks out of a stone by itself) */const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}World.init(s);Obj.litterInit(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}
@@ -238,5 +249,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject};
+return {Boat,World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject};
 });

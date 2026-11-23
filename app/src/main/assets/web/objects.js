@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -238,6 +238,14 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
    }
   }
  }
+ if(t.board){
+  const b=s.world?.lake?.boat,B=dep('lily-boat');
+  if(b&&!b.rider&&!b.drift&&B.calm(s)&&B.canRide(s,p)&&b.x===t.board.x&&b.y===t.board.y&&s.worldTick<t.deadline){
+   const m=dep('spatial').travel(s,p,t.board);
+   if(m.distance>0)return m;
+  }
+  delete t.board;delete p.walkPlan;
+ }
  if(t.arrivedAt==null){const m=dep('spatial').travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
   if(m.arrived)t.arrivedAt=s.worldTick;else if(t.stalled>=3||s.worldTick>t.deadline){delete p.stroll;p.nextObjectChoice=s.worldTick;}return m;}
  if(t.lake==='drink'){const W=dep('world');if(!W.lakeOpen(s)||W.frozen(s)){delete p.stroll;p.nextObjectChoice=s.worldTick;return null;}const n=Math.max(0,Math.min(LAKE_DRINK.rate,LAKE_DRINK.target-p.B));p.B+=n;s.ledger.lake=(s.ledger.lake||0)+n;
@@ -324,7 +332,7 @@ function choose(s,p,rng){
   // Free visits preserve species expression without competing with actual needs.
   if(p.stroll&&!current){p.nextObjectChoice=s.worldTick+5;return;}
   const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+STROLL.chance){const q=strollTarget(s,p,rng);if(q){if(current)release(s,p,'complete');delete p.objectWait;p.stroll={x:q.x,y:q.y,...(q.ice?{ice:true}:{}),...(q.cool?{cool:true}:{}),...(q.view?{view:true}:{}),since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;}}
+  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+STROLL.chance){const q=strollTarget(s,p,rng);if(q){if(current)release(s,p,'complete');delete p.objectWait;p.stroll={x:q.x,y:q.y,...(q.ice?{ice:true}:{}),...(q.far?{far:true}:{}),...(q.cool?{cool:true}:{}),...(q.view?{view:true}:{}),since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};if(q.far)dep('lily-boat').offerCrossing(s,p,rng);p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;}}
   const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],...(Math.floor(roll*1000)%2?[]:[['shelter','rest']])];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
@@ -349,7 +357,7 @@ function choose(s,p,rng){
 function prepare(s,held,rng){
  for(const p of [...s.individuals].sort((a,b)=>urgency(s,a)-urgency(s,b)||(a.objectWait?.since??s.worldTick)-(b.objectWait?.since??s.worldTick)||a.id.localeCompare(b.id))){
   if(!p.active||p.mounted||held===p.id){release(s,p,'interrupt');continue;}
-  if(s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
+  if(p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
   choose(s,p,rng);
  }
 }
@@ -452,5 +460,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });
