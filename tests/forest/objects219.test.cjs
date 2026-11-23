@@ -34,3 +34,49 @@ test('AC219-28 legacy stock migration moves excess water once without reinitiali
 test('save write failure rolls back leaf pickup atomically',()=>{const s=game(),p=task(s,'litter','litterPlay','mood'),before=F.clone(s);a.throws(()=>F.transaction(s,x=>O.receive(x,x.individuals[0],[]),()=>false));a.deepEqual(s,before);});
 test('AC219-27 current day quota stays unchanged on upgrade; next day uses new cap',()=>{const s=game(),z=O.patch(s,'litter'),m=s.objects.upgrades.litter;z.O=10;z.U=0;s.objects.arrivedToday=27;m.unlocked=2;O.upgrade(s,'litter');a.equal(s.objects.dayQuota,27);s.worldTick=1199;O.resources(s);a.equal(s.objects.dayQuota,27);s.worldTick=1200;O.resources(s);a.equal(s.objects.dayQuota,41);/* 0.8.0 spring: 45/68 x0.6, rounded up */a.ok(s.objects.arrivedToday<=1);});
 test('current and future corrupt resource metadata is rejected, never normalized',()=>{for(const mutation of [s=>s.spring.capacity=1000,s=>s.objects.upgrades.moss.level=8,s=>s.rules='future']){const s=game();mutation(s);a.throws(()=>F.migrate(s));}});
+
+test('엘레판 only reports walking to the leaf litter while moving, then plays on arrival',()=>{
+ const s=game(),p=s.individuals[0];
+ Object.assign(p,{species:'neolbi',x:.2,y:.86,canopyProgress:1});O.patch(s,'litter').O=50;
+ const q=O.option(s,p,'litter','litterPlay','free',true);
+ a.ok(!q.fail);p.objectTask={...q,stalled:0,since:s.worldTick,deadline:s.worldTick+30};
+ function step(){s.worldTick++;p.motion={...O.move(s,p),tick:s.worldTick};}
+ step();a.equal(p.motion.distance,0);a.equal(p.objectTask.stalled,0);a.match(O.reason(s,p),/큰 잎을 접고/);
+ p.canopyProgress=0;
+ const blocker={...p,id:'at-the-leaves',x:q.x,y:q.y,objectTask:null};s.individuals.push(blocker);
+ step();a.equal(p.motion.distance,0);a.match(O.reason(s,p),/갈 길을 찾고/);
+ blocker.active=false;
+ let walked=false;
+ for(let tick=0;tick<20&&!O.at(s,p);tick++){
+  step();
+  if(!O.at(s,p)&&p.motion.distance>0){a.match(O.reason(s,p),/낙엽 자리로 가고/);walked=true;}
+ }
+ a.ok(walked);a.ok(O.at(s,p));a.match(O.reason(s,p),/낙엽을 가지고 놀고/);
+});
+
+test('슈퍼범 releases a persistently blocked litter destination even for a saved task missing its stall count',()=>{
+ const s=game(),p=s.individuals[0];
+ Object.assign(p,{species:'superbum',xp:115,visualStage:3,x:.2,y:.86});O.patch(s,'litter').O=50;
+ const q=O.option(s,p,'litter','litterPlay','free',true);a.ok(!q.fail);
+ p.objectTask={...q,since:s.worldTick,deadline:s.worldTick+30};
+ s.individuals.push({...p,id:'at-the-leaves',x:q.x,y:q.y,objectTask:null});
+ for(let tick=0;tick<6;tick++){s.worldTick++;p.motion={...O.move(s,p),tick:s.worldTick};a.equal(p.motion.distance,0);a.doesNotMatch(O.reason(s,p),/가고 있어요/);}
+ a.equal(p.objectTask,undefined);a.equal(p.objectWait.reason,'blocked_path');
+});
+
+test('a grown 슈퍼범 walks to the open side and takes compost when its original litter spot is blocked',()=>{
+ const s=game(),p=s.individuals[0],leaves=O.patch(s,'litter');
+ Object.assign(p,{species:'superbum',xp:115,visualStage:3,x:.2,y:.86,nutrition:30});leaves.U=40;
+ const q=O.option(s,p,'litter','nutrition','nutrition');a.ok(!q.fail);
+ p.objectTask={...q,since:s.worldTick,deadline:s.worldTick+30,stalled:0,serial:1};
+ // Just inside the clearance of the original spot, outside that of the western spot.
+ const other={...p,id:'neighbour',species:'ridley',x:q.x+.065,y:q.y,objectTask:null};s.individuals.push(other);
+ let waiting=false,walking=false;
+ for(let i=0;i<25&&!O.at(s,p);i++){
+  s.worldTick++;p.motion={...O.move(s,p),tick:s.worldTick};
+  if(!p.motion.distance){a.match(O.reason(s,p),/갈 길을 찾고/);waiting=true;}
+  else if(!O.at(s,p)){a.match(O.reason(s,p),/낙엽 자리로 가고/);walking=true;}
+ }
+ a.ok(waiting&&walking);a.ok(O.at(s,p));a.ok(p.x<q.x);a.match(O.reason(s,p),/영양을 얻고/);
+ const requests=[];O.receive(s,p,requests);O.grant(requests);a.ok(p.nutrition>30);near(p.nutrition-30,40-leaves.U);
+});

@@ -122,3 +122,12 @@ test('the first visibly night tick ends the ride before deep-night sleep',()=>{
  F.step(s);F.step(s);assert.equal(F.Environment.timeKey(s),'night');
  assert.equal(b.rider,undefined);assert.ok(!F.World.inWater(s,p));F.valid(s);
 });
+test('a leisure walk can aim for a dock, keep it until boarding and release it on timeout',()=>{
+ const {s,p,b}=setup();p.x-=.42;delete p.stroll.arrivedAt;
+ const original=p.stroll.x;F.Boat.offerLoop(s,p,()=>0);assert.ok(p.stroll.board?.loop);
+ b.nextDrift=s.worldTick;F.Boat.step(s,null,()=>0);assert.ok(!b.drift);
+ const other={...F.clone(p),id:'second',x:p.x-.3};delete other.stroll.board;s.individuals.push(other);
+ F.Boat.offerLoop(s,other,()=>0);assert.equal(other.stroll.board,undefined);
+ p.stroll.deadline=s.worldTick;F.Boat.step(s,null,()=>0);assert.ok(b.drift);
+ F.Objects.stroll(s,p);assert.equal(p.stroll?.board,undefined);assert.equal(original,b.x);
+});
