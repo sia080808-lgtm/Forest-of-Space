@@ -94,3 +94,19 @@ test('1.2.10 friends do not walk to a shelter that others have already filled', 
    a.ok(F.valid(s));}
   a.ok(waits<=1,`waited at a full shelter door ${waits} times`);
 });
+test('1.2.19 a shelter door shut by friends standing still (under the leaf umbrella) counts like a full shelter: 8 s, then elsewhere for 5 minutes',()=>{
+ const F=require('../../app/src/main/assets/web/engine'),O=F.Objects;const s=F.create(0,4);s.started=true;s.recruitment.nextAttempt=1e9;const p=s.individuals[0];p.B=50;p.nutrition=50;p.energy=100;
+ const task=()=>({object:'shelter',reason:'sleep',free:false,since:s.worldTick,deadline:s.worldTick+200});
+ p.objectTask=task();p.shelter={phase:'moving',facilityId:'shelter-0',since:s.worldTick};p.walkPlan={tx:.3,ty:.2,at:s.worldTick,legacy:false,pts:[{x:.3,y:.2}]};
+ for(let i=0;i<10;i++)(p.nextObjectChoice=s.worldTick+1e6,O.choose(s,p,()=>.99));a.equal(p.objectTask?.object,'shelter','a friend that is still finding its way keeps going');
+ p.shelter={phase:'rerouting',since:s.worldTick};for(let i=0;i<7;i++){(p.nextObjectChoice=s.worldTick+1e6,O.choose(s,p,()=>.99));a.equal(p.objectTask?.object,'shelter');}
+ (p.nextObjectChoice=s.worldTick+1e6,O.choose(s,p,()=>.99));a.notEqual(p.objectTask?.object,'shelter','given up after 8 s');a.equal(p.restCooldown,s.worldTick+300);
+ p.restCooldown=0;p.objectTask=task();p.shelter={phase:'moving',facilityId:'shelter-0',since:s.worldTick};p.walkPlan={tx:.3,ty:.2,at:s.worldTick,legacy:false,pts:[],fx:p.x,fy:p.y};
+ for(let i=0;i<9;i++)(p.nextObjectChoice=s.worldTick+1e6,O.choose(s,p,()=>.99));a.notEqual(p.objectTask?.object,'shelter','a search that found no way counts too');
+ p.restCooldown=0;p.objectTask=task();p.shelter={phase:'waitingOutside',waitReason:'crowd',since:s.worldTick};for(let i=0;i<9;i++)(p.nextObjectChoice=s.worldTick+1e6,O.choose(s,p,()=>.99));a.equal(p.restCooldown,s.worldTick+120,'a full shelter still waits 2 minutes');
+});
+test('1.2.19 a failed search also covers a target that drifts a little (no search every second)',()=>{
+ const F=require('../../app/src/main/assets/web/engine'),Sp=require('../../app/src/main/assets/web/spatial');const s=F.create(0,4);s.started=true;const p=s.individuals[0];
+ p.walkPlan={tx:.5,ty:.5,at:s.worldTick,legacy:false,pts:[],fx:p.x,fy:p.y};
+ const x=p.x,y=p.y,r=Sp.travel(s,p,{x:.52,y:.51});a.equal(r.distance,0,'within 0.03 and 3 s: not searched again, stays put');a.equal(p.x,x);a.equal(p.y,y);a.equal(p.walkPlan.tx,.5,'the kept failure is untouched');
+});
