@@ -49,3 +49,26 @@ test('saved litter records are validated: a pile above 12 leaves, a duplicate pi
   s=>{for(const id of [71,72])s.objects.litter.piles.push({id:'pile:'+id,sector:2,x:.5,y:.3,O:5,U:0,S:0,cap:100,W:0,playBoostUntil:0,born:0});},
   s=>{for(let i=0;i<5;i++)s.objects.litter.leaves.push({id:100+i,sector:7,x:.88,y:.45,rot:0,moved:0});}]){const s=game();bad(s);a.throws(()=>F.valid(s));}
 });
+
+test('all seven species can feed at a crowded compost edge, without distant feeding or full-body play',()=>{
+ for(const [species] of F.SPECIES){
+  let s=game(16),p=s.individuals[0];s.worldTick=200;s.weather.remaining=200;
+  Object.assign(p,{species,x:.22,y:.65,xp:115,visualStage:3,B:55,nutrition:24,energy:80});
+  O.patch(s,'litter').U=0;
+  const pile={id:'pile:60',sector:6,x:.55,y:.55,O:5,U:9,W:0,S:0,cap:100,playBoostUntil:0,born:0};
+  L.piles(s).push(pile);
+  const neighbour={...F.clone(p),id:'at-center',species:'ridley',x:pile.x,y:pile.y,nutrition:65};
+  s.individuals.push(neighbour);
+  const step=()=>F.step(s,{held:neighbour.id});
+  step();a.equal(p.objectTask?.object,pile.id,species);
+  a.ok(p.motion.distance>0&&!O.at(s,p));a.equal(s.objects.ledger.absorbed,0);
+  a.ok(!O.fits(s,p,pile.id,p.objectTask,'litterPlay'));
+  const serial=p.objectTask.serial;
+  s=F.migrate(JSON.parse(JSON.stringify(s)));p=s.individuals[0];
+  for(let i=0;i<39;i++)step();
+  a.ok(O.at(s,p),species);a.equal(p.objectTask.serial,serial,species);a.match(O.reason(s,p),/영양을 얻고/);
+  a.ok(p.nutrition>24&&s.objects.ledger.absorbed>0,species);
+  a.ok(F.Space.distance(p,neighbour)>=.4*(F.Space.diameter(p)+F.Space.diameter(neighbour)));
+  a.ok(!O.fits(s,p,pile.id,{x:pile.x+.3,y:pile.y},'nutrition'));F.valid(s);
+ }
+});
