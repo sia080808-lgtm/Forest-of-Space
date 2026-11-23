@@ -217,6 +217,14 @@ function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null
  if(e<0||e>=L-1)return {pose:'idle'};if(e<4)return {pose:'look',face:Math.floor(e/1.3)%2?1:-1};if(e<6.5)return {pose:'sniff'};if(e>=sit)return {pose:'sit'};
  return {pose:'look',face:Math.floor(e/1.8)%2?-1:1};}
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
+ if(t.board){
+  const b=s.world?.lake?.boat,B=typeof module==='object'?require('./lily-boat.js'):globalThis.ForestLilyBoat;
+  if(b&&!b.rider&&!b.drift&&B.calm(s)&&b.x===t.board.x&&b.y===t.board.y&&s.worldTick<t.deadline){
+   const m=dep('spatial').travel(s,p,t.board);
+   if(m.distance>0)return m;
+  }
+  delete t.board;delete p.walkPlan;
+ }
  if(t.arrivedAt==null){const m=dep('spatial').travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
   if(m.arrived)t.arrivedAt=s.worldTick;else if(t.stalled>=3||s.worldTick>t.deadline){delete p.stroll;p.nextObjectChoice=s.worldTick;}return m;}
  if(t.lake==='drink'){const W=dep('world');if(!W.lakeOpen(s)||W.frozen(s)){delete p.stroll;p.nextObjectChoice=s.worldTick;return null;}const n=Math.max(0,Math.min(LAKE_DRINK.rate,LAKE_DRINK.target-p.B));p.B+=n;s.ledger.lake=(s.ledger.lake||0)+n;
@@ -303,7 +311,7 @@ function choose(s,p,rng){
   // Free visits preserve species expression without competing with actual needs.
   if(p.stroll&&!current){p.nextObjectChoice=s.worldTick+5;return;}
   const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+STROLL.chance){const q=strollTarget(s,p,rng);if(q){if(current)release(s,p,'complete');delete p.objectWait;p.stroll={x:q.x,y:q.y,...(q.cool?{cool:true}:{}),...(q.view?{view:true}:{}),since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;}}
+  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+STROLL.chance){const q=strollTarget(s,p,rng);if(q){if(current)release(s,p,'complete');delete p.objectWait;p.stroll={x:q.x,y:q.y,...(q.far?{far:true}:{}),...(q.cool?{cool:true}:{}),...(q.view?{view:true}:{}),since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};if(q.far)(typeof module==='object'?require('./lily-boat.js'):globalThis.ForestLilyBoat).offerCrossing(s,p,rng);p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;}}
   const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],...(Math.floor(roll*1000)%2?[]:[['shelter','rest']])];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
@@ -328,7 +336,7 @@ function choose(s,p,rng){
 function prepare(s,held,rng){
  for(const p of [...s.individuals].sort((a,b)=>urgency(s,a)-urgency(s,b)||(a.objectWait?.since??s.worldTick)-(b.objectWait?.since??s.worldTick)||a.id.localeCompare(b.id))){
   if(!p.active||p.mounted||held===p.id){release(s,p,'interrupt');continue;}
-  if(s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
+  if(p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
   choose(s,p,rng);
  }
 }
