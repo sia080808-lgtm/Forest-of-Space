@@ -58,3 +58,13 @@ test('ST-1.2.18 shore walks in every season (spring 30%, summer 50%, autumn 25%)
  {const s=at('summer',100),p=s.individuals[0];const q=O.strollTarget(s,p,seq([.4,.9,.5]));a.ok(q?.cool&&!q.view,'summer stays a cool-off walk');}
  {const s=at('spring',100),p=s.individuals[0];p.stroll={x:2,y:.5,view:true,since:s.worldTick,deadline:s.worldTick+90,linger:10};a.match(O.reason(s,p)||'',/호수|물가/);F.validate?.(s);}
 });
+
+test('a sunny winter ice walk reaches the lake, glides and stops when wind rises',()=>{
+ const s=game(),p=s.individuals[0];fed(s);calm(s);
+ s.world.regions.push('lakeshore');s.worldTick=(s.environment.calendar?.start??0)+10900;
+ const target=O.strollTarget(s,p,()=>.35);a.ok(target?.ice);
+ Object.assign(p,{x:target.x,y:target.y,stroll:{...target,since:s.worldTick,deadline:s.worldTick+225,linger:12}});
+ O.stroll(s,p);a.equal(p.stroll.arrivedAt,s.worldTick);
+ O.stroll(s,p);a.equal(p.stroll.gliding,true);a.ok(p.stroll.x>target.x);
+ s.weather.wind=30;O.stroll(s,p);a.equal(p.stroll,undefined);
+});
