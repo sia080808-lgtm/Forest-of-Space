@@ -1063,3 +1063,4 @@
 - 수정: `spatial.js` `keptPlan` 실패 기록은 제자리·목적지 0.03 안이면 3초 유지. `objects.js` `blockedDoor`(rerouting·길 막혀 기다림·길 없음)를 꽉 찬 쉼터처럼 8초 뒤 포기, 쉼 대기 300초(꽉 참은 120초 그대로). 버전 1.2.19 / versionCode 105.
 - 측정: 막힌 장면 재현 느린 순간 19→12·평균 8.45→5.63ms·쉼터 바라봄 400→15초. 여름 8시드 느린 순간 합 426→219(시드 4 282→56, 나머지 7개 144→163).
 - 검증: `shelter-sleep` 1.2.19 검사 2개(고치기 전 실패), 관련 테스트, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
+- 병합·릴리스(1.2.18·1.2.19): PR #87(https://github.com/sia080808-lgtm/Forest-of-Space/pull/87) main 병합 `f0c631dbaf609a4c70df2fa84de425a1a1bac2c1`(사용자 "머지"; head `36f3f4e` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.19 `Forest-of-Space-1.2.19.apk` 75,098,803 bytes, SHA-256 `3b54717d4672e5edca77f16183e6cc76e622b0c197abc106aa397de009fa7044` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode105/1.2.19. APK는 사용자에게 파일로 전달.
