@@ -46,3 +46,15 @@ test('ST-06 0.9.5 no frozen waiting: a friend with nowhere to sleep sleeps where
  let slept=false;for(let t=0;t<400;t++){fed(s);for(const q of s.individuals)q.energy=Math.min(q.energy,40);calm(s);s.worldTick=800+t;F.step(s);for(const q of s.individuals){if(q.sleepHere){slept=true;a.match(O.reason(s,q),/그 자리에서 잠들었어요/);}}}
  a.ok(slept,'someone slept where it stood');F.valid(s);
 });
+test('ST-1.2.18 shore walks in every season (spring 30%, summer 50%, autumn 25%), some in the morning to any shore around the lake',()=>{const W=require('../../app/src/main/assets/web/world');
+ const at=(season,tod)=>{const s=game(4);fed(s);calm(s);W.openLake(s);const k={spring:0,summer:1,autumn:2}[season];s.worldTick=Math.ceil(s.worldTick/1200)*1200+tod;s.environment.calendar.start=s.worldTick-k*3600-10;return s;};
+ const seq=v=>{let i=0;return ()=>v[Math.min(i++,v.length-1)];};
+ a.deepEqual({...O.SHORE_WALK},{spring:.3,summer:.5,autumn:.25,winter:.15});
+ const nearWater=(s,q)=>[...Array(21)].some((_,j)=>W.inWater(s,{x:q.x+.15*Math.cos(j*.3),y:q.y+.15*Math.sin(j*.3)}));
+ {const s=at('spring',100),p=s.individuals[0];const q=O.strollTarget(s,p,seq([.1,.9,.5]));a.ok(q?.view&&!q.cool&&!q.far,'a spring morning walk to the nearest shore');a.ok(nearWater(s,q));}
+ {const s=at('spring',100),p=s.individuals[0];const q=O.strollTarget(s,p,seq([.1,.1,.97,.5]));a.ok(q?.view&&q.far,'a quarter of morning shore walks go anywhere around the lake');a.ok(Math.hypot(q.x-p.x,q.y-p.y)>.6&&nearWater(s,q));}
+ {const s=at('spring',500),p=s.individuals[0];const q=O.strollTarget(s,p,seq([.1,.1,.5]));a.ok(q?.view&&!q.far,'no far walks in the afternoon');}
+ {const s=at('autumn',100),p=s.individuals[0];a.ok(O.strollTarget(s,p,seq([.24,.9,.5]))?.view);a.ok(!O.strollTarget(s,p,seq([.26,.9,.5]))?.view,'autumn 25%');}
+ {const s=at('summer',100),p=s.individuals[0];const q=O.strollTarget(s,p,seq([.4,.9,.5]));a.ok(q?.cool&&!q.view,'summer stays a cool-off walk');}
+ {const s=at('spring',100),p=s.individuals[0];p.stroll={x:2,y:.5,view:true,since:s.worldTick,deadline:s.worldTick+90,linger:10};a.match(O.reason(s,p)||'',/호수|물가/);F.validate?.(s);}
+});

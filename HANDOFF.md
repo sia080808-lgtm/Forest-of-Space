@@ -1048,3 +1048,10 @@
 - 판단: 사용자가 대기 시간은 정하지 않음 — 스킬 표의 대기를 그대로 쓰되 친구 털기와 따로 센다(자기 털기가 친구 돕기를 막지 않게).
 - 검증: `skills` 1.2.17, 관련 39개, UI PASS, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
 - 병합·릴리스(1.2.15~1.2.17): PR #86(https://github.com/sia080808-lgtm/Forest-of-Space/pull/86) main 병합 `ee1f76f925686efda305dcb3a7feaa1b764a57d8`(사용자 "머지"; head `b0e1524` 기준 simulation·CodeQL 성공). 프리릴리스 v1.2.17 `Forest-of-Space-1.2.17.apk` 75,094,707 bytes, SHA-256 `71eba02ead180dda4b3a8a852942a3f330efbc0b39a4ae1765e2d6d7f32f6a1f` — `.sha256` 일치, 인증서 `f807cfca…7e3d`, versionCode103/1.2.17. APK는 사용자에게 파일로 전달.
+
+### SHORE-WALK-1.2.18-20261123 — 봄·가을·겨울에도 호숫가 산책, 가끔 먼 물가
+
+- 담당: Claude Code. 요청: 사용자 "왜 친구들이 호수가로 산책을 안 가냐" → 비율 추천 → "왜 동쪽 끝까지 안가?" → "ㄱㄱ". 기준 main `ee1f76f`(1.2.17 병합), 브랜치 `claude/festive-curie-mjk5mw`.
+- 변경: `objects.js` `strollTarget`(계절별 물가 산책 `SHORE_WALK` 봄 .3·여름 .5·가을 .25·겨울 .15, 호수 열림·안 얼음일 때만 난수 사용, 아침 400초 전 4분의 1은 `World.shoreAnywhere`로 먼 물가·기한 2.5배, `view` 기록·카드 문구·검증, `strollTarget`·`SHORE_WALK` 내보냄), `world.js` `shoreAnywhere`. 버전 1.2.18 / versionCode 104.
+- 측정: 물가 산책 봄 11→23%, 가을 11→16%, 여름 그대로. 봄·가을 엔진 시간 같음. 여름 시드 4에서 기존 엘레판 우산 아래 매초 재선택 상황이 걸려 느린 틱 29→282(다른 6시드는 같거나 적음) — 별도 과제.
+- 검증: `stroll` 1.2.18, 관련 50개·`package` 통과, 전체는 CI. 실기기 미검증. 병합은 사용자 요청 시.
