@@ -16,6 +16,33 @@ assert.ok(win.RidleyApp,'boot');assert.equal(win.document.getElementById('world'
 const click=sel=>{const b=win.document.querySelector(sel);assert.ok(b,sel);b.click();};
 // 1.2.1: the title screen shows on every launch, even for a started forest, and '숲에 들어가기' closes it
 assert.equal(win.document.getElementById('welcome').hidden,false,'title screen on launch');click('#enter');assert.equal(win.document.getElementById('welcome').hidden,true);
+{
+ const s=getState(),oldTick=s.worldTick;
+ const doc=win.document,clock=doc.getElementById('forest-clock');
+ assert.match(doc.getElementById('welcome-when').textContent,/ · .* · /,'welcome retains the time-of-day description and weather');
+ const check=(tick,phase,label,percent)=>{
+  s.worldTick=tick;win.__qa.update();
+  assert.equal(clock.dataset.phase,phase);assert.equal(doc.getElementById('clock-phase').textContent,label);
+  assert.equal(parseFloat(clock.style.getPropertyValue('--clock-progress')),percent);
+ };
+ check(0,'morning','아침',0);
+ check(180,'noon','낮',15);
+ check(570,'dusk','해질녘',47.5);
+ const before=JSON.stringify(s);
+ click('#forest-clock');
+ const detail=doc.getElementById('forest-clock-detail');
+ assert.match(detail.textContent,/30초 후 밤/);assert.equal(JSON.stringify(s),before,'reading the clock does not move time');
+ check(600,'night','밤',50);
+ assert.match(detail.textContent,/5분 후 깊은 밤/);assert.equal(doc.getElementById('forest-clock-detail'),detail);
+ check(900,'deep','깊은 밤',75);
+ check(1140,'dawn','새벽',95);
+ assert.match(detail.textContent,/1분 후 아침/);
+ assert.equal(win.RidleyApp.back(),true);assert.equal(doc.getElementById('forest-clock-detail'),null);
+ assert.equal(doc.activeElement,clock);
+ check(1200,'morning','아침',0);
+ s.worldTick=oldTick;win.__qa.update();
+ console.log('PASS: clock labels and marker follow each game phase, details update, and midnight wraps');
+}
 // 1.2.0: the admin tools live in a panel over the world (turned on in settings), the inspectors under its '보기' tab
 const adminPanel=(tabId='view')=>{click('#settings');const sw=win.document.querySelector('[data-action="admin-mode"]');if(sw.getAttribute('aria-checked')!=='true')sw.click();click('[data-tab="world"]');if(win.document.getElementById('admin-panel').hidden)click('#admin-tool');click('[data-tab-id="'+tabId+'"]');};
 const canvas=win.document.getElementById('garden');
