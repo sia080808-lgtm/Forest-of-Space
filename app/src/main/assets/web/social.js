@@ -44,11 +44,31 @@ function available(s,p){return p.id!==s.world?.lake?.boat?.rider&&!s.social.sess
 function stop(s,session,reason){s.social.sessions=s.social.sessions.filter(x=>x!==session);s.social.cooldowns[session.key]=s.worldTick+120;for(const id of session.ids){const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;p.socialUntil=s.worldTick+15;p.canopy=false;delete p.socialRole;delete p.protectedBy;if(reason==='unsafe'||reason==='interrupted'||reason==='layout'){p.canopyProgress=0;p.action='rest';p.target='shelter';}}}session.reason=reason;}
 function cancel(s,id){init(s);for(const a of [...s.social.sessions])if(a.ids.includes(id))stop(s,a,'interrupted');delete s.social.observations.EC03;const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
 function invalidate(s){init(s);for(const a of [...s.social.sessions])stop(s,a,'layout');s.social.observations={};for(const p of s.individuals){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
+function bedtime(s,p){
+ const V=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
+ return V.sleepTime(s,p);
+}
+function canopyReason(s,p){
+ const a=s.social?.sessions.find(a=>a.type==='CANOPY'&&a.ids.includes(p.id));
+ if(!a)return '';
+ if(a.ids[0]===p.id)return s.weather.kind==='rain'?'큰 잎을 펼쳐 친구의 비를 막아 주고 있어요':'큰 잎으로 친구에게 그늘을 내어 주고 있어요';
+ if(a.phase==='rest')return '엘레판의 잎 아래에서 쉬고 있어요';
+ if(a.phase==='exit')return '엘레판의 잎 아래에서 나오고 있어요';
+ return '비와 바람을 피할 잎 아래 자리로 가고 있어요';
+}
 function start(s,type,ps){const ids=ps.map(p=>p.id),key=type+':'+[...ids].sort().join(':');if((s.social.cooldowns[key]||0)>s.worldTick||ps.some(p=>(p.socialUntil||0)>s.worldTick))return;
- if(s.objects){const O=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;for(const p of ps)O.release(s,p,'replace');}
+ if(s.objects){const O=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;for(const p of ps){
+  O.release(s,p,'replace');
+  if(type==='CANOPY'||type==='A12'){delete p.stroll;delete p.walkPlan;}
+ }}
  const a={id:'social-'+(++s.social.serial),type,ids,key,phase:'signal',elapsed:0,started:s.worldTick,layout:s.layoutRevision,steps:0,total:0,rain:0,lastTick:-1};s.social.sessions.push(a);return a;}
 function prepare(s,held){init(s);const participants=new Set();for(const p of s.individuals){p.canopy=false;delete p.protectedBy;}
  for(const a of [...s.social.sessions]){const ps=a.ids.map(id=>s.individuals.find(p=>p.id===id));const canopy=a.type==='CANOPY';let okay=ps.every(p=>p&&p.active&&!p.mounted&&p.id!==held&&!p.shelter?.facilityId&&p.burden<40&&!p.wetRecovery&&!p.leafRecovery)&&a.layout===s.layoutRevision;
+  if(okay&&(canopy||a.type==='A12')&&ps.some(p=>bedtime(s,p))){
+   stop(s,a,'bedtime');
+   for(const p of ps){delete p.stroll;delete p.walkPlan;p.action='wander';p.actionSeconds=0;p.target=null;p.nextObjectChoice=s.worldTick;}
+   continue;
+  }
   if(canopy){const h=ps[0];okay=okay&&ps.every(p=>W.leafFit(s,p))&&s.weather.wind<W.limit(h)&&(s.weather.wind<W.limit(h)-10||a.phase==='rest'&&h.braceSeconds<10);if(okay&&s.weather.wind>=W.limit(h)-10)h.braceSeconds=Math.min(10,h.braceSeconds+1);}
   else okay=okay&&s.weather.wind<60;
   if(!okay){stop(s,a,'unsafe');continue;}
@@ -60,10 +80,11 @@ function prepare(s,held){init(s);const participants=new Set();for(const p of s.i
  // 물 나눔 (A04): 슈퍼범 with more than 10 in its nest brings water to the thirstiest friend (below its 수분 warning line) it can reach.
  // Old sessions with an Ellisii donor stay retired.
  for(const d of free.filter(p=>p.species==='superbum'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){if(!available(s,d))continue;const r=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&(!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&p.active&&!p.mounted&&thirsty(p)&&p.burden<40&&available(s,p)).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id))[0];if(r&&Space.route(s,d,r)){const a=start(s,'A04',[d,r]);if(a)a.ids.forEach(id=>participants.add(id));}}
- const ns=free.filter(p=>p.species==='neolbi'&&(safe(p,s)||W.leafFit(s,p)&&s.weather.wind<60)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
- if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=free.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
+ const shadeFriends=free.filter(p=>!bedtime(s,p)&&!p.stroll?.lake&&!p.stroll?.puddle);
+ const ns=shadeFriends.filter(p=>p.species==='neolbi'&&(safe(p,s)||W.leafFit(s,p)&&s.weather.wind<60)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
+ if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=shadeFriends.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
  if(['rain','snow'].includes(s.weather.kind)||s.climate.L>=70||s.weather.wind>=50){for(const h of ns.filter(p=>available(s,p)&&!p.canopyClosing)){
-  for(const r of free.filter(p=>p.id!==h.id&&available(s,p)&&W.leafFit(s,p)&&s.weather.wind<60&&Space.distance(p,h)<.35).sort((a,b)=>Space.distance(a,h)-Space.distance(b,h)||a.id.localeCompare(b.id))){const seat=restPoint(s,[h],r);if(!seat)continue;const wet=s.patches.some(z=>Space.distance(z,seat)<.1&&(z.S/z.cap>=.4||z.W>=1));if(wet)continue;const direct=Space.route(s,r,Space.socket(s,'shelter',r.id));const route=Space.route(s,r,seat);if(!route)continue;const length=path=>path.reduce((v,q,i)=>v+Space.distance(i?path[i-1]:r,q),0);if(direct&&length(route)>length(direct)+.12)continue;const a=start(s,'CANOPY',[h,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));h.canopy=true;break;}}
+  for(const r of shadeFriends.filter(p=>p.id!==h.id&&available(s,p)&&W.leafFit(s,p)&&s.weather.wind<60&&Space.distance(p,h)<.35).sort((a,b)=>Space.distance(a,h)-Space.distance(b,h)||a.id.localeCompare(b.id))){const seat=restPoint(s,[h],r);if(!seat)continue;const wet=s.patches.some(z=>Space.distance(z,seat)<.1&&(z.S/z.cap>=.4||z.W>=1));if(wet)continue;const direct=Space.route(s,r,Space.socket(s,'shelter',r.id));const route=Space.route(s,r,seat);if(!route)continue;const length=path=>path.reduce((v,q,i)=>v+Space.distance(i?path[i-1]:r,q),0);if(direct&&length(route)>length(direct)+.12)continue;const a=start(s,'CANOPY',[h,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));h.canopy=true;break;}}
  }}
  for(const p of s.individuals.filter(p=>p.species==='neolbi'))p.canopyProgress=Math.max(0,Math.min(1,(p.canopyProgress||0)+(p.canopy?1:-1)));
  return participants;
@@ -127,5 +148,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,50))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {NEST,nest,NEST_EVAP,NEST_SIP,collect,init,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {NEST,nest,NEST_EVAP,NEST_SIP,collect,init,canopyReason,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });

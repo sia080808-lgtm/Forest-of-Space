@@ -15,3 +15,18 @@ test('WX-AC06 save migration preserves physiology, nickname and cooldowns, cance
 test('WX-AC06 closing app applies only safe elapsed-time recovery and rejected writes are atomic',()=>{const s=sheltered(),p=s.individuals[0];p.gustExposure=10;p.braceSeconds=8;p.damage=25;const before=F.clone(s);a.throws(()=>F.transaction(s,n=>n.individuals[0].damage=0,()=>false));a.deepEqual(s,before);F.pause(s,1000);F.resume(s,2000);a.equal(p.gustExposure,10);a.equal(p.braceSeconds,8);a.equal(p.damage,25);F.pause(s,2000);F.resume(s,22000);a.equal(p.braceSeconds,8);});
 test('WX-AC09 cancellation and unoccupied space leave no protection',()=>{const s=sheltered(),h=s.individuals[1];F.Social.cancel(s,h.id);a.equal(h.canopyProgress,0);a.equal(W.host(s,s.individuals[0]),null);a.equal(W.rainCover(s,{x:.489475,y:.411328125}),0);});
 test('WX-AC10 canopy keeps its logical state at animation loop boundaries',()=>{for(const t of [0,5.99,6,12,99])near(N.Motion.pose('umbrella',t,{canopy:1,rain:true}).open,1);});
+test('rain canopy replaces an old walk on both cards and releases both friends at bedtime',()=>{
+ const s=Q.make('WX01'),[guest,host]=s.individuals;
+ guest.species='bosong';guest.name='베이치';
+ for(const p of [host,guest])p.stroll={x:.8,y:.5,since:s.worldTick,deadline:s.worldTick+90,linger:15};
+ F.advance(s,6);a.ok(W.host(s,guest));
+ for(const p of [host,guest])a.equal(p.stroll,undefined);
+ a.match(F.Social.canopyReason(s,host),/비를 막아/);a.match(F.Social.canopyReason(s,guest),/잎 아래에서 쉬고/);
+ // Stale strolls can also be present in a game already running the previous version.
+ for(const p of [host,guest])Object.assign(p,{action:'wander',actionSeconds:0,stroll:{x:.8,y:.5,since:745,deadline:835,linger:12}});
+ s.worldTick=749;F.step(s);
+ a.ok(!s.social.sessions.some(a=>a.type==='CANOPY'));
+ for(let i=0;i<75;i++)F.step(s);
+ for(const p of [host,guest]){a.equal(p.stroll,undefined);a.equal(p.objectTask?.reason,'sleep');}
+ F.valid(s);
+});

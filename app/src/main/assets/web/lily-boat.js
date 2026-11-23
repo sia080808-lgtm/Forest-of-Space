@@ -24,12 +24,27 @@ function roll(s,rng){
  s.rng.boat??=s.rng.behavior||1;
  return rng(s,'boat');
 }
+function approaching(s,b,except){
+ return s.individuals.some(p=>{
+  const r=p.stroll;
+  return p.id!==except&&p.active&&!p.mounted&&r?.board&&r.deadline>s.worldTick&&
+   r.board.x===b.x&&r.board.y===b.y;
+ });
+}
+function offerLoop(s,p,rng){
+ const r=p.stroll,b=s.world?.lake?.boat;
+ if(!r||r.ice||r.far||!b||b.rider||b.drift||!calm(s)||!canRide(s,p)||approaching(s,b,p.id))return;
+ const space=dep('spatial','ForestSpace');
+ // Keep the original stroll as the fallback if daylight, the boat or the route changes.
+ if(space.distance(p,b)>1.8||roll(s,rng)>=((r.view||r.cool) ? .8 : .35))return;
+ if(landingFree(s,p,b)&&space.route(s,p,b,p.id))r.board={x:b.x,y:b.y,loop:true};
+}
 function offerCrossing(s,p,rng){
  const r=p.stroll,b=s.world?.lake?.boat;
  if(!r||!r.far||!b||b.rider||b.drift||p.boatAfter>s.worldTick||!calm(s)||r.x<eastEdge())return;
  const W=world(),space=dep('spatial','ForestSpace');
  if(p.x>=W.LAKE.cx||b.x>W.LAKE.cx-W.LAKE.ru/3||space.distance(p,b)>=space.distance(p,r))return;
- if(roll(s,rng)>=.5||!landingFree(s,p,b))return;
+ if(approaching(s,b,p.id)||roll(s,rng)>=.5||!landingFree(s,p,b))return;
  const approach=space.route(s,p,b,p.id);if(!approach)return;
  let from=p,walkLength=0;
  for(const waypoint of approach){walkLength+=space.distance(from,waypoint);from=waypoint;}
@@ -116,20 +131,19 @@ function step(s,held,rng){
     delete p.stroll;delete p.walkPlan;return;
    }
   }
-  if(!r||!(r.view||r.cool)||r.arrivedAt==null||s.worldTick-r.arrivedAt>1||r.boatChecked)continue;
+  if(!r||!(r.view||r.cool)||r.arrivedAt==null||s.worldTick-r.arrivedAt>=r.linger||r.boatChecked||r.board)continue;
+  if(!canRide(s,p,held)||Math.hypot(p.x-b.x,p.y-b.y)>.38||approaching(s,b,p.id)||!landingFree(s,p,b))continue;
   r.boatChecked=true;
-  if(!canRide(s,p,held)||Math.hypot(p.x-b.x,p.y-b.y)>.26)continue;
   const leaf=dep('creatures','ForestCreatures').onLeaf(s,p.id);
   const prefersRide=p.energy<65||leaf.mealy?.density>0||leaf.mite?.density>0;
-  if(roll(s,rng)>=(prefersRide ? .5 : .25))continue;
-  if(!landingFree(s,p,b))continue;
+  if(roll(s,rng)>=(prefersRide ? .9 : .7))continue;
   if(Math.hypot(p.x-b.x,p.y-b.y)>=.025){
    r.board={x:b.x,y:b.y,loop:true};continue;
   }
   b.home={x:p.x,y:p.y};b.x=p.x;b.y=p.y;b.rider=p.id;b.start=s.worldTick;b.duration=30+Math.floor(roll(s,rng)*16);
   delete p.stroll;delete p.walkPlan;return;
  }
- if(s.worldTick>=b.nextDrift){
+ if(s.worldTick>=b.nextDrift&&!approaching(s,b)){
   b.dock=(b.dock+1)%3;
   const to=W.nearShore(s,[west,{x:center.cx,y:center.cy-center.rv},{x:center.cx+center.ru,y:center.cy}][b.dock]);
   b.drift={x:b.x,y:b.y,to,start:s.worldTick};
@@ -150,5 +164,5 @@ function validate(s){
     !tick(b.duration)||b.duration<30||b.duration>45||!s.individuals.some(p=>p.id===b.rider)))
   throw Error('연잎 배 기록을 확인해 주세요.');
 }
-return {step,reason,validate,offerCrossing,calm,canRide,leaveForMove,ridePoint};
+return {step,reason,validate,offerCrossing,offerLoop,calm,canRide,leaveForMove,ridePoint};
 });

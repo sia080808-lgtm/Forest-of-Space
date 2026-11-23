@@ -68,3 +68,14 @@ test('a sunny winter ice walk reaches the lake, glides and stops when wind rises
  O.stroll(s,p);a.equal(p.stroll.gliding,true);a.ok(p.stroll.x>target.x);
  s.weather.wind=30;O.stroll(s,p);a.equal(p.stroll,undefined);
 });
+test('cool winter forest: a healthy friend leaves the garden, reaches ice and completes the return glide',()=>{
+ const s=game(4),p=s.individuals[0];fed(s);F.World.openLake(s);s.worldTick=12000;
+ s.environment.climate='C03';s.environment.climateMode='fixed';s.climate.T=25;
+ let reached=false,turned=false;
+ for(let t=0;t<350&&!turned;t++){
+  calm(s);F.step(s);
+  if(p.stroll?.ice&&F.World.onIce(s,p))reached=true;
+  if(p.stroll?.glideLeg===2&&p.stroll.arrivedAt!=null)turned=true;
+ }
+ a.ok(reached);a.ok(turned);F.valid(s);
+});

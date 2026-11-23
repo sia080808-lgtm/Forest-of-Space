@@ -36,7 +36,7 @@ test('ECO24-A01 friends play with and eat from real piles; carried leaves return
  a.deepEqual(O.litterSpots(s,'U',p),['pile:60','litter']);const o=O.option(s,p,'pile:60','nutrition','nutrition');a.ok(!o.fail,o.fail);
  const q=O.region(s,'pile:60','litterPlay');Object.assign(p,{x:q.x,y:q.y,mood:40});p.objectTask={object:'pile:60',kind:'litterPlay',reason:'mood',...q,serial:s.objects.nextSession++,since:s.worldTick,remaining:30,grade:2};p.objectNeeds=O.needs(p);p.motion={distance:0,kind:'idle',water:0};p.target='pile:60';
  const before=O.storedLeaf(s);a.ok(O.receive(s,p,[])===false);a.equal(p.carriedLeaf.pile,'pile:60');near(L.pile(s,'pile:60').O,7.5);near(O.storedLeaf(s),before);a.ok(L.pile(s,'pile:60').playBoostUntil>s.worldTick);F.valid(s);
- O.release(s,p);near(L.pile(s,'pile:60').O,8);near(O.storedLeaf(s),before);a.equal(O.reason(s,{...p,objectTask:{object:'pile:60',kind:'nutrition',x:0,y:0}}),'낙엽더미로 가고 있어요');
+ O.release(s,p);near(L.pile(s,'pile:60').O,8);near(O.storedLeaf(s),before);a.equal(O.reason(s,{...p,motion:{tick:s.worldTick,distance:.02},objectTask:{object:'pile:60',kind:'nutrition',x:0,y:0}}),'낙엽더미로 가고 있어요');
 });
 
 test('ECO24-L06 strong wind moves loose leaves only inside the map, piles stay; no leaf is lost',()=>{

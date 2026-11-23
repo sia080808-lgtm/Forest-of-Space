@@ -132,10 +132,20 @@ function urgency(s,p){if(dep('weather-care').wind(s,p)>=60||p.burden>=60)return 
 function sleepTime(s,p){return dep('vitals').sleepTime(s,p);}   // SRS v2.34 ST34-09: deep night for all, dusk when tired, shade lovers wake first
 function rainCover(s,p){const E=dep('environment');return (stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.6)&&p.species!=='superbum'&&!(p.species==='neolbi'&&canShield(s,p))&&!dep('shelter').inside(s,p);}
 /* 1.2.6: heavy rain for a friend whether it is already in cover or not (rainCover is false inside the shelter, so a hungry friend walked out to feed and straight back in) */function heavyRain(s,p){const E=dep('environment');return (stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.6)&&p.species!=='superbum';}
-function sunnyIce(s){
- return dep('vitals').isDay(s)&&s.weather.kind==='sun'&&!rainy(s)&&s.weather.wind<30&&dep('world').frozen(s);
+function strollWeather(s){
+ const t=dep('environment').timeKey(s);
+ return (t==='morning'||t==='noon'||t==='dusk')&&!rainy(s)&&!['rain','snow','storm'].includes(s.weather.kind);
 }
-function coldCall(s,p){const V=dep('vitals');if(!V.isCold(s)||dep('traits').ofPet(p).cold>=0||p.mounted)return false;if(s.climate.T>=28&&sunnyIce(s)&&p.energy>=65)return false;if(dep('shelter').inside(s,p)||V.restingAt(p,'rock')&&V.rockSun(s)>0)return false;return true;}
+function iceWeather(s){
+ const e=dep('environment');
+ return World.frozen(s)&&strollWeather(s)&&s.weather.wind<30&&
+  e.precipitation(s,'snow')===0&&e.precipitation(s,'rain')===0;
+}
+function sunnyIceBreak(s,p){
+ // In the cool forest a settled sunny winter day reaches T=25 (35 - 15 + 5).
+ return s.climate.T>=25&&p.energy>=60&&s.weather.kind==='sun'&&iceWeather(s);
+}
+function coldCall(s,p){const V=dep('vitals');if(!V.isCold(s)||dep('traits').ofPet(p).cold>=0||p.mounted)return false;if(sunnyIceBreak(s,p))return false;if(dep('shelter').inside(s,p)||V.restingAt(p,'rock')&&V.rockSun(s)>0)return false;return true;}
 // 1.2.1: a friend waits by 엘레판 for its leaf only when that can really happen (both healthy enough for a leaf umbrella,
 // 엘레판 outside and not tied up) or the umbrella is already over it; otherwise it takes cover like everyone else
 /* 1.2.19 (user: "우산문제도 pr"): two friends under 엘레판's leaf umbrella can stand right by the shelter door for the whole rain. A friend
@@ -151,7 +161,7 @@ function canShield(s,h){const W=dep('weather-care');return !gaveUpLeaf(s,h)&&W.l
 function rainy(s){const E=dep('environment');return stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
 function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)return t.remaining<=0;
  if(t.reason==='safety')return dep('weather-care').wind(s,{...p,shelter:{phase:'outside'}})<50&&!p.wetRecovery&&!p.leafRecovery&&p.burden<40&&p.damage<10&&s.weather.wind<50;
- if(t.reason==='sleep')return !sleepTime(s,p);if(t.reason==='shelterRain')return !rainy(s);if(t.reason==='dry')return p.B<=dep('vitals').band(p).mid+2;if(t.reason==='warm')return !dep('vitals').isCold(s)||(s.climate.T>=28&&p.energy>=65&&sunnyIce(s));
+ if(t.reason==='sleep')return !sleepTime(s,p);if(t.reason==='shelterRain')return !rainy(s);if(t.reason==='dry')return p.B<=dep('vitals').band(p).mid+2;if(t.reason==='warm')return !dep('vitals').isCold(s)||sunnyIceBreak(s,p);
  if(t.reason==='water')return !n.water;if(t.reason==='nutrition')return !n.nutrition;
  if(t.object==='moss')return !n.energy&&!n.mood;
  return t.reason==='energy'?!n.energy:t.reason==='mood'?!n.mood:false;
@@ -163,7 +173,7 @@ function points(s,p,id,kind){
  const offsets=kind==='edgeDrink'?[[0,0]]:large?[[0,0],[-.015,0],[.015,0]]:[[0,0],[-.035,0],[.035,0],[-.065,0],[.065,0],[0,.014],[0,-.014]];
  return offsets.map(([x,y])=>({x:r.x+x*g,y:r.y+y*g}));
 }
-function option(s,p,id,kind,reason,free=false){
+function option(s,p,id,kind,reason,free=false,avoidFriends=false){
  const Space=dep('spatial'),Sh=dep('shelter');if(!patch(s,id))return {fail:'stored',object:id,kind};   /* 1.2.6: put away in the 보관함 */
  // 0.6.37: the crevice gap holds one friend at a time (its rest spot is a narrow strip right in front of the stones since
  // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
@@ -177,7 +187,7 @@ function option(s,p,id,kind,reason,free=false){
   if(id!=='shelter'&&kind!=='nutrition'&&!fits(s,p,id,q,kind))continue;
   if(id!=='shelter'&&s.individuals.some(z=>z.id!==p.id&&z.active&&(z.objectTask?.object===id&&Space.distance(z.objectTask,q)<.4*(Space.diameter(p)+Space.diameter(z))||Space.distance(z,q)<.4*(Space.diameter(p)+Space.diameter(z))))){fail='capacity';continue;}
   if(!Space.walkable(s,q,p.id)){fail='blocked_path';continue;}
-  const route=Space.route(s,p,q,p.id);if(!route){fail='blocked_path';continue;}
+  const route=Space.route(s,p,q,p.id,avoidFriends);if(!route){fail='blocked_path';continue;}
   const seconds=route.reduce((a,z,i)=>a+Space.distance(i?route[i-1]:p,z),0)/Space.gait(p,s).speed;
   const target={water:50,energy:80,nutrition:50,mood:80},key={water:'B',energy:'energy',nutrition:'nutrition',mood:'mood'};
   let score=reason==='safety'?100:100*clamp(((target[reason]||75)-(p[key[reason]]||0))/(target[reason]||75),0,1);
@@ -205,9 +215,9 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
  // free shore; in the morning (before 400 of the 1,200 s day, so it is back well before dusk) a quarter of these go to any shore around the
  // lake, the far east end included. 1.0.1 had kept walks within 0.9 because a friend far east re-planned very long paths every choice;
  // 1.1.4 keeps found paths, so an occasional far walk is cheap now (measured in the release note).
- {const V=dep('vitals'),E=dep('environment'),season=E.season(s),share=SHORE_WALK[season]??0;if(V.isDay(s)&&W.shorePoint&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&rng(s,'behavior')<share){const t=((s.worldTick%1200)+1200)%1200,far=t<400&&W.shoreAnywhere&&rng(s,'behavior')<.25;const q0=far?W.shoreAnywhere(s,p,rng(s,'behavior')):W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,...(season==='summer'?{cool:true}:{view:true}),...(far?{far:true}:{})};}}}
+ {const V=dep('vitals'),E=dep('environment'),season=E.season(s),share=SHORE_WALK[season]??0;if(V.isDay(s)&&W.shorePoint&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&strollWeather(s)&&rng(s,'behavior')<share){const t=((s.worldTick%1200)+1200)%1200,far=t<400&&W.shoreAnywhere&&rng(s,'behavior')<.25;const q0=far?W.shoreAnywhere(s,p,rng(s,'behavior')):W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,...(season==='summer'?{cool:true}:{view:true}),...(far?{far:true}:{})};}}}
  // 0.9.3 겨울 얼음 놀이: when the lake is frozen, some walks go out onto the ice
- if(W.frozen(s)&&dep('vitals').isDay(s)&&!rainy(s)&&s.weather.wind<30&&rng(s,'behavior')<(sunnyIce(s)?.5:.3)){
+ if(iceWeather(s)&&!coldCall(s,p)&&rng(s,'behavior')<(s.weather.kind==='sun'?.85:.60)){
   const lake=W.LAKE;
   for(let i=0;i<6;i++){
    const q={x:lake.cx-lake.ru*(.60+.25*rng(s,'behavior')),y:lake.cy+lake.rv*(rng(s,'behavior')-.5)};
@@ -228,13 +238,15 @@ function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
  if(t.ice){
   const W=dep('world');
-  if(!W.frozen(s)||!dep('vitals').isDay(s)||rainy(s)||s.weather.wind>=30||coldCall(s,p)){
+  if(!iceWeather(s)||coldCall(s,p)){
    delete p.stroll;p.nextObjectChoice=s.worldTick;return null;
   }
-  if(t.arrivedAt!=null&&!t.gliding){
-   const next={x:t.x+.24,y:t.y};
+  if(t.arrivedAt!=null&&(!t.gliding||t.glideLeg===1)){
+   // Skate out and turn back once before lingering. Old single-leg saves finish normally.
+   const leg=t.gliding?2:1;
+   const next={x:t.x+(leg===1?.37:-.30),y:t.y+(W.LAKE.cy-t.y)*.45};
    if(W.onIce(s,next)&&dep('spatial').walkable(s,next,p.id)){
-    Object.assign(t,next,{gliding:true,deadline:s.worldTick+STROLL.deadline});delete t.arrivedAt;
+    Object.assign(t,next,{gliding:true,glideLeg:leg,deadline:s.worldTick+STROLL.deadline});delete t.arrivedAt;
    }
   }
  }
@@ -242,7 +254,7 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
   const b=s.world?.lake?.boat,B=dep('lily-boat');
   if(b&&!b.rider&&!b.drift&&B.calm(s)&&B.canRide(s,p)&&b.x===t.board.x&&b.y===t.board.y&&s.worldTick<t.deadline){
    const m=dep('spatial').travel(s,p,t.board);
-   if(m.distance>0)return m;
+   if(m.distance>0||m.arrived)return m;
   }
   delete t.board;delete p.walkPlan;
  }
@@ -275,6 +287,9 @@ function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
  // 1.0: a walk that has run past its deadline before arriving always ends (it may have been held up by another move)
+ if((p.stroll?.board||p.stroll?.view||p.stroll?.cool||p.stroll?.ice)&&!strollWeather(s)){
+  delete p.stroll;delete p.walkPlan;p.nextObjectChoice=s.worldTick;
+ }
  if(p.stroll&&p.stroll.arrivedAt==null&&s.worldTick>p.stroll.deadline+5){delete p.stroll;if(p.action==='drink')p.action='wander';}
  // 1.2.4: a friend sheltering from strong wind (safety) also gives up a full shelter after 8 s and takes the crevice, rock or shade instead of standing in the storm.
  // 0.8.3: a friend waiting outside a full shelter (seats taken while it walked there) gives it up after 8 s and rests
@@ -332,7 +347,21 @@ function choose(s,p,rng){
   // Free visits preserve species expression without competing with actual needs.
   if(p.stroll&&!current){p.nextObjectChoice=s.worldTick+5;return;}
   const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
-  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+STROLL.chance){const q=strollTarget(s,p,rng);if(q){if(current)release(s,p,'complete');delete p.objectWait;p.stroll={x:q.x,y:q.y,...(q.ice?{ice:true}:{}),...(q.far?{far:true}:{}),...(q.cool?{cool:true}:{}),...(q.view?{view:true}:{}),since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};if(q.far)dep('lily-boat').offerCrossing(s,p,rng);p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;}}
+  const winterOuting=s.weather.kind==='sun'&&iceWeather(s);
+  const walkChance=winterOuting ? .65 : STROLL.chance;
+  if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+walkChance){
+   const q=strollTarget(s,p,rng);
+   if(q){
+    if(current)release(s,p,'complete');
+    delete p.objectWait;
+    p.stroll={...q,since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),
+     linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};
+    const boat=dep('lily-boat');
+    if(q.far)boat.offerCrossing(s,p,rng);
+    else boat.offerLoop(s,p,rng);
+    p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;
+   }
+  }
   const play=clean(litterSpots(s,'O',p))[0],free=[['moss','moss'],...(play?[[play,'litterPlay']]:[]),['spring','splash'],['shade','rest'],['rock','rest'],['crevice','rest'],...(Math.floor(roll*1000)%2?[]:[['shelter','rest']])];if(P.mite){free.unshift(['shade','rest'],['spring','splash']);}const first=P.mite?0:Math.floor(roll*free.length)%free.length;
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
@@ -364,8 +393,21 @@ function prepare(s,held,rng){
 function at(s,p){const t=p.objectTask;if(!t)return false;if(t.object==='shelter')return dep('shelter').inside(s,p);return dep('spatial').distance(p,t)<.001&&fits(s,p,t.object,p,t.kind)&&effectsValid(s,p,t);}
 function move(s,p){
  const t=p.objectTask;if(!t)return null;const Space=dep('spatial');if(t.object==='shelter')return null;
- const m=Space.travel(s,p,t);if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled++;
- if(!m.arrived&&(t.stalled>=3||s.worldTick>t.deadline)){t.replans=(t.replans||0)+1;t.stalled=0;t.deadline=s.worldTick+15;if(t.replans>1){release(s,p,'blocked');p.objectWait={reason:'blocked_path',object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;}}
+ const m=Space.travel(s,p,t);
+ if(p.canopyClosing)return m;
+ if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
+ if(!m.arrived&&(t.stalled>=3||s.worldTick>t.deadline)){
+  t.replans=(t.replans||0)+1;t.stalled=0;t.deadline=s.worldTick+15;
+  if(t.replans===1&&kindOf(t.object)==='litter'){
+   // A friend may have occupied the chosen side since this trip was planned.
+   const spot=option(s,p,t.object,t.kind,t.reason,t.free,true);
+   if(!spot.fail&&(spot.x!==t.x||spot.y!==t.y)){
+    t.x=spot.x;t.y=spot.y;t.deadline=s.worldTick+Math.ceil(spot.travelSeconds)+10;
+    delete p.walkPlan;
+   }
+  }
+  if(t.replans>1){release(s,p,'blocked');p.objectWait={reason:'blocked_path',object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;}
+ }
  // 0.6.37: a friend that reaches its spot while the spot has become unusable (the crevice turned wet or windy, the spring
  // ran dry, ...) used to count as arrived, so the stuck timeout above never fired and it stood there for good, still
  // "heading to" the object. After 5 s it now lets the task go and waits with the real reason, then chooses again.
@@ -442,9 +484,21 @@ function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
  if(p.stroll?.lake&&!t)return p.stroll.arrivedAt==null?'목이 말라 호수 물가로 가고 있어요':'호수 물가에서 물을 마시고 있어요';
  if(p.stroll?.amble&&!t)return w?.reason==='empty_water'?'샘터에 물이 모이길 기다리며 주변을 거닐고 있어요':w?.object==='spring'?'샘터 자리가 나길 기다리며 주변을 거닐고 있어요':'자리가 나길 기다리며 주변을 거닐고 있어요';
- if(p.stroll&&!t){if(p.stroll.ice)return p.stroll.arrivedAt!=null?'얼음 위에서 쉬고 있어요':p.stroll.gliding?'얼음 위에서 스케이트를 타고 있어요':'언 호수로 산책 가고 있어요';if(p.stroll.cool)return p.stroll.arrivedAt==null?'더위를 식히러 물가로 가고 있어요':'물가에서 더위를 식히고 있어요';if(p.stroll.view)return p.stroll.arrivedAt==null?'호수 물가로 산책 가고 있어요':'물가에서 호수를 구경하고 있어요';if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
+ if(p.stroll&&!t){if(p.stroll.board)return '물가에 떠 있는 연잎으로 걸어가고 있어요';if(p.stroll.ice)return p.stroll.arrivedAt!=null?'얼음 위에서 쉬고 있어요':p.stroll.gliding?'얼음 위에서 스케이트를 타고 있어요':'언 호수로 산책 가고 있어요';if(p.stroll.cool)return p.stroll.arrivedAt==null?'더위를 식히러 물가로 가고 있어요':'물가에서 더위를 식히고 있어요';if(p.stroll.view)return p.stroll.arrivedAt==null?'호수 물가로 산책 가고 있어요':'물가에서 호수를 구경하고 있어요';if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',sleep_here:'쉴 자리가 없어 그 자리에서 잠들었어요',brace_here:'바람이 세서 그 자리에 몸을 낮추고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
- if(!t)return null;if(t.object==='shelter')return dep('shelter').label(s,p);if(!at(s,p))return nameOf(t.object)+'로 가고 있어요';
+ if(!t)return null;
+ if(t.object==='shelter')return dep('shelter').label(s,p);
+ if(!at(s,p)){
+  const motion=p.motion?.tick===s.worldTick?p.motion:null;
+  if(motion?.kind==='held')return '친구를 옮기는 중이에요';
+  if(motion?.kind==='land')return '새로운 자리를 살펴보고 있어요';
+  if(p.canopyClosing)return '걸음을 떼기 전에 큰 잎을 접고 있어요';
+  if(t.unfit)return '이곳에서 머물 자리를 살펴보고 있어요';
+  const place=nameOf(t.object);
+  if(motion?.distance>0)return place+'로 가고 있어요';
+  if(t.stalled||t.replans)return place+'까지 갈 길을 찾고 있어요';
+  return place+'로 갈 준비를 하고 있어요';
+ }
  if(t.object==='moss')return (patch(s,'moss')?.S||0)<=eps?'이끼는 말랐지만 포근하게 쉬고 있어요':'포근한 이끼에서 놀며 천천히 쉬고 있어요';
  if(t.kind==='splash')return p.motion?.water>0?'샘터에서 물장구를 치며 물도 마시고 있어요':'샘터에서 살짝 물장구를 치고 있어요';
  return ({nutrition:'분해된 낙엽에서 영양을 얻고 있어요',litterPlay:'낙엽을 가지고 놀고 있어요',splash:'샘터에서 물장구를 치며 물도 마시고 있어요',drink:'물가에서 천천히 물을 마시고 있어요',edgeDrink:'마른 가장자리에서 물을 마시고 있어요',rootDrink:'바위틈에 남은 물기를 느끼고 있어요'})[t.kind]||nameOf(t.object)+'에서 쉬고 있어요';
