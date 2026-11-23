@@ -42,6 +42,13 @@ test('SK-LV 1.1.3 skill levels: 코로나 Lv10 sweeps 5 at once, 리들리 Lv10 
  a.deepEqual(K.umbrella(row('neolbi',0)),{rain:.5,wind:.4,limit:70});a.deepEqual(K.umbrella(row('neolbi',115)),{rain:.8,wind:.65,limit:80});a.deepEqual(K.share(row('superbum',40)),{total:14,nest:45});
  const v=K.levelLines(row('ridley',115));a.equal(v.level,9);a.equal(v.next.level,10);a.match(v.next.line,/모두/);a.equal(K.levelLines(row('bosong',115)).next,null,'no step left for 베이치 at Lv9');});
 
+test('SK-1.2.17 리들리 brushes its own leaves by its skill amount when it finishes stroking its head, on its own wait',()=>{const s=game();solo(s);const r=friend(s,'ridley',.4,.55,{xp:0});
+ const st=s.objects.creatures;st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:r.id,since:0,bad:0,lastWork:0,carry:null,density:40,low:0});
+ a.equal(K.selfBrush(s,r),15,'Lv1 brushes 15 off itself');a.equal(C.onLeaf(s,r.id).mite.density,25);a.equal(K.selfBrush(s,r),0,'then waits');a.ok(r.skillRest.self-s.worldTick===180);a.equal(r.skillRest.brush,undefined,'helping a friend is not blocked');
+ r.skillRest.self=0;r.xp=40;a.equal(K.selfBrush(s,r),25,'Lv6 amount (50) is capped by what is there');
+ const e=friend(s,'neolbi',.6,.6);st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:40,low:0});a.equal(K.selfBrush(s,e),0,'only 리들리');
+ const t=F.create(0,3);t.started=true;t.recruitment.nextAttempt=1e9;const q=t.individuals.find(p=>p.species==='ridley');const ts=t.objects.creatures;ts.groups.push({id:'cr:'+ts.nextId++,kind:'mite',host:q.id,since:0,bad:0,lastWork:0,carry:null,density:40,low:0});
+ q.objectTask=null;q.action='groom';q.actionSeconds=2;q.nextObjectChoice=t.worldTick+8;F.step(t);F.step(t);a.ok(C.onLeaf(t,q.id).mite.density<=26,'the engine runs it when the groom ends');F.validate?.(t);});
 test('SK-1.2.16 리들리 waits for a friend that is busy drinking instead of giving up and starting again every second',()=>{const s=game();solo(s);const r=friend(s,'ridley',.3,.55,{xp:0}),e=friend(s,'neolbi',.52,.56);
  const st=s.objects.creatures;st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:30,low:0});
  e.objectTask={object:'spring',reason:'water',free:false};run(s,1);a.equal(r.skill,undefined,'a friend busy drinking is not picked');

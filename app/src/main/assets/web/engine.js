@@ -16,7 +16,7 @@ const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVital
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.2.16', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.17', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -126,7 +126,7 @@ function step(s,{visible=true,held=null}={}){
   const resting=Obj.receive(s,p,requests);
   Obj.rootRequests(s,p,requests);
   if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage)p.damage=clamp(p.damage-1/60);
-  if(!p.objectTask&&p.action==='groom'){p.motion.kind='groom';p.actionSeconds=Math.max(0,p.actionSeconds-1);}
+  if(!p.objectTask&&p.action==='groom'){p.motion.kind='groom';const was=p.actionSeconds;p.actionSeconds=Math.max(0,p.actionSeconds-1);if(was>0&&p.actionSeconds===0)Skills.selfBrush(s,p,{event});}
   if(p.species==='neolbi'&&p.action==='groom'&&p.actionSeconds===7)Motion.start(s,'PE05',{parent:'A02',ids:[p.id],session:p.id+':groom:'+s.worldTick,valid:true,visible,carrying:false});
   if(p.personalityClip&&(!Motion.active(s,p)||held===p.id||p.motion.distance>0||p.action!=='groom'&&p.personalityClip.parent==='A02'))delete p.personalityClip;
  }
