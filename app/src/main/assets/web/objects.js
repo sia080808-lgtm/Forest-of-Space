@@ -220,6 +220,32 @@ function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O
 const SHORE_WALK=Object.freeze({spring:.3,summer:.5,autumn:.25,winter:.15}),STROLL=Object.freeze({reach:.9,chance:.4,min:.25,linger:10,lingerSpread:9,deadline:90});
 const SHELF_SEATS=Object.freeze([-.117,.117]);
 const SHELF_LINGER=28,SHELF_RETURN=180,SHELF_ENERGY=1;
+const AFFINITY=Object.freeze({sharedSeconds:15,interval:180,daily:2,familiar:3,close:8});
+const shelfMeetings=new WeakMap();
+const pairIds=(a,b)=>[a.id,b.id].sort();
+const pairKey=(a,b)=>JSON.stringify(pairIds(a,b));
+function affinity(s,a,b){return s.objects?.friendships?.[pairKey(a,b)]?.points??0;}
+function trackShelfMeeting(s){
+ const seated=shelfVisitors(s).filter(p=>shelfPose(s,p));
+ if(seated.length!==2){shelfMeetings.delete(s);return;}
+ const [a,b]=seated,key=pairKey(a,b),arrival=Math.max(a.stroll.arrivedAt,b.stroll.arrivedAt);
+ const previous=shelfMeetings.get(s),tick=s.worldTick;
+ const follows=previous?.key===key&&previous.arrival===arrival&&previous.tick===tick-1;
+ shelfMeetings.set(s,{key,arrival,since:follows?previous.since:tick,tick});
+}
+function finishShelfMeeting(s,p){
+ const visit=shelfMeetings.get(s);
+ if(visit?.tick!==s.worldTick||s.worldTick-visit.since+1<AFFINITY.sharedSeconds)return;
+ const other=shelfVisitors(s).find(q=>q.id!==p.id&&shelfPose(s,q));
+ if(!other||visit.key!==pairKey(p,other))return;
+ shelfMeetings.delete(s);
+ const friends=s.objects.friendships??={},previous=friends[visit.key];
+ const day=Math.floor(s.worldTick/dep('environment').DAY_SECONDS);
+ const today=previous?.day===day?previous.today:0;
+ if(today>=AFFINITY.daily||previous?.points>=AFFINITY.close||previous&&s.worldTick-previous.last<AFFINITY.interval)return;
+ friends[visit.key]={ids:pairIds(p,other),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+}
+
 function shelfSeat(s,slot){
  const shelf=World.stoneShelf(s);
  return shelf&&{x:shelf.x+SHELF_SEATS[slot-1],y:shelf.y};
@@ -237,8 +263,9 @@ function shelfTarget(s,p,rng){
  if(!shelf||!shelfWeather(s)||p.shelfAfter>s.worldTick||Space.distance(p,shelf)>1.65)return null;
  const others=s.individuals.filter(q=>q.id!==p.id&&q.stroll?.shelf);
  if(others.length>=2)return null;
- const company=others.some(q=>q.stroll.arrivedAt!=null)&&Space.distance(p,shelf)<.72;
- if(rng(s,'behavior')>=(company?.65:.23))return null;
+ const companion=Space.distance(p,shelf)<.72&&others.find(q=>shelfPose(s,q));
+ const chance=companion?(affinity(s,p,companion)>=AFFINITY.close?.80:.65):.23;
+ if(rng(s,'behavior')>=chance)return null;
  for(const slot of [1,2]){
   if(others.some(q=>q.stroll.shelf===slot))continue;
   const q=shelfSeat(s,slot);
@@ -252,10 +279,19 @@ function leaveShelf(s,p){
 }
 function shelfPose(s,p){
  const r=p.stroll,shelf=World.stoneShelf(s);
- if(!r?.shelf||!shelf||r.arrivedAt==null||!p.active||p.mounted||p.objectTask||p.skill||
+ if(!r?.shelf||!shelf||r.arrivedAt==null||!p.active||p.mounted||p.objectTask||p.skill||p.skillHold||
    Math.hypot(r.x-p.x,r.y-p.y)>.002||!shelfWeather(s))return null;
  return {back:shelf.y>World.LAKE.cy+World.LAKE.rv,lift:shelf.rise};
 }
+function shelfGreeting(s,p){
+ if(!shelfPose(s,p))return 0;
+ const booked=shelfVisitors(s).find(q=>q.id!==p.id);
+ if(booked&&shelfPose(s,booked))return 0;
+ const Space=dep('spatial'),visitor=(booked?[booked]:s.individuals).find(q=>q.id!==p.id&&q.active&&!q.mounted&&!q.objectTask&&!q.skill&&!q.skillHold&&
+  q.action==='wander'&&affinity(s,p,q)>=AFFINITY.familiar&&Space.distance(p,q)<.38);
+ return visitor?(visitor.x<p.x?-1:1):0;
+}
+
 function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.walk(s),G=W.GARDEN;
  // 0.9.0: while the lake shore waits to be found, about a third of the walks head for the forest's east edge
  if(W.lakeReady?.(s)&&rng(s,'behavior')<.35){for(let i=0;i<6;i++){const q={x:W.LAKE.east+(b.x1-W.LAKE.east)*rng(s,'behavior'),y:b.y0+(b.y1-b.y0)*rng(s,'behavior')};if(Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return q;}}
@@ -297,6 +333,7 @@ function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.acti
   if(!shelfWeather(s)||!World.stoneShelf(s)||Object.values(needs(p)).some(Boolean)){leaveShelf(s,p);return null;}
   if(t.arrivedAt!=null){
    if(s.worldTick-t.arrivedAt>=t.linger){
+    finishShelfMeeting(s,p);
     if(p.energy<80)p.energy=Math.min(80,p.energy+SHELF_ENERGY);
     leaveShelf(s,p);return null;
    }
@@ -456,6 +493,7 @@ function prepare(s,held,rng){
   if(p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
   choose(s,p,rng);
  }
+ trackShelfMeeting(s);
 }
 function at(s,p){const t=p.objectTask;if(!t)return false;if(t.object==='shelter')return dep('shelter').inside(s,p);return dep('spatial').distance(p,t)<.001&&fits(s,p,t.object,p,t.kind)&&effectsValid(s,p,t);}
 function move(s,p){
@@ -551,6 +589,7 @@ function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
  if(p.stroll?.shelf&&!t){
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
+  if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
   const together=shelfVisitors(s).some(q=>q.id!==p.id&&shelfPose(s,q));
   return together?'친구와 나란히 앉아 호수를 보고 있어요':'돌 선반에 앉아 호수를 보고 있어요';
  }
@@ -583,6 +622,17 @@ function validate(s){
  if(Object.keys(st.upgrades).length!==3||!f(st.ledger.leafInput)||!f(st.ledger.absorbed)||!f(s.spring.water,s.spring.capacity+eps)||!f(s.spring.snowWater,36+eps))throw Error('자원 원장을 확인해 주세요.');
  if(st.litter)dep('litter').validate(s);if(st.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
  for(const p of s.individuals){const w=p.walkPlan;if(w!==undefined&&!(w&&Number.isFinite(w.tx)&&Number.isFinite(w.ty)&&Number.isFinite(w.at)&&typeof w.legacy==='boolean'&&Array.isArray(w.pts)&&w.pts.length<=64&&(w.pts.length||Number.isFinite(w.fx)&&Number.isFinite(w.fy))&&w.pts.every(q=>q&&Number.isFinite(q.x)&&Number.isFinite(q.y))))throw Error('친구 길 기록을 확인해 주세요.');}
+ if(st.friendships!==undefined){
+  const records=st.friendships,people=new Set(s.individuals.map(p=>p.id));
+  if(!records||typeof records!=='object'||Array.isArray(records))throw Error('친밀도 기록을 확인해 주세요.');
+  for(const [key,v] of Object.entries(records)){
+   if(!v||!Array.isArray(v.ids)||v.ids.length!==2||v.ids[0]>=v.ids[1]||v.ids.some(id=>!people.has(id))||
+    key!==JSON.stringify(v.ids)||!Number.isInteger(v.points)||v.points<1||v.points>AFFINITY.close||
+    !Number.isInteger(v.today)||v.today<1||v.today>Math.min(AFFINITY.daily,v.points)||
+    !Number.isSafeInteger(v.last)||v.last<0||v.last>s.worldTick||
+    v.day!==Math.floor(v.last/dep('environment').DAY_SECONDS))throw Error('친밀도 기록을 확인해 주세요.');
+  }
+ }
  const shelfSlots=new Set();
  for(const p of s.individuals){
   const slot=p.stroll?.shelf;
@@ -596,5 +646,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });

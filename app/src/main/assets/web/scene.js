@@ -277,14 +277,18 @@ class ForestScene {
    drop:reduced?0:Math.min(1,Math.max(0,(age-13)/1.5)),
    direction:b.cross?Math.sign(b.cross.landing.x-b.home.x):0};
  }
- shelfBack(p,pos){
+ shelfBack(p,pos,greeting=0){
   const art=this.assets.shelfBacks;
   const index=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'].indexOf(p.species);
   if(!art||index<0)return false;
   const c=this.ctx,scale=Forest.Shelter.growth(p),x=pos.x*this.w,y=pos.y*this.h;
   const w=92*scale,h=90*scale;
   ForestSurfaces.wash(c,x,y,9*scale,2*scale,'68,61,42',.18,1);
+  if(greeting){
+   c.save();c.translate(x,y);c.rotate(greeting*.065);c.translate(-x,-y);
+  }
   c.drawImage(art,index%4*160,Math.floor(index/4)*160,160,160,x-w/2,y-h,w,h);
+  if(greeting)c.restore();
   return true;
  }
  drawStoneShelf(c,s,w,h){
@@ -635,7 +639,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip();
    if(!carry&&!this.recording&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry&&!(perch?.back&&this.shelfBack(p,pos)))this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry&&!(perch?.back&&this.shelfBack(p,pos,s.settings.reducedMotion?0:Forest.Objects.shelfGreeting(s,p))))this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
    // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)
