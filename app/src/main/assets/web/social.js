@@ -37,7 +37,8 @@ const thirsty=p=>p.B<Vit.band(p).warnLo,full=p=>Vit.band(p).mid;
 function safe(p,s){return W.healthy(p)&&s.weather.wind<60;}
 function shades(s){return s.individuals.filter(p=>p.species==='neolbi'&&W.live(s,p));}
 function shadeAt(p,q){return Neolbi.covers(p,q);}
-function shadeFactor(s,q){const fixed=s.patches.find(p=>p.id==='shade');let count=fixed&&Math.hypot(fixed.x-q.x,fixed.y-q.y)<.16?1:0;count+=shades(s).filter(p=>shadeAt(p,q)).length;return Math.min(.7,1-Math.pow(.65,count));}
+const Obj=()=>typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
+function shadeFactor(s,q){let count=Obj().patchesOf(s,'shade').some(z=>Math.hypot(z.x-q.x,z.y-q.y)<.16)?1:0;count+=shades(s).filter(p=>shadeAt(p,q)).length;return Math.min(.7,1-Math.pow(.65,count));}
 function unionArea(ps){let count=0;for(let y=.15;y<=.91;y+=.0125)for(let x=.08;x<=.92;x+=.0125)if(ps.some(p=>shadeAt(p,{x,y})))count++;return count;}
 function expanded(ps){return ps.length>=2&&unionArea(ps)>Math.max(...ps.map(p=>unionArea([p])))+2;}
 function available(s,p){return p.id!==s.world?.lake?.boat?.rider&&!s.social.sessions.some(a=>a.ids.includes(p.id));}

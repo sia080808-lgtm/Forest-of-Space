@@ -273,9 +273,14 @@ const editorViewportObserver=new ResizeObserver(syncEditorViewport);editorViewpo
 // A shelter opens its own move view (drag, flip, 보관하기) and comes back here when done.
 const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예요.',spring:'돌과 물, 물 마시는 위치를 함께 옮겨요. 숲에 꼭 있어야 해서 보관할 수 없어요.',moss:'놀며 천천히 쉬는 자리예요. 물은 조금만 보관해요.',rock:'볕을 모아 두는 바위예요. 친구가 위에 올라가 쉬어요.',shade:'주변의 빛을 줄이는 실제 그늘이에요.',crevice:'바람과 비를 피하는 틈이에요. 이끼와 그늘을 가까이 두면 좋아요.',litter:'낙엽이 거름이 되는 자리예요. 숲에 꼭 있어야 해서 보관할 수 없어요.'};
 function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const items=scene.editorItems();if(!items.some(x=>x.id===scene.selectedPatch))scene.selectedPatch=items[0]?.id||'spring';const p=items.find(x=>x.id===scene.selectedPatch);
- const shelf=F.World.SHELF_IDS.includes(p.id),copyId=F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id));
- let message=EDIT_TIP[shelf?'stone-shelf':p.id]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=state.objects?.stored||[],sheds=state.shelters.stored||[],canStore=F.STORABLE.includes(p.id);
+ const type=F.Objects.kindOf(p.id),shelf=F.World.SHELF_IDS.includes(p.id);
+ const copyId=shelf?F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id)):F.Objects.nextCopyId(state,p.id,scene.preview);
+ let message=EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=state.objects?.stored||[],sheds=state.shelters.stored||[],canStore=F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
  const flip=scene.preview[p.id]?.flip??p.flip??false;
+ const copies=[...items,...stored].filter(x=>shelf?F.World.SHELF_IDS.includes(x.id):F.Objects.kindOf(x.id)===type).length;
+ const addButton=shelf||F.Objects.COPY_KINDS.includes(type)
+  ?'<button class="secondary ed-store" data-action="'+(shelf?'shelf-copy':'object-add')+'" '+(copyId?'':'disabled')+'>추가 · '+copies+'/3</button>':'';
+
  const shelters=scene.editorShelters().map(f=>
   '<button class="chip ed-shed" data-action="edit-shelter" data-id="'+escape(f.id)+'">'+escape(f.label)+'</button>'
  ).join('');
@@ -284,8 +289,8 @@ function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const 
   +'<div class="ed-lbl">숲에 놓인 것</div><div class="chips">'+items.map(x=>'<button class="chip '+(p.id===x.id?'active':'')+'" data-patch="'+x.id+'">'+escape(x.name)+'</button>').join('')+'</div>'
   +'<div class="ed-lbl">쉼터</div><div class="chips">'+shelters
   +'<button class="chip" data-action="facility-add" '+(canAdd?'':'disabled')+'>쉼터 추가</button></div>'
-  +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button><button class="secondary" data-action="shelf-copy" '+(copyId?'':'disabled title="최대 3개를 놓았어요."')+'>복사</button>':'')+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
-  +'<div class="ed-lbl">보관함 <small>'+(stored.length+sheds.length)+'</small></div><div class="ed-box">'+(stored.length+sheds.length?stored.map(x=>'<div class="ed-kept"><span>'+escape(x.name)+'</span><button class="secondary" data-action="unstore-object" data-id="'+x.id+'">꺼내기</button></div>').join('')+sheds.map(x=>'<div class="ed-kept"><span>⌂ '+escape(F.Shelter.name(x))+' · '+F.Shelter.capacity(x)/4+'공간</span><button class="secondary" data-action="unstore-shelter" data-id="'+escape(x.id)+'">꺼내기</button></div>').join(''):'<p class="ed-empty">보관한 사물이 여기에 모여요. 숲에서 빼 두고 싶은 것을 골라 보관하기를 눌러요.</p>')+'</div>'
+  +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button>':'')+addButton+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
+  +'<div class="ed-lbl">보관함 <small>'+(stored.length+sheds.length)+'</small></div><div class="ed-box">'+(stored.length+sheds.length?stored.map(x=>'<div class="ed-kept"><span>'+escape(x.name+(F.Objects.isCopy(x.id)?' '+x.id.at(-1):''))+'</span><button class="secondary" data-action="unstore-object" data-id="'+x.id+'">꺼내기</button></div>').join('')+sheds.map(x=>'<div class="ed-kept"><span>⌂ '+escape(F.Shelter.name(x))+' · '+F.Shelter.capacity(x)/4+'공간</span><button class="secondary" data-action="unstore-shelter" data-id="'+escape(x.id)+'">꺼내기</button></div>').join(''):'<p class="ed-empty">보관한 사물이 여기에 모여요. 숲에서 빼 두고 싶은 것을 골라 보관하기를 눌러요.</p>')+'</div>'
   +'<div class="button-pair"><button class="secondary" data-action="cancel-layout">취소</button><button class="primary" data-action="save-layout" '+(bad?'disabled':'')+'>배치 완료</button></div>';
 }
 function adjacentCopyPosition(subject,tryPlacement){
@@ -420,6 +425,15 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(b.dataset.tab){if(b.dataset.tab==='decorate')startEditor();else switchTab(b.dataset.tab);return;}
  if(b.dataset.dex){dex=b.dataset.dex;renderPage();return;}
  if(b.dataset.patch){scene.selectedPatch=b.dataset.patch;renderEditor();return;}
+ if(a==='object-add'&&scene.editing){
+  const source=scene.editorItems().find(p=>p.id===scene.selectedPatch);
+  const id=source&&F.Objects.nextCopyId(state,source.id,scene.preview);
+  if(id){
+   scene.preview[id]=adjacentCopyPosition(source,p=>F.validateLayout(state,{...scene.preview,[id]:p}));
+   scene.selectedPatch=id;renderEditor();
+  }
+  return;
+ }
  if((a==='shelf-mirror'||a==='shelf-copy')&&scene.editing){
   const item=scene.editorItems().find(p=>p.id===scene.selectedPatch&&F.World.SHELF_IDS.includes(p.id));
   if(!item)return;

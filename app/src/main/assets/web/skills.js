@@ -9,7 +9,7 @@
 //   엘리시 촉촉한 잎 곁: beside moss it keeps nearby leaves moist (no spider mites) and calls natural enemies sooner
 // Water and leaves only move (water balance and the floor-leaf count stay the same). The engine calls prepare once a
 // tick and act for each active friend; rendering only reads.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',vitals:'ForestVitals',litter:'ForestLitter',creatures:'ForestCreatures',shelter:'ForestShelter',world:'ForestWorld',environment:'ForestEnvironment'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',vitals:'ForestVitals',litter:'ForestLitter',objects:'ForestObjects',creatures:'ForestCreatures',shelter:'ForestShelter',world:'ForestWorld',environment:'ForestEnvironment'}[n]];
 const SK=Object.freeze({
  dig:Object.freeze({species:'bosong',rest:600,reach:.6,soil:.8,minS:1.5,amount:8,take:.7,life:600,evap:.1/60,max:2,go:40,sniff:6,cost:1,springLow:.5}),
  guide:Object.freeze({rest:180,go:60,hold:120}),
@@ -72,15 +72,15 @@ function puddleSpot(s,z,p){const Space=dep('spatial'),sock=Space.socket(s,z.id,p
 // The lake never runs dry; a puddle is the one 베이치 just dug for it.
 const DRINK_MIN=10;
 function need(q){return Math.max(1,Math.min(DRINK_MIN,band(q).mid-q.B));}
-function enough(s,r,kind,have){const others=s.individuals.filter(q=>q.id!==r.id&&q.active&&(q.guideTo?q.guideTo.kind===kind:q.objectTask?.object===kind&&q.objectTask.reason==='water'));return have-others.reduce((n,q)=>n+need(q),0)>=need(r);}
-function waterFor(s,r){const W=dep('world'),out=[];for(const d of puddles(s))if(d.W>=1)out.push({kind:'puddle',id:d.id,x:d.x,y:d.y});
- const c=s.patches.find(z=>z.id==='crevice');if(c&&c.W>=1&&enough(s,r,'crevice',c.W))out.push({kind:'crevice',x:c.x,y:c.y});
+function enough(s,r,id,have){const others=s.individuals.filter(q=>q.id!==r.id&&q.active&&(q.guideTo?(q.guideTo.id??q.guideTo.kind)===id:q.objectTask?.object===id&&q.objectTask.reason==='water'));return have-others.reduce((n,q)=>n+need(q),0)>=need(r);}
+function waterFor(s,r){const W=dep('world'),O=dep('objects'),out=[];for(const d of puddles(s))if(d.W>=1)out.push({kind:'puddle',id:d.id,x:d.x,y:d.y});
+ for(const c of O.patchesOf(s,'crevice'))if(c.W>=1&&enough(s,r,c.id,c.W))out.push({kind:'crevice',id:O.isCopy(c.id)?c.id:undefined,x:c.x,y:c.y});
  if(W.lakeOpen?.(s)&&!W.frozen?.(s)){const q=W.shorePoint?.(s,r);if(q)out.push({kind:'lake',x:q.x,y:q.y});}
- if(s.spring.water>=2&&enough(s,r,'spring',s.spring.water))out.push({kind:'spring',x:s.spring.x,y:s.spring.y});
+ for(const z of O.springs(s))if(z.water>=2&&enough(s,r,O.objectId(z),z.water))out.push({kind:'spring',id:z.id,x:z.x,y:z.y});
  const order=['puddle','crevice','lake','spring'];return out.sort((a,b)=>dist(a,r)-dist(b,r)||order.indexOf(a.kind)-order.indexOf(b.kind))[0]||null;}
 function show(s,r,w,by){if(!w)return;r.guideTo={kind:w.kind,id:w.id,x:w.x,y:w.y,until:s.worldTick+SK.guide.hold,by:by.id};r.nextObjectChoice=s.worldTick;}
 function startBosong(s,p,ctx){const D=SK.dig,friends=s.individuals.filter(q=>q.id!==p.id&&thirsty(q)&&dist(q,p)<lv(p,'dig','reach')&&!q.guideTo).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id));
- if(ready(s,p,'dig')&&precip(s)<.25&&puddles(s).length<D.max&&(friends.length||s.spring.water<D.springLow*s.spring.capacity)){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}}
+ if(ready(s,p,'dig')&&precip(s)<.25&&puddles(s).length<D.max&&(friends.length||dep('objects').springs(s).every(z=>z.water<D.springLow*z.capacity))){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}}
  if(ready(s,p,'guide')&&friends.length){const r=friends[0],w=waterFor(s,r);if(w){show(s,r,w,p);p.skill={k:'guide',x:w.x,y:w.y,target:r.id,phase:'go',start:s.worldTick};rest(s,p,'guide',SK.guide.rest);bump(s,p,ctx);ctx?.event?.(s,'skill',p.name+' · '+r.name+'에게 물이 있는 곳을 알려 주었어요.',{individual:p.id});return true;}}
  return false;}
 // ---- 코로나 낙엽 모으기 ----
@@ -110,8 +110,8 @@ function startBrush(s,p,held,busy){if(!ready(s,p,'brush'))return false;const Sh=
 // ---- 엘리시 촉촉한 잎 곁 (always on while it holds) ----
 // 1.2.7 (user: "엘리시는 이끼에서만 스킬쓰나" → "1,2로 가고"): besides moss, 엘리시 keeps leaves moist beside other water —
 // the spring (with water), a puddle, the open lakeshore — and anywhere on a rain or fog day. Only cheap distance checks.
-function wetBy(s,p){const near=SK.mist.moss;if(s.patches.some(z=>z.id==='moss'&&dist(z,p)<near))return true;
- if(s.spring&&s.spring.water>0&&dist(s.spring,p)<near)return true;if(puddles(s).some(d=>d.W>0&&dist(d,p)<near))return true;
+function wetBy(s,p){const near=SK.mist.moss;if(dep('objects').patchesOf(s,'moss').some(z=>dist(z,p)<near))return true;
+ if(dep('objects').springs(s).some(z=>z.water>0&&dist(z,p)<near))return true;if(puddles(s).some(d=>d.W>0&&dist(d,p)<near))return true;
  const W=dep('world');if(W?.lakeOpen?.(s)&&!W.frozen(s)&&W.waterD(p.x,p.y)<SHORE)return true;
  const E=dep('environment');return !!s.environment?.storm||!!E&&(E.precipitation(s,'rain')>=.15||E.precipitation(s,'fog')>=.3);}
 const SHORE=1.3;   // lake shape distance: the shore sits at about 1.07, so 1.3 is about 0.2 out on the land

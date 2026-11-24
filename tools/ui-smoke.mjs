@@ -109,6 +109,31 @@ assert.ok(scene.facilityPreview);assert.notEqual(scene.facilityPreview.id,'shelt
 click('[data-action="cancel-layout"]');
 click('[data-action="cancel-layout"]');
 assert.equal(saved.shelters.facilities[0].level,2);
+// Copies are staged in the decorator, then saved as separate objects.
+click('[data-tab="decorate"]');
+const addObject='#editor [data-action="object-add"]';
+const mossCount=()=>F.Objects.patchesOf(getState(),'moss').length;
+assert.match(win.document.querySelector(addObject).textContent,/1\/3/);
+click(addObject);
+assert.equal(scene.selectedPatch,'moss-2');
+assert.equal(mossCount(),1);
+assert.match(win.document.querySelector(addObject).textContent,/2\/3/);
+click(addObject);
+assert.equal(scene.selectedPatch,'moss-3');
+assert.equal(win.document.querySelector(addObject).disabled,true);
+assert.equal(mossCount(),1);
+click('[data-action="cancel-layout"]');
+assert.equal(mossCount(),1);
+click('[data-tab="decorate"]');
+click(addObject);click(addObject);
+assert.equal(win.document.querySelector('[data-action="save-layout"]').disabled,false);
+click('[data-action="save-layout"]');assert.equal(mossCount(),3);
+click('[data-tab="decorate"]');
+click('[data-patch="moss-3"]');click('[data-action="store-object"]');
+assert.equal(mossCount(),2);
+click('[data-patch="moss"]');
+assert.equal(win.document.querySelector(addObject).disabled,true);
+click('[data-action="cancel-layout"]');
 // v2.18 real UI paths: goals, one visitor, pause, settlement, planned capacity and 42 previews.
 click('[data-tab="friends"]');assert.ok(win.document.querySelector('[data-action="recruit-target"]'));assert.equal(win.document.querySelector('[data-action="welcome-neolbi"]'),null);
 const live=getState();live.weather.wind=20;live.recruitment.target='bonbon';live.recruitment.progress.bonbon.valid=179;live.recruitment.progress.bonbon.failures=3;F.Recruitment.tick(live,{Space:F.Space,Social:F.Social,rng:()=>0,event:F.event,personality:F.personality});
