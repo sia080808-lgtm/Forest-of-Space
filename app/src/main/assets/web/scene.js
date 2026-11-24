@@ -99,6 +99,31 @@ class ForestScene {
   items.push(...Forest.World.shelfDrafts(s,this.preview).map(shelf=>({...shelf,name:'돌 선반'+(shelf.id===Forest.World.SHELF_IDS[0]?'':' '+shelf.id.at(-1))})));
   return items;
  }
+ editorShelters(){
+  const facilities=this.state().shelters.facilities;
+  return facilities.map(f=>{
+   const siblings=facilities.filter(q=>Forest.Shelter.isRock(q)===Forest.Shelter.isRock(f));
+   return {...f,label:Forest.Shelter.name(f)+(siblings.length>1?' '+(siblings.indexOf(f)+1):'')};
+  });
+ }
+ drawShelterEditLabels(c){
+  if(!this.editing&&!this.facilityPreview)return;
+  const list=this.editorShelters(),preview=this.facilityPreview;
+  if(preview&&!list.some(f=>f.id===preview.id))list.push(preview);
+  const px=1/this.camera.scale;
+  c.save();
+  c.font=11*px+'px Pretendard';
+  c.textAlign='center';c.textBaseline='middle';
+  for(const f of list){
+   const selected=preview?.id===f.id,shown=selected?preview:f;
+   const {x,y,extra}=Forest.Shelter.transform(shown),name=selected?Forest.Shelter.name(shown):f.label;
+   const cx=x+(220+extra)/2,cy=y+17*px,width=c.measureText(name).width+12*px;
+   c.fillStyle=selected?'#526443':'#fffcf5ee';
+   c.fillRect(cx-width/2,cy-9*px,width,18*px);
+   c.fillStyle=selected?'#fffcf5':'#43513b';c.fillText(name,cx,cy);
+  }
+  c.restore();
+ }
  patchAt(point){
   return this.editorItems().map(p=>({...p,...this.preview[p.id]})).find(p=>
    Forest.World.SHELF_IDS.includes(p.id)?Forest.World.inside(this.state(),point,Forest.World.shelfBounds(p)):Forest.dist(p,point)<.10);
@@ -721,6 +746,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(this.carry){const q=this.carry.result||this.carry.origin,p=q.ok?q:(this.carry.pointerPoint||this.carry.origin);c.strokeStyle=q.ok?'#638361':'#b56950';c.fillStyle=q.ok?'#91ab7926':'#b5695026';c.lineWidth=2;c.setLineDash([4,3]);c.beginPath();c.ellipse(p.x*w,p.y*h,22,8,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);}
   if(this.carry?.mode==='drag'){const pet=s.individuals.find(p=>p.id===this.carry.id);if(pet)this.pet(pet,this.carry.hover,'held',phase,night,true);}
   if(this.editing){for(const original of this.editorItems()){const p={...original,...this.preview[original.id]};const selected=p.id===this.selectedPatch;c.strokeStyle=selected?'#526443':'#7c866e88';c.fillStyle=selected?'#aab78c28':'#ffffff15';c.lineWidth=selected?2:1;c.setLineDash(selected?[]:[3,4]);c.beginPath();c.ellipse(p.x*w,p.y*h,w*.08,h*.025,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);c.fillStyle='#fffcf5ee';const textw=c.measureText(p.name).width+16;c.fillRect(p.x*w-textw/2,p.y*h+10,textw,20);c.fillStyle='#43513b';c.font=(11/this.camera.scale)+'px Pretendard';c.textAlign='center';c.fillText(p.name,p.x*w,p.y*h+24);if(selected){c.fillStyle='#526443';c.beginPath();c.arc(p.x*w,p.y*h,6/this.camera.scale,0,Math.PI*2);c.fill();}}}
+  this.drawShelterEditLabels(c);
   this.seasonFall(c,w,h,base);{/* 0.8.5: snow, wind-blown leaves and fog cover the whole wide forest (they were drawn only over the old 0..1 garden) */const B=(typeof ForestWorld!=='undefined'?ForestWorld:null)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},bw=B.x1-B.x0,bh=B.y1-B.y0;c.save();c.translate(B.x0*w,B.y0*h);ForestEffects.particles(c,s,bw*w,bh*h,phase,this.assets,bw*bh);c.restore();}this.shelterDebug();c.restore();ForestEffects.rain(c,s,this.vw,this.vh,phase);
  }
 }
