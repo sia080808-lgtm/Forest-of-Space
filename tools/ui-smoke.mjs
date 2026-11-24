@@ -90,9 +90,24 @@ click('[data-action="roster"]');assert.equal(getState().individuals[1].active,tr
 // Facility editor performs the same guarded transaction as normal placement.
 getState().individuals.forEach((p,i)=>{p.x=.5+i*.2;p.y=.65;F.Shelter.release(p,getState().worldTick);});getState().shelters.unlocked=true;getState().patches.find(p=>p.id==='rock').y=.40;
 now+=1000;click('[data-tab="world"]');win.__qa.scene.onSelect('facility','shelter-0');assert.match(win.document.getElementById('select-card').textContent,/전체 3공간/);
-assert.equal(win.document.querySelector('#select-card [data-action="facility-move"], #select-card [data-action="facility-flip"]'),null);
-win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');assert.ok(scene.facilityPreview);assert.equal(win.document.querySelector('[data-action="facility-mirror"]'),null);click('[data-action="cancel-layout"]');assert.equal(scene.facilityPreview,null);assert.equal(getState().shelters.facilities[0].level,1);
-scene.onSelect('facility','shelter-0');win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');failed=true;click('[data-action="facility-save"]');assert.equal(getState().shelters.facilities[0].level,1);failed=false;click('[data-action="facility-save"]');assert.equal(saved.shelters.facilities[0].level,2);assert.equal(scene.facilityPreview,null);
+assert.equal(win.document.querySelector('#select-card [data-action^="facility-"]'),null);
+click('[data-tab="decorate"]');
+assert.ok(win.document.querySelector('#editor [data-action="facility-add"]'));
+assert.deepEqual(Array.from(scene.editorShelters(),f=>f.label),['기본 쉼터']);
+click('[data-action="edit-shelter"][data-id="shelter-0"]');
+click('[data-action="facility-expand"]');assert.ok(scene.facilityPreview);
+assert.equal(win.document.querySelector('[data-action="facility-mirror"]'),null);
+click('[data-action="cancel-layout"]');assert.equal(scene.facilityPreview,null);
+assert.equal(getState().shelters.facilities[0].level,1);
+click('[data-action="edit-shelter"][data-id="shelter-0"]');
+click('[data-action="facility-expand"]');failed=true;
+click('[data-action="facility-save"]');assert.equal(getState().shelters.facilities[0].level,1);
+failed=false;click('[data-action="facility-save"]');assert.equal(saved.shelters.facilities[0].level,2);
+assert.equal(scene.facilityPreview,null);
+click('[data-action="facility-add"]');
+assert.ok(scene.facilityPreview);assert.notEqual(scene.facilityPreview.id,'shelter-0');
+click('[data-action="cancel-layout"]');
+click('[data-action="cancel-layout"]');
 assert.equal(saved.shelters.facilities[0].level,2);
 // v2.18 real UI paths: goals, one visitor, pause, settlement, planned capacity and 42 previews.
 click('[data-tab="friends"]');assert.ok(win.document.querySelector('[data-action="recruit-target"]'));assert.equal(win.document.querySelector('[data-action="welcome-neolbi"]'),null);
@@ -134,10 +149,15 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  scene.onSelect('facility',f.id);
  assert.match(card.textContent,/바위쉼터/);
  assert.match(card.textContent,/전체 3공간/);
- assert.equal(card.querySelector('[data-action="facility-move"], [data-action="facility-flip"]'),null);
+ assert.equal(card.querySelector('[data-action^="facility-"]'),null);
  click('[data-action="close-card"]');
  click('[data-tab="decorate"]');
  const editor=win.document.getElementById('editor');
+ assert.ok(Array.from(scene.editorShelters(),x=>x.label).includes('바위쉼터'));
+ const labelCalls=[];
+ scene.drawShelterEditLabels(new Proxy({},{get:(_,key)=>key==='measureText'?()=>({width:50}):(...args)=>{if(key==='fillText')labelCalls.push(args[0]);}}));
+ assert.ok(labelCalls.includes('바위쉼터'));
+ assert.ok(labelCalls.includes('넓은 쉼터'));
  scene.syncWorld(F.World.bounds(st));
  const t=F.Shelter.transform(f),rockHit={x:(t.x+80)/360,y:(t.y+72)/576};
  wp('pointerdown',rockHit);wp('pointerup',rockHit);
