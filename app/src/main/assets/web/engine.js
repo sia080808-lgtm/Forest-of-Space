@@ -15,9 +15,10 @@ const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorl
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
 const Boat=typeof module==='object'?require('./lily-boat.js'):globalThis.ForestLilyBoat;
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
+const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.2.19', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.20', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -67,7 +68,9 @@ function step(s,{visible=true,held=null}={}){
  const previousRider=s.world?.lake?.boat?.rider;
  if(previousRider)Boat.step(s,held,rng);
  Obj.prepare(s,held,rng);Sh.prepare(s,held,Space);
- const participants=Social.prepare(s,held),aboard=s.world?.lake?.boat?.rider;
+ const participants=Social.prepare(s,held);
+ for(const id of Friendship.prepare(s,held,rng))participants.add(id);
+ const aboard=s.world?.lake?.boat?.rider;
  Skills.prepare(s,{held,busy:aboard?new Set([...participants,aboard]):participants,event,discovery,visible});
  if(!previousRider)Boat.step(s,held,rng);
  const rider=s.world?.lake?.boat?.rider;
@@ -146,7 +149,7 @@ function step(s,{visible=true,held=null}={}){
   if(p.justDrank){delete p.justDrank;s.environment.tutorialDone=true;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);}discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',visible);}
   if(p.motion.water>0)p.motion.contact=p.id+':'+Math.floor(s.worldTick/3)+':water';
  }
- Social.tick(s,{visible,record:discovery,event});neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});World.lakeStep(s,event);Sh.discoverSouth(s,event);
+ Social.tick(s,{visible,record:discovery,event});Friendship.tick(s,held);neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});World.lakeStep(s,event);Sh.discoverSouth(s,event);
  snapTiny(s);return s;
 }
 function neighborStep(s,visible){
