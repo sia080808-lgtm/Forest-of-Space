@@ -84,7 +84,7 @@ class ForestScene {
  constructor(canvas,getState){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.state=getState;this.assets={};this.selected=null;this.editing=false;this.preview={};this.selectedPatch='moss';this.phase=0;this.display={};this.ready=false;this.onSelect=()=>{};this.onMove=()=>{};this.paused=false;this.drag=null;this.last=0;this.resize=new ResizeObserver(()=>this.measure());this.resize.observe(canvas);this.measure();
   let saved;try{saved=JSON.parse(localStorage.getItem('forest-camera-v2'));}catch{}this.camera=new ForestCamera(saved);this.measure();
  }
- async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','rockShelter','rockShelterSeasons','stoneShelf','stoneShelfSeasons','shelfBacks','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lakeDusk','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',rockShelter:'assets/forest/rock-shelter.webp',rockShelterSeasons:'assets/forest/seasons/rock-shelter-seasons.webp',stoneShelf:'assets/forest/stone-shelf.webp',stoneShelfSeasons:'assets/forest/seasons/stone-shelf-seasons.webp',shelfBacks:'assets/forest/shelf-backs.webp',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',lakeDusk:'assets/forest/lake/lake-dusk.webp',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
+ async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','rockShelter','rockShelterSeasons','zelkovaSeasons','willowSeasons','stoneShelf','stoneShelfSeasons','shelfBacks','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lakeDusk','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',rockShelter:'assets/forest/rock-shelter.webp',rockShelterSeasons:'assets/forest/seasons/rock-shelter-seasons.webp',zelkovaSeasons:'assets/forest/seasons/zelkova-seasons.webp',willowSeasons:'assets/forest/seasons/willow-seasons.webp',stoneShelf:'assets/forest/stone-shelf.webp',stoneShelfSeasons:'assets/forest/seasons/stone-shelf-seasons.webp',shelfBacks:'assets/forest/shelf-backs.webp',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',lakeDusk:'assets/forest/lake/lake-dusk.webp',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
 
  prepareLitter(){const im=this.assets.terrain,c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.drawImage(im,512,512,512,512,0,0,512,512);const silhouette=document.createElement('canvas');silhouette.width=silhouette.height=512;const q=silhouette.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle='rgba(62,53,30,.19)';q.fillRect(0,0,512,512);this.litterShadow=silhouette;{/* 1.1.6: the litter shadow's soft edge is baked once (it was a blur filter every frame) */const soft=document.createElement('canvas');soft.width=soft.height=512;const sx=soft.getContext('2d');sx.filter='blur(.6px)';sx.drawImage(silhouette,0,0);this.litterShadowSoft=soft;}this.litterPicked=document.createElement('canvas');this.litterPicked.width=im.width;this.litterPicked.height=im.height;const v=this.litterPicked.getContext('2d');v.drawImage(im,0,0);v.save();v.globalCompositeOperation='destination-out';v.beginPath();v.ellipse(803,714,62,29,-.12,0,Math.PI*2);v.fill();v.restore();}
  measure(){const r=this.canvas.getBoundingClientRect();if(!r.width||!r.height)return;this.vw=r.width;this.vh=r.height;this.w=360;this.h=576;this.camera?.resize(r.width,r.height);const d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.max(1,r.width*d);this.canvas.height=Math.max(1,r.height*d);this.ctx.setTransform(d,0,0,d,0,0);this.cameraChanged();}
@@ -100,6 +100,7 @@ class ForestScene {
    return {...z,id,name:O.isCopy(id)?name+' '+id.at(-1):name};
   });
   items.push(...Forest.World.shelfDrafts(s,this.preview).map(shelf=>({...shelf,name:'돌 선반'+(shelf.id===Forest.World.SHELF_IDS[0]?'':' '+shelf.id.at(-1))})));
+  items.push(...Forest.Trees.drafts(s,this.preview).filter(t=>!t.stored).map(t=>({...t,name:Forest.Trees.name(t.id)})));
   return items;
  }
  editorShelters(){
@@ -153,10 +154,17 @@ class ForestScene {
   if(shelf)return this.onSelect('patch',shelf.id);
   const boat=s.world?.lake?.boat;
   if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');
+  const tree=Forest.Trees.active(s).find(t=>Forest.dist(t,point)<.085);
+  if(tree)return this.onSelect('patch',tree.id);
   const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);
   if(p){this.onSelect('patch',p.id);return;}
   const spring=Forest.Objects.springs(s).find(z=>Forest.dist(z,point)<.12);
-  if(spring)this.onSelect('spring',Forest.Objects.objectId(spring));else this.onSelect(null,null);
+  if(spring)return this.onSelect('spring',Forest.Objects.objectId(spring));
+  const canopy=Forest.Trees.active(s).find(t=>{
+   const T=Forest.Trees,d=T.data(t),offset=(point.x-t.x)*T.direction(t);
+   return point.y<t.y&&point.y>t.y-d.height&&offset>-d.width*d.anchor&&offset<d.width*(1-d.anchor);
+  });
+  if(canopy)this.onSelect('patch',canopy.id);else this.onSelect(null,null);
  }
  springVisible(){return Forest.Objects.springs(this.state()).some(z=>{const p=this.camera.screen(z);return p.x>-30&&p.x<this.vw+30&&p.y>-30&&p.y<this.vh+30;});}
 
@@ -632,12 +640,93 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    c.save();c.globalAlpha*=cal.blend;draw(cal.id);c.restore();
   }else draw(cal?.id||'summer');
  }
- drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest,s=this.state();
+ drawTreeArt(c,t,w,h,cal,reflection=false){
+  const T=Forest.Trees,d=T.data(t),atlas=this.assets[T.kind(t.id)+'Seasons'];
+  if(!atlas)return;
+  const tw=atlas.width/2,th=atlas.height/2,dir=T.direction(t);
+  const draw=(id,alpha)=>{
+   if(!alpha)return;
+   const cell=Math.max(0,['spring','summer','autumn','winter'].indexOf(id));
+   c.save();c.globalAlpha*=alpha;
+   c.drawImage(atlas,(cell%2)*tw,Math.floor(cell/2)*th,tw,th,-d.anchor*d.width*w,-d.height*h,d.width*w,d.height*h);
+   c.restore();
+  };
+  c.save();
+  if(reflection){
+   const L=Forest.World.LAKE;
+   c.translate((t.x+(L.cx-t.x)*.27)*w,(t.y+(L.cy-t.y)*.43)*h);
+   c.scale(dir,-.38);c.globalAlpha*=.17;
+  }else{c.translate(t.x*w,t.y*h);c.scale(dir,1);}
+  if(cal&&cal.blend<1)draw(cal.prev,1-cal.blend);
+  draw(cal?.id||'spring',cal?.blend??1);c.restore();
+ }
+ treeShadow(){
+  if(this.treeShadowImg)return this.treeShadowImg;
+  // One shared alpha texture keeps the soft edge and scattered gaps inexpensive.
+  const image=document.createElement('canvas');image.width=144;image.height=88;
+  const g=image.getContext('2d'),pixels=g.createImageData(144,88);
+  const leaves=[[.34,.39,.29,.33],[.62,.39,.32,.31],[.51,.60,.34,.33],[.74,.56,.23,.26]];
+  const gaps=[[.29,.38,.10,.07],[.46,.57,.10,.08],[.57,.35,.12,.08],[.71,.60,.095,.08],[.80,.42,.062,.075]];
+  const falloff=(x,y,[cx,cy,rx,ry])=>Math.max(0,1-((x-cx)/rx)**2-((y-cy)/ry)**2)**2;
+  for(let y=0;y<88;y++)for(let x=0;x<144;x++){
+   const u=x/144,v=y/88,i=(y*144+x)*4;
+   const density=leaves.reduce((a,leaf)=>a+falloff(u,v,leaf),0);
+   const light=gaps.reduce((a,gap)=>Math.max(a,falloff(u,v,gap)),0);
+   const texture=.94+.06*Math.sin(x*1.73+y*2.27);
+   pixels.data.set([69,73,54,255*Math.min(1,density*.82)*(1-light*.84)*texture],i);
+  }
+  g.putImageData(pixels,0,0);
+  return this.treeShadowImg=image;
+ }
+ drawTreeGround(c,s,trees,w,h,cal,phase){
+  if(!trees.length)return;
+  const T=Forest.Trees,image=this.treeShadow(),leaves=cal?T.leafiness(cal.id)*cal.blend+T.leafiness(cal.prev)*(1-cal.blend):.8;
+  const sun=Math.max(.15,Math.min(1,s.climate.L/75))*(s.weather.kind==='sun'?1:.62);
+  for(const t of trees){
+   const p=T.canopy(t),seed=t.id.at(-1)*2.4,shadow=leaves*sun*(T.kind(t.id)==='willow'?.37:.46);
+   const trunk=T.trunk(t),x=t.x*w,y=t.y*h;
+   ForestSurfaces.wash(c,x,y,trunk.rx*w*1.53,trunk.ry*h,'93,79,57',.18,seed);
+   if(leaves>.2&&T.kind(t.id)==='zelkova'){
+    const grass=this.sa('fern4');
+    if(grass){
+     c.save();c.globalAlpha*=Math.min(.48,leaves*.64);
+     c.drawImage(grass,x-trunk.rx*w*1.12,y-11,17,15);
+     c.drawImage(grass,x+trunk.rx*w*.73,y-5,12,10);
+     c.restore();
+    }
+   }
+   c.save();c.globalAlpha*=shadow;
+   const sway=phase?Math.sin(phase*.72+seed)*.007:0;
+   c.drawImage(image,(p.x-p.rx+sway)*w,(p.y-p.ry)*h,p.rx*2*w,p.ry*2*h);
+   c.restore();
+  }
+ }
+ drawTreeReflections(c,trees,w,h,s,cal){
+  const willows=trees.filter(t=>Forest.Trees.kind(t.id)==='willow');
+  if(!willows.length||Forest.World.frozen(s))return;
+  const W=Forest.World,L=W.LAKE;
+  this.treeWaterEdge??=Array.from({length:96},(_,i)=>{
+   const a=i*Math.PI/48,dx=Math.cos(a)*L.ru,dy=Math.sin(a)*L.rv;
+   let lo=.8,hi=1.2;
+   for(let j=0;j<9;j++){
+    const r=(lo+hi)/2;
+    if(W.waterD(L.cx+dx*r,L.cy+dy*r)<L.edge-.01)lo=r;else hi=r;
+   }
+   return {x:L.cx+dx*lo,y:L.cy+dy*lo};
+  });
+  c.save();c.beginPath();
+  this.treeWaterEdge.forEach((q,i)=>i?c.lineTo(q.x*w,q.y*h):c.moveTo(q.x*w,q.y*h));
+  c.closePath();c.clip();
+  for(const t of willows)this.drawTreeArt(c,t,w,h,cal,true);
+  c.restore();
+ }
+ drawFloor(c,w,h,trees=[],cal=null){const A=this.assets,f=Forest.World?.REGIONS.forest,s=this.state();
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
    // 0.9.0 동쪽 호수 물가 (0.9.5: the whole lake, art x 1.05..3.3) (fading in over the forest's east edge); only the open part shows (world clip)
    if(Forest.World?.lakeOpen?.(s)){
     const lit=!Forest.World.frozen(s)&&this.drawLakeLight(c,w,h,s,true);
     if(A.lakeFloor&&!lit)c.drawImage(A.lakeFloor,1.05*w,-.25*h,2.25*w,1.5*h);
+    this.drawTreeReflections(c,trees,w,h,s,cal);
     this.drawLilies(c,w,h);this.drawLakeLife(c,w,h);
    }
    for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);this.seasonal('fern'+i,f=>c.drawImage(f,-dw/2,-dh,dw,dh));c.restore();}}
@@ -673,7 +762,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
-  enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
+  const cal=this.cal(),trees=Forest.Trees.drafts(s,this.preview).filter(t=>!t.stored).sort((a,b)=>a.y-b.y);
+  enter();this.drawFloor(c,w,h,trees,cal);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();this.drawTreeGround(c,s,trees,w,h,cal,phase);for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
   this.drawStoneShelf(c,s,w,h);
   const {patches,springs}=Forest.objectDrafts(s,this.preview);const type=p=>Forest.Objects.kindOf(p?.id);patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();this.drawSkillGround(c,w,h,phase);
   this.springFlow(springs);
@@ -689,6 +779,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(Art&&this.assets.pillbug){const r=this.pillRoll,walk=r<.001,sw=walk?Math.sin(tt*.25):(this.pillSway??0),x=(bx+sw*.012)*w,dir=walk?(Math.cos(tt*.25)>=0?1:-1):(this.pillDir??1);if(walk){this.pillSway=sw;this.pillDir=dir;}
     if(r>=.999)Art.neighbour(c,this.assets,'pillbugBall',{x,y:by*h,size:w*.02,still:true});else if(walk)Art.neighbour(c,this.assets,'pillbug',{x,y:by*h,size:w*.04,dir,phase:tt,still});else Art.pillbugCurl(c,this.assets,{x,y:by*h,size:w*.04,ball:w*.02,dir,r});}
    else{const x=bx*w,y=by*h;c.fillStyle='#777a69';c.beginPath();c.ellipse(x,y,5,3.6,-.2,0,Math.PI*2);c.fill();}}
+  let treeIndex=0;
+  const treesBefore=y=>{while(treeIndex<trees.length&&trees[treeIndex].y<=y)this.drawTreeArt(c,trees[treeIndex++],w,h,cal);};
   const riders=[];// friends drawn on top of the sun rock this frame (0.6.31)
   for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>a.y-b.y)){
    const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y};
@@ -726,6 +818,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     if(perch)kind='rest';
    }
    const friendship=typeof ForestFriendship!=='undefined'?ForestFriendship.pose(s,p):null;if(friendship?.face){this.facing??={};this.facing[p.id]=friendship.face;}
+   treesBefore(p.y);
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};if(!friendship?.face&&motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
@@ -752,6 +845,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
      if(se==='winter'&&!hard)this.footprint(id+':foot:'+step,pos,p);}
    }
   }
+  treesBefore(Infinity);
   // Foreground leaf pass: visitors render under the continuous canopy.
   for(const pass of this.hoodPasses){c.save();c.setTransform(...pass.matrix);c.filter=pass.filter;c.globalAlpha=pass.alpha;ForestNeolbi.front(c,pass.rain?this.assets.neolbiRainCanopy:this.assets.neolbiCanopy,pass.open);ForestNeolbi.frontSnow(c,this.assets.neolbiCanopy,pass.open,pass.snow);ForestNeolbi.surface(c,pass.open,pass.wet,pass.time,pass.rain,pass.reduced);c.restore();}
   for(const p of patches.filter(p=>type(p)==='shade'))this.canopy(p);

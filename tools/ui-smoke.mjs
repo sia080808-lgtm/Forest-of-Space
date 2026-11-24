@@ -252,6 +252,28 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  assert.equal(saved.shelters.facilities.filter(F.Shelter.isRock).length,2);
  click('[data-action="cancel-layout"]');
 }
+{
+ const ed=win.document.getElementById('editor');
+ click('[data-tab="decorate"]');
+ click('[data-action="tree-add"][data-id="zelkova"]');
+ click('[data-action="tree-add"][data-id="willow"]');
+ assert.equal(scene.selectedPatch,'willow-1');
+ assert.equal(F.Trees.active(getState()).length,0,'new trees are drafts until saved');
+ assert.equal(ed.querySelector('[data-action="save-layout"]').disabled,false);
+ click('[data-action="save-layout"]');
+ assert.equal(F.Trees.active(saved).length,2);
+ scene.selectAt(F.Trees.active(getState()).find(t=>t.id==='willow-1'));
+ assert.match(win.document.getElementById('select-card').textContent,/수양버들 1/);
+ click('[data-tab="decorate"]');
+ click('[data-patch="willow-1"]');
+ click('[data-action="store-object"][data-id="willow-1"]');
+ assert.equal(F.Trees.stored(saved).length,1);
+ assert.match(ed.querySelector('[data-action="tree-add"][data-id="willow"]').textContent,/1\/5/);
+ click('[data-action="unstore-object"][data-id="willow-1"]');
+ assert.equal(F.Trees.stored(saved).length,0);
+ assert.equal(F.Trees.active(saved).length,2);
+ click('[data-action="cancel-layout"]');
+}
 console.log('PASS: decorator-only placement, storage, mirror, copy and save');
 console.log('PASS: grouped settings (theme, climate, no shelter row), admin panel (time, weather, friend slider, reset with dialog, speed), back closes it');
 console.log('PASS: all 7 object cards, no state/save mutation, real live quantities, retained details/scroll/summary/action focus, unchanged DOM, switched object reset, pet controls and close');

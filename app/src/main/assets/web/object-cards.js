@@ -4,6 +4,7 @@ const O=F.Objects,Sh=F.Shelter,escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'
 const number=v=>Number(Math.max(0,v).toFixed(2)).toString(),amount=v=>v>0&&v<.1?'0.1 미만':Number(Math.max(0,v).toFixed(1)).toString();
 const metric=(id,label,value,note='')=>({id,label,value,note});
 function usage(s,id){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.objectTask?.object===id),inside=ps.filter(p=>O.at(s,p));return {count:inside.length,moving:ps.length-inside.length,used:inside.reduce((n,p)=>n+Sh.units(p),0)/4,reserved:ps.filter(p=>!inside.includes(p)).reduce((n,p)=>n+Sh.units(p),0)/4};}
+const absorptionLabel=F=>'+'+Math.round((F.Trees.ABSORPTION-1)*100)+'%';
 function model(s,id){
  if(F.World.SHELF_IDS.includes(id)){
   if(!F.World.stoneShelf(s,id))return null;
@@ -12,6 +13,15 @@ function model(s,id){
    status:seated.length===2?'두 친구가 나란히 쉬고 있어요':seated.length?'한 친구가 선반에서 쉬고 있어요':'잔잔한 낮에 친구들이 찾아와요',
    metrics:[metric('visitors','쉬는 친구',seated.length+' / 2명'),metric('reserved','가는 중',visitors.length-seated.length+'명')],
    rows:[],effects:['28초 동안 전망을 즐기면 기운 +1 (기운 80까지).'],actions:[],gauge:null};
+ }
+ if(F.Trees.kind(id)){
+  const tree=F.Trees.active(s).find(t=>t.id===id);if(!tree)return null;
+  const willow=F.Trees.kind(id)==='willow',c=F.Trees.protection(s,tree);
+  return {id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',
+   status:willow&&F.World.frozen(s)?'호수가 얼어 수분 흡수 보너스가 쉬고 있어요':'계절에 따라 그늘이 달라져요',
+   metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%'),metric('rain','빗방울 줄임',Math.round(c.rain*100)+'%')],
+   rows:[willow?['뿌리 수분 흡수',F.World.frozen(s)?'휴식 중':absorptionLabel(F)]:['바람 줄임',Math.round(c.wind*100)+'%']],
+   effects:[willow?'뿌리에 있는 물을 몸으로 더 빨리 옮겨요. 물가에 송사리가 보이면 친한 친구끼리 같이 봐요.':'강한 볕을 누그러뜨려 광합성에 알맞은 빛을 만들 수 있어요. 친한 친구끼리 함께 앉아 수다를 떨어요.'],actions:[],gauge:null};
  }
  if(id==='lily-boat'){
  const b=s.world?.lake?.boat;if(!b)return null;
@@ -43,7 +53,7 @@ function model(s,id){
   m.description='수태처럼 물을 머금었다가 천천히 내주고, 기운을 회복해요.';
   m.metrics=[metric('water','저장된 물',amount(z.S)+' / '+O.capacity(s,id),'아주 적은 양만 머금어요'),metric('space','사용 / 전체 공간',number(u.used)+' / '+number(O.spaceCapacity(s,id)/4),'예약 '+number(u.reserved)+'공간'),metric('water2','쉬는 친구의 수분','+3 / 분','55까지 · 과습으로는 올리지 않아요'),metric('energy','이용 시 기운','+2 / 분','기운 80%까지')];
   m.gauge=meter('이끼가 머금은 물',z.S,O.capacity(s,id));m.status=!weatherSafe||F.Environment.precipitation(s,'rain')>=.6?'날씨가 거세면 안전한 곳에서 쉬어요.':z.S<=0?'물은 말랐어도 놀이와 회복은 가능해요.':'수분은 조금 나누고, 회복은 서서히 도와줘요.';
-  m.rows=[['쉬는 친구에게 나누는 물','최대 3 / 분'],['현재 이용',u.count+'명'],['이동 중',u.moving+'명']];m.effects=['안전하게 자리에 머문 시간만큼 회복해요. 들어오는 순간 수치가 오르지는 않아요.','물이 부담스러운 친구(물 종족값 1~2)는 샘터보다 이끼를 먼저 찾아요. 물이 없어도 기운 회복은 유지돼요.'];
+  m.rows=[['뿌리 수분 흡수',absorptionLabel(F)],['쉬는 친구에게 나누는 물','최대 3 / 분'],['현재 이용',u.count+'명'],['이동 중',u.moving+'명']];m.effects=['안전하게 자리에 머문 시간만큼 회복해요. 들어오는 순간 수치가 오르지는 않아요.','물이 부담스러운 친구(물 종족값 1~2)는 샘터보다 이끼를 먼저 찾아요. 물이 없어도 기운 회복은 유지돼요.'];
  }else if(type==='spring'){
   const cap=O.capacity(s,id),inflow=s.started&&s.mode==='game'&&!s.offline?(s.spring.inflow||0)*60:0;
   m.description='비가 모이면 친구들이 찾아와 마시고 놀아요.';
