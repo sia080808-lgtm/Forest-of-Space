@@ -239,11 +239,16 @@ function finishShelfMeeting(s,p){
  const other=shelfVisitors(s).find(q=>q.id!==p.id&&shelfPose(s,q));
  if(!other||visit.key!==pairKey(p,other))return;
  shelfMeetings.delete(s);
- const friends=s.objects.friendships??={},previous=friends[visit.key];
+ awardAffinity(s,p,other);
+}
+function awardAffinity(s,a,b){
+ if(a.id===b.id||![a,b].every(p=>s.individuals.includes(p)&&p.active))return false;
+ const key=pairKey(a,b),friends=s.objects.friendships??={},previous=friends[key];
  const day=Math.floor(s.worldTick/dep('environment').DAY_SECONDS);
  const today=previous?.day===day?previous.today:0;
- if(today>=AFFINITY.daily||previous?.points>=AFFINITY.close||previous&&s.worldTick-previous.last<AFFINITY.interval)return;
- friends[visit.key]={ids:pairIds(p,other),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ if(today>=AFFINITY.daily||previous?.points>=AFFINITY.close||previous&&s.worldTick-previous.last<AFFINITY.interval)return false;
+ friends[key]={ids:pairIds(a,b),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ return true;
 }
 
 function shelfSeat(s,slot){
@@ -646,5 +651,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,awardAffinity,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });
