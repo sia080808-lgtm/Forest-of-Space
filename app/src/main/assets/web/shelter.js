@@ -123,9 +123,15 @@ function plan(s,id,kind,point){
  if(error)throw Error(error);
  return f;
 }
+function setupBounds(f){
+ const t=transform(f);
+ return {x0:(t.x+20)/360,x1:(t.x+210+t.extra)/360,y0:(t.y+20)/576,y1:entry(f).y+.045};
+}
 function placementError(s,f,replaceId){
  if(![f.x,f.y].every(Number.isFinite))return '쉼터 배치를 확인해 주세요.';
  const t=transform(f),box={l:t.x+20,r:t.x+210+t.extra,t:t.y+20,b:t.y+300*t.sy};/* 1.2.0: the whole open forest (0.7.0 wide map) is allowed, not just the old 0..1 garden; never on the lake */const WB=World.bounds(s);if(box.l<WB.x0*360||box.r>WB.x1*360-5||box.t<WB.y0*576||box.b>WB.y1*576-26||!World.inside(s,f,World.inner(s,.08,.23,.15,.15)))return '쉼터가 숲 안에 들어오게 놓아주세요.';if(World.inWater&&(polygon(f).some(q=>World.inWater(s,q))||World.inWater(s,entry(f))))return '물 위에는 쉼터를 놓을 수 없어요.';
+ const shelf=World.stoneShelf(s);
+ if(shelf&&World.boxesOverlap(setupBounds(f),World.shelfBounds(shelf)))return '돌 선반과 쉼터 입구가 겹쳐요.';
  /* 1.2.0: when adding, the id passed is the shelter whose card was used; every existing shelter still counts */
  for(const z of s.shelters.facilities.filter(z=>z.id!==replaceId)){const q=transform(z);if(box.l<q.x+210+q.extra&&box.r>q.x+20&&box.t<q.y+318*q.sy&&box.b>q.y+20)return '다른 쉼터와 입구가 겹쳐요.';}
  for(const z of [...s.patches.filter(z=>z.id!=='shelter'),s.spring]){const x=z.x*360,y=z.y*576;if(x>box.l-20&&x<box.r+20&&y>box.t-5&&y<box.b+18)return '주변 지형을 조금 옮겨 쉼터와 출입 공간을 비워주세요.';}
@@ -147,5 +153,5 @@ function validate(s){const sh=s.shelters;if(!sh||sh.version!==1||!Number.isSafeI
  if(rocks!==Number(World.southOpen(s))||all.length-rocks>3)throw Error('쉼터 기록을 확인해 주세요.');
  const ids=new Set();for(const f of all){if(f.kind!==undefined&&(!isRock(f)||f.base)||ids.has(f.id)||(f.flip!==undefined&&typeof f.flip!=='boolean')||!/^shelter-\d+$/.test(f.id)||![1,2,3].includes(f.level)||!Number.isInteger(f.revision)||f.revision<0||!Number.isFinite(f.x)||!Number.isFinite(f.y)||!World.inside(s,f,World.inner(s,.08,.23,.15,.15))||Number(f.id.slice(8))>=sh.nextId)throw Error('쉼터 위치와 크기를 확인해 주세요.');ids.add(f.id);if(ledger(s,f).free<0)throw Error('쉼터 공간이 겹쳐요.');}if(sh.facilities.filter(f=>f.base).length!==1||!sh.facilities.some(f=>f.base&&f.id==='shelter-0'&&Number.isFinite(f.x)&&Number.isFinite(f.y)))   /* 1.2.6: the base shelter can be moved in 꾸미기 */throw Error('기본 쉼터 기록을 확인해 주세요.');for(const p of s.individuals){const a=p.shelter;if(!a||!PHASES.concat('held').includes(a.phase)||![0,1,2,3].includes(p.visualStage)||!Number.isFinite(a.since))throw Error('쉼터 상태를 확인해 주세요.');if(a.facilityId&&(!facility(s,a.facilityId)||![a.x,a.y,a.units].every(Number.isFinite)||a.units!==units(p)||!Number.isInteger(a.revision)))throw Error('쉼터 예약을 확인해 주세요.');}}
 function rebuild(s){init(s);const old=new Map(s.individuals.map(p=>[p.id,{...p.shelter}]));for(const p of s.individuals)p.shelter={phase:'outside',since:old.get(p.id)?.since??s.worldTick};for(const p of s.individuals.filter(p=>p.active&&!p.mounted).sort((a,b)=>a.id.localeCompare(b.id)))for(const f of s.shelters.facilities){if(fits(f,p)&&room(s,f,p)&&!s.individuals.some(z=>z.id!==p.id&&inside(s,z)&&overlap(p,p,z))){p.shelter={phase:'restingInside',facilityId:f.id,x:p.x,y:p.y,units:units(p),since:old.get(p.id)?.since??s.worldTick,revision:f.revision};break;}}return s;}
-return {discoverSouth,isRock,name,standardRoom,storedFor,projectedNeed,seats,room,setPlanned,intersects,safeExit,recovered,outline,plan,build,init,stage,desiredStage,growth,units,capacity,shape,transform,sourceX,polygon,inPoly,bounds,fits,overlap,facility,inside,cover,ledger,entry,seat,priority,wants,release,reserve,prepare,move,blocked,label,validate,rebuild};
+return {setupBounds,discoverSouth,isRock,name,standardRoom,storedFor,projectedNeed,seats,room,setPlanned,intersects,safeExit,recovered,outline,plan,build,init,stage,desiredStage,growth,units,capacity,shape,transform,sourceX,polygon,inPoly,bounds,fits,overlap,facility,inside,cover,ledger,entry,seat,priority,wants,release,reserve,prepare,move,blocked,label,validate,rebuild};
 });

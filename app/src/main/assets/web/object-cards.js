@@ -8,8 +8,8 @@ function model(s,id){
  if(id==='stone-shelf'){
   if(!F.World.stoneShelf(s))return null;
   const visitors=O.shelfVisitors(s),seated=visitors.filter(p=>O.shelfPose(s,p));
-  return {id,name:'돌 선반',description:'남쪽 호수를 바라보며 나란히 쉬는 자리예요.',
-   status:seated.length===2?'두 친구가 함께 호수를 보고 있어요':seated.length?'한 친구가 호수를 보고 있어요':'잔잔한 낮에 친구들이 찾아와요',
+  return {id,name:'돌 선반',description:'두 친구가 나란히 앉아 쉬는 자리예요.',
+   status:seated.length===2?'두 친구가 나란히 쉬고 있어요':seated.length?'한 친구가 선반에서 쉬고 있어요':'잔잔한 낮에 친구들이 찾아와요',
    metrics:[metric('visitors','쉬는 친구',seated.length+' / 2명'),metric('reserved','가는 중',visitors.length-seated.length+'명')],
    rows:[],effects:['28초 동안 전망을 즐기면 기운 +1 (기운 80까지).'],actions:[],gauge:null};
  }
@@ -29,7 +29,7 @@ function model(s,id){
   m.gauge={label:'쉼터 공간',max:v.total/4,parts:[{label:'사용',value:v.used/4,tone:'moss'},{label:'예약',value:v.reserved/4,tone:'raw'}],free:v.free/4};
   m.rows=[['함께 쉬는 친구',v.seats+'명까지'],['성체 리들리','1공간'],['성체 엘레판','2공간'],['성체가 되면 필요한 공간',number(Sh.projectedNeed(s)/4)+'공간'],['빗방울 차단','90%'],['바람 줄임','80%']];
   m.effects=['쉬기·잠으로 기운 +3/분. 비·바람을 막고, 과습한 친구는 안에서 수분이 −1.5/분씩 말라요. 어두워서 광합성은 안 돼요.','빈 공간이 있어도 몸과 잎이 맞고 입구가 열려 있어야 들어갈 수 있어요.'];
-  if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!Sh.standardRoom(s)||!s.shelters.unlocked&&!Sh.storedFor(s,'add')});m.actions.push({action:'facility-flip',label:'좌우 뒤집기'});m.actions.push({action:'facility-move',label:'옮기기'});if(!f.base)m.actions.push({action:'facility-store',label:'보관하기'});   /* 1.2.6: the first shelter moves too */
+  if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!Sh.standardRoom(s)||!s.shelters.unlocked&&!Sh.storedFor(s,'add')});if(!f.base)m.actions.push({action:'facility-store',label:'보관하기'});   /* 1.2.6: the first shelter moves too */
  }else if(id==='litter'||O.isPile(id)){
   // v2.24 step 1: the floor-leaf budget (loose leaves + piles) gates the natural fall; compost has its own cap.
   const L=F.Litter,pile=O.isPile(id),floor=L.floor(s),lcap=L.LCAP,ucap=O.capacity(s,'litter'),compost=L.compost(s),carry=s.individuals.reduce((n,p)=>n+(p.carriedLeaf?.pile===id?p.carriedLeaf.amount:0),0),rates=O.litterRates(s,id),remaining=Math.max(0,s.objects.dayQuota-s.objects.arrivedToday),until=pile?z.playBoostUntil:s.objects.playBoostUntil;

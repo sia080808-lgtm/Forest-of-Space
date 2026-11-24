@@ -218,7 +218,6 @@ function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O
 // outside the old garden), lingers there for a while and then chooses again. It only happens on a free choice (no need,
 // not night, not rain), keeps no object or resource, and any need, night, rain or danger ends it.
 const SHORE_WALK=Object.freeze({spring:.3,summer:.5,autumn:.25,winter:.15}),STROLL=Object.freeze({reach:.9,chance:.4,min:.25,linger:10,lingerSpread:9,deadline:90});
-const SHELF_SEATS=Object.freeze([-.117,.117]);
 const SHELF_LINGER=28,SHELF_RETURN=180,SHELF_ENERGY=1;
 const AFFINITY=Object.freeze({sharedSeconds:15,interval:180,daily:2,familiar:3,close:8});
 const shelfMeetings=new WeakMap();
@@ -253,7 +252,7 @@ function awardAffinity(s,a,b){
 
 function shelfSeat(s,slot){
  const shelf=World.stoneShelf(s);
- return shelf&&{x:shelf.x+SHELF_SEATS[slot-1],y:shelf.y};
+ return shelf&&World.shelfSeat(shelf,slot);
 }
 function shelfWeather(s){
  const E=dep('environment');
@@ -596,7 +595,7 @@ function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return f
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
   if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
   const together=shelfVisitors(s).some(q=>q.id!==p.id&&shelfPose(s,q));
-  return together?'친구와 나란히 앉아 호수를 보고 있어요':'돌 선반에 앉아 호수를 보고 있어요';
+  return together?'친구와 나란히 앉아 쉬고 있어요':'돌 선반에 앉아 쉬고 있어요';
  }
  if(p.stroll?.lake&&!t)return p.stroll.arrivedAt==null?'목이 말라 호수 물가로 가고 있어요':'호수 물가에서 물을 마시고 있어요';
  if(p.stroll?.amble&&!t)return w?.reason==='empty_water'?'샘터에 물이 모이길 기다리며 주변을 거닐고 있어요':w?.object==='spring'?'샘터 자리가 나길 기다리며 주변을 거닐고 있어요':'자리가 나길 기다리며 주변을 거닐고 있어요';

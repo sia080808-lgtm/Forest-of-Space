@@ -90,7 +90,8 @@ click('[data-action="roster"]');assert.equal(getState().individuals[1].active,tr
 // Facility editor performs the same guarded transaction as normal placement.
 getState().individuals.forEach((p,i)=>{p.x=.5+i*.2;p.y=.65;F.Shelter.release(p,getState().worldTick);});getState().shelters.unlocked=true;getState().patches.find(p=>p.id==='rock').y=.40;
 now+=1000;click('[data-tab="world"]');win.__qa.scene.onSelect('facility','shelter-0');assert.match(win.document.getElementById('select-card').textContent,/전체 3공간/);
-win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');assert.ok(scene.facilityPreview);click('[data-action="cancel-layout"]');assert.equal(scene.facilityPreview,null);assert.equal(getState().shelters.facilities[0].level,1);
+assert.equal(win.document.querySelector('#select-card [data-action="facility-move"], #select-card [data-action="facility-flip"]'),null);
+win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');assert.ok(scene.facilityPreview);assert.equal(win.document.querySelector('[data-action="facility-mirror"]'),null);click('[data-action="cancel-layout"]');assert.equal(scene.facilityPreview,null);assert.equal(getState().shelters.facilities[0].level,1);
 scene.onSelect('facility','shelter-0');win.document.querySelector('[data-object-details]').open=true;click('[data-action="facility-expand"]');failed=true;click('[data-action="facility-save"]');assert.equal(getState().shelters.facilities[0].level,1);failed=false;click('[data-action="facility-save"]');assert.equal(saved.shelters.facilities[0].level,2);assert.equal(scene.facilityPreview,null);
 assert.equal(saved.shelters.facilities[0].level,2);
 // v2.18 real UI paths: goals, one visitor, pause, settlement, planned capacity and 42 previews.
@@ -133,10 +134,13 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  scene.onSelect('facility',f.id);
  assert.match(card.textContent,/바위쉼터/);
  assert.match(card.textContent,/전체 3공간/);
+ assert.equal(card.querySelector('[data-action="facility-move"], [data-action="facility-flip"]'),null);
  click('[data-action="close-card"]');
  click('[data-tab="decorate"]');
  const editor=win.document.getElementById('editor');
- click('[data-action="edit-shelter"][data-id="'+f.id+'"]');
+ scene.syncWorld(F.World.bounds(st));
+ const t=F.Shelter.transform(f),rockHit={x:(t.x+80)/360,y:(t.y+72)/576};
+ wp('pointerdown',rockHit);wp('pointerup',rockHit);
  assert.match(editor.textContent,/바위쉼터 옮기기/);
  click('[data-action="facility-store-edit"]');
  assert.equal(saved.shelters.stored.find(x=>x.id===f.id).kind,'stone');
@@ -144,12 +148,44 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  assert.match(editor.textContent,/바위쉼터 꺼내기/);
  assert.equal(scene.facilityPreview.kind,'stone');
  click('[data-action="facility-shift"][data-dir="right"]');
+ click('[data-action="facility-mirror"]');
  click('[data-action="facility-save"]');
  assert.equal(saved.shelters.facilities.find(x=>x.id===f.id).x,f.x+.025);
  assert.equal(saved.shelters.stored.some(x=>x.id===f.id),false);
+ assert.equal(saved.shelters.facilities.find(x=>x.id===f.id).flip,true);
+ const initialShelf=F.World.stoneShelf(getState());
+ wp('pointerdown',initialShelf);wp('pointerup',initialShelf);
+ assert.equal(scene.selectedPatch,'stone-shelf');
+ click('[data-action="shelf-mirror"]');
+ wp('pointerdown',initialShelf);wp('pointermove',{x:initialShelf.x-.13,y:initialShelf.y+.12});wp('pointerup',{x:initialShelf.x-.13,y:initialShelf.y+.12});
+ assert.equal(scene.preview['stone-shelf'].flip,true);
+ assert.ok(Math.abs(scene.preview['stone-shelf'].y-initialShelf.y-.12)<1e-8);
+ click('[data-action="cancel-layout"]');
+ assert.equal(F.World.stoneShelf(getState()).x,initialShelf.x);
+ click('[data-tab="decorate"]');
+ click('[data-patch="stone-shelf"]');
+ click('[data-action="shelf-mirror"]');
+ click('[data-move="down"]');
+ click('[data-action="save-layout"]');
+ assert.deepEqual(saved.world.shelf,{x:initialShelf.x,y:initialShelf.y+.025,flip:true});
+ click('[data-tab="decorate"]');
+ click('[data-action="edit-shelter"][data-id="shelter-0"]');
+ assert.match(editor.textContent,/쉼터 옮기기/);
+ const base=getState().shelters.facilities.find(f=>f.base),mirror=!base.flip;
+ const shifts={left:[-.025,0],right:[.025,0],up:[0,-.025],down:[0,.025]};
+ const direction=Object.keys(shifts).find(dir=>{
+  const [dx,dy]=shifts[dir];
+  try{F.Shelter.plan(getState(),base.id,'move',{x:base.x+dx,y:base.y+dy,flip:mirror});return true;}catch{return false;}
+ });
+ assert.ok(direction,'the fixture has room to move and flip the basic shelter');
+ click('[data-action="facility-shift"][data-dir="'+direction+'"]');
+ click('[data-action="facility-mirror"]');
+ click('[data-action="facility-save"]');
+ const [dx,dy]=shifts[direction],placed=saved.shelters.facilities.find(f=>f.id===base.id);
+ assert.equal(placed.x,base.x+dx);assert.equal(placed.y,base.y+dy);assert.equal(!!placed.flip,mirror);
  click('[data-action="cancel-layout"]');
 }
-console.log('PASS: rock shelter card, decorator, storage and restore at a new position');
+console.log('PASS: decorator-only basic shelter and rock shelter placement, storage, shelf drag, flip and save');
 console.log('PASS: grouped settings (theme, climate, no shelter row), admin panel (time, weather, friend slider, reset with dialog, speed), back closes it');
 console.log('PASS: all 7 object cards, no state/save mutation, real live quantities, retained details/scroll/summary/action focus, unchanged DOM, switched object reset, pet controls and close');
 console.log('PASS: v2.18 recruitment UI, dedicated encounter, pause, settlement, planned roster, all 42 isolated previews');
