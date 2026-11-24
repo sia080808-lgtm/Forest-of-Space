@@ -451,28 +451,67 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(typeof ForestEffects!=='undefined')return ForestEffects.lakeLight?.(c,s,L,w,h,this.phase,this.assets.lakeFloor,
    dusk&&!includeFloor?()=>this.openWater(dusk):dusk,includeFloor);
  }
+ southLandscape(region,w,h,season){
+  this.southFloors??=new Map();
+  const cached=this.southFloors.get(season);
+  if(cached)return cached;
+  const floor=document.createElement('canvas');
+  floor.width=Math.ceil((region.x1-region.x0)*w*.5);
+  floor.height=Math.ceil((region.y1-region.y0)*h*.5);
+  const c=floor.getContext('2d'),assets=this.assets;
+  const x=v=>(v-region.x0)*w*.5,y=v=>(v-region.y0)*h*.5;
+  const art=name=>assets[name+'_'+season]||assets[name];
+  const tint={spring:'147,165,107',summer:'126,145,100',autumn:'159,141,100',winter:'172,183,187'}[season];
+  // Continue the paper grain at the seam, without carrying shoreline detail down the map.
+  if(season!=='winter'){
+   const edge=document.createElement('canvas');
+   edge.width=floor.width;edge.height=44;
+   const ec=edge.getContext('2d');
+   for(const [source,x0,x1] of [[assets.gardenWide,region.x0,1.25],[assets.lakeFloor,1.05,region.x1]]){
+    if(source)ec.drawImage(source,0,source.height-3,source.width,3,x(x0),0,x(x1)-x(x0),edge.height);
+   }
+   const fade=ec.createLinearGradient(0,0,0,edge.height);
+   fade.addColorStop(0,'black');fade.addColorStop(1,'transparent');
+   ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,edge.width,edge.height);
+   c.drawImage(edge,0,0);
+  }
+  // Keep the center open as a continuation of the paths from the forest and the lake.
+  for(const [px,py,rx,ry] of [[.28,1.43,115,38],[.56,1.73,99,31],[2.71,1.53,115,43],[2.97,1.78,78,27]]){
+   c.save();c.translate(x(px),y(py));c.scale(1,ry/rx);
+   const wash=c.createRadialGradient(0,0,0,0,0,rx);
+   wash.addColorStop(0,'rgba('+tint+',.15)');wash.addColorStop(1,'rgba('+tint+',0)');
+   c.fillStyle=wash;c.fillRect(-rx,-rx,rx*2,rx*2);c.restore();
+  }
+  for(const [px,py,i,dw] of [[-.03,1.37,2,36],[.29,1.48,4,48],[.48,1.75,3,40],[.89,1.86,5,32],
+   [1.56,1.36,2,24],[2.44,1.41,2,27],[2.67,1.62,6,42],[2.92,1.75,3,30],[3.13,1.52,4,35]]){
+   const fern=art('fern'+i);
+   if(!fern)continue;
+   const dh=dw*fern.height/fern.width;
+   c.drawImage(fern,x(px)-dw/2,y(py)-dh,dw,dh);
+  }
+  const terrain=art('terrain');
+  if(terrain){
+   const tileW=terrain.width/3,tileH=terrain.height/2;
+   for(const [px,py,column,size] of [[.18,1.54,1,24],[.42,1.84,1,20],[2.55,1.60,0,24],[2.68,1.64,0,15],[3.0,1.78,0,20]]){
+    c.drawImage(terrain,column*tileW,0,tileW,tileH,x(px)-size/2,y(py)-size*.72,size,size);
+   }
+  }
+  this.southFloors.set(season,floor);
+  return floor;
+ }
  drawSouth(c,w,h,s){
   const W=Forest.World;
   if(!W.southOpen(s))return;
-  const r=W.REGIONS.south,top=r.y0*h,bottom=r.y1*h,width=(r.x1-r.x0)*w;
+  const r=W.REGIONS.south;
   if(this.camera.screen({x:0,y:r.y0}).y>this.vh||this.camera.screen({x:0,y:r.y1}).y<0)return;
-  if(!this.southFloor){
-   const floor=document.createElement('canvas');floor.width=Math.ceil(width);floor.height=Math.ceil(bottom-top);
-   const ctx=floor.getContext('2d');
-   const wash=ctx.createLinearGradient(0,0,0,floor.height);
-   wash.addColorStop(0,'rgba(132,145,104,0)');wash.addColorStop(.65,'rgba(132,145,104,.10)');wash.addColorStop(1,'rgba(132,145,104,0)');
-   ctx.fillStyle=wash;ctx.fillRect(0,0,floor.width,floor.height);
-   for(const [x,y,i,scale] of [[.06,.34,2,.24],[.54,.79,4,.24],[1.22,.80,3,.23],[1.78,.37,2,.22],[2.18,.70,5,.26],[2.82,.46,6,.23],[3.06,.82,3,.20]]){
-    const art=this.assets['fern'+i];if(!art)continue;
-    const dw=art.width*scale,dh=art.height*scale;
-    ctx.drawImage(art,(x-r.x0)*w-dw/2,y*floor.height-dh,dw,dh);
-   }
-   this.southFloor=floor;
-  }
-  c.drawImage(this.southFloor,r.x0*w,top,width,bottom-top);
+  const cal=this.cal();
+  const draw=season=>c.drawImage(this.southLandscape(r,w,h,season),r.x0*w,r.y0*h,(r.x1-r.x0)*w,(r.y1-r.y0)*h);
+  if(cal&&cal.blend<1){
+   c.save();c.globalAlpha*=1-cal.blend;draw(cal.prev);c.restore();
+   c.save();c.globalAlpha*=cal.blend;draw(cal.id);c.restore();
+  }else draw(cal?.id||'summer');
  }
  drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest,s=this.state();
-  this.drawSouth(c,w,h,s);
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
    // 0.9.0 동쪽 호수 물가 (0.9.5: the whole lake, art x 1.05..3.3) (fading in over the forest's east edge); only the open part shows (world clip)
    if(Forest.World?.lakeOpen?.(s)){
@@ -513,7 +552,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
-  enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
+  enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
   const patches=s.patches.map(p=>({...p,...this.preview[p.id]}));patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();this.drawSkillGround(c,w,h,phase);
   this.springFlow();
   for(const p of s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0)){const g=ForestNeolbi.geometry(p);ForestSurfaces.wash(c,g.cx*w,g.cy*h,g.rx*w,g.ry*h,'71,82,60',.14*p.canopyProgress,1.5);}
