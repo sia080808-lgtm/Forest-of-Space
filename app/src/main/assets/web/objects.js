@@ -412,9 +412,10 @@ function choose(s,p,rng){
  if(p.stroll?.shelf&&(!shelfWeather(s)||danger||coldCall(s,p)||Object.values(n).some(Boolean)))leaveShelf(s,p);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
- const inWeatherShelter=current?.object==='shelter'&&Sh.inside(s,p);
- const stayingForRain=inWeatherShelter&&current.reason==='shelterRain';
- const stayingForWarmth=inWeatherShelter&&current.reason==='warm'&&valid;
+ // Keep an active weather stay in the rock shelter as the friend warms or dries inside.
+ const inRockShelter=valid&&current.object==='shelter'&&Sh.isRock(Sh.facility(s,p.shelter?.facilityId))&&Sh.inside(s,p);
+ const stayingForRain=inRockShelter&&current.reason==='shelterRain';
+ const stayingForWarmth=inRockShelter&&current.reason==='warm';
  if(valid&&!emergencyChange&&s.worldTick<(p.nextObjectChoice||0))return;
  // 1.0.1: finish what was started. Without this a friend whose 수분 and 영양 sit right on the band edge flipped between
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
