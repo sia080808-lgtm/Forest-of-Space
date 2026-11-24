@@ -158,10 +158,10 @@ function coldCall(s,p){const V=dep('vitals');if(!V.isCold(s)||dep('traits').ofPe
    does (~0.1 s), every few seconds, all rain long. A door it cannot get through now counts like a full shelter: after 8 s it goes
    somewhere else, and keeps away for 5 minutes (a full shelter: 2). */
 function blockedDoor(p){const a=p.shelter;return !!a&&(a.phase==='rerouting'||a.phase==='waitingOutside'&&a.waitReason==='path'||a.phase==='moving'&&!!p.walkPlan&&Array.isArray(p.walkPlan.pts)&&!p.walkPlan.pts.length);}
-function underLeaf(s,p){if(s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids.includes(p.id)))return true;const W=dep('weather-care');if(!W.leafFit(s,p)||gaveUpLeaf(s,p))return false;/* 1.2.3 (user: "봄에 큰비로 … 아무도 안 들어가"): the umbrella holds one friend; once 엘레판 has opened it over someone else the other friends nearby stopped waiting forever in the rain — now only a 엘레판 whose umbrella is still free counts */return s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&!z.mounted&&!dep('shelter').inside(s,z)&&!s.social?.sessions?.some(a=>a.ids.includes(z.id))&&!gaveUpLeaf(s,z)&&W.leafFit(s,z)&&s.weather.wind<W.limit(z)&&Math.hypot(z.x-p.x,z.y-p.y)<.3);}
+function underLeaf(s,p){if(s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids.includes(p.id)))return true;const W=dep('weather-care');if(!W.leafFit(s,p)||gaveUpLeaf(s,p))return false;/* 1.2.3 (user: "봄에 큰비로 … 아무도 안 들어가"): the umbrella holds one friend; once 엘레판 has opened it over someone else the other friends nearby stopped waiting forever in the rain — now only a 엘레판 whose umbrella is still free counts */return s.individuals.some(z=>z.active&&z.species==='neolbi'&&z.id!==p.id&&!z.mounted&&!z.shelter?.facilityId&&!s.social?.sessions?.some(a=>a.ids.includes(z.id))&&!gaveUpLeaf(s,z)&&W.leafFit(s,z)&&s.weather.wind<W.limit(z)&&Math.hypot(z.x-p.x,z.y-p.y)<.3);}
 // 엘레판 stays out in the rain only while a friend it could hold its leaf over is close by and outside
 /* 1.2.6 (user: "겨울에도 … 큰 비에도 안들어가"): the wait for 엘레판's leaf umbrella could never end — the umbrella only opens for two friends with nothing else to do (and not beside wet moss), but the waiting friends kept what they were doing (엘리시 asleep on the sun rock, 엘레판 asleep on the moss) and stood in the downpour. A friend that has waited 10 s without the umbrella opening gives up on it for 2 minutes and takes cover */function gaveUpLeaf(s,p){return p.leafGiveUp>s.worldTick;}
-function canShield(s,h){const W=dep('weather-care');return !gaveUpLeaf(s,h)&&W.leafFit(s,h)&&s.weather.wind<W.limit(h)&&s.individuals.some(z=>z.active&&z.id!==h.id&&!z.mounted&&!dep('shelter').inside(s,z)&&W.leafFit(s,z)&&Math.hypot(z.x-h.x,z.y-h.y)<.35);}
+function canShield(s,h){const W=dep('weather-care');return !h.shelter?.facilityId&&!gaveUpLeaf(s,h)&&W.leafFit(s,h)&&s.weather.wind<W.limit(h)&&s.individuals.some(z=>z.active&&z.id!==h.id&&!z.mounted&&!z.shelter?.facilityId&&W.leafFit(s,z)&&Math.hypot(z.x-h.x,z.y-h.y)<.35);}
 /* 1.2.4 (user: "폭풍치는데 아무도 안 들어가"): a storm is shown as 폭풍 for its whole 110 s, but its first 20 s and last 30 s are only rain .35 · wind 45 — friends read that as drizzle and stayed out. The whole storm now counts as heavy rain */function stormy(s){return !!s.environment?.storm;}
 function rainy(s){const E=dep('environment');return stormy(s)||E.precipitation(s,'rain')+E.precipitation(s,'snow')>=.25;}
 function goalsDone(s,p,t){const n=needs(p);if(t.complete)return true;if(t.free)return t.remaining<=0;
@@ -224,20 +224,24 @@ const shelfMeetings=new WeakMap();
 const pairIds=(a,b)=>[a.id,b.id].sort();
 const pairKey=(a,b)=>JSON.stringify(pairIds(a,b));
 function affinity(s,a,b){return s.objects?.friendships?.[pairKey(a,b)]?.points??0;}
+const visitShelfId=p=>p.stroll?.shelfId??World.SHELF_IDS[0];
 function trackShelfMeeting(s){
- const seated=shelfVisitors(s).filter(p=>shelfPose(s,p));
- if(seated.length!==2){shelfMeetings.delete(s);return;}
- const [a,b]=seated,key=pairKey(a,b),arrival=Math.max(a.stroll.arrivedAt,b.stroll.arrivedAt);
- const previous=shelfMeetings.get(s),tick=s.worldTick;
- const follows=previous?.key===key&&previous.arrival===arrival&&previous.tick===tick-1;
- shelfMeetings.set(s,{key,arrival,since:follows?previous.since:tick,tick});
+ const previous=shelfMeetings.get(s),meetings=new Map(),tick=s.worldTick;
+ for(const shelf of World.stoneShelves(s)){
+  const seated=shelfVisitors(s,shelf.id).filter(p=>shelfPose(s,p));
+  if(seated.length!==2)continue;
+  const [a,b]=seated,key=pairKey(a,b),arrival=Math.max(a.stroll.arrivedAt,b.stroll.arrivedAt);
+  const last=previous?.get(shelf.id),follows=last?.key===key&&last.arrival===arrival&&last.tick===tick-1;
+  meetings.set(shelf.id,{key,arrival,since:follows?last.since:tick,tick});
+ }
+ shelfMeetings.set(s,meetings);
 }
 function finishShelfMeeting(s,p){
- const visit=shelfMeetings.get(s);
+ const id=visitShelfId(p),meetings=shelfMeetings.get(s),visit=meetings?.get(id);
  if(visit?.tick!==s.worldTick||s.worldTick-visit.since+1<AFFINITY.sharedSeconds)return;
- const other=shelfVisitors(s).find(q=>q.id!==p.id&&shelfPose(s,q));
+ const other=shelfVisitors(s,id).find(q=>q.id!==p.id&&shelfPose(s,q));
  if(!other||visit.key!==pairKey(p,other))return;
- shelfMeetings.delete(s);
+ meetings.delete(id);
  awardAffinity(s,p,other);
 }
 function awardAffinity(s,a,b){
@@ -250,30 +254,31 @@ function awardAffinity(s,a,b){
  return true;
 }
 
-function shelfSeat(s,slot){
- const shelf=World.stoneShelf(s);
- return shelf&&World.shelfSeat(shelf,slot);
-}
 function shelfWeather(s){
  const E=dep('environment');
  return strollWeather(s)&&dep('vitals').isDay(s)&&s.weather.wind<30&&
   !World.frozen(s)&&E.precipitation(s,'rain')+E.precipitation(s,'snow')<.05;
 }
-function shelfVisitors(s){
- return s.individuals.filter(p=>p.stroll?.shelf&&p.active&&!p.mounted&&!p.objectTask);
+function shelfVisitors(s,id=World.SHELF_IDS[0]){
+ return s.individuals.filter(p=>p.stroll?.shelf&&visitShelfId(p)===id&&p.active&&!p.mounted&&!p.objectTask);
 }
 function shelfTarget(s,p,rng){
- const shelf=World.stoneShelf(s),Space=dep('spatial');
- if(!shelf||!shelfWeather(s)||p.shelfAfter>s.worldTick||Space.distance(p,shelf)>1.65)return null;
- const others=s.individuals.filter(q=>q.id!==p.id&&q.stroll?.shelf);
- if(others.length>=2)return null;
- const companion=Space.distance(p,shelf)<.72&&others.find(q=>shelfPose(s,q));
- const chance=companion?(affinity(s,p,companion)>=AFFINITY.close?.80:.65):.23;
- if(rng(s,'behavior')>=chance)return null;
- for(const slot of [1,2]){
-  if(others.some(q=>q.stroll.shelf===slot))continue;
-  const q=shelfSeat(s,slot);
-  if(Space.route(s,p,q,p.id))return {...q,shelf:slot,far:true};
+ const Space=dep('spatial');
+ if(!World.southOpen(s)||!shelfWeather(s)||p.shelfAfter>s.worldTick)return null;
+ const candidates=World.stoneShelves(s)
+  .map(shelf=>({shelf,distance:Space.distance(p,shelf),others:s.individuals.filter(q=>q.id!==p.id&&q.stroll?.shelf&&visitShelfId(q)===shelf.id)}))
+  .filter(q=>q.distance<=1.65&&q.others.length<2).sort((a,b)=>a.distance-b.distance);
+ if(!candidates.length)return null;
+ const roll=rng(s,'behavior');
+ for(const {shelf,distance,others} of candidates){
+  const companion=distance<.72&&others.find(q=>shelfPose(s,q));
+  const chance=companion?(affinity(s,p,companion)>=AFFINITY.close?.80:.65):.23;
+  if(roll>=chance)continue;
+  for(const slot of [1,2]){
+   if(others.some(q=>q.stroll.shelf===slot))continue;
+   const seat=World.shelfSeat(shelf,slot);
+   if(Space.route(s,p,seat,p.id))return {...seat,shelf:slot,far:true,...(shelf.id===World.SHELF_IDS[0]?{}:{shelfId:shelf.id})};
+  }
  }
  return null;
 }
@@ -282,16 +287,16 @@ function leaveShelf(s,p){
  delete p.stroll;delete p.walkPlan;p.nextObjectChoice=s.worldTick;
 }
 function shelfPose(s,p){
- const r=p.stroll,shelf=World.stoneShelf(s);
+ const r=p.stroll,shelf=World.stoneShelf(s,visitShelfId(p));
  if(!r?.shelf||!shelf||r.arrivedAt==null||!p.active||p.mounted||p.objectTask||p.skill||p.skillHold||
    Math.hypot(r.x-p.x,r.y-p.y)>.002||!shelfWeather(s))return null;
  return {back:shelf.y>World.LAKE.cy+World.LAKE.rv,lift:shelf.rise};
 }
 function shelfGreeting(s,p){
  if(!shelfPose(s,p))return 0;
- const booked=shelfVisitors(s).find(q=>q.id!==p.id);
+ const booked=shelfVisitors(s,visitShelfId(p)).find(q=>q.id!==p.id);
  if(booked&&shelfPose(s,booked))return 0;
- const Space=dep('spatial'),visitor=(booked?[booked]:s.individuals).find(q=>q.id!==p.id&&q.active&&!q.mounted&&!q.objectTask&&!q.skill&&!q.skillHold&&
+ const Space=dep('spatial'),visitor=(booked?[booked]:s.individuals).find(q=>q.id!==p.id&&(!q.stroll?.shelf||visitShelfId(q)===visitShelfId(p))&&q.active&&!q.mounted&&!q.objectTask&&!q.skill&&!q.skillHold&&
   q.action==='wander'&&affinity(s,p,q)>=AFFINITY.familiar&&Space.distance(p,q)<.38);
  return visitor?(visitor.x<p.x?-1:1):0;
 }
@@ -334,7 +339,7 @@ function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null
  return {pose:'look',face:Math.floor(e/1.8)%2?-1:1};}
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
  if(t.shelf){
-  if(!shelfWeather(s)||!World.stoneShelf(s)||Object.values(needs(p)).some(Boolean)){leaveShelf(s,p);return null;}
+  if(!shelfWeather(s)||!World.stoneShelf(s,visitShelfId(p))||Object.values(needs(p)).some(Boolean)){leaveShelf(s,p);return null;}
   if(t.arrivedAt!=null){
    if(s.worldTick-t.arrivedAt>=t.linger){
     finishShelfMeeting(s,p);
@@ -407,6 +412,9 @@ function choose(s,p,rng){
  if(p.stroll?.shelf&&(!shelfWeather(s)||danger||coldCall(s,p)||Object.values(n).some(Boolean)))leaveShelf(s,p);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
+ const inWeatherShelter=current?.object==='shelter'&&Sh.inside(s,p);
+ const stayingForRain=inWeatherShelter&&current.reason==='shelterRain';
+ const stayingForWarmth=inWeatherShelter&&current.reason==='warm'&&valid;
  if(valid&&!emergencyChange&&s.worldTick<(p.nextObjectChoice||0))return;
  // 1.0.1: finish what was started. Without this a friend whose 수분 and 영양 sit right on the band edge flipped between
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
@@ -442,13 +450,13 @@ function choose(s,p,rng){
  // SRS v2.34 선제 행동: a friend dries off when over-wet (sun rock while it holds sun, shelter, crevice); in rain it
  // shelters before 수분 would pass its warning line within a minute (rain lovers wait until the top of the band)
  else if(!rainy(s)&&p.B>dep('vitals').band(p).hi&&!sleepTime(s,p)){for(const id of ['rock','shelter','crevice'])add(id,'rest','dry');}
- else if(sleepTime(s,p)||rainy(s)&&!(p.species==='neolbi'&&canShield(s,p))&&(()=>{const E=dep('environment'),pr=E.precipitation(s,'rain')+E.precipitation(s,'snow'),tr=dep('traits').ofPet(p),b=dep('vitals').band(p),line=tr.rain>0?b.hi:b.warnHi;return (pr>=.6||stormy(s))&&p.species!=='superbum'||p.B+6*E.precipitation(s,'rain')*tr.wet>=line;})()&&!underLeaf(s,p)){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s,p)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
+ else if(sleepTime(s,p)||rainy(s)&&(stayingForRain||!(p.species==='neolbi'&&canShield(s,p))&&(()=>{const E=dep('environment'),pr=E.precipitation(s,'rain')+E.precipitation(s,'snow'),tr=dep('traits').ofPet(p),b=dep('vitals').band(p),line=tr.rain>0?b.hi:b.warnHi;return (pr>=.6||stormy(s))&&p.species!=='superbum'||p.B+6*E.precipitation(s,'rain')*tr.wet>=line;})()&&!underLeaf(s,p))){   /* rain: 엘레판 and the friends near it keep sheltering under its leaf */const r=sleepTime(s,p)?'sleep':'shelterRain';for(const id of (r==='sleep'?['shelter','moss','shade','crevice','rock']:['shelter','shade','crevice','rock']))add(id,id==='moss'?'moss':'rest',r);}
  // 1.2.1 (user: "날씨 추운 한겨울에도 아무도 쉼터로 들어가질 않음"): a friend that feels the cold used to wait until its 기운 ran low;
  // now on a cold day it goes to warm up first — the shelter, or the sun rock while it still holds sun
  // 1.2.1: in the rain a friend beside 엘레판 (and 엘레판 itself) waits where it is for the leaf umbrella instead of wandering off
  // on a free visit — the umbrella starts only while both stay close and free
  else if(rainy(s)&&(underLeaf(s,p)||p.species==='neolbi'&&canShield(s,p))){if(s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids.includes(p.id))){p.nextObjectChoice=s.worldTick+5;return;}   /* 1.2.6: wait with nothing else to do (so the umbrella can open), and for 10 s at most */if(current)release(s,p,'complete');if(!(p.leafWait&&s.worldTick-p.leafWait.last<=6))p.leafWait={since:s.worldTick,last:s.worldTick};p.leafWait.last=s.worldTick;if(s.worldTick-p.leafWait.since>=10){delete p.leafWait;p.leafGiveUp=s.worldTick+120;p.nextObjectChoice=0;return choose(s,p,rng);}p.nextObjectChoice=s.worldTick+2;return;}
- else if(coldCall(s,p)){add('shelter','rest','warm');if(dep('vitals').rockSun(s)>5)add('rock','rest','warm');}
+ else if(coldCall(s,p)||stayingForWarmth){add('shelter','rest','warm');if(dep('vitals').rockSun(s)>5)add('rock','rest','warm');}
  else if(n.energy){for(const id of ['shelter','moss','shade','rock','crevice'])add(id,id==='moss'?'moss':'rest','energy');}
  else if(n.mood){add('moss','moss','mood');for(const id of clean(litterSpots(s,'O',p)))add(id,'litterPlay','mood');add('spring','splash','mood');}
  else if(!current&&p.action==='rest'&&p.target==='shelter'){add('shelter','rest','free',true);}
@@ -594,7 +602,7 @@ function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return f
  if(p.stroll?.shelf&&!t){
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
   if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
-  const together=shelfVisitors(s).some(q=>q.id!==p.id&&shelfPose(s,q));
+  const together=shelfVisitors(s,visitShelfId(p)).some(q=>q.id!==p.id&&shelfPose(s,q));
   return together?'친구와 나란히 앉아 쉬고 있어요':'돌 선반에 앉아 쉬고 있어요';
  }
  if(p.stroll?.lake&&!t)return p.stroll.arrivedAt==null?'목이 말라 호수 물가로 가고 있어요':'호수 물가에서 물을 마시고 있어요';
@@ -641,9 +649,10 @@ function validate(s){
  for(const p of s.individuals){
   const slot=p.stroll?.shelf;
   if(slot!=null){
-   const q=shelfSeat(s,slot);
-   if(![1,2].includes(slot)||!q||p.stroll.x!==q.x||p.stroll.y!==q.y||shelfSlots.has(slot))throw Error('돌 선반 자리 기록을 확인해 주세요.');
-   shelfSlots.add(slot);
+   const id=visitShelfId(p),shelf=World.stoneShelf(s,id),key=id+':'+slot;
+   const q=shelf&&World.shelfSeat(shelf,slot);
+   if(![1,2].includes(slot)||!q||p.stroll.x!==q.x||p.stroll.y!==q.y||shelfSlots.has(key))throw Error('돌 선반 자리 기록을 확인해 주세요.');
+   shelfSlots.add(key);
   }
   if(p.shelfAfter!=null&&!f(p.shelfAfter))throw Error('돌 선반 대기 기록을 확인해 주세요.');
  }
