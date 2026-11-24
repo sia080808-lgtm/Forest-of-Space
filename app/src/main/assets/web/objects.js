@@ -188,7 +188,7 @@ function option(s,p,id,kind,reason,free=false,avoidFriends=false){
  // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
  // body on the way, gave up and chose the crevice again, so it looked frozen "heading to the crevice".
  if(id==='crevice'&&s.individuals.some(z=>z.id!==p.id&&z.active&&z.objectTask?.object==='crevice'))return {fail:'capacity',object:id,kind};if(id!=='shelter'&&used(s,id,p.id)+(kind==='nutrition'?Math.min(Sh.units(p),spaceCapacity(s,id)):Sh.units(p))>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};   /* 1.0: a big friend may eat at compost alone */
- let fail='shape';
+ let fail='shape',best;
  for(const q of points(s,p,id,kind)){
   const t={...q,object:id,kind,reason,free};
   if(!effectsValid(s,p,t)){fail=id==='spring'&&s.spring.water<=eps&&!((s.spring.snowWater||0)>eps)?'empty_water':kind==='litterPlay'&&patch(s,id).O<.5?'no_play_leaves':kind==='nutrition'&&patch(s,id).U<=eps?'no_nutrients':'unsafe_weather';continue;}
@@ -204,9 +204,11 @@ function option(s,p,id,kind,reason,free=false,avoidFriends=false){
   if(reason==='energy')score+=(rates[id]||0)*8;/* 1.0.1: a friend that feels the cold rests in the warm shelter on a cold day */if(['energy','sleep','warm'].includes(reason)&&dep('traits').ofPet(p).cold<0&&dep('vitals').isCold(s))score+=id==='shelter'?60:id==='rock'&&dep('vitals').rockSun(s)>5?30+dep('vitals').rockSun(s)*.5:0;/* 1.0.2: a sun rock that holds a lot of sun (over 60) is chosen before the shelter */if(!p.objectTask&&p.action==='rest'&&p.target==='shelter'&&id==='shelter'&&reason==='energy')score+=35;if(reason==='safety'&&dry(s,id))score+=20;if(reason==='water')score+=id==='spring'?45:id==='moss'&&dep('traits').ofPet(p).hex.water<=2&&p.B>=dep('vitals').band(p).lo?60:-30;if((reason==='sleep'||reason==='shelterRain')&&id==='shelter')score+=40;if(reason==='dry')score+=id==='rock'&&dep('vitals').rockSun(s)>5?60:id==='shelter'?40:20;
   if(free)score=30+(id==='moss'?(p.personality.c||0)*3:kindOf(id)==='litter'?(p.personality.a||0)*3:0);
   score-=seconds*2+(p.lastObject?.object===id&&s.worldTick-p.lastObject.tick<60?20:0);
-  return {...t,score,travelSeconds:seconds};
+  const option={...t,score,travelSeconds:seconds};
+  if(id!=='shelter'||!World.southOpen(s))return option;
+  if(!best||score>best.score)best=option;
  }
- return {object:id,kind,fail};
+ return best||{object:id,kind,fail};
 }
 // Piles with something to use come first (nearest to the old spot order is by id for determinism); the old litter spot stays usable.
 // Only the two nearest usable piles are routed (routing every pile each choice is costly); the old spot stays a fallback.
@@ -232,6 +234,11 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
    const q={x:lake.cx-lake.ru*(.60+.25*rng(s,'behavior')),y:lake.cy+lake.rv*(rng(s,'behavior')-.5)};
    if(W.onIce(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,ice:true,far:true};
   }
+ }
+ // A morning outing to the new meadow leaves time to turn back for other needs.
+ if(W.southOpen(s)&&dep('environment').dayTime(s)<400&&strollWeather(s)&&s.weather.wind<40&&rng(s,'behavior')<.18){
+  const spots=[{x:1.30,y:1.66},{x:2.23,y:1.70}],first=Math.floor(rng(s,'behavior')*spots.length);
+  for(const q of [spots[first],spots[1-first]])if(Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.route(s,p,q,p.id))return {...q,far:true,south:true};
  }
  // 1.0.1: a walk ends within 0.9 of where the friend is. Since the shore was widened (0.9.5) a walk could pick a spot at
  // the far east end of the lake, far from every object, and each later choice then searched very long paths.
@@ -296,7 +303,7 @@ function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
  // 1.0: a walk that has run past its deadline before arriving always ends (it may have been held up by another move)
- if((p.stroll?.board||p.stroll?.view||p.stroll?.cool||p.stroll?.ice)&&!strollWeather(s)){
+ if((p.stroll?.board||p.stroll?.view||p.stroll?.cool||p.stroll?.ice||p.stroll?.south)&&(!strollWeather(s)||p.stroll.south&&s.weather.wind>=40)){
   delete p.stroll;delete p.walkPlan;p.nextObjectChoice=s.worldTick;
  }
  if(p.stroll&&p.stroll.arrivedAt==null&&s.worldTick>p.stroll.deadline+5){delete p.stroll;if(p.action==='drink')p.action='wander';}
@@ -366,8 +373,7 @@ function choose(s,p,rng){
     p.stroll={...q,since:s.worldTick,deadline:s.worldTick+STROLL.deadline*(q.far?2.5:1),
      linger:STROLL.linger+Math.floor(rng(s,'behavior')*STROLL.lingerSpread)};
     const boat=dep('lily-boat');
-    if(q.far)boat.offerCrossing(s,p,rng);
-    else boat.offerLoop(s,p,rng);
+    if(!q.south){if(q.far)boat.offerCrossing(s,p,rng);else boat.offerLoop(s,p,rng);}
     p.action='wander';p.target=null;p.nextObjectChoice=s.worldTick+5;return;
    }
   }
@@ -493,7 +499,7 @@ function reason(s,p){
  const t=p.objectTask,w=p.objectWait;
  if(p.stroll?.lake&&!t)return p.stroll.arrivedAt==null?'목이 말라 호수 물가로 가고 있어요':'호수 물가에서 물을 마시고 있어요';
  if(p.stroll?.amble&&!t)return w?.reason==='empty_water'?'샘터에 물이 모이길 기다리며 주변을 거닐고 있어요':w?.object==='spring'?'샘터 자리가 나길 기다리며 주변을 거닐고 있어요':'자리가 나길 기다리며 주변을 거닐고 있어요';
- if(p.stroll&&!t){if(p.stroll.board)return '물가에 떠 있는 연잎으로 걸어가고 있어요';if(p.stroll.ice)return p.stroll.arrivedAt!=null?'얼음 위에서 쉬고 있어요':p.stroll.gliding?'얼음 위에서 스케이트를 타고 있어요':'언 호수로 산책 가고 있어요';if(p.stroll.cool)return p.stroll.arrivedAt==null?'더위를 식히러 물가로 가고 있어요':'물가에서 더위를 식히고 있어요';if(p.stroll.view)return p.stroll.arrivedAt==null?'호수 물가로 산책 가고 있어요':'물가에서 호수를 구경하고 있어요';if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
+ if(p.stroll&&!t){if(p.stroll.board)return '물가에 떠 있는 연잎으로 걸어가고 있어요';if(p.stroll.ice)return p.stroll.arrivedAt!=null?'얼음 위에서 쉬고 있어요':p.stroll.gliding?'얼음 위에서 스케이트를 타고 있어요':'언 호수로 산책 가고 있어요';if(p.stroll.south)return p.stroll.arrivedAt==null?'남쪽 숲으로 산책 가고 있어요':'남쪽 숲을 둘러보고 있어요';if(p.stroll.cool)return p.stroll.arrivedAt==null?'더위를 식히러 물가로 가고 있어요':'물가에서 더위를 식히고 있어요';if(p.stroll.view)return p.stroll.arrivedAt==null?'호수 물가로 산책 가고 있어요':'물가에서 호수를 구경하고 있어요';if(p.stroll.arrivedAt==null)return '숲 가장자리로 산책 가고 있어요';if(p.stroll.scent)return '동쪽에서 물 냄새를 맡고 있어요';return ({look:'숲 가장자리를 두리번거리고 있어요',sniff:'고개를 숙여 풀 냄새를 맡고 있어요',sit:'숲 가장자리에 잠깐 앉아 쉬고 있어요'})[strollPose(s,p)?.pose]||'숲 가장자리를 천천히 둘러보고 있어요';}
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',sleep_here:'쉴 자리가 없어 그 자리에서 잠들었어요',brace_here:'바람이 세서 그 자리에 몸을 낮추고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;
  if(t.object==='shelter')return dep('shelter').label(s,p);
@@ -520,7 +526,7 @@ function validate(s){
  if(Object.keys(st.upgrades).length!==3||!f(st.ledger.leafInput)||!f(st.ledger.absorbed)||!f(s.spring.water,s.spring.capacity+eps)||!f(s.spring.snowWater,36+eps))throw Error('자원 원장을 확인해 주세요.');
  if(st.litter)dep('litter').validate(s);if(st.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).validate(s);else{const total=storedLeaf(s);if(total>capacity(s,'litter')+(st.overflow||0)+1e-6)throw Error('낙엽 저장량이 용량을 초과했어요.');}
  for(const p of s.individuals){const w=p.walkPlan;if(w!==undefined&&!(w&&Number.isFinite(w.tx)&&Number.isFinite(w.ty)&&Number.isFinite(w.at)&&typeof w.legacy==='boolean'&&Array.isArray(w.pts)&&w.pts.length<=64&&(w.pts.length||Number.isFinite(w.fx)&&Number.isFinite(w.fy))&&w.pts.every(q=>q&&Number.isFinite(q.x)&&Number.isFinite(q.y))))throw Error('친구 길 기록을 확인해 주세요.');}
- for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true))throw Error('산책 기록을 확인해 주세요.');}
+ for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||isPile(t.object)&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
 return {litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};

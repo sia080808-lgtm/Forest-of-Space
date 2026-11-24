@@ -10,17 +10,17 @@ function model(s,id){if(id==='lily-boat'){
  return {id,name:'떠다니는 연잎',description:'물결 휴식 · 기운 ↑ 수분 ↑ 잎 해충 ↓',status:rider?F.Boat.reason(s,rider):F.World.frozen(s)?'호수가 얼어 쉬고 있어요':b.drift?'다른 물가로 떠가고 있어요':'물가에 떠 있어요',
  metrics:[metric('rider','탑승자',rider?.name||'없음'),metric('capacity','정원','1명')],rows:[['행선지',b.cross?F.Boat.destination(b):'출발한 물가로 돌아와요']],effects:['기운 최대 +3 · 이슬 수분 최대 +2 · 솜깍지와 잎응애 각각 최대 −2'],actions:[],gauge:null};}
  if(id==='shelter')id='shelter-0';const f=Sh.facility(s,id),z=f||O.patch(s,id);if(!z)return null;
- const m={id,name:f?['','기본 쉼터','넓은 쉼터','큰 쉼터'][f.level]:id==='spring'?'샘터':z.name,description:'',status:'',metrics:[],rows:[],effects:[],actions:[],gauge:null};
+ const m={id,name:f?Sh.name(f):id==='spring'?'샘터':z.name,description:'',status:'',metrics:[],rows:[],effects:[],actions:[],gauge:null};
  const u=f?null:usage(s,id),meter=(label,value,max,tone='water')=>({label,max,parts:[{label,value,tone}],free:Math.max(0,max-value)});
  const sample=f?f:id==='spring'?s.spring:O.region(s,id,'rest'),light=Math.round(F.light(s,sample)),probe={...s.individuals[0],...sample,mounted:false,shelter:{phase:'outside'}};
  const wind=Math.round(F.Weather.wind(s,probe)),weatherSafe=wind<60;
  if(f){const v=Sh.ledger(s,f),actual=s.individuals.filter(p=>p.active&&!p.mounted&&p.shelter?.facilityId===id&&Sh.inside(s,p)).length;
-  m.description='몸과 잎까지 안에 들어와 쉬는 자리예요.';m.status='쉬는 친구 '+actual+'명 · 전체 '+number(v.total/4)+'공간';
+  m.description=Sh.isRock(f)?'이끼 덮인 바위 아래에서 몸과 잎을 쉬게 하는 자리예요.':'몸과 잎까지 안에 들어와 쉬는 자리예요.';m.status='쉬는 친구 '+actual+'명 · 전체 '+number(v.total/4)+'공간';
   m.metrics=[metric('used','사용 중',number(v.used/4)+'공간','퇴실 중인 공간 포함'),metric('free','빈 공간',number(v.free/4)+'공간'),metric('reserved','예약 중',number(v.reserved/4)+'공간'),metric('recovery','이용 시 기운','+4 / 분','기운 80%까지')];
   m.gauge={label:'쉼터 공간',max:v.total/4,parts:[{label:'사용',value:v.used/4,tone:'moss'},{label:'예약',value:v.reserved/4,tone:'raw'}],free:v.free/4};
   m.rows=[['함께 쉬는 친구',v.seats+'명까지'],['성체 리들리','1공간'],['성체 엘레판','2공간'],['성체가 되면 필요한 공간',number(Sh.projectedNeed(s)/4)+'공간'],['빗방울 차단','90%'],['바람 줄임','80%']];
   m.effects=['쉬기·잠으로 기운 +3/분. 비·바람을 막고, 과습한 친구는 안에서 수분이 −1.5/분씩 말라요. 어두워서 광합성은 안 돼요.','빈 공간이 있어도 몸과 잎이 맞고 입구가 열려 있어야 들어갈 수 있어요.'];
-  if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-flip',label:'좌우 뒤집기'});m.actions.push({action:'facility-move',label:'옮기기'});if(!f.base)m.actions.push({action:'facility-store',label:'보관하기'});   /* 1.2.6: the first shelter moves too */
+  if(f.level<3)m.actions.push({action:'facility-expand',label:'공간 넓히기',disabled:!s.shelters.unlocked});m.actions.push({action:'facility-add',label:'쉼터 추가',disabled:!Sh.standardRoom(s)||!s.shelters.unlocked&&!Sh.storedFor(s,'add')});m.actions.push({action:'facility-flip',label:'좌우 뒤집기'});m.actions.push({action:'facility-move',label:'옮기기'});if(!f.base)m.actions.push({action:'facility-store',label:'보관하기'});   /* 1.2.6: the first shelter moves too */
  }else if(id==='litter'||O.isPile(id)){
   // v2.24 step 1: the floor-leaf budget (loose leaves + piles) gates the natural fall; compost has its own cap.
   const L=F.Litter,pile=O.isPile(id),floor=L.floor(s),lcap=L.LCAP,ucap=O.capacity(s,'litter'),compost=L.compost(s),carry=s.individuals.reduce((n,p)=>n+(p.carriedLeaf?.pile===id?p.carriedLeaf.amount:0),0),rates=O.litterRates(s,id),remaining=Math.max(0,s.objects.dayQuota-s.objects.arrivedToday),until=pile?z.playBoostUntil:s.objects.playBoostUntil;
