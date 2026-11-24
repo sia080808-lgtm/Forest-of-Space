@@ -69,3 +69,23 @@ test('visual weather transitions suppress glints, reduced motion is still, and t
  s.settings.reducedMotion=false;
  assert.notDeepEqual(render(0),render(3.2));
 });
+
+test('moon ripples keep the disk continuous and reuse animation frames',()=>{
+ const s=state(4350),view=createCanvas(360,576),c=view.getContext('2d'),lake=F.World.LAKE;
+ let reflection,draws;
+ const draw=c.drawImage.bind(c);
+ c.drawImage=(art,...args)=>{draws++;reflection=art;draw(art,...args);};
+ const render=t=>{
+  draws=0;c.clearRect(0,0,360,576);c.save();c.translate(-540,0);
+  FX.lakeLight(c,s,lake,360,576,t,view);c.restore();
+  assert.equal(draws,1);
+  return reflection;
+ };
+ const first=render(0),next=render(1);
+ assert.notEqual(next,first);
+ assert.equal(render(5),first);
+ const center=first.getContext('2d').getImageData(48,30,1,36).data;
+ for(let i=3;i<center.length;i+=4)assert.ok(center[i]>90);
+ s.settings.reducedMotion=true;
+ assert.equal(render(3),first);
+});

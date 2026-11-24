@@ -111,6 +111,41 @@ function moonArt(phase){
  moons[phase]=soft;
  return soft;
 }
+// Keep one phase of the five-second animation in memory. Only the first visit to each
+// frame needs to bend the bitmap and mask the ripples.
+const moonRippleFrames=[];
+let moonRipplePhase;
+const moonRippleBands=[
+ [32,33,25,1.3,.24,0],[57,43,37,2.1,.30,2.1],
+ [42,57,47,1.45,.26,3.4],[61,64,30,1.72,.23,4.5]
+];
+function moonRipple(phase,time){
+ if(moonRipplePhase!==phase){
+  moonRipplePhase=phase;
+  moonRippleFrames.length=0;
+ }
+ const frame=(Math.floor(time*12)%60+60)%60;
+ if(moonRippleFrames[frame])return moonRippleFrames[frame];
+ const art=moonArt(phase),result=canvas(art.width,art.height),ctx=result.getContext('2d');
+ const angle=frame*TWO_PI/60;
+ // The rows touch, keeping the moon whole as the edge follows two overlapping waves.
+ for(let row=0;row<art.height;row+=2){
+  const dx=2.65*Math.sin(angle+row*.163)+1.45*Math.sin(2*angle-row*.094+1.7);
+  ctx.drawImage(art,0,row,art.width,2,dx,row,art.width,2);
+ }
+ ctx.globalCompositeOperation='destination-out';
+ for(const [x,y,width,height,opacity,offset] of moonRippleBands){
+  const px=x+Math.sin(angle+offset)*3,py=y+Math.sin(angle+offset)*2,left=px-width/2;
+  const fade=ctx.createLinearGradient(left,0,left+width,0);
+  fade.addColorStop(0,'transparent');
+  fade.addColorStop(.27,`rgba(0,0,0,${opacity*.6})`);
+  fade.addColorStop(.58,`rgba(0,0,0,${opacity})`);
+  fade.addColorStop(1,'transparent');
+  ctx.fillStyle=fade;ctx.fillRect(left,py,width,height);
+ }
+ moonRippleFrames[frame]=result;
+ return result;
+}
 const shimmerOpacity=[.25,.53,.91];
 const lakeShimmer={
  morning:{ink:'#faffef',speed:1.25,len:14,x:-.02,width:1,strokes:72},
@@ -158,12 +193,8 @@ function lakeLight(c,s,lake,w,h,t,floor,duskArt,includeFloor=false){
   c.beginPath();c.ellipse(x,y,rx*.91,ry*.89,0,0,TWO_PI);c.clip();
   c.globalCompositeOperation='screen';
   if(p.moon>=.01){
-   const art=moonArt(p.phase),mx=x-rx*.19-48,my=y-66;
    c.globalAlpha=base*p.moon;
-   for(let row=0;row<96;row+=8){
-    const dx=Math.sin(time*1.3+row*.105)*3;
-    c.drawImage(art,0,row,96,7,mx+dx,my+row,96,7);
-   }
+   c.drawImage(moonRipple(p.phase,time),x-rx*.19-48,y-66);
   }
   const layers=[['morning',p.morning],['dusk',p.dusk],['moon',p.moon]];
   for(const [kind,amount] of layers)if(amount>=.01)shimmer(c,kind,x,y,rx,ry,time,base*amount,still);
