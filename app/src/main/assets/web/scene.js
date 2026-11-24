@@ -563,7 +563,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,width,edge.height);
   c.drawImage(edge,0,0);
  }
- drawSouthPlants(c,w,h,season){
+ drawSouthDetails(c,w,h,season){
   const art=name=>this.assets[name+'_'+season]||this.assets[name];
   for(const [x,y,i,width] of [[-.03,1.37,2,72],[.29,1.48,4,96],[.48,1.75,3,80],[.89,1.86,5,64],
    [1.56,1.36,2,48],[2.44,1.41,2,54],[2.67,1.62,6,84],[2.92,1.75,3,60],[3.13,1.52,4,70]]){
@@ -575,8 +575,9 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   const terrain=art('terrain');
   if(!terrain)return;
   const tileW=terrain.width/3,tileH=terrain.height/2;
-  for(const [x,y,column,size] of [[.18,1.54,1,48],[.42,1.84,1,40],[2.55,1.60,0,48],[2.68,1.64,0,30],[3.0,1.78,0,40]]){
-   c.drawImage(terrain,column*tileW,0,tileW,tileH,x*w-size/2,y*h-size*.72,size,size);
+  // The south uses small scenery stones from the seasonal terrain sheet.
+  for(const [x,y,row,size] of [[.18,1.54,0,40],[.42,1.84,1,32],[2.55,1.60,0,48],[2.68,1.64,0,30],[3.0,1.78,0,40]]){
+   c.drawImage(terrain,0,row*tileH,tileW,tileH,x*w-size/2,y*h-size*.72,size,size);
   }
  }
  drawSouth(c,w,h,s){
@@ -587,7 +588,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   const cal=this.cal();
   const draw=season=>{
    c.drawImage(this.southLandscape(r,w,h,season),r.x0*w,r.y0*h-SOUTH_EDGE_OVERLAP,(r.x1-r.x0)*w,(r.y1-r.y0)*h+SOUTH_EDGE_OVERLAP);
-   this.drawSouthPlants(c,w,h,season);
+   this.drawSouthDetails(c,w,h,season);
   };
   if(cal&&cal.blend<1){
    c.save();c.globalAlpha*=1-cal.blend;draw(cal.prev);c.restore();
