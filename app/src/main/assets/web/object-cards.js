@@ -4,7 +4,16 @@ const O=F.Objects,Sh=F.Shelter,escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'
 const number=v=>Number(Math.max(0,v).toFixed(2)).toString(),amount=v=>v>0&&v<.1?'0.1 미만':Number(Math.max(0,v).toFixed(1)).toString();
 const metric=(id,label,value,note='')=>({id,label,value,note});
 function usage(s,id){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.objectTask?.object===id),inside=ps.filter(p=>O.at(s,p));return {count:inside.length,moving:ps.length-inside.length,used:inside.reduce((n,p)=>n+Sh.units(p),0)/4,reserved:ps.filter(p=>!inside.includes(p)).reduce((n,p)=>n+Sh.units(p),0)/4};}
-function model(s,id){if(id==='lily-boat'){
+function model(s,id){
+ if(id==='stone-shelf'){
+  if(!F.World.stoneShelf(s))return null;
+  const visitors=O.shelfVisitors(s),seated=visitors.filter(p=>O.shelfPose(s,p));
+  return {id,name:'돌 선반',description:'남쪽 호수를 바라보며 나란히 쉬는 자리예요.',
+   status:seated.length===2?'두 친구가 함께 호수를 보고 있어요':seated.length?'한 친구가 호수를 보고 있어요':'잔잔한 낮에 친구들이 찾아와요',
+   metrics:[metric('visitors','쉬는 친구',seated.length+' / 2명'),metric('reserved','가는 중',visitors.length-seated.length+'명')],
+   rows:[],effects:['28초 동안 전망을 즐기면 기운 +1 (기운 80까지).'],actions:[],gauge:null};
+ }
+ if(id==='lily-boat'){
  const b=s.world?.lake?.boat;if(!b)return null;
  const rider=s.individuals.find(p=>p.id===b.rider);
  return {id,name:'떠다니는 연잎',description:'물결 휴식 · 기운 ↑ 수분 ↑ 잎 해충 ↓',status:rider?F.Boat.reason(s,rider):F.World.frozen(s)?'호수가 얼어 쉬고 있어요':b.drift?'다른 물가로 떠가고 있어요':'물가에 떠 있어요',
