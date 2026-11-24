@@ -48,7 +48,7 @@ function create(now=Date.now(),seed=3172026){const id='ridley-'+seed;
 function level(p){let n=1;LEVELS.forEach((x,i)=>{if(p.xp>=x)n=i+1;});return n;}
 function health(p){return p.active&&!p.mounted&&p.B>=35&&p.B<=80&&p.energy>=40&&p.nutrition>=40&&p.burden<60&&p.damage<30;}
 function moisture(p){return 100*p.S/p.cap;}
-function totalWater(s){return Skills.water(s)+s.spring.water+(s.spring.snowWater||0)+[...s.patches,...(s.objects?.stored||[])].reduce((n,p)=>n+p.S+p.W+(p.snowWater||0)+(p.roofSnow||0),0)+s.individuals.reduce((n,p)=>n+p.B+p.Q+p.V+(p.snowWater||0),0);}
+function totalWater(s){return Skills.water(s)+Obj.springs(s).reduce((n,z)=>n+z.water+(z.snowWater||0),0)+[...s.patches,...(s.objects?.stored||[])].reduce((n,p)=>n+p.S+p.W+(p.snowWater||0)+(p.roofSnow||0),0)+s.individuals.reduce((n,p)=>n+p.B+p.Q+p.V+(p.snowWater||0),0);}
 function event(s,type,text,detail={}){s.events.push({id:s.worldTick+'-'+s.events.length,type,text,tick:s.worldTick,layout:s.layoutRevision,...detail});s.events=s.events.filter(e=>s.worldTick-e.tick<=600).slice(-256);}
 function discovery(s,id,text,visible,detail={}){if(visible&&!s.discoveries[id]){s.discoveries[id]={tick:s.worldTick,text,layout:s.layoutRevision,...detail};event(s,'discovery',text,{discovery:id});}}
 function light(s,p){return s.climate.L*(1-Social.shadeFactor(s,p));}
@@ -92,7 +92,7 @@ function step(s,{visible=true,held=null}={}){
   receiving+=weatherWater.ground+p.W;p.W=0;const infiltration=Math.min(receiving,p.infiltration/60,p.cap-p.S);p.S+=infiltration;receiving-=infiltration;
   const pool=Math.min(receiving,p.pool);p.W=pool;s.ledger.outflow+=receiving-pool;
   const drain=take(p,Math.min(p.S+p.W,p.drain/60));const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y+.015&&dist(z,p)<.32).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)transfers.push([lower,drain]);else s.ledger.outflow+=drain;
-  const evaporation=take(p,Math.min(p.S+p.W,(p.id==='moss'?(.05+.1*light(s,p)/100+.1*w.wind/100):(.2+.6*light(s,p)/100+.4*w.wind/100))/60));s.ledger.evaporation+=evaporation;
+  const evaporation=take(p,Math.min(p.S+p.W,(Obj.kindOf(p.id)==='moss'?(.05+.1*light(s,p)/100+.1*w.wind/100):(.2+.6*light(s,p)/100+.4*w.wind/100))/60));s.ledger.evaporation+=evaporation;
  }
  for(const [to,amount]of transfers)put(s,to,amount);
  const active=rotate(s.individuals.filter(p=>p.active),s.worldTick),requests=[];Vit.sunStep(s,light);
@@ -183,7 +183,7 @@ function resume(s,now=Date.now()){
  if(s.offline.mode==='game'&&s.started)while(s.offline.processed<seconds)offlineStep(s);
  const result={seconds:s.offline.mode==='game'&&s.started?seconds:0,xp:s.individuals.reduce((n,p)=>n+p.xp,0)-start};s.offline=null;Sh.rebuild(s);s.savedAt=Math.max(s.savedAt,now);return result;
 }
-function shelfLayout(s,positions,patches,spring){
+function shelfLayout(s,positions,patches,springs){
  const ids=Object.keys(positions).filter(id=>id.startsWith('stone-shelf'));
  if(ids.some(id=>!World.SHELF_IDS.includes(id)))throw Error('돌 선반은 최대 3개까지 놓을 수 있어요.');
  if(ids.length&&!World.southOpen(s))throw Error('남쪽 숲을 열면 돌 선반을 옮길 수 있어요.');
@@ -198,11 +198,11 @@ function shelfLayout(s,positions,patches,spring){
    throw Error('돌 선반끼리 겹쳐요.');
   if(changed&&s.shelters.facilities.some(f=>World.boxesOverlap(box,Sh.setupBounds(f))))
    throw Error('쉼터와 출입 공간을 비워주세요.');
-  for(const p of [...patches,spring]){
+  for(const p of [...patches,...springs]){
    if(p.id==='shelter')continue;
-   const prev=p===spring?s.spring:s.patches.find(q=>q.id===p.id);
+   const prev=Obj.patch(s,Obj.objectId(p));
    if(!changed&&prev&&p.x===prev.x&&p.y===prev.y)continue;
-   const rx=p===spring?.12:.10;
+   const rx=Obj.kindOf(Obj.objectId(p))==='spring'?.12:.10;
    if(World.boxesOverlap(box,{x0:p.x-rx,x1:p.x+rx,y0:p.y-.055,y1:p.y+.055}))
     throw Error('돌 선반과 다른 사물이 겹쳐요.');
   }
@@ -211,12 +211,46 @@ function shelfLayout(s,positions,patches,spring){
   return proposal?[{id,x,y,flip}]:[];
  });
 }
-function layoutPlan(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
- if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&spring.x>1.2&&World.waterD(spring.x,spring.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');
- for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&p.x>1.2&&World.waterD(p.x,p.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
- for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
- const shelves=shelfLayout(s,positions,next,spring);
- const world={...s,patches:next,spring};
+function objectDrafts(s,positions={}){
+ const moved=z=>positions[Obj.objectId(z)]?{...z,x:positions[Obj.objectId(z)].x,y:positions[Obj.objectId(z)].y}:z;
+ const patches=s.patches.map(moved),springs=Obj.springs(s).map(moved);
+ for(const [id,point] of Object.entries(positions)){
+  if(!Obj.isCopy(id)||Obj.patch(s,id)||(s.objects.stored||[]).some(z=>z.id===id))continue;
+  const {x,y}=point,type=Obj.kindOf(id);
+  if(type==='spring')springs.push({id,x,y,capacity:Obj.capacity(s,id),water:0,snowWater:0,inflow:0});
+  else{
+   const def=PATCHES.find(p=>p.id===type);
+   patches.push({...def,id,x,y,cap:type==='moss'?Obj.capacity(s,id):def.cap,S:0,W:0,O:0,U:0,rainTotal:0,film:0,snowWater:0,roofSnow:0});
+  }
+ }
+ return {patches,springs};
+}
+function layoutPlan(s,positions){
+ const known=new Set(['spring',...s.patches.map(p=>p.id),...Obj.springs(s).slice(1).map(z=>z.id),...World.SHELF_IDS]);
+ // A stored copy still occupies its slot and can only return via the storage action.
+ for(const id of Object.keys(positions)){
+  if(id.startsWith('stone-shelf'))continue;
+  if(!known.has(id)&&(!Obj.isCopy(id)||(s.objects.stored||[]).some(p=>p.id===id)))throw Error('같은 오브젝트는 최대 3개까지 놓을 수 있어요.');
+ }
+ const {patches:next,springs}=objectDrafts(s,positions),[spring,...springCopies]=springs;
+ const objects=[...next,...springs];
+ for(const q of objects){
+  const id=Obj.objectId(q),pool=Obj.kindOf(id)==='spring';
+  if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!World.inside(s,q,pool?World.inner(s,.14,.18,.14,.16):World.inner(s,.12,.16,.12,.12)))
+   throw Error(pool?'샘터를 정원 안쪽에 놓아주세요.':'숲 가장자리 안쪽에 놓아주세요.');
+  if(World.lakeOpen(s)&&q.x>1.2&&World.waterD(q.x,q.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');
+  if(id==='shelter'&&(q.x!==.23||q.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');
+  const old=Obj.patch(s,id);
+  if((!old||q.x!==old.x||q.y!==old.y)&&(Obj.isCopy(id)||objects.length>7)){
+   if(s.shelters.facilities.some(f=>World.inside(s,q,Sh.setupBounds(f))))throw Error('쉼터와 출입 공간을 비워주세요.');
+  }
+ }
+ for(let i=0;i<objects.length;i++)for(let j=i+1;j<objects.length;j++){
+  const a=objects[i],b=objects[j],pool=Obj.kindOf(Obj.objectId(a))==='spring'||Obj.kindOf(Obj.objectId(b))==='spring';
+  if(dist(a,b)<(pool?.15:.135))throw Error(pool?'샘터로 가는 길을 비워주세요.':'다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
+ }
+ const shelves=shelfLayout(s,positions,next,springs);
+ const world={...s,patches:next,spring,objects:{...s.objects,springCopies}};
  for(const shelf of shelves){
   const entrance=Space.socket(world,'shelter');
   for(const slot of [1,2]){
@@ -225,23 +259,39 @@ function layoutPlan(s,positions){const next=s.patches.map(p=>({...p,...positions
     throw Error('돌 선반에 올라갈 길을 비워주세요.');
   }
  }
- for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
+ for(const id of [...springs.map(Obj.objectId),'shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
  for(const pet of s.individuals)if(pet.active&&Space.walkable(s,pet)&&!Space.walkable(world,pet))throw Error('친구가 있는 자리를 비워주세요.');
- return {patches:next,shelves};
+ return {patches:next,springs,shelves};
 }
 function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
-function layout(s,positions){const {patches:next,shelves}=layoutPlan(s,positions);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;s.patches=next;for(const {id,...placement} of shelves){
- if(id===World.SHELF_IDS[0])s.world.shelf=placement;else (s.world.shelfCopies??={})[id]=placement;
- }if(positions.spring){s.spring.x=positions.spring.x;s.spring.y=positions.spring.y;}for(const p of s.individuals)delete p.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
+function layout(s,positions){
+ const {patches,springs,shelves}=layoutPlan(s,positions);
+ Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;
+ // Release active tasks before applying positions so returned water and leaves stay in their original pools.
+ const place=z=>{
+  const saved=Obj.patch(s,Obj.objectId(z));
+  return saved?Object.assign(saved,{x:z.x,y:z.y}):z;
+ };
+ s.patches=patches.map(place);
+ const copies=springs.slice(1).map(place);
+ place(springs[0]);
+ if(copies.length)s.objects.springCopies=copies;
+ for(const {id,...placement} of shelves){
+  if(id===World.SHELF_IDS[0])s.world.shelf=placement;
+  else (s.world.shelfCopies??={})[id]=placement;
+ }
+ for(const p of s.individuals)delete p.motion;
+ s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;
+}
 // 1.2.6 보관함 (user: "꾸미공간 오브젝트들 보관하기(월드에서 없애기) 기능 추가", "꾸미기 창에 보관함 기능"): moss, the sun rock, the leaf shade
 // and the crevice can be put away and brought back. Put away, the object leaves the world (nobody uses it, nothing is drawn, no rain falls
 // on it) and keeps its water in the 보관함; back out, it lands at its old spot or the nearest free one. The spring and the litter bed stay.
 const STORABLE=Object.freeze(['moss','rock','shade','crevice']);
-function storeObject(s,id){if(!STORABLE.includes(id))throw Error(id==='spring'?'샘터는 숲에 꼭 있어야 해요.':id==='litter'?'낙엽 자리는 거름이 모이는 곳이라 숲에 두어요.':'보관할 수 없는 자리예요.');const i=s.patches.findIndex(p=>p.id===id);if(i<0)throw Error('이미 보관함에 있어요.');
+function storeObject(s,id){if(!STORABLE.includes(Obj.kindOf(id)))throw Error(id==='spring'?'샘터는 숲에 꼭 있어야 해요.':id==='litter'?'낙엽 자리는 거름이 모이는 곳이라 숲에 두어요.':'보관할 수 없는 자리예요.');const i=s.patches.findIndex(p=>p.id===id);if(i<0)throw Error('이미 보관함에 있어요.');
  Social.invalidate(s);Obj.invalidate(s);const [p]=s.patches.splice(i,1);(s.objects.stored??=[]).push(p);for(const q of s.individuals)delete q.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에 넣었어요. 물은 그대로 남아 있어요.');return s;}
 function unstoreObject(s,id){const st=s.objects?.stored||[],i=st.findIndex(p=>p.id===id);if(i<0)throw Error('보관함에 없는 자리예요.');const p=st[i],wb=World.walk(s),spots=[{x:p.x,y:p.y}];
  for(let r=.06;r<=.9;r+=.06)for(let k=0;k<12;k++){const a=k/12*Math.PI*2;spots.push({x:.5+Math.cos(a)*r,y:.55+Math.sin(a)*r*.8});}
- for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{shelfLayout(s,{},trial.patches,s.spring);validateLayout(trial,{});}catch(e){continue;}
+ for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{shelfLayout(s,{},trial.patches,Obj.springs(s));validateLayout(trial,{});}catch(e){continue;}
   Social.invalidate(s);Obj.invalidate(s);st.splice(i,1);if(!st.length)delete s.objects.stored;s.patches.push({...p,x:q.x,y:q.y});for(const z of s.individuals)delete z.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');return {x:q.x,y:q.y};}
  throw Error('꺼내 놓을 빈자리가 없어요. 다른 사물을 조금 옮겨 주세요.');}
 function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);Social.cancel(s,id);const p=s.individuals.find(x=>x.id===id);Boat.leaveForMove(s,p);Obj.release(s,p,'move');Sh.release(p,s.worldTick);p.x=result.x;p.y=result.y;const f=Sh.cover(s,p);if(f)p.shelter={phase:'entering',facilityId:f.id,x:p.x,y:p.y,units:Sh.units(p),since:s.worldTick,expires:s.worldTick+10,revision:f.revision,stalled:0};p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}
@@ -253,13 +303,13 @@ function valid(s){
  if(!s.weather||!['sun','cloud','rain','fog','snow'].includes(s.weather.kind)||!finite(s.weather.remaining,0,240)||!finite(s.weather.streak,1,2)||!finite(s.weather.intensity,0,100)||!finite(s.weather.wind,0,100)||!finite(s.weather.strongSeconds)||!finite(s.weather.transition,0,10)||!Number.isFinite(s.weather.lastRainEnd))throw Error('날씨 기록을 확인해 주세요.');
  if(!s.climate||['T','H','L'].some(k=>!finite(s.climate[k],0,100)))throw Error('기후 기록을 확인해 주세요.');
  if(!s.rng||['weather','behavior','neighbor'].some(k=>!finite(s.rng[k],0,4294967295)||!Number.isInteger(s.rng[k])))throw Error('난수 기록을 확인해 주세요.');
- /* 1.2.6 보관함: an object put away lives in s.objects.stored (with its water) instead of s.patches */const allPatches=[...(s.patches||[]),...(s.objects?.stored||[])];if(!s.patches||allPatches.length!==6||new Set(allPatches.map(p=>p.id)).size!==6||(s.objects?.stored||[]).some(p=>!STORABLE.includes(p.id)))throw Error('정원 구역이 누락되었어요.');
- for(const p of allPatches){const def=PATCHES.find(x=>x.id===p.id);if(!def||Object.keys(def).filter(k=>!['x','y','name'].includes(k)).some(k=>p[k]!==((p.id==='moss'&&k==='cap')?Obj.capacity(s,'moss'):def[k]))||!finite(p.S,0,p.cap)||!finite(p.W,0,p.pool)||!finite(p.O)||!finite(p.U)||!finite(p.rainTotal)||!finite(p.film,0,1))throw Error('정원 자원 기록이 올바르지 않아요.');}
+ /* 1.2.6 보관함: an object put away lives in s.objects.stored (with its water) instead of s.patches */const allPatches=[...(s.patches||[]),...(s.objects?.stored||[])];if(!s.patches||PATCHES.some(z=>!allPatches.some(p=>p.id===z.id))||new Set(allPatches.map(p=>p.id)).size!==allPatches.length||(s.objects?.stored||[]).some(p=>!STORABLE.includes(Obj.kindOf(p.id))))throw Error('정원 구역이 누락되었어요.');
+ for(const p of allPatches){const def=PATCHES.find(x=>x.id===Obj.kindOf(p.id));if(!def||Object.keys(def).filter(k=>!['id','x','y','name'].includes(k)).some(k=>p[k]!==((def.id==='moss'&&k==='cap')?Obj.capacity(s,'moss'):def[k]))||!finite(p.S,0,p.cap)||!finite(p.W,0,p.pool)||!finite(p.O)||!finite(p.U)||!finite(p.rainTotal)||!finite(p.film,0,1))throw Error('정원 자원 기록이 올바르지 않아요.');}
  if(!s.spring||!finite(s.spring.x,.14,.86)||!finite(s.spring.y,.18,.84)||!finite(s.spring.water,0,Obj.capacity(s,'spring')))throw Error('샘터 기록을 확인해 주세요.');
  validateLayout(s,{});
  if(!Array.isArray(s.individuals)||s.individuals.length<1||s.individuals.length>50||s.individuals.filter(p=>p.active).length>50||new Set(s.individuals.map(p=>p.id)).size!==s.individuals.length)throw Error('친구의 식별 기록이 올바르지 않아요.');
  for(const p of s.individuals){if(typeof p.id!=='string'||!/^[-A-Za-z0-9_]{1,100}$/.test(p.id)||typeof p.name!=='string'||p.name.length>40||!Social.supported.includes(p.species)||typeof p.active!=='boolean'||typeof p.mounted!=='boolean'||typeof p.drinkCycle!=='boolean'||!['wander','drink','rest','groom','feed','play'].includes(p.action)||!finite(p.x,wb.x0,wb.x1)||!finite(p.y,wb.y0,wb.y1)||!finite(p.actionSeconds,-10,1000)||!finite(p.wetSeconds)||!p.first)throw Error('친구 기록을 확인해 주세요.');
-  if(p.target!==null&&p.target!=='spring'&&!PATCHES.some(z=>z.id===p.target)&&!(Obj.isPile(p.target)&&Obj.patch(s,p.target)))throw Error('이동 목적지가 올바르지 않아요.');
+  if(p.target!==null&&p.target!=='spring'&&!PATCHES.some(z=>z.id===p.target)&&!((Obj.isCopy(p.target)||Obj.isPile(p.target))&&Obj.patch(s,p.target)))throw Error('이동 목적지가 올바르지 않아요.');
   for(const k of ['B','energy','mood','nutrition','damage','burden'])if(!finite(p[k],0,100))throw Error('생활 상태가 범위를 벗어났어요.');
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
   if(!finite(p.Q,0,20)||!finite(p.V,0,50)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
@@ -292,5 +342,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {Boat,World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject};
+return {Boat,World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject,objectDrafts};
 });

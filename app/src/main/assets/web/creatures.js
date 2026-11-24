@@ -6,6 +6,7 @@
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{litter:'ForestLitter',spatial:'ForestSpace',shelter:'ForestShelter',neolbi:'ForestNeolbi',traits:'ForestTraits',world:'ForestWorld',environment:'ForestEnvironment',vitals:'ForestVitals',skills:'ForestSkills'}[n]];
 // SRS v2.34: the pest stat (and level) sets arrival and harm; a friend fed too rich (영양 과잉) has soft leaves that draw
 // spider mites and mealybugs x1.5
+const Obj=()=>typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
 const trait=p=>{const t=p?dep('traits').ofPet(p):dep('traits').of(undefined);if(p&&Number.isFinite(p.nutrition)&&p.nutrition>dep('vitals').band(p).hi){t.mite*=1.5;t.mealy*=1.5;}return t;};
 const PROTECT=600,CHECK=180,COOLDOWN=600,STABLE=120,LEAVE=120,MAXG=8,ANT_EVERY=90,CARRY_SECONDS=25,SPRING=1.25;
 // 0.7.1 짐꾼개미 군락 (SRS v2.30): like the real ant fern P. ridleyi, each healthy 리들리 can host one colony. Colonies keep
@@ -81,8 +82,8 @@ function canopy(s,p){const N=dep('neolbi');return s.individuals.some(q=>q!==p&&q
 // leaf micro-climate of one friend: sun on bare ground and a hot sun rock dry the leaves; water, moss, shade and the
 // shelter keep them moist. Wet weather never dries them. (Game model; not a pest-control prescription.)
 function leaf(s,p){const Space=dep('spatial'),T=s.climate.T,H=s.climate.H,kind=s.weather.kind,wet=['rain','fog','snow'].includes(kind)||(s.weather.precipitation||0)>0;
- const near=(id,r)=>s.patches.some(z=>z.id===id&&Math.hypot(z.x-p.x,z.y-p.y)<r)||(id==='shade'&&canopy(s,p)),inside=!!dep('shelter').inside?.(s,p),rock=Space.onRock(s,p);
- const ds=Math.hypot(s.spring.x-p.x,s.spring.y-p.y),dm=Math.min(...s.patches.filter(z=>z.id==='moss').map(z=>Math.hypot(z.x-p.x,z.y-p.y)),9);
+ const near=(id,r)=>s.patches.some(z=>Obj().kindOf(z.id)===id&&Math.hypot(z.x-p.x,z.y-p.y)<r)||(id==='shade'&&canopy(s,p)),inside=!!dep('shelter').inside?.(s,p),rock=Space.onRock(s,p);
+ const ds=Math.min(...Obj().springs(s).map(z=>Math.hypot(z.x-p.x,z.y-p.y))),dm=Math.min(...Obj().patchesOf(s,'moss').map(z=>Math.hypot(z.x-p.x,z.y-p.y)),9);
  let h=H,t=T;if(!wet&&kind==='sun'&&!near('shade',.145)&&!inside){h-=10;if(rock){h-=25;t+=6;}}if(!wet&&p.B<35)h-=10;
  if(ds<.2||dm<.13)h+=10;else if(!wet&&ds>.35&&dm>.3)h-=5;if(inside)h+=10;
  // SRS v2.36 SK-06 엘리시 촉촉한 잎 곁: beside moss a well 엘리시 keeps the leaves near it moist (+15)
@@ -98,20 +99,20 @@ function harm(s,p,key,amount){if(key==='damage')amount*=trait(p).leaf;const st=s
 const pestKinds=s=>new Set(groups(s).filter(g=>PESTS.includes(g.kind)).map(g=>g.kind));
 const pestRoom=(s,kind)=>{const k=pestKinds(s);return k.has(kind)||k.size<PEST_TYPES;};
 // root-fly sites: the old litter spot and leaf piles (wet decaying leaves). Moisture is the litter soil M/W (0.6.25).
-function sites(s){const L=dep('litter'),z=s.patches.find(q=>q.id==='litter');return [...(z?[z]:[]),...L.piles(s)];}
+function sites(s){return [...Obj().patchesOf(s,'litter'),...dep('litter').piles(s)];}
 const site=(s,id)=>sites(s).find(z=>z.id===id)||null;
 const siteM=z=>z.cap?100*z.S/z.cap:0;
 function gnatFit(s,z){const T=s.climate.T;return siteM(z)>=GNAT.FIT_M&&(z.O||0)+(z.U||0)>=GNAT.ORGANIC&&T>=GNAT.T_MIN&&T<=GNAT.T_MAX&&s.weather.kind!=='snow';}
 // SRS M 35~65: the litter soil saturates at 100 easily (like the moss fix in 0.6.22), so 'moist but drained' = M>=35, W<10
 function soilFit(s,z){const M=siteM(z);return M>=SOIL.M_MIN&&z.W<SOIL.W_MAX;}
 const gnatAt=(s,id)=>groups(s).find(g=>g.kind==='gnat'&&g.site===id)||null;
-function hideout(s,z){return s.patches.filter(q=>['crevice','rock'].includes(q.id)).sort((a,b)=>Math.hypot(a.x-z.x,a.y-z.y)-Math.hypot(b.x-z.x,b.y-z.y)).find(q=>Math.hypot(q.x-z.x,q.y-z.y)<ROVE.HIDE)||null;}
+function hideout(s,z){return s.patches.filter(q=>['crevice','rock'].includes(Obj().kindOf(q.id))).sort((a,b)=>Math.hypot(a.x-z.x,a.y-z.y)-Math.hypot(b.x-z.x,b.y-z.y)).find(q=>Math.hypot(q.x-z.x,q.y-z.y)<ROVE.HIDE)||null;}
 function roveFit(s,z){return soilFit(s,z)&&!!hideout(s,z);}
 // ECO-08: predators at one site share one budget per second
 function zoneBite(s,siteId,want){const st=state(s),used=(st._zone??={})[siteId]||0,a=Math.max(0,Math.min(want,ZONE_EAT/60-used));st._zone[siteId]=used+a;return a;}
 const gnatTotal=g=>g.eggs+g.larvae+g.adults;
 // mealybug: warm (T 50~80) and a 'between leaves' place — in a leaf shade or with leaves touching another friend
-function leafGap(s,p){return s.patches.some(z=>z.id==='shade'&&Math.hypot(z.x-p.x,z.y-p.y)<.145)||s.individuals.some(q=>q!==p&&live(q)&&Math.hypot(q.x-p.x,q.y-p.y)<.08);}
+function leafGap(s,p){return s.patches.some(z=>Obj().kindOf(z.id)==='shade'&&Math.hypot(z.x-p.x,z.y-p.y)<.145)||s.individuals.some(q=>q!==p&&live(q)&&Math.hypot(q.x-p.x,q.y-p.y)<.08);}
 function mealyFit(s,p){const T=s.climate.T;return live(p)&&!dep('shelter').inside?.(s,p)&&T>=MEALY.T_MIN&&T<=MEALY.T_MAX&&leafGap(s,p);}
 const mealyOn=(s,host)=>groups(s).find(g=>g.kind==='mealy'&&g.host===host)||null;
 // ----- arrival (B01: 600 s protection, a check every 180 s, at most one new group per 600 s, 8 groups max) ----------

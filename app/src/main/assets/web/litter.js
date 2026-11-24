@@ -11,22 +11,24 @@ const MIGRATE_PILES=3;
 function rnd(s){let x=s.rng.litter>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng.litter=x>>>0;return (x>>>0)/4294967296;}
 function sectorOf(q){const c=Math.max(0,Math.min(COLS-1,Math.floor((q.x-X0)/(X1-X0)*COLS))),r=Math.max(0,Math.min(ROWS-1,Math.floor((q.y-Y0)/(Y1-Y0)*ROWS)));return r*COLS+c;}
 function bounds(i){const c=i%COLS,r=Math.floor(i/COLS),w=(X1-X0)/COLS,h=(Y1-Y0)/ROWS;return {x0:X0+c*w,x1:X0+(c+1)*w,y0:Y0+r*h,y1:Y0+(r+1)*h,cx:X0+(c+.5)*w,cy:Y0+(r+.5)*h};}
+const Obj=()=>typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
+const beds=s=>Obj().patchesOf(s,'litter');
 const state=s=>s.objects.litter;
 const piles=s=>state(s)?.piles||[];
 const leaves=s=>state(s)?.leaves||[];
 function pile(s,id){return piles(s).find(p=>p.id===id)||null;}
-function carried(s,from){return s.individuals.reduce((v,p)=>v+(p.carriedLeaf&&(from?p.carriedLeaf.pile===from:p.carriedLeaf.pile!=='litter')?p.carriedLeaf.amount:0),0);}
+function carried(s,from){return s.individuals.reduce((v,p)=>v+(p.carriedLeaf&&(from?p.carriedLeaf.pile===from:dep('objects').isPile(p.carriedLeaf.pile))?p.carriedLeaf.amount:0),0);}
 // Floor leaves that gate the natural fall: loose leaves, piles and pieces carried from them. The old litter spot is the
 // legacy compost heap and does not gate the fall; withSpot adds its raw leaves for "any leaves at all" checks.
-function floor(s,withSpot=false){const z=s.patches.find(p=>p.id==='litter');return leaves(s).length+piles(s).reduce((v,p)=>v+p.O,0)+carried(s)+antCarry(s)+(withSpot?z?.O||0:0);}
+function floor(s,withSpot=false){return leaves(s).length+piles(s).reduce((v,p)=>v+p.O,0)+carried(s)+antCarry(s)+(withSpot?beds(s).reduce((v,z)=>v+z.O,0):0);}
 // leaves an ant is carrying right now (each L=1, between two sectors)
 function antCarry(s){return (s.objects?.creatures?dep('creatures').carried(s):0)+(dep('skills')?.carried?.(s)||0);}   // + leaves 코로나 is carrying (SRS v2.36 SK-04)
-function compost(s){const z=s.patches.find(p=>p.id==='litter');return piles(s).reduce((v,p)=>v+p.U,0)+(z?.U||0);}
+function compost(s){return [...piles(s),...beds(s)].reduce((v,p)=>v+p.U,0);}
 function sectorRaw(s,i){const p=piles(s).find(p=>p.sector===i);return leaves(s).filter(l=>l.sector===i).length+(p?p.O+carried(s,p.id):0);}
 function ucap(s){const O=dep('objects');return O.capacity(s,'litter');}
 function blocked(s,q,pad=.035){
  const Space=dep('spatial');if(!Space.walkable(s,q))return true;
- if(Math.hypot(q.x-s.spring.x,(q.y-s.spring.y)*1.6)<.16)return true;
+ if(Obj().springs(s).some(z=>Math.hypot(q.x-z.x,(q.y-z.y)*1.6)<.16))return true;
  if(s.patches.some(z=>z.id!=='shelter'&&Math.hypot(q.x-z.x,(q.y-z.y)*1.6)<.11))return true;
  return piles(s).some(p=>Math.hypot(q.x-p.x,(q.y-p.y)*1.6)<pad*2);
 }
@@ -60,7 +62,9 @@ function fall(s){
  const chance=1-Math.exp(-o.dayQuota*factor(s)/1200);if(rnd(s)>=chance)return;
  const i=pick(s);const q=i===null?null:(piles(s).find(p=>p.sector===i)||spot(s,i));
  if(!q){st.missed++;return;}
- land(s,i,q);o.arrivedToday+=1;o.ledger.leafInput+=1;st.fallen++;
+ const bed=beds(s).find(z=>z.id!=='litter'&&z.O+1<=SECTOR&&Math.hypot(q.x-z.x,(q.y-z.y)*1.6)<.24);
+ if(bed)bed.O+=1;else land(s,i,q);
+ o.arrivedToday+=1;o.ledger.leafInput+=1;st.fallen++;
 }
 // L06: strong wind (>=60) moves loose leaves, at most once per leaf per 10 s with a 30 s cooldown. Piles stay.
 // Edge sectors only move inward (no loss off the map).
@@ -76,22 +80,22 @@ function blow(s){
 }
 // Pile moisture follows the forest-floor litter soil (the old litter spot's M and standing water W). 0.6.25: the nearest
 // terrain patch (rock, shade, crevice…) gave only 0% or 100% and starved decomposition; the litter soil moves with rain.
-function soak(s,p){const z=s.patches.find(q=>q.id==='litter')||s.patches.filter(z=>z.id!=='shelter').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id))[0];if(!z)return;p.S=z.cap?100*z.S/z.cap:0;p.cap=100;p.W=z.W;}
+function soak(s,p){const local=beds(s);const z=local.reduce((nearest,z)=>!nearest||Math.hypot(z.x-p.x,z.y-p.y)<Math.hypot(nearest.x-p.x,nearest.y-p.y)?z:nearest,null)||s.patches.filter(z=>z.id!=='shelter').sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id))[0];if(!z)return;p.S=z.cap?100*z.S/z.cap:0;p.cap=100;p.W=z.W;}
 function rates(s,z){const M=z.cap?100*z.S/z.cap:0,factor=z.W>1||M>85?.2:M<20?.2:M<35?.5:M<=70?1:.5,until=z.id==='litter'?s.objects.playBoostUntil:z.playBoostUntil,boost=until>0&&until>=s.worldTick?3:1;const spring=s.objects?.creatures?dep('creatures').decomposeBoost(s,z.id):1,mult=Math.min(3.75,boost*spring);return {factor,boost,spring,perMinute:.5*factor*mult};}
 function decompose(s){
  // N01/P0-1: only piles and the old litter spot decompose; loose leaves do not. Compost above the level's capacity
  // soaks into the soil (recorded outflow), so a full compost store never stops leaves from breaking down and falling.
- const o=s.objects,z=s.patches.find(p=>p.id==='litter');let room=Math.max(0,ucap(s)-compost(s));
+ const o=s.objects;let room=Math.max(0,ucap(s)-compost(s));
  const go=q=>{const n=Math.min(q.O,rates(s,q).perMinute/60);if(n<=0)return;const keep=Math.min(n,room);q.O-=n;q.U+=keep;room-=keep;o.decomposedTotal+=n;o.ledger.soil=(o.ledger.soil||0)+n-keep;};
  for(const p of [...piles(s)].sort((a,b)=>a.id.localeCompare(b.id))){soak(s,p);go(p);}
- if(z)go(z);
+ for(const bed of beds(s))go(bed);
 }
 function tidy(s){const st=state(s);st.piles=st.piles.filter(p=>p.O>eps||p.U>eps||s.individuals.some(q=>q.objectTask?.object===p.id||q.carriedLeaf?.pile===p.id));}
 function step(s){fall(s);blow(s);decompose(s);tidy(s);}
 // Layout changes may cover a leaf or pile with a stone or the spring: move it to the nearest open spot in its sector.
 function relocate(s){
  for(const l of leaves(s))if(blocked(s,l,0)){const q=spot(s,l.sector,12);if(q){l.x=q.x;l.y=q.y;}}
- for(const p of piles(s)){const others=piles(s).filter(x=>x!==p);const stuck=!dep('spatial').walkable(s,p)||Math.hypot(p.x-s.spring.x,(p.y-s.spring.y)*1.6)<.16||s.patches.some(z=>z.id!=='shelter'&&Math.hypot(p.x-z.x,(p.y-z.y)*1.6)<.11);if(stuck){const st=state(s);st.piles=others;const q=spot(s,p.sector,12);st.piles.push(p);if(q){p.x=q.x;p.y=q.y;}}}
+ for(const p of piles(s)){const others=piles(s).filter(x=>x!==p);const stuck=!dep('spatial').walkable(s,p)||Obj().springs(s).some(z=>Math.hypot(p.x-z.x,(p.y-z.y)*1.6)<.16)||s.patches.some(z=>z.id!=='shelter'&&Math.hypot(p.x-z.x,(p.y-z.y)*1.6)<.11);if(stuck){const st=state(s);st.piles=others;const q=spot(s,p.sector,12);st.piles.push(p);if(q){p.x=q.x;p.y=q.y;}}}
 }
 // 0.7.0: an old save's leaves and piles get their sector numbers on the new 6x5 grid from where they lie. Two piles that
 // fall into one new sector: the second keeps its place and takes the nearest free sector number (a pile's sector is its
