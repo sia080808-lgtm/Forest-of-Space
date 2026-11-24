@@ -17,7 +17,27 @@ function waterD(x,y){return Math.hypot((x-LAKE.cx)/LAKE.ru,(y-LAKE.cy)/LAKE.rv)+
 const lakeOpen=s=>!!s?.world?.regions?.includes('lakeshore');
 const southOpen=s=>!!s?.world?.regions?.includes('south');
 const STONE_SHELF=Object.freeze({x:2.63,y:1.38,rise:10});
-const stoneShelf=s=>southOpen(s)?STONE_SHELF:null;
+function stoneShelf(s){
+ if(!southOpen(s))return null;
+ const saved=s.world.shelf;
+ return saved?{x:saved.x,y:saved.y,rise:STONE_SHELF.rise,flip:saved.flip}:STONE_SHELF;
+}
+function shelfSeat(shelf,slot){
+ return {x:shelf.x+(slot===1?-.117:.117)*(shelf.flip?-1:1),y:shelf.y};
+}
+// The slab and steps extend farther on one side of the two-seat anchor.
+function shelfBounds(shelf){
+ return {x0:shelf.x-(shelf.flip?.21:.285),x1:shelf.x+(shelf.flip?.285:.21),y0:shelf.y-.057,y1:shelf.y+.04};
+}
+const boxesOverlap=(a,b)=>a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1;
+function shelfOnLand(s,shelf){
+ const box=shelfBounds(shelf);
+ if(!inside(s,{x:box.x0,y:box.y0})||!inside(s,{x:box.x1,y:box.y1}))return false;
+ for(let x=0;x<=10;x++)for(let y=0;y<=3;y++){
+  if(inWater(s,{x:box.x0+(box.x1-box.x0)*x/10,y:box.y0+(box.y1-box.y0)*y/3}))return false;
+ }
+ return true;
+}
 
 const southReady=s=>lakeOpen(s)&&!southOpen(s)&&s.worldTick-(s.environment?.calendar?.start??0)>=2*LAKE.season;
 function inWater(s,p){return lakeOpen(s)&&p.x>1.25&&waterD(p.x,p.y)<LAKE.edge;}
@@ -189,6 +209,10 @@ function lakeStep(s,event){if(!s.world)return;if(lakeOpen(s)){lilyStep(s);lifeSt
  st.ready=true;st.scents=Math.max(st.scents||0,LAKE.scents);s.world.regions=[...s.world.regions,'lakeshore'];st.openedAt=s.worldTick;event?.(s,'world','봄이 지나고 숲 동쪽에 물가가 열렸어요.');}
 // 관리자: open the shore at once, skipping the growth conditions and the three walks (settings > 개발 검수; user: "관리자 권한으로 해금 조건 푸는 설정")
 function openLake(s){if(!s.world||lakeOpen(s))return false;const st=s.world.lake??={ready:false,scents:0};st.ready=true;st.scents=Math.max(st.scents,LAKE.scents);st.openedAt=s.worldTick;s.world.regions=[...s.world.regions,'lakeshore'];return true;}
-function validate(s){if(s.world===undefined)return;{const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)||l.nextLily!=null&&!Number.isSafeInteger(l.nextLily)||l.nextId!=null&&!Number.isSafeInteger(l.nextId)||l.nextLife!=null&&!Number.isSafeInteger(l.nextLife)||l.nextLifeId!=null&&!Number.isSafeInteger(l.nextLifeId)||l.life!=null&&(!Array.isArray(l.life)||l.life.length>30||l.life.some(q=>!q||typeof q.id!=='string'||!LIFE_KINDS.includes(q.kind)||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.n!=null&&!Number.isSafeInteger(q.n)))||l.fx!=null&&(typeof l.fx!=='object'||Array.isArray(l.fx)||l.fx.react!=null&&(typeof l.fx.react!=='object'||Object.values(l.fx.react).some(r=>!r||!['startle','watch'].includes(r.k)||!Number.isSafeInteger(r.at)))||l.fx.fire!=null&&(!Number.isSafeInteger(l.fx.fire.night)||typeof l.fx.fire.on!=='boolean'))||l.life!=null&&l.life.some(q=>q?.dive!=null&&!Number.isSafeInteger(q.dive))||l.life!=null&&l.life.some(q=>q&&((q.tx!=null||q.ty!=null)&&!(Number.isFinite(q.tx)&&Number.isFinite(q.ty))||q.rest!=null&&!Number.isSafeInteger(q.rest)||q.mv!=null&&!Number.isSafeInteger(q.mv)))||l.seen!=null&&(typeof l.seen!=='object'||Array.isArray(l.seen)||Object.entries(l.seen).some(([k,v])=>!LIFE_KINDS.includes(k)||!Number.isSafeInteger(v)))||l.lilies!=null&&(!Array.isArray(l.lilies)||l.lilies.length>LILY.max||l.lilies.some(q=>!q||typeof q.id!=='string'||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.fall!=null&&!Number.isSafeInteger(q.fall)))))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length||southOpen(s)&&!lakeOpen(s))throw Error('숲 지역 기록을 확인해 주세요.');}
-return Object.freeze({nearShore,freeLanding:(s,p,free)=>RING.filter(q=>free(q)).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0],fillLake,REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep,southOpen,southReady,stoneShelf,lilyStage,LILY,openLake,LIFE,SWIM,FX,frozen,onIce,fireflies,reaction,shorePoint,shoreAnywhere});
+function validate(s){if(s.world===undefined)return;
+ const shelf=s.world?.shelf;
+ if(shelf!==undefined&&(!Array.isArray(s.world.regions)||!southOpen(s)||!shelf||!Number.isFinite(shelf.x)||!Number.isFinite(shelf.y)||
+  typeof shelf.flip!=='boolean'||!shelfOnLand(s,shelf)))throw Error('돌 선반 배치 기록을 확인해 주세요.');
+ {const l=s.world?.lake;if(l!==undefined&&(!l||typeof l.ready!=='boolean'||!Number.isSafeInteger(l.scents)||l.scents<0||l.scents>99||l.openedAt!=null&&!Number.isSafeInteger(l.openedAt)||l.nextLily!=null&&!Number.isSafeInteger(l.nextLily)||l.nextId!=null&&!Number.isSafeInteger(l.nextId)||l.nextLife!=null&&!Number.isSafeInteger(l.nextLife)||l.nextLifeId!=null&&!Number.isSafeInteger(l.nextLifeId)||l.life!=null&&(!Array.isArray(l.life)||l.life.length>30||l.life.some(q=>!q||typeof q.id!=='string'||!LIFE_KINDS.includes(q.kind)||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.n!=null&&!Number.isSafeInteger(q.n)))||l.fx!=null&&(typeof l.fx!=='object'||Array.isArray(l.fx)||l.fx.react!=null&&(typeof l.fx.react!=='object'||Object.values(l.fx.react).some(r=>!r||!['startle','watch'].includes(r.k)||!Number.isSafeInteger(r.at)))||l.fx.fire!=null&&(!Number.isSafeInteger(l.fx.fire.night)||typeof l.fx.fire.on!=='boolean'))||l.life!=null&&l.life.some(q=>q?.dive!=null&&!Number.isSafeInteger(q.dive))||l.life!=null&&l.life.some(q=>q&&((q.tx!=null||q.ty!=null)&&!(Number.isFinite(q.tx)&&Number.isFinite(q.ty))||q.rest!=null&&!Number.isSafeInteger(q.rest)||q.mv!=null&&!Number.isSafeInteger(q.mv)))||l.seen!=null&&(typeof l.seen!=='object'||Array.isArray(l.seen)||Object.entries(l.seen).some(([k,v])=>!LIFE_KINDS.includes(k)||!Number.isSafeInteger(v)))||l.lilies!=null&&(!Array.isArray(l.lilies)||l.lilies.length>LILY.max||l.lilies.some(q=>!q||typeof q.id!=='string'||!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isSafeInteger(q.born)||q.fall!=null&&!Number.isSafeInteger(q.fall)))))throw Error('호수 기록을 확인해 주세요.');}if(!s.world||s.world.version!==1||!Array.isArray(s.world.regions)||!s.world.regions.length||s.world.regions.some(id=>!REGIONS[id])||new Set(s.world.regions).size!==s.world.regions.length||southOpen(s)&&!lakeOpen(s))throw Error('숲 지역 기록을 확인해 주세요.');}
+return Object.freeze({nearShore,freeLanding:(s,p,free)=>RING.filter(q=>free(q)).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0],fillLake,REGIONS,GARDEN,LAKE,init,bounds,inner,walk,inside,entrance,validate,waterD,inWater,lakeOpen,lakeReady,lakeStep,southOpen,southReady,stoneShelf,shelfSeat,shelfBounds,shelfOnLand,boxesOverlap,lilyStage,LILY,openLake,LIFE,SWIM,FX,frozen,onIce,fireflies,reaction,shorePoint,shoreAnywhere});
 });

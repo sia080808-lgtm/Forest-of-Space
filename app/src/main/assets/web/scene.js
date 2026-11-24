@@ -92,9 +92,41 @@ class ForestScene {
  saveCamera(){if(this.inspector)return;try{localStorage.setItem('forest-camera-v2',JSON.stringify(this.camera.snapshot()));}catch{}}
  petSize(p){return 48*Forest.Shelter.growth(p)*(p.species==='neolbi'?ForestNeolbi.SIZE:p.species==='superbum'?ForestSuperbum.SIZE:1);}
  petAt(point){return this.state().individuals.filter(p=>p.active).find(p=>Forest.Space.distance(this.display[p.id]||p,point)<.09*(p.species==='neolbi'?ForestNeolbi.SIZE:p.species==='superbum'?ForestSuperbum.SIZE:1));}
- patchAt(point){return [...this.state().patches,{...this.state().spring,id:'spring',name:'샘터'}].filter(p=>p.id!=='shelter').map(p=>({...p,...this.preview[p.id]})).find(p=>Forest.dist(p,point)<.10);}
+ editorItems(){
+  const s=this.state(),shelf=Forest.World.stoneShelf(s);
+  const items=[...s.patches.filter(p=>p.id!=='shelter'),{...s.spring,id:'spring',name:'샘터'}];
+  if(shelf)items.push({...shelf,id:'stone-shelf',name:'돌 선반'});
+  return items;
+ }
+ patchAt(point){
+  return this.editorItems().map(p=>({...p,...this.preview[p.id]})).find(p=>
+   p.id==='stone-shelf'?Forest.World.inside(this.state(),point,Forest.World.shelfBounds(p)):Forest.dist(p,point)<.10);
+ }
  handleHit(point,p){const a=this.camera.screen(point),b=this.camera.screen(p);return Math.hypot(a.x-b.x,a.y-b.y)<=24;}
- selectAt(point){const s=this.state(),pet=this.petAt(point);if(pet)return this.onSelect('pet',pet.id);const f=s.shelters?.facilities.find(f=>{const t=Forest.Shelter.transform(f);return point.x*360>t.x&&point.x*360<t.x+220+t.extra&&point.y*576>t.y&&point.y*576<t.y+(Forest.Shelter.isRock(f)?293*t.sy:170);});if(f)return this.onSelect('facility',f.id);const shelf=Forest.World.stoneShelf(s);if(!this.editing&&shelf&&Math.abs(point.x-shelf.x)<.22&&Math.abs(point.y-shelf.y)<.052)return this.onSelect('patch','stone-shelf');const boat=s.world?.lake?.boat;if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);if(p)this.onSelect('patch',p.id);else if(Forest.dist(s.spring,point)<.12)this.onSelect('spring','spring');else this.onSelect(null,null);}
+ facilityAt(point){
+  return this.state().shelters?.facilities.find(f=>{
+   const t=Forest.Shelter.transform(f),x=point.x*360,y=point.y*576;
+   return x>t.x&&x<t.x+220+t.extra&&y>t.y&&y<t.y+(Forest.Shelter.isRock(f)?293*t.sy:170);
+  });
+ }
+ selectLayoutAt(point){
+  const p=this.patchAt(point);
+  if(p)return this.onMove(p.id);
+  const facility=this.facilityAt(point);
+  if(facility)this.onSelect('facility',facility.id);
+ }
+ selectAt(point){
+  const s=this.state(),pet=this.petAt(point);
+  if(pet)return this.onSelect('pet',pet.id);
+  const f=this.facilityAt(point);
+  if(f)return this.onSelect('facility',f.id);
+  const shelf=Forest.World.stoneShelf(s);
+  if(shelf&&Forest.World.inside(s,point,Forest.World.shelfBounds(shelf)))return this.onSelect('patch','stone-shelf');
+  const boat=s.world?.lake?.boat;
+  if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');
+  const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);
+  if(p)this.onSelect('patch',p.id);else if(Forest.dist(s.spring,point)<.12)this.onSelect('spring','spring');else this.onSelect(null,null);
+ }
  springVisible(){const p=this.camera.screen(this.state().spring);return p.x>-30&&p.x<this.vw+30&&p.y>-30&&p.y<this.vh+30;}
 
  frame(t){requestAnimationFrame(n=>this.frame(n));if(this.paused||!this.ready||!this.w||t-this.last<33)return;this.dt=Math.min(.1,(t-this.last)/1000||.033);this.last=t;if(this.inspector){this.inspector.update(this.dt);this.phase=this.inspector.time;}else this.phase=t/1000;this.draw();}
@@ -292,15 +324,18 @@ class ForestScene {
   return true;
  }
  drawStoneShelf(c,s,w,h){
-  const shelf=Forest.World.stoneShelf(s);
-  if(!shelf)return;
+  const saved=Forest.World.stoneShelf(s);
+  if(!saved)return;
+  const shelf={...saved,...this.preview['stone-shelf']};
   const x=shelf.x*w-105,y=shelf.y*h-27;
+  if(shelf.flip){c.save();c.translate(2*shelf.x*w,0);c.scale(-1,1);}
   const atlas=this.assets.stoneShelfSeasons;
   const sx=180/570,sy=63/185;
   if(!this.drawStoneSeason(c,atlas,750,295,x-90*sx,y-55*sy,750*sx,295*sy)){
    const art=this.assets.stoneShelf;
    if(art)c.drawImage(art,x,y,180,63);
   }
+  if(shelf.flip)c.restore();
  }
  pet(p,pos,kind,phase,night,held=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
@@ -672,7 +707,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   this.drawMist(c,w,h,phase);
   if(this.carry){const q=this.carry.result||this.carry.origin,p=q.ok?q:(this.carry.pointerPoint||this.carry.origin);c.strokeStyle=q.ok?'#638361':'#b56950';c.fillStyle=q.ok?'#91ab7926':'#b5695026';c.lineWidth=2;c.setLineDash([4,3]);c.beginPath();c.ellipse(p.x*w,p.y*h,22,8,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);}
   if(this.carry?.mode==='drag'){const pet=s.individuals.find(p=>p.id===this.carry.id);if(pet)this.pet(pet,this.carry.hover,'held',phase,night,true);}
-  if(this.editing){for(const p of [...patches,{...s.spring,...this.preview.spring,id:'spring',name:'샘터'}]){if(p.id==='shelter')continue;const selected=p.id===this.selectedPatch;c.strokeStyle=selected?'#526443':'#7c866e88';c.fillStyle=selected?'#aab78c28':'#ffffff15';c.lineWidth=selected?2:1;c.setLineDash(selected?[]:[3,4]);c.beginPath();c.ellipse(p.x*w,p.y*h,w*.08,h*.025,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);c.fillStyle='#fffcf5ee';const textw=c.measureText(p.name).width+16;c.fillRect(p.x*w-textw/2,p.y*h+10,textw,20);c.fillStyle='#43513b';c.font=(11/this.camera.scale)+'px Pretendard';c.textAlign='center';c.fillText(p.name,p.x*w,p.y*h+24);if(selected){c.fillStyle='#526443';c.beginPath();c.arc(p.x*w,p.y*h,6/this.camera.scale,0,Math.PI*2);c.fill();}}}
+  if(this.editing){for(const original of this.editorItems()){const p={...original,...this.preview[original.id]};const selected=p.id===this.selectedPatch;c.strokeStyle=selected?'#526443':'#7c866e88';c.fillStyle=selected?'#aab78c28':'#ffffff15';c.lineWidth=selected?2:1;c.setLineDash(selected?[]:[3,4]);c.beginPath();c.ellipse(p.x*w,p.y*h,w*.08,h*.025,0,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);c.fillStyle='#fffcf5ee';const textw=c.measureText(p.name).width+16;c.fillRect(p.x*w-textw/2,p.y*h+10,textw,20);c.fillStyle='#43513b';c.font=(11/this.camera.scale)+'px Pretendard';c.textAlign='center';c.fillText(p.name,p.x*w,p.y*h+24);if(selected){c.fillStyle='#526443';c.beginPath();c.arc(p.x*w,p.y*h,6/this.camera.scale,0,Math.PI*2);c.fill();}}}
   this.seasonFall(c,w,h,base);{/* 0.8.5: snow, wind-blown leaves and fog cover the whole wide forest (they were drawn only over the old 0..1 garden) */const B=(typeof ForestWorld!=='undefined'?ForestWorld:null)?.bounds?.(s)||{x0:0,y0:0,x1:1,y1:1},bw=B.x1-B.x0,bh=B.y1-B.y0;c.save();c.translate(B.x0*w,B.y0*h);ForestEffects.particles(c,s,bw*w,bh*h,phase,this.assets,bw*bh);c.restore();}this.shelterDebug();c.restore();ForestEffects.rain(c,s,this.vw,this.vh,phase);
  }
 }

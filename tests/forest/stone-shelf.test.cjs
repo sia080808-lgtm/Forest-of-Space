@@ -142,3 +142,44 @@ test('a familiar pair greets and a close pair takes the free seat more often',()
  assert.equal(O.shelfTarget(s,b,()=>.72).shelf,2);
  assert.equal(O.shelfTarget(s,b,()=>.80),null);
 });
+
+test('shelf layout survives save and reload, mirrors seat order, and clears the former reservations',()=>{
+ const s=garden(),[first,second]=s.individuals;
+ const legacy=F.migrate(JSON.parse(JSON.stringify(s)));
+ const old=F.World.stoneShelf(legacy);
+ assert.deepEqual(old,{x:2.63,y:1.38,rise:10});
+ const seat=O.shelfTarget(s,first,()=>0);
+ first.stroll={...seat,since:s.worldTick,deadline:s.worldTick+90,linger:28};
+ second.stroll={...F.World.shelfSeat(old,2),shelf:2,far:true,since:s.worldTick,deadline:s.worldTick+90,linger:28};
+ const proposal={x:old.x-.4,y:old.y+.025,flip:true};
+ const next=F.transaction(s,n=>F.layout(n,{'stone-shelf':proposal}),()=>true);
+ assert.deepEqual(F.World.stoneShelf(s),old);
+ assert.equal(s.individuals[0].stroll.shelf,1);
+ assert(next.individuals.every(p=>!p.stroll?.shelf));
+ const loaded=F.migrate(JSON.parse(JSON.stringify(next)));
+ const shelf=F.World.stoneShelf(loaded);
+ assert.deepEqual(shelf,{...proposal,rise:10});
+ const target=O.shelfTarget(loaded,loaded.individuals[0],()=>0);
+ assert.deepEqual([target.x,target.y,target.shelf],[proposal.x+.117,proposal.y,1]);
+ assert.equal(F.World.shelfSeat(shelf,2).x,proposal.x-.117);
+ const visitor=loaded.individuals[0];
+ visitor.stroll={...target,since:loaded.worldTick,deadline:loaded.worldTick+90,linger:28};
+ for(let i=0;i<35&&!O.shelfPose(loaded,visitor);i++){loaded.worldTick++;O.stroll(loaded,visitor);}
+ assert.equal(O.shelfPose(loaded,visitor)?.lift,shelf.rise);
+ assert.deepEqual([visitor.x,visitor.y],[target.x,target.y]);
+});
+
+test('shelf layout rejects water, map edges and occupied spots without saving',()=>{
+ const s=garden(),old=F.World.stoneShelf(s),original=JSON.stringify(s);
+ const f=s.shelters.facilities.find(F.Shelter.isRock),room=F.Shelter.setupBounds(f);
+ for(const [point,error] of [
+  [{x:F.World.LAKE.cx,y:F.World.LAKE.cy},/마른 땅/],
+  [{x:F.World.bounds(s).x1,y:old.y},/마른 땅/],
+  [{x:(room.x0+room.x1)/2,y:(room.y0+room.y1)/2},/쉼터와 출입/],
+  [{x:s.individuals[0].x,y:s.individuals[0].y},/친구가 있는 자리/]
+ ]){
+  assert.throws(()=>F.transaction(s,n=>F.layout(n,{'stone-shelf':point}),()=>assert.fail('invalid draft reached save')),error);
+  assert.equal(JSON.stringify(s),original);
+ }
+ assert.throws(()=>F.validateLayout(F.create(),{'stone-shelf':old}),/남쪽 숲/);
+});

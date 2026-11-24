@@ -104,3 +104,17 @@ test('stone shelf uses four seasonal tiles at a shared seat position and falls b
  scene.drawStoneShelf(scene.ctx,s,360,576);
  a.deepEqual(calls.find(call=>call.k==='drawImage').args,[base,shelf.x*360-105,shelf.y*576-27,180,63]);
 });
+
+test('the flipped shelf preview mirrors around its moved seat anchor',()=>{
+ const {scene,s,calls}=sceneFixture();
+ F.World.openLake(s);
+ s.started=true;s.worldTick=7199;F.step(s);
+ const before=F.World.stoneShelf(s),art=scene.assets.stoneShelf={name:'base'};
+ scene.preview['stone-shelf']={x:before.x-.2,y:before.y+.04,flip:true};
+ const {x,y}=scene.preview['stone-shelf'];
+ scene.drawStoneShelf(scene.ctx,s,360,576);
+ a.deepEqual(calls.find(call=>call.k==='translate').args,[2*x*360,0]);
+ a.deepEqual(calls.find(call=>call.k==='scale').args,[-1,1]);
+ a.deepEqual(calls.find(call=>call.k==='drawImage').args,[art,x*360-105,y*576-27,180,63]);
+ a.equal(F.World.stoneShelf(s),before);
+});

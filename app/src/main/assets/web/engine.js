@@ -183,16 +183,52 @@ function resume(s,now=Date.now()){
  if(s.offline.mode==='game'&&s.started)while(s.offline.processed<seconds)offlineStep(s);
  const result={seconds:s.offline.mode==='game'&&s.started?seconds:0,xp:s.individuals.reduce((n,p)=>n+p.xp,0)-start};s.offline=null;Sh.rebuild(s);s.savedAt=Math.max(s.savedAt,now);return result;
 }
-function validateLayout(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
+function shelfLayout(s,positions,patches,spring){
+ const old=World.stoneShelf(s),proposal=positions['stone-shelf'];
+ if(!old){
+  if(proposal)throw Error('남쪽 숲을 열면 돌 선반을 옮길 수 있어요.');
+  return null;
+ }
+ const shelf=proposal?{x:proposal.x,y:proposal.y,flip:proposal.flip??old.flip??false}:old;
+ const moved=old.x!==shelf.x||old.y!==shelf.y;
+ const changed=moved||!!old.flip!==!!shelf.flip;
+ if(proposal&&(typeof shelf.flip!=='boolean'||!World.shelfOnLand(s,shelf)))
+  throw Error('돌 선반을 숲 안쪽의 마른 땅에 놓아주세요.');
+ const box=World.shelfBounds(shelf);
+ if(changed&&s.shelters.facilities.some(f=>World.boxesOverlap(box,Sh.setupBounds(f))))
+  throw Error('쉼터와 출입 공간을 비워주세요.');
+ for(const p of [...patches,spring]){
+  if(p.id==='shelter')continue;
+  const prev=p===spring?s.spring:s.patches.find(q=>q.id===p.id);
+  if(!changed&&prev&&p.x===prev.x&&p.y===prev.y)continue;
+  const rx=p===spring?.12:.10;
+  if(World.boxesOverlap(box,{x0:p.x-rx,x1:p.x+rx,y0:p.y-.055,y1:p.y+.055}))
+   throw Error('돌 선반과 다른 사물이 겹쳐요.');
+ }
+ if(moved&&s.individuals.some(p=>p.active&&World.inside(s,p,box)))
+  throw Error('친구가 있는 자리를 비워주세요.');
+ return proposal?shelf:null;
+}
+function layoutPlan(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
  if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&spring.x>1.2&&World.waterD(spring.x,spring.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');
  for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&p.x>1.2&&World.waterD(p.x,p.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
  for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
+ const shelf=shelfLayout(s,positions,next,spring);
  const world={...s,patches:next,spring};
+ if(shelf){
+  const entrance=Space.socket(world,'shelter');
+  for(const slot of [1,2]){
+   const seat=World.shelfSeat(shelf,slot);
+   if(!Space.walkable(world,seat)||!Space.route(world,entrance,seat))
+    throw Error('돌 선반에 올라갈 길을 비워주세요.');
+  }
+ }
  for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
  for(const pet of s.individuals)if(pet.active&&Space.walkable(s,pet)&&!Space.walkable(world,pet))throw Error('친구가 있는 자리를 비워주세요.');
- return next;
+ return {patches:next,shelf};
 }
-function layout(s,positions){const next=validateLayout(s,positions);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;s.patches=next;if(positions.spring){s.spring.x=positions.spring.x;s.spring.y=positions.spring.y;}for(const p of s.individuals)delete p.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
+function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
+function layout(s,positions){const {patches:next,shelf}=layoutPlan(s,positions);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;s.patches=next;if(shelf)s.world.shelf=shelf;if(positions.spring){s.spring.x=positions.spring.x;s.spring.y=positions.spring.y;}for(const p of s.individuals)delete p.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
 // 1.2.6 보관함 (user: "꾸미공간 오브젝트들 보관하기(월드에서 없애기) 기능 추가", "꾸미기 창에 보관함 기능"): moss, the sun rock, the leaf shade
 // and the crevice can be put away and brought back. Put away, the object leaves the world (nobody uses it, nothing is drawn, no rain falls
 // on it) and keeps its water in the 보관함; back out, it lands at its old spot or the nearest free one. The spring and the litter bed stay.
@@ -201,7 +237,7 @@ function storeObject(s,id){if(!STORABLE.includes(id))throw Error(id==='spring'?'
  Social.invalidate(s);Obj.invalidate(s);const [p]=s.patches.splice(i,1);(s.objects.stored??=[]).push(p);for(const q of s.individuals)delete q.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에 넣었어요. 물은 그대로 남아 있어요.');return s;}
 function unstoreObject(s,id){const st=s.objects?.stored||[],i=st.findIndex(p=>p.id===id);if(i<0)throw Error('보관함에 없는 자리예요.');const p=st[i],wb=World.walk(s),spots=[{x:p.x,y:p.y}];
  for(let r=.06;r<=.9;r+=.06)for(let k=0;k<12;k++){const a=k/12*Math.PI*2;spots.push({x:.5+Math.cos(a)*r,y:.55+Math.sin(a)*r*.8});}
- for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{validateLayout(trial,{});}catch(e){continue;}
+ for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{shelfLayout(s,{},trial.patches,s.spring);validateLayout(trial,{});}catch(e){continue;}
   Social.invalidate(s);Obj.invalidate(s);st.splice(i,1);if(!st.length)delete s.objects.stored;s.patches.push({...p,x:q.x,y:q.y});for(const z of s.individuals)delete z.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');return {x:q.x,y:q.y};}
  throw Error('꺼내 놓을 빈자리가 없어요. 다른 사물을 조금 옮겨 주세요.');}
 function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);Social.cancel(s,id);const p=s.individuals.find(x=>x.id===id);Boat.leaveForMove(s,p);Obj.release(s,p,'move');Sh.release(p,s.worldTick);p.x=result.x;p.y=result.y;const f=Sh.cover(s,p);if(f)p.shelter={phase:'entering',facilityId:f.id,x:p.x,y:p.y,units:Sh.units(p),since:s.worldTick,expires:s.worldTick+10,revision:f.revision,stalled:0};p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}

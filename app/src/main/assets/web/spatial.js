@@ -57,7 +57,7 @@ function clearFriends(s,p,a,b){
 // while a friend stands still. A route that ignores friends depends only on the layout, the friend's size and its
 // shelter, and the two points, so the same question gets the same answer from a small cache (no change in behaviour).
 const routeMemo=new WeakMap();
-function layoutKey(s){const o=obstacles(s);let k=o.map(z=>z.id+':'+z.x+','+z.y+','+z.rx+','+z.ry).join(';')+'|'+(s.world?.regions||[]).join(',')+'|'+(World.frozen?.(s)?1:0);for(const f of s.shelters?.facilities||[])k+='|'+f.id+','+f.level+','+f.x+','+f.y;return k;}
+function layoutKey(s){const o=obstacles(s);let k=o.map(z=>z.id+':'+z.x+','+z.y+','+z.rx+','+z.ry).join(';')+'|'+(s.world?.regions||[]).join(',')+'|'+(World.frozen?.(s)?1:0);for(const f of s.shelters?.facilities||[])k+='|'+f.id+','+f.level+','+f.x+','+f.y+','+!!f.flip;return k;}
 function route(s,start,end,id,avoidFriends=false){
  let memo=null,key=null;if(!avoidFriends&&start&&end&&s&&typeof s==='object'){const p=id&&s.individuals?.find(x=>x.id===id);key=(LEGACY?'L':'P')+'|'+(p?diameter(p)+'|'+(p.shelter?.facilityId||''):'-')+'|'+start.x+','+start.y+'|'+end.x+','+end.y;
   const lk=layoutKey(s);memo=routeMemo.get(s);if(!memo||memo.lk!==lk){memo={lk,map:new Map()};routeMemo.set(s,memo);}if(memo.map.has(key)){const r=memo.map.get(key);return r&&r.map(q=>({...q}));}}
