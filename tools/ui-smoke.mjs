@@ -124,6 +124,32 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-action="admin-speed"][data-v="0"]');click('[data-action="admin-speed"][data-v="1"]');
  assert.equal(win.RidleyApp.back(),true);assert.equal(panel.hidden,true,'back closes the panel');
  click('#settings');click('[data-action="admin-mode"]');assert.equal(win.document.getElementById('admin-tool').hidden,true);click('[data-tab="world"]');}
+{
+ const st=getState();
+ if(!F.World.lakeOpen(st))F.World.openLake(st);
+ st.worldTick=st.environment.calendar.start+2*F.World.LAKE.season;
+ assert.ok(F.Shelter.discoverSouth(st,F.event));
+ const f=st.shelters.facilities.find(F.Shelter.isRock);
+ scene.onSelect('facility',f.id);
+ assert.match(card.textContent,/바위쉼터/);
+ assert.match(card.textContent,/전체 3공간/);
+ click('[data-action="close-card"]');
+ click('[data-tab="decorate"]');
+ const editor=win.document.getElementById('editor');
+ click('[data-action="edit-shelter"][data-id="'+f.id+'"]');
+ assert.match(editor.textContent,/바위쉼터 옮기기/);
+ click('[data-action="facility-store-edit"]');
+ assert.equal(saved.shelters.stored.find(x=>x.id===f.id).kind,'stone');
+ click('[data-action="unstore-shelter"][data-id="'+f.id+'"]');
+ assert.match(editor.textContent,/바위쉼터 꺼내기/);
+ assert.equal(scene.facilityPreview.kind,'stone');
+ click('[data-action="facility-shift"][data-dir="right"]');
+ click('[data-action="facility-save"]');
+ assert.equal(saved.shelters.facilities.find(x=>x.id===f.id).x,f.x+.025);
+ assert.equal(saved.shelters.stored.some(x=>x.id===f.id),false);
+ click('[data-action="cancel-layout"]');
+}
+console.log('PASS: rock shelter card, decorator, storage and restore at a new position');
 console.log('PASS: grouped settings (theme, climate, no shelter row), admin panel (time, weather, friend slider, reset with dialog, speed), back closes it');
 console.log('PASS: all 7 object cards, no state/save mutation, real live quantities, retained details/scroll/summary/action focus, unchanged DOM, switched object reset, pet controls and close');
 console.log('PASS: v2.18 recruitment UI, dedicated encounter, pause, settlement, planned roster, all 42 isolated previews');

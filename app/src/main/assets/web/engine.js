@@ -146,7 +146,7 @@ function step(s,{visible=true,held=null}={}){
   if(p.justDrank){delete p.justDrank;s.environment.tutorialDone=true;p.actionSeconds=0;event(s,'drink',p.name+' · 스스로 샘터에서 물을 마셨어요.',{individual:p.id});if(!p.first.drink){p.first.drink=true;p.xp=Math.min(150,p.xp+2);}discovery(s,'first-drink','샘터에서 처음 물을 마셨어요.',visible);}
   if(p.motion.water>0)p.motion.contact=p.id+':'+Math.floor(s.worldTick/3)+':water';
  }
- Social.tick(s,{visible,record:discovery,event});neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});World.lakeStep(s,event);
+ Social.tick(s,{visible,record:discovery,event});neighborStep(s,visible);Rec.tick(s,{Space,Social,rng,event,personality});World.lakeStep(s,event);Sh.discoverSouth(s,event);
  snapTiny(s);return s;
 }
 function neighborStep(s,visible){
