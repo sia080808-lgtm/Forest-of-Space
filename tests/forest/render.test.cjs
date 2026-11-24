@@ -74,3 +74,33 @@ test('each of the seven friends uses its own rear sprite on the south shelf',asy
   a.deepEqual(draw.args.slice(0,5),[art,slot%4*160,Math.floor(slot/4)*160,160,160]);
  }
 });
+
+test('stone shelf uses four seasonal tiles at a shared seat position and falls back to its base art',async()=>{
+ const {loadImage}=require('@napi-rs/canvas'),path=require('node:path');
+ const {scene,s,calls}=sceneFixture();
+ F.World.openLake(s);
+ s.started=true;s.worldTick=7199;F.step(s);
+ const shelf=F.World.stoneShelf(s);
+ a.ok(shelf);
+ const file=path.resolve(__dirname,'../../app/src/main/assets/web/assets/forest/seasons/stone-shelf-seasons.webp');
+ const atlas=scene.assets.stoneShelfSeasons=await loadImage(file);
+ a.deepEqual([atlas.width,atlas.height],[1500,590]);
+ const positions={spring:[0,0],summer:[750,0],autumn:[0,295],winter:[750,295]};
+ let destination;
+ for(const [id,[x,y]] of Object.entries(positions)){
+  calls.length=0;scene.cal=()=>({id,blend:1});
+  scene.drawStoneShelf(scene.ctx,s,360,576);
+  const draws=calls.filter(call=>call.k==='drawImage');
+  a.equal(draws.length,1);
+  a.deepEqual(draws[0].args.slice(0,5),[atlas,x,y,750,295]);
+  destination??=draws[0].args.slice(5);
+  a.deepEqual(draws[0].args.slice(5),destination);
+ }
+ calls.length=0;scene.cal=()=>({id:'winter',prev:'autumn',blend:.4});
+ scene.drawStoneShelf(scene.ctx,s,360,576);
+ a.deepEqual(calls.filter(call=>call.k==='drawImage').map(call=>call.args.slice(1,3)),[[0,295],[750,295]]);
+ const base=scene.assets.stoneShelf={name:'base'};
+ calls.length=0;delete scene.assets.stoneShelfSeasons;
+ scene.drawStoneShelf(scene.ctx,s,360,576);
+ a.deepEqual(calls.find(call=>call.k==='drawImage').args,[base,shelf.x*360-105,shelf.y*576-27,180,63]);
+});
