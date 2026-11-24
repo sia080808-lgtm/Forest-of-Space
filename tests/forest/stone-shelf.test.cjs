@@ -183,3 +183,32 @@ test('shelf layout rejects water, map edges and occupied spots without saving',(
  }
  assert.throws(()=>F.validateLayout(F.create(),{'stone-shelf':old}),/남쪽 숲/);
 });
+
+test('three shelf placements round trip and keep visits and affinity separate per shelf',()=>{
+ const s=garden(),[a,b,c]=s.individuals;
+ const copies={'stone-shelf-2':{x:2.03,y:1.54,flip:true},'stone-shelf-3':{x:1.45,y:1.58,flip:false}};
+ F.layout(s,copies);
+ assert.equal(F.World.stoneShelves(s).length,3);
+ assert.throws(()=>F.layout(s,{'stone-shelf-4':{x:1.25,y:1.40,flip:false}}),/최대 3/);
+ assert.throws(()=>F.layout(s,{'stone-shelf-3':copies['stone-shelf-2']}),/끼리 겹쳐/);
+ const settle=(p,id,slot)=>{
+  const seat=F.World.shelfSeat(F.World.stoneShelf(s,id),slot);
+  Object.assign(p,{...seat,stroll:{...seat,shelf:slot,shelfId:id,
+   since:s.worldTick,deadline:s.worldTick+90,linger:28,arrivedAt:s.worldTick}});
+ };
+ settle(a,'stone-shelf',1);settle(b,'stone-shelf-2',1);settle(c,'stone-shelf-2',2);
+ const loaded=F.migrate(JSON.parse(JSON.stringify(s)));
+ const [first,second,third]=loaded.individuals;
+ assert.deepEqual(F.World.stoneShelves(loaded),F.World.stoneShelves(s));
+ assert.equal(O.shelfVisitors(loaded,'stone-shelf').length,1);
+ assert.equal(Cards.model(loaded,'stone-shelf-2').metrics[0].value,'2 / 2명');
+ assert.doesNotMatch(O.reason(loaded,first),/나란히/);
+ for(let i=0;i<28;i++){
+  loaded.worldTick++;
+  O.prepare(loaded,null,()=>.5);
+  for(const p of loaded.individuals)O.stroll(loaded,p);
+ }
+ assert.equal(O.affinity(loaded,first,second),0);
+ assert.equal(O.affinity(loaded,second,third),1);
+ F.valid(loaded);
+});

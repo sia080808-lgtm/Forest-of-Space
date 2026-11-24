@@ -273,21 +273,35 @@ const editorViewportObserver=new ResizeObserver(syncEditorViewport);editorViewpo
 // A shelter opens its own move view (drag, flip, 보관하기) and comes back here when done.
 const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예요.',spring:'돌과 물, 물 마시는 위치를 함께 옮겨요. 숲에 꼭 있어야 해서 보관할 수 없어요.',moss:'놀며 천천히 쉬는 자리예요. 물은 조금만 보관해요.',rock:'볕을 모아 두는 바위예요. 친구가 위에 올라가 쉬어요.',shade:'주변의 빛을 줄이는 실제 그늘이에요.',crevice:'바람과 비를 피하는 틈이에요. 이끼와 그늘을 가까이 두면 좋아요.',litter:'낙엽이 거름이 되는 자리예요. 숲에 꼭 있어야 해서 보관할 수 없어요.'};
 function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const items=scene.editorItems();if(!items.some(x=>x.id===scene.selectedPatch))scene.selectedPatch=items[0]?.id||'spring';const p=items.find(x=>x.id===scene.selectedPatch);
- let message=EDIT_TIP[p.id]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=state.objects?.stored||[],sheds=state.shelters.stored||[],canStore=F.STORABLE.includes(p.id);
+ const shelf=F.World.SHELF_IDS.includes(p.id),copyId=F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id));
+ let message=EDIT_TIP[shelf?'stone-shelf':p.id]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=state.objects?.stored||[],sheds=state.shelters.stored||[],canStore=F.STORABLE.includes(p.id);
  const flip=scene.preview[p.id]?.flip??p.flip??false;
- const shelters=state.shelters.facilities.map((f,i)=>'<button class="chip ed-shed" data-action="edit-shelter" data-id="'+escape(f.id)+'">⌂ '+escape(F.Shelter.name(f))+(F.Shelter.isRock(f)||state.shelters.facilities.length<2?'':' '+(i+1))+'</button>').join('');
+ const shelters=state.shelters.facilities.map(f=>{
+  const siblings=state.shelters.facilities.filter(q=>F.Shelter.isRock(q)===F.Shelter.isRock(f));
+  const label=F.Shelter.name(f)+(siblings.length>1?' '+(siblings.indexOf(f)+1):'');
+  return '<button class="chip ed-shed" data-action="edit-shelter" data-id="'+escape(f.id)+'">⌂ '+escape(label)+'</button>';
+ }).join('');
  $('editor').innerHTML='<div class="ed-head"><b>꾸미기</b><span>고른 것을 끌거나 화살표로 옮겨요</span><button class="editor-fold" data-action="fold-editor" aria-expanded="'+!folded+'">'+(folded?'펼치기':'접기')+'</button></div>'
   +'<div class="ed-lbl">숲에 놓인 것</div><div class="chips">'+items.map(x=>'<button class="chip '+(p.id===x.id?'active':'')+'" data-patch="'+x.id+'">'+escape(x.name)+'</button>').join('')+shelters+'</div>'
-  +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(p.id==='stone-shelf'?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button>':'')+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
+  +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button><button class="secondary" data-action="shelf-copy" '+(copyId?'':'disabled title="최대 3개를 놓았어요."')+'>복사</button>':'')+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
   +'<div class="ed-lbl">보관함 <small>'+(stored.length+sheds.length)+'</small></div><div class="ed-box">'+(stored.length+sheds.length?stored.map(x=>'<div class="ed-kept"><span>'+escape(x.name)+'</span><button class="secondary" data-action="unstore-object" data-id="'+x.id+'">꺼내기</button></div>').join('')+sheds.map(x=>'<div class="ed-kept"><span>⌂ '+escape(F.Shelter.name(x))+' · '+F.Shelter.capacity(x)/4+'공간</span><button class="secondary" data-action="unstore-shelter" data-id="'+escape(x.id)+'">꺼내기</button></div>').join(''):'<p class="ed-empty">보관한 사물이 여기에 모여요. 숲에서 빼 두고 싶은 것을 골라 보관하기를 눌러요.</p>')+'</div>'
   +'<div class="button-pair"><button class="secondary" data-action="cancel-layout">취소</button><button class="primary" data-action="save-layout" '+(bad?'disabled':'')+'>배치 완료</button></div>';
 }
+function adjacentCopyPosition(subject,tryPlacement){
+ for(const [dx,dy] of [[.55,0],[-.55,0],[0,.18],[0,-.18],[.35,.21],[-.35,.21],[.75,0],[-.75,0],[1,0],[-1,0],[0,.32],[0,-.32]]){
+  const point={x:subject.x+dx,y:subject.y+dy,flip:!!subject.flip};
+  try{tryPlacement(point);return point;}catch{}
+ }
+ return {x:subject.x,y:subject.y,flip:!!subject.flip};
+}
+const placeFacility=kind=>['add','move','restore','copy'].includes(kind);
 function startFacilityEdit(id,kind){switchTab('world');const f=F.Shelter.facility(state,id),stored=F.Shelter.storedFor(state,kind,id),subject=kind==='add'?stored:stored||f;facilityDraft={id,kind,x:subject?.x??.45,y:subject?.y??.70,flip:!!subject?.flip};
+ if(kind==='copy'&&subject)Object.assign(facilityDraft,adjacentCopyPosition(subject,p=>F.Shelter.plan(state,id,kind,p)));
  /* 1.2.0 (user: "손가락으로 드래그 앤 드롭으로도 추가"): while adding or moving, the shelter preview can be dragged; elsewhere the map still pans */
- if(['add','move','restore'].includes(kind)){let grab=null,queued=false;scene.facilityGrab=p=>{const pv=scene.facilityPreview||facilityDraft,t=F.Shelter.transform(pv);if(p.x*360<t.x||p.x*360>t.x+220+t.extra||p.y*576<t.y+40||p.y*576>t.y+330*t.sy+30)return false;grab={dx:facilityDraft.x-p.x,dy:facilityDraft.y-p.y};return true;};
+ if(placeFacility(kind)){let grab=null,queued=false;scene.facilityGrab=p=>{const pv=scene.facilityPreview||facilityDraft,t=F.Shelter.transform(pv);if(p.x*360<t.x||p.x*360>t.x+220+t.extra||p.y*576<t.y+40||p.y*576>t.y+330*t.sy+30)return false;grab={dx:facilityDraft.x-p.x,dy:facilityDraft.y-p.y};return true;};
   scene.facilityDrag=p=>{if(!grab||!facilityDraft)return;facilityDraft.x=Math.round((p.x+grab.dx)*400)/400;facilityDraft.y=Math.round((p.y+grab.dy)*400)/400;scene.facilityPreview={...scene.facilityPreview,x:facilityDraft.x,y:facilityDraft.y,flip:facilityDraft.flip};if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;if(facilityDraft)renderFacilityEditor();});}};}
  else{scene.facilityGrab=null;scene.facilityDrag=null;}editor=true;scene.editing=false;$('world').classList.add('editing-layout');$('editor').hidden=false;$('targets').hidden=true;renderFacilityEditor();syncEditorViewport();}
-function renderFacilityEditor(){const d=facilityDraft,old=F.Shelter.facility(state,d.id),subject=F.Shelter.storedFor(state,d.kind,d.id)||(d.kind==='add'?null:old);let proposal=null,valid=true,message='미리보기의 입구와 주변 공간을 살펴보고 확정해 주세요.';try{proposal=F.Shelter.plan(state,d.id,d.kind,{x:d.x,y:d.y,flip:d.flip});}catch(e){valid=false;message=e.message;}scene.facilityPreview=proposal||{...subject,id:subject?.id||'new-preview',level:d.kind==='expand'?Math.min(3,old.level+1):subject?.level||1,x:d.x,y:d.y,flip:d.flip};if(valid&&['add','move','restore'].includes(d.kind))message='쉼터를 손가락으로 끌어 옮기거나 화살표로 조금씩 옮겨요. 입구와 주변 공간을 살펴보고 확정해 주세요.';$('editor').innerHTML='<strong>'+escape(F.Shelter.name(scene.facilityPreview))+' '+({add:'추가',restore:'꺼내기',move:'옮기기',expand:'확장',flip:'좌우 뒤집기'})[d.kind]+' · '+F.Shelter.capacity(scene.facilityPreview)/4+'공간</strong><p class="'+(valid?'':'bad')+'">'+escape(message)+'</p>'+(['add','move','restore'].includes(d.kind)?'<div class="position-pad">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([k,t])=>'<button data-action="facility-shift" data-dir="'+k+'">'+t+'</button>').join('')+'</div>':'')+(d.kind!=='expand'?'<button class="secondary facility-flip" data-action="facility-mirror" aria-pressed="'+d.flip+'">⇋ 좌우 뒤집기'+(d.flip?' · 뒤집힘':'')+'</button>':'')+(d.kind==='move'&&old&&!old.base?'<button class="secondary facility-flip" data-action="facility-store-edit">보관하기</button>':'')+'<div class="button-pair"><button data-action="cancel-layout">'+(editorReturn?'꾸미기로':'취소')+'</button><button class="primary" data-action="facility-save" '+(valid?'':'disabled')+'>배치 확정</button></div>';}
+function renderFacilityEditor(){const d=facilityDraft,old=F.Shelter.facility(state,d.id),subject=F.Shelter.storedFor(state,d.kind,d.id)||(d.kind==='add'?null:old);let proposal=null,valid=true,message='미리보기의 입구와 주변 공간을 살펴보고 확정해 주세요.';try{proposal=F.Shelter.plan(state,d.id,d.kind,{x:d.x,y:d.y,flip:d.flip});}catch(e){valid=false;message=e.message;}scene.facilityPreview=proposal||{...subject,id:d.kind==='copy'?'new-preview':subject?.id||'new-preview',level:d.kind==='expand'?Math.min(3,old.level+1):subject?.level||1,x:d.x,y:d.y,flip:d.flip};if(valid&&placeFacility(d.kind))message='쉼터를 손가락으로 끌어 옮기거나 화살표로 조금씩 옮겨요. 입구와 주변 공간을 살펴보고 확정해 주세요.';$('editor').innerHTML='<strong>'+escape(F.Shelter.name(scene.facilityPreview))+' '+({add:'추가',restore:'꺼내기',move:'옮기기',expand:'확장',flip:'좌우 뒤집기',copy:'복사'})[d.kind]+' · '+F.Shelter.capacity(scene.facilityPreview)/4+'공간</strong><p class="'+(valid?'':'bad')+'">'+escape(message)+'</p>'+(placeFacility(d.kind)?'<div class="position-pad">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([k,t])=>'<button data-action="facility-shift" data-dir="'+k+'">'+t+'</button>').join('')+'</div>':'')+(d.kind!=='expand'?'<button class="secondary facility-flip" data-action="facility-mirror" aria-pressed="'+d.flip+'">⇋ 좌우 뒤집기'+(d.flip?' · 뒤집힘':'')+'</button>':'')+(d.kind==='move'&&old?'<button class="secondary facility-flip" data-action="facility-copy" '+(F.Shelter.canCopy(state,old)?'':'disabled')+'>복사</button>':'')+(d.kind==='move'&&old&&!old.base?'<button class="secondary facility-flip" data-action="facility-store-edit">보관하기</button>':'')+'<div class="button-pair"><button data-action="cancel-layout">'+(editorReturn?'꾸미기로':'취소')+'</button><button class="primary" data-action="facility-save" '+(valid?'':'disabled')+'>배치 확정</button></div>';}
 function startEditor(){switchTab('world');$('world').classList.add('editing-layout');editor=true;scene.editing=true;scene.preview={};scene.selectedPatch='moss';$('editor').hidden=false;$('targets').hidden=true;renderEditor();syncEditorViewport();notice('요소를 고른 뒤 중심 점을 끌어보세요. 빈 곳을 밀면 아래쪽도 볼 수 있어요.');}
 let editorReturn=null;function resumeEditor(){const r=editorReturn;editorReturn=null;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;editor=true;scene.editing=true;scene.preview=r?.preview||{};scene.selectedPatch=r?.sel||'moss';$('world').classList.add('editing-layout');$('editor').hidden=false;$('targets').hidden=true;renderEditor();syncEditorViewport();}
 function endEditor(){editorReturn=null;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;$('world').classList.remove('editing-layout');editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;syncEditorViewport();}
@@ -377,6 +391,11 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(a==='facility-home'){switchTab('world');scene.onSelect('facility','shelter-0');return;}
  if(['facility-expand','facility-add'].includes(a)){startFacilityEdit(b.dataset.id,a.slice(9));return;}
  if(a==='facility-mirror'&&facilityDraft&&facilityDraft.kind!=='expand'){facilityDraft.flip=!facilityDraft.flip;renderFacilityEditor();return;}
+ if(a==='facility-copy'&&editorReturn&&facilityDraft?.kind==='move'){
+  const f=F.Shelter.facility(state,facilityDraft.id);
+  if(F.Shelter.canCopy(state,f))startFacilityEdit(f.id,'copy');
+  return;
+ }
  if(a==='facility-store'){commit(s=>F.Shelter.build(s,b.dataset.id,'store'),closeCard);return;}
  if(a==='facility-shift'){const d=facilityDraft,v={left:[-.025,0],right:[.025,0],up:[0,-.025],down:[0,.025]}[b.dataset.dir];d.x+=v[0];d.y+=v[1];renderFacilityEditor();return;}
  if(a==='facility-save'){const d=facilityDraft;commit(s=>F.Shelter.build(s,d.id,d.kind,{x:d.x,y:d.y,flip:d.flip}),()=>{if(editorReturn)resumeEditor();else endEditor();notice('쉼터 공간을 바꿨어요.');});return;}
@@ -388,11 +407,17 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(b.dataset.tab){if(b.dataset.tab==='decorate')startEditor();else switchTab(b.dataset.tab);return;}
  if(b.dataset.dex){dex=b.dataset.dex;renderPage();return;}
  if(b.dataset.patch){scene.selectedPatch=b.dataset.patch;renderEditor();return;}
- if(a==='shelf-mirror'&&scene.editing){
-  const shelf=F.World.stoneShelf(state);
-  if(!shelf)return;
-  const draft={...shelf,...scene.preview['stone-shelf']};
-  scene.preview['stone-shelf']={x:draft.x,y:draft.y,flip:!draft.flip};renderEditor();return;
+ if((a==='shelf-mirror'||a==='shelf-copy')&&scene.editing){
+  const item=scene.editorItems().find(p=>p.id===scene.selectedPatch&&F.World.SHELF_IDS.includes(p.id));
+  if(!item)return;
+  if(a==='shelf-mirror')scene.preview[item.id]={x:item.x,y:item.y,flip:!item.flip};
+  else{
+   const id=F.World.SHELF_IDS.find(id=>!F.World.stoneShelf(state,id)&&!scene.preview[id]);
+   if(!id)return;
+   scene.preview[id]=adjacentCopyPosition(item,p=>F.validateLayout(state,{...scene.preview,[id]:p}));
+   scene.selectedPatch=id;
+  }
+  renderEditor();return;
  }
  if(b.dataset.move&&scene.editing){
   const id=scene.selectedPatch,item=scene.editorItems().find(p=>p.id===id);

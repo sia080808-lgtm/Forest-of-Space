@@ -5,9 +5,9 @@ const number=v=>Number(Math.max(0,v).toFixed(2)).toString(),amount=v=>v>0&&v<.1?
 const metric=(id,label,value,note='')=>({id,label,value,note});
 function usage(s,id){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.objectTask?.object===id),inside=ps.filter(p=>O.at(s,p));return {count:inside.length,moving:ps.length-inside.length,used:inside.reduce((n,p)=>n+Sh.units(p),0)/4,reserved:ps.filter(p=>!inside.includes(p)).reduce((n,p)=>n+Sh.units(p),0)/4};}
 function model(s,id){
- if(id==='stone-shelf'){
-  if(!F.World.stoneShelf(s))return null;
-  const visitors=O.shelfVisitors(s),seated=visitors.filter(p=>O.shelfPose(s,p));
+ if(F.World.SHELF_IDS.includes(id)){
+  if(!F.World.stoneShelf(s,id))return null;
+  const visitors=O.shelfVisitors(s,id),seated=visitors.filter(p=>O.shelfPose(s,p));
   return {id,name:'돌 선반',description:'두 친구가 나란히 앉아 쉬는 자리예요.',
    status:seated.length===2?'두 친구가 나란히 쉬고 있어요':seated.length?'한 친구가 선반에서 쉬고 있어요':'잔잔한 낮에 친구들이 찾아와요',
    metrics:[metric('visitors','쉬는 친구',seated.length+' / 2명'),metric('reserved','가는 중',visitors.length-seated.length+'명')],

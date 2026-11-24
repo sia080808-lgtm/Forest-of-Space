@@ -18,7 +18,7 @@ const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSk
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.2.20', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.21', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -184,38 +184,40 @@ function resume(s,now=Date.now()){
  const result={seconds:s.offline.mode==='game'&&s.started?seconds:0,xp:s.individuals.reduce((n,p)=>n+p.xp,0)-start};s.offline=null;Sh.rebuild(s);s.savedAt=Math.max(s.savedAt,now);return result;
 }
 function shelfLayout(s,positions,patches,spring){
- const old=World.stoneShelf(s),proposal=positions['stone-shelf'];
- if(!old){
-  if(proposal)throw Error('남쪽 숲을 열면 돌 선반을 옮길 수 있어요.');
-  return null;
- }
- const shelf=proposal?{x:proposal.x,y:proposal.y,flip:proposal.flip??old.flip??false}:old;
- const moved=old.x!==shelf.x||old.y!==shelf.y;
- const changed=moved||!!old.flip!==!!shelf.flip;
- if(proposal&&(typeof shelf.flip!=='boolean'||!World.shelfOnLand(s,shelf)))
-  throw Error('돌 선반을 숲 안쪽의 마른 땅에 놓아주세요.');
- const box=World.shelfBounds(shelf);
- if(changed&&s.shelters.facilities.some(f=>World.boxesOverlap(box,Sh.setupBounds(f))))
-  throw Error('쉼터와 출입 공간을 비워주세요.');
- for(const p of [...patches,spring]){
-  if(p.id==='shelter')continue;
-  const prev=p===spring?s.spring:s.patches.find(q=>q.id===p.id);
-  if(!changed&&prev&&p.x===prev.x&&p.y===prev.y)continue;
-  const rx=p===spring?.12:.10;
-  if(World.boxesOverlap(box,{x0:p.x-rx,x1:p.x+rx,y0:p.y-.055,y1:p.y+.055}))
-   throw Error('돌 선반과 다른 사물이 겹쳐요.');
- }
- if(moved&&s.individuals.some(p=>p.active&&World.inside(s,p,box)))
-  throw Error('친구가 있는 자리를 비워주세요.');
- return proposal?shelf:null;
+ const ids=Object.keys(positions).filter(id=>id.startsWith('stone-shelf'));
+ if(ids.some(id=>!World.SHELF_IDS.includes(id)))throw Error('돌 선반은 최대 3개까지 놓을 수 있어요.');
+ if(ids.length&&!World.southOpen(s))throw Error('남쪽 숲을 열면 돌 선반을 옮길 수 있어요.');
+ const shelves=World.shelfDrafts(s,positions);
+ return shelves.flatMap(shelf=>{
+  const {id,x,y}=shelf,old=World.stoneShelf(s,id),proposal=positions[id],flip=shelf.flip??false;
+  const moved=!old||old.x!==x||old.y!==y,changed=moved||!!old.flip!==!!flip;
+  if(proposal&&(typeof flip!=='boolean'||!World.shelfOnLand(s,shelf)))
+   throw Error('돌 선반을 숲 안쪽의 마른 땅에 놓아주세요.');
+  const box=World.shelfBounds(shelf);
+  if(changed&&shelves.some(other=>other.id!==id&&World.boxesOverlap(box,World.shelfBounds(other))))
+   throw Error('돌 선반끼리 겹쳐요.');
+  if(changed&&s.shelters.facilities.some(f=>World.boxesOverlap(box,Sh.setupBounds(f))))
+   throw Error('쉼터와 출입 공간을 비워주세요.');
+  for(const p of [...patches,spring]){
+   if(p.id==='shelter')continue;
+   const prev=p===spring?s.spring:s.patches.find(q=>q.id===p.id);
+   if(!changed&&prev&&p.x===prev.x&&p.y===prev.y)continue;
+   const rx=p===spring?.12:.10;
+   if(World.boxesOverlap(box,{x0:p.x-rx,x1:p.x+rx,y0:p.y-.055,y1:p.y+.055}))
+    throw Error('돌 선반과 다른 사물이 겹쳐요.');
+  }
+  if(moved&&s.individuals.some(p=>p.active&&World.inside(s,p,box)))
+   throw Error('친구가 있는 자리를 비워주세요.');
+  return proposal?[{id,x,y,flip}]:[];
+ });
 }
 function layoutPlan(s,positions){const next=s.patches.map(p=>({...p,...positions[p.id]})),spring={...s.spring,...positions.spring};
  if(!Number.isFinite(spring.x)||!Number.isFinite(spring.y)||!World.inside(s,spring,World.inner(s,.14,.18,.14,.16)))throw Error('샘터를 정원 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&spring.x>1.2&&World.waterD(spring.x,spring.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');
  for(const p of next){if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p,World.inner(s,.12,.16,.12,.12)))throw Error('숲 가장자리 안쪽에 놓아주세요.');if(World.lakeOpen(s)&&p.x>1.2&&World.waterD(p.x,p.y)<1.2)throw Error('물가에서 조금 떨어진 땅에 놓아주세요.');if(p.id==='shelter'&&(p.x!==.23||p.y!==.22))throw Error('기본 쉼터는 옮길 수 없어요.');if(dist(p,spring)<.15)throw Error('샘터로 가는 길을 비워주세요.');}
  for(let i=0;i<next.length;i++)for(let j=i+1;j<next.length;j++)if(dist(next[i],next[j])<.135)throw Error('다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
- const shelf=shelfLayout(s,positions,next,spring);
+ const shelves=shelfLayout(s,positions,next,spring);
  const world={...s,patches:next,spring};
- if(shelf){
+ for(const shelf of shelves){
   const entrance=Space.socket(world,'shelter');
   for(const slot of [1,2]){
    const seat=World.shelfSeat(shelf,slot);
@@ -225,10 +227,12 @@ function layoutPlan(s,positions){const next=s.patches.map(p=>({...p,...positions
  }
  for(const id of ['spring','shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
  for(const pet of s.individuals)if(pet.active&&Space.walkable(s,pet)&&!Space.walkable(world,pet))throw Error('친구가 있는 자리를 비워주세요.');
- return {patches:next,shelf};
+ return {patches:next,shelves};
 }
 function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
-function layout(s,positions){const {patches:next,shelf}=layoutPlan(s,positions);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;s.patches=next;if(shelf)s.world.shelf=shelf;if(positions.spring){s.spring.x=positions.spring.x;s.spring.y=positions.spring.y;}for(const p of s.individuals)delete p.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
+function layout(s,positions){const {patches:next,shelves}=layoutPlan(s,positions);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;s.patches=next;for(const {id,...placement} of shelves){
+ if(id===World.SHELF_IDS[0])s.world.shelf=placement;else (s.world.shelfCopies??={})[id]=placement;
+ }if(positions.spring){s.spring.x=positions.spring.x;s.spring.y=positions.spring.y;}for(const p of s.individuals)delete p.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout','정원의 자리를 바꿨어요. 물과 생활 기록은 그대로예요.');return s;}
 // 1.2.6 보관함 (user: "꾸미공간 오브젝트들 보관하기(월드에서 없애기) 기능 추가", "꾸미기 창에 보관함 기능"): moss, the sun rock, the leaf shade
 // and the crevice can be put away and brought back. Put away, the object leaves the world (nobody uses it, nothing is drawn, no rain falls
 // on it) and keeps its water in the 보관함; back out, it lands at its old spot or the nearest free one. The spring and the litter bed stay.

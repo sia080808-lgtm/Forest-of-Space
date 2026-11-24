@@ -123,3 +123,59 @@ test('a free morning walk can reach the southern meadow and yields when the frie
  assert.equal(p.stroll?.south,undefined);
  assert.equal(p.action,'drink');
 });
+
+test('shelter copies retain the source level and direction and cap each type at three including stored copies',()=>{
+ const s=garden(),rock=discover(s),base=s.shelters.facilities[0];
+ s.shelters.unlocked=true;
+ rock.level=2;rock.flip=true;
+ Sh.build(s,base.id,'copy',{x:1.35,y:.03});
+ Sh.build(s,base.id,'copy',{x:.45,y:.012});
+ Sh.build(s,rock.id,'copy',{x:1.65,y:1.63});
+ Sh.build(s,rock.id,'copy',{x:2.70,y:.003});
+ const [first,second,third]=s.shelters.facilities.filter(Sh.isRock);
+ assert.deepEqual([first.level,second.level,third.level],[2,2,2]);
+ assert.deepEqual([first.flip,second.flip,third.flip],[true,true,true]);
+ assert.equal(new Set(s.shelters.facilities.map(f=>f.id)).size,6);
+ Sh.build(s,third.id,'store');
+ assert.throws(()=>Sh.build(s,rock.id,'copy',{x:2.70,y:.003}),/최대 3/);
+ assert.throws(()=>Sh.build(s,base.id,'copy',{x:2.70,y:.003}),/최대 3/);
+ const loaded=F.migrate(JSON.parse(JSON.stringify(s)));
+ assert.equal(loaded.shelters.stored.find(f=>f.id===third.id).level,2);
+ Sh.build(loaded,third.id,'restore',{x:2.70,y:.003});
+ F.valid(loaded);
+});
+
+test('ordinary walks avoid the roof and side of a mirrored or upgraded rock shelter',()=>{
+ const s=garden(),rock=discover(s),visitor=s.individuals[0];
+ for(const flip of [false,true])for(const level of [1,3]){
+  rock.level=level;rock.flip=flip;
+  const t=Sh.transform(rock),point=(x,y)=>({x:(t.x+(flip?500-x:x)*(220+t.extra)/500)/360,y:(t.y+y*t.sy)/576});
+  const roof=point(443,227);
+  assert.equal(F.Space.walkable(s,roof,visitor.id),false,`roof ${flip} level ${level}`);
+  assert.equal(F.Space.walkable(s,Sh.entry(rock),visitor.id),true,`door ${flip} level ${level}`);
+  const from=point(520,227),end=point(420,227);
+  assert.equal(F.Space.segment(s,from,end,visitor.id),false);
+ }
+});
+
+test('Elephan keeps its rock shelter while rain or cold persists near an unavailable umbrella guest',()=>{
+ for(const [reason,intensity] of [['shelterRain',70],['warm',24]]){
+  const s=garden(),rock=discover(s);
+  s.worldTick=8580;Object.assign(s.weather,{kind:'rain',intensity,wind:10,remaining:240,transition:0});
+  s.environment.windTarget=10;s.climate.T=22;s.environment.climateBlend=0;delete s.environment.climateFrom;
+  const host=s.individuals[0];
+  Object.assign(host,{species:'neolbi',xp:150,visualStage:3,B:64,nutrition:74,energy:83,action:'rest',target:'shelter',nextObjectChoice:0});
+  const seat=Sh.seat(s,rock,host);
+  Object.assign(host,seat);
+  host.shelter={...seat,phase:'restingInside',facilityId:rock.id,units:Sh.units(host),since:s.worldTick-8,entered:s.worldTick-8,revision:rock.revision};
+  host.objectTask={object:'shelter',kind:'rest',reason,...seat,serial:s.objects.nextSession++,since:s.worldTick-8,grade:2,remaining:18,stalled:0,deadline:s.worldTick+30};
+  const door=Sh.entry(rock,seat),other={...F.clone(host),id:'outside-test',species:'ridley',x:door.x+.12,y:door.y+.13,
+   B:65,energy:83,target:null,action:'wander',objectTask:null,shelter:{phase:'outside',since:s.worldTick},nextObjectChoice:s.worldTick+240};
+  s.individuals.push(other);
+  for(let i=0;i<150;i++){
+   F.step(s,{held:other.id});
+   assert.equal(host.shelter.phase,'restingInside',reason+' '+i);
+  }
+  assert.equal(host.shelter.facilityId,rock.id);
+ }
+});

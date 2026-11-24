@@ -1,4 +1,5 @@
 'use strict';
+const SOUTH_EDGE_OVERLAP=24;
 const MIST_PARTS=Object.freeze([[-1,0,.9],[1,.15,1],[0,-.25,.7],[-.6,.3,.6],[.6,.35,.6]]);   // 1.2.7 엘리시 물안개 숨결: [side, rise, size] of each cloud
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
@@ -93,14 +94,14 @@ class ForestScene {
  petSize(p){return 48*Forest.Shelter.growth(p)*(p.species==='neolbi'?ForestNeolbi.SIZE:p.species==='superbum'?ForestSuperbum.SIZE:1);}
  petAt(point){return this.state().individuals.filter(p=>p.active).find(p=>Forest.Space.distance(this.display[p.id]||p,point)<.09*(p.species==='neolbi'?ForestNeolbi.SIZE:p.species==='superbum'?ForestSuperbum.SIZE:1));}
  editorItems(){
-  const s=this.state(),shelf=Forest.World.stoneShelf(s);
+  const s=this.state();
   const items=[...s.patches.filter(p=>p.id!=='shelter'),{...s.spring,id:'spring',name:'샘터'}];
-  if(shelf)items.push({...shelf,id:'stone-shelf',name:'돌 선반'});
+  items.push(...Forest.World.shelfDrafts(s,this.preview).map(shelf=>({...shelf,name:'돌 선반'+(shelf.id===Forest.World.SHELF_IDS[0]?'':' '+shelf.id.at(-1))})));
   return items;
  }
  patchAt(point){
   return this.editorItems().map(p=>({...p,...this.preview[p.id]})).find(p=>
-   p.id==='stone-shelf'?Forest.World.inside(this.state(),point,Forest.World.shelfBounds(p)):Forest.dist(p,point)<.10);
+   Forest.World.SHELF_IDS.includes(p.id)?Forest.World.inside(this.state(),point,Forest.World.shelfBounds(p)):Forest.dist(p,point)<.10);
  }
  handleHit(point,p){const a=this.camera.screen(point),b=this.camera.screen(p);return Math.hypot(a.x-b.x,a.y-b.y)<=24;}
  facilityAt(point){
@@ -120,8 +121,8 @@ class ForestScene {
   if(pet)return this.onSelect('pet',pet.id);
   const f=this.facilityAt(point);
   if(f)return this.onSelect('facility',f.id);
-  const shelf=Forest.World.stoneShelf(s);
-  if(shelf&&Forest.World.inside(s,point,Forest.World.shelfBounds(shelf)))return this.onSelect('patch','stone-shelf');
+  const shelf=Forest.World.stoneShelves(s).find(q=>Forest.World.inside(s,point,Forest.World.shelfBounds(q)));
+  if(shelf)return this.onSelect('patch',shelf.id);
   const boat=s.world?.lake?.boat;
   if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');
   const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);
@@ -324,9 +325,9 @@ class ForestScene {
   return true;
  }
  drawStoneShelf(c,s,w,h){
-  const saved=Forest.World.stoneShelf(s);
-  if(!saved)return;
-  const shelf={...saved,...this.preview['stone-shelf']};
+  for(const shelf of Forest.World.shelfDrafts(s,this.preview))this.drawShelfArt(c,shelf,w,h);
+ }
+ drawShelfArt(c,shelf,w,h){
   const x=shelf.x*w-105,y=shelf.y*h-27;
   if(shelf.flip){c.save();c.translate(2*shelf.x*w,0);c.scale(-1,1);}
   const atlas=this.assets.stoneShelfSeasons;
@@ -519,32 +520,11 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(cached)return cached;
   const floor=document.createElement('canvas');
   floor.width=Math.ceil((region.x1-region.x0)*w*.5);
-  floor.height=Math.ceil((region.y1-region.y0)*h*.5);
-  const c=floor.getContext('2d'),assets=this.assets;
-  const x=v=>(v-region.x0)*w*.5,y=v=>(v-region.y0)*h*.5;
-  const art=name=>assets[name+'_'+season]||assets[name];
+  floor.height=Math.ceil(((region.y1-region.y0)*h+SOUTH_EDGE_OVERLAP)*.5);
+  const c=floor.getContext('2d');
+  const x=v=>(v-region.x0)*w*.5,y=v=>((v-region.y0)*h+SOUTH_EDGE_OVERLAP)*.5;
   const tint={spring:'147,165,107',summer:'126,145,100',autumn:'159,141,100',winter:'172,183,187'}[season];
-  // Reflect a full band at each floor edge to preserve the scale and direction of the paper grain.
-  if(season!=='winter'){
-   const edge=document.createElement('canvas');
-   edge.width=floor.width;edge.height=44;
-   const ec=edge.getContext('2d');
-   ec.save();ec.scale(1,-1);
-   const forest=Forest.World.REGIONS.forest;
-   for(const [source,x0,x1,worldHeight] of [
-    [assets.gardenWide,forest.x0,forest.x1,forest.y1-forest.y0],
-    [assets.lakeFloor,1.05,region.x1,1.5]
-   ]){
-    if(!source)continue;
-    const rows=edge.height*source.height/(worldHeight*h*.5);
-    ec.drawImage(source,0,source.height-rows,source.width,rows,x(x0),-edge.height,x(x1)-x(x0),edge.height);
-   }
-   ec.restore();
-   const fade=ec.createLinearGradient(0,0,0,edge.height);
-   fade.addColorStop(0,'black');fade.addColorStop(.55,'rgba(0,0,0,.25)');fade.addColorStop(1,'transparent');
-   ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,edge.width,edge.height);
-   c.drawImage(edge,0,0);
-  }
+  if(season!=='winter')this.southPaperEdge(c,floor.width,x);
   // Keep the center open as a continuation of the paths from the forest and the lake.
   for(const [px,py,rx,ry] of [[.28,1.43,115,38],[.56,1.73,99,31],[2.71,1.53,115,43],[2.97,1.78,78,27]]){
    c.save();c.translate(x(px),y(py));c.scale(1,ry/rx);
@@ -552,22 +532,52 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    wash.addColorStop(0,'rgba('+tint+',.15)');wash.addColorStop(1,'rgba('+tint+',0)');
    c.fillStyle=wash;c.fillRect(-rx,-rx,rx*2,rx*2);c.restore();
   }
-  for(const [px,py,i,dw] of [[-.03,1.37,2,36],[.29,1.48,4,48],[.48,1.75,3,40],[.89,1.86,5,32],
-   [1.56,1.36,2,24],[2.44,1.41,2,27],[2.67,1.62,6,42],[2.92,1.75,3,30],[3.13,1.52,4,35]]){
-   const fern=art('fern'+i);
-   if(!fern)continue;
-   const dh=dw*fern.height/fern.width;
-   c.drawImage(fern,x(px)-dw/2,y(py)-dh,dw,dh);
-  }
-  const terrain=art('terrain');
-  if(terrain){
-   const tileW=terrain.width/3,tileH=terrain.height/2;
-   for(const [px,py,column,size] of [[.18,1.54,1,24],[.42,1.84,1,20],[2.55,1.60,0,24],[2.68,1.64,0,15],[3.0,1.78,0,20]]){
-    c.drawImage(terrain,column*tileW,0,tileW,tileH,x(px)-size/2,y(py)-size*.72,size,size);
-   }
-  }
   this.southFloors.set(season,floor);
   return floor;
+ }
+ southPaperEdge(c,width,x){
+  // Sample paper color along the boundary. Copying the pixels would repeat shore vegetation upside down.
+  const edge=document.createElement('canvas');edge.width=width;edge.height=44+SOUTH_EDGE_OVERLAP/2;
+  const sample=document.createElement('canvas');sample.width=48;sample.height=4;
+  const ec=edge.getContext('2d'),read=sample.getContext('2d'),forest=Forest.World.REGIONS.forest;
+  for(const [source,x0,x1] of [[this.assets.gardenWide,forest.x0,forest.x1],[this.assets.lakeFloor,1.05,3.3]]){
+   if(!source)continue;
+   read.clearRect(0,0,48,4);
+   read.drawImage(source,0,source.height-16,source.width,16,0,0,48,4);
+   const pixels=read.getImageData(0,0,48,4).data;
+   const gradient=ec.createLinearGradient(x(x0),0,x(x1),0);
+   for(let group=0;group<8;group++){
+    const colors=[];
+    for(let y=0;y<4;y++)for(let col=group*6;col<group*6+6;col++){
+     const i=(y*48+col)*4;
+     if(pixels[i+3]>245)colors.push([pixels[i],pixels[i+1],pixels[i+2]]);
+    }
+    colors.sort((a,b)=>a[0]+a[1]+a[2]-b[0]-b[1]-b[2]);
+    const paper=colors[Math.floor(colors.length*.73)];
+    gradient.addColorStop(group/7,paper?'rgb('+paper.join(',')+')':'transparent');
+   }
+   ec.fillStyle=gradient;ec.fillRect(x(x0),0,x(x1)-x(x0),edge.height);
+  }
+  const fade=ec.createLinearGradient(0,0,0,edge.height);
+  fade.addColorStop(0,'transparent');fade.addColorStop((SOUTH_EDGE_OVERLAP/2)/edge.height,'black');fade.addColorStop(.65,'rgba(0,0,0,.25)');fade.addColorStop(1,'transparent');
+  ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,width,edge.height);
+  c.drawImage(edge,0,0);
+ }
+ drawSouthPlants(c,w,h,season){
+  const art=name=>this.assets[name+'_'+season]||this.assets[name];
+  for(const [x,y,i,width] of [[-.03,1.37,2,72],[.29,1.48,4,96],[.48,1.75,3,80],[.89,1.86,5,64],
+   [1.56,1.36,2,48],[2.44,1.41,2,54],[2.67,1.62,6,84],[2.92,1.75,3,60],[3.13,1.52,4,70]]){
+   const fern=art('fern'+i);
+   if(!fern)continue;
+   const height=width*fern.height/fern.width;
+   c.drawImage(fern,x*w-width/2,y*h-height,width,height);
+  }
+  const terrain=art('terrain');
+  if(!terrain)return;
+  const tileW=terrain.width/3,tileH=terrain.height/2;
+  for(const [x,y,column,size] of [[.18,1.54,1,48],[.42,1.84,1,40],[2.55,1.60,0,48],[2.68,1.64,0,30],[3.0,1.78,0,40]]){
+   c.drawImage(terrain,column*tileW,0,tileW,tileH,x*w-size/2,y*h-size*.72,size,size);
+  }
  }
  drawSouth(c,w,h,s){
   const W=Forest.World;
@@ -575,7 +585,10 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   const r=W.REGIONS.south;
   if(this.camera.screen({x:0,y:r.y0}).y>this.vh||this.camera.screen({x:0,y:r.y1}).y<0)return;
   const cal=this.cal();
-  const draw=season=>c.drawImage(this.southLandscape(r,w,h,season),r.x0*w,r.y0*h,(r.x1-r.x0)*w,(r.y1-r.y0)*h);
+  const draw=season=>{
+   c.drawImage(this.southLandscape(r,w,h,season),r.x0*w,r.y0*h-SOUTH_EDGE_OVERLAP,(r.x1-r.x0)*w,(r.y1-r.y0)*h+SOUTH_EDGE_OVERLAP);
+   this.drawSouthPlants(c,w,h,season);
+  };
   if(cal&&cal.blend<1){
    c.save();c.globalAlpha*=1-cal.blend;draw(cal.prev);c.restore();
    c.save();c.globalAlpha*=cal.blend;draw(cal.id);c.restore();
@@ -665,7 +678,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     if(ns.e<=0&&!target)delete this.nookS[p.id];else{const k=ns.e*ns.e*(3-2*ns.e);pos={x:pos.x+(ns.to.x-pos.x)*k,y:pos.y+(ns.to.y-pos.y)*k};nook=ns.to;seated=ns.e>=1;
      if(ns.e!==was||(ns.e>0&&ns.e<1)){kind='slow';this.facing=this.facing||{};const dx=(ns.to.x-p.x)*(target?1:-1);if(Math.abs(dx)>.0005)this.facing[p.id]=dx<0?-1:1;}
      const g=this.creviceGeom();behind=seated||!!g&&pos.y*this.h<g.px(0,352).y;}}
-   const shelf=s.mode==='game'&&p.stroll?.shelf&&this.carry?.id!==p.id&&Forest.World.stoneShelf(s);
+   const shelf=s.mode==='game'&&p.stroll?.shelf&&this.carry?.id!==p.id&&Forest.World.stoneShelf(s,p.stroll.shelfId);
    let perch=null;
    if(shelf){
     const remaining=Forest.Space.distance(pos,p.stroll);
