@@ -462,16 +462,24 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   const x=v=>(v-region.x0)*w*.5,y=v=>(v-region.y0)*h*.5;
   const art=name=>assets[name+'_'+season]||assets[name];
   const tint={spring:'147,165,107',summer:'126,145,100',autumn:'159,141,100',winter:'172,183,187'}[season];
-  // Continue the paper grain at the seam, without carrying shoreline detail down the map.
+  // Reflect a full band at each floor edge to preserve the scale and direction of the paper grain.
   if(season!=='winter'){
    const edge=document.createElement('canvas');
    edge.width=floor.width;edge.height=44;
    const ec=edge.getContext('2d');
-   for(const [source,x0,x1] of [[assets.gardenWide,region.x0,1.25],[assets.lakeFloor,1.05,region.x1]]){
-    if(source)ec.drawImage(source,0,source.height-3,source.width,3,x(x0),0,x(x1)-x(x0),edge.height);
+   ec.save();ec.scale(1,-1);
+   const forest=Forest.World.REGIONS.forest;
+   for(const [source,x0,x1,worldHeight] of [
+    [assets.gardenWide,forest.x0,forest.x1,forest.y1-forest.y0],
+    [assets.lakeFloor,1.05,region.x1,1.5]
+   ]){
+    if(!source)continue;
+    const rows=edge.height*source.height/(worldHeight*h*.5);
+    ec.drawImage(source,0,source.height-rows,source.width,rows,x(x0),-edge.height,x(x1)-x(x0),edge.height);
    }
+   ec.restore();
    const fade=ec.createLinearGradient(0,0,0,edge.height);
-   fade.addColorStop(0,'black');fade.addColorStop(1,'transparent');
+   fade.addColorStop(0,'black');fade.addColorStop(.55,'rgba(0,0,0,.25)');fade.addColorStop(1,'transparent');
    ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,edge.width,edge.height);
    c.drawImage(edge,0,0);
   }
