@@ -34,3 +34,29 @@ test('lily motion uses every species rig through boarding, paddling, dew, shakin
  delete s.world.lake.boat.rider;p.species='duri';
  for(const kind of ['sniff','drink'])scene.pet(p,{x:.5,y:.6},kind,scene.phase,false);
 });
+
+test('the rock shelter uses the same dimensions for all seasonal art and blends between seasons',async()=>{
+ const {loadImage}=require('@napi-rs/canvas');
+ const {scene,calls}=sceneFixture();
+ const path=require('node:path');
+ const file=path.resolve(__dirname,'../../app/src/main/assets/web/assets/forest/seasons/rock-shelter-seasons.webp');
+ const art=scene.assets.rockShelterSeasons=await loadImage(file);
+ a.deepEqual([art.width,art.height],[1200,760]);
+ const shelter={kind:'stone',x:.73,y:1.62,level:1};
+ const t=F.Shelter.transform(shelter);
+ const positions={spring:[0,0],summer:[600,0],autumn:[0,380],winter:[600,380]};
+ for(const [id,[x,y]] of Object.entries(positions)){
+  calls.length=0;
+  scene.cal=()=>({id,blend:1});
+  scene.shelterArt(shelter);
+  const draws=calls.filter(call=>call.k==='drawImage');
+  a.equal(draws.length,1);
+  a.deepEqual(draws[0].args.slice(0,5),[art,x,y,600,380]);
+  a.deepEqual(draws[0].args.slice(5),[t.x-22,t.y-11,264,380*t.sy]);
+ }
+ calls.length=0;
+ scene.cal=()=>({id:'winter',prev:'autumn',blend:.5});
+ scene.shelterArt({...shelter,flip:true,level:2});
+ a.deepEqual(calls.filter(call=>call.k==='drawImage').map(call=>call.args.slice(1,3)),[[0,380],[600,380]]);
+ a.ok(calls.some(call=>call.k==='scale'&&call.args[0]===-1));
+});
