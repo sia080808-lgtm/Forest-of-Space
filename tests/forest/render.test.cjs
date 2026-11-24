@@ -60,3 +60,17 @@ test('the rock shelter uses the same dimensions for all seasonal art and blends 
  a.deepEqual(calls.filter(call=>call.k==='drawImage').map(call=>call.args.slice(1,3)),[[0,380],[600,380]]);
  a.ok(calls.some(call=>call.k==='scale'&&call.args[0]===-1));
 });
+
+test('each of the seven friends uses its own rear sprite on the south shelf',async()=>{
+ const {loadImage}=require('@napi-rs/canvas'),path=require('node:path');
+ const {scene,s,calls}=sceneFixture();
+ const art=scene.assets.shelfBacks=await loadImage(path.resolve(__dirname,'../../app/src/main/assets/web/assets/forest/shelf-backs.webp'));
+ a.deepEqual([art.width,art.height],[640,320]);
+ for(const [slot,species] of ['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'].entries()){
+  calls.length=0;
+  const p={...s.individuals[0],species};
+  a.equal(scene.shelfBack(p,{x:2.63,y:1.43}),true);
+  const draw=calls.find(call=>call.k==='drawImage');
+  a.deepEqual(draw.args.slice(0,5),[art,slot%4*160,Math.floor(slot/4)*160,160,160]);
+ }
+});

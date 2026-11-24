@@ -83,7 +83,7 @@ class ForestScene {
  constructor(canvas,getState){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.state=getState;this.assets={};this.selected=null;this.editing=false;this.preview={};this.selectedPatch='moss';this.phase=0;this.display={};this.ready=false;this.onSelect=()=>{};this.onMove=()=>{};this.paused=false;this.drag=null;this.last=0;this.resize=new ResizeObserver(()=>this.measure());this.resize.observe(canvas);this.measure();
   let saved;try{saved=JSON.parse(localStorage.getItem('forest-camera-v2'));}catch{}this.camera=new ForestCamera(saved);this.measure();
  }
- async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','rockShelter','rockShelterSeasons','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lakeDusk','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',rockShelter:'assets/forest/rock-shelter.webp',rockShelterSeasons:'assets/forest/seasons/rock-shelter-seasons.webp',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',lakeDusk:'assets/forest/lake/lake-dusk.webp',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
+ async load(){await Promise.all([...Object.keys(ForestScene.seasonFiles()),'shadePlant','shadeGround','garden','gardenWide','frame','shelterArt','rockShelter','rockShelterSeasons','stoneShelf','shelfBacks','springArt','fern1','fern2','fern3','fern4','fern5','fern6','ridley','terrain','basin','lakeFloor','lakeIce','lakeDusk','lily_leaf','lily_bud','lily_half','lily_full','lily_sink','lily_wither',...['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>'life_'+n),...Object.keys(ForestRig.files)].map(n=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>{this.assets[n]=im;res();};im.onerror=()=>rej(Error('정원 그림을 불러오지 못했어요.'));im.src=({...ForestScene.seasonFiles(),shadePlant:'assets/forest/shade-plant.png',shadeGround:'assets/forest/shade-ground.png',gardenWide:'assets/forest/garden-wide.png',frame:'assets/forest/frame.png',shelterArt:'assets/forest/shelter-art.png',rockShelter:'assets/forest/rock-shelter.webp',rockShelterSeasons:'assets/forest/seasons/rock-shelter-seasons.webp',stoneShelf:'assets/forest/stone-shelf.webp',shelfBacks:'assets/forest/shelf-backs.webp',springArt:'assets/forest/spring-art.png',lakeFloor:'assets/forest/lake/lake-floor.png',lakeIce:'assets/forest/lake/lake-ice.png',lakeDusk:'assets/forest/lake/lake-dusk.webp',...Object.fromEntries(['leaf','bud','half','full','sink','wither'].map(n=>['lily_'+n,'assets/forest/lake/lily-'+n+'.png'])),...Object.fromEntries(['strider','snail','eggs','tadpole','frog','frogswim','nymph','dragonfly','beetle','medaka','larva'].map(n=>['life_'+n,'assets/forest/lake/life-'+n+'.png'])),...Object.fromEntries([1,2,3,4,5,6].map(i=>['fern'+i,'assets/forest/ferns/fern-'+i+'.png']))})[n]||ForestRig.files[n]||'assets/forest/'+(n==='garden'?'garden-open':n==='basin'?'garden-dry':n)+'.png';})));this.prepareLitter();this.ready=true;requestAnimationFrame(t=>this.frame(t));}
 
  prepareLitter(){const im=this.assets.terrain,c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.drawImage(im,512,512,512,512,0,0,512,512);const silhouette=document.createElement('canvas');silhouette.width=silhouette.height=512;const q=silhouette.getContext('2d');q.drawImage(c,0,0);q.globalCompositeOperation='source-in';q.fillStyle='rgba(62,53,30,.19)';q.fillRect(0,0,512,512);this.litterShadow=silhouette;{/* 1.1.6: the litter shadow's soft edge is baked once (it was a blur filter every frame) */const soft=document.createElement('canvas');soft.width=soft.height=512;const sx=soft.getContext('2d');sx.filter='blur(.6px)';sx.drawImage(silhouette,0,0);this.litterShadowSoft=soft;}this.litterPicked=document.createElement('canvas');this.litterPicked.width=im.width;this.litterPicked.height=im.height;const v=this.litterPicked.getContext('2d');v.drawImage(im,0,0);v.save();v.globalCompositeOperation='destination-out';v.beginPath();v.ellipse(803,714,62,29,-.12,0,Math.PI*2);v.fill();v.restore();}
  measure(){const r=this.canvas.getBoundingClientRect();if(!r.width||!r.height)return;this.vw=r.width;this.vh=r.height;this.w=360;this.h=576;this.camera?.resize(r.width,r.height);const d=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.max(1,r.width*d);this.canvas.height=Math.max(1,r.height*d);this.ctx.setTransform(d,0,0,d,0,0);this.cameraChanged();}
@@ -94,7 +94,7 @@ class ForestScene {
  petAt(point){return this.state().individuals.filter(p=>p.active).find(p=>Forest.Space.distance(this.display[p.id]||p,point)<.09*(p.species==='neolbi'?ForestNeolbi.SIZE:p.species==='superbum'?ForestSuperbum.SIZE:1));}
  patchAt(point){return [...this.state().patches,{...this.state().spring,id:'spring',name:'샘터'}].filter(p=>p.id!=='shelter').map(p=>({...p,...this.preview[p.id]})).find(p=>Forest.dist(p,point)<.10);}
  handleHit(point,p){const a=this.camera.screen(point),b=this.camera.screen(p);return Math.hypot(a.x-b.x,a.y-b.y)<=24;}
- selectAt(point){const s=this.state(),pet=this.petAt(point);if(pet)return this.onSelect('pet',pet.id);const f=s.shelters?.facilities.find(f=>{const t=Forest.Shelter.transform(f);return point.x*360>t.x&&point.x*360<t.x+220+t.extra&&point.y*576>t.y&&point.y*576<t.y+(Forest.Shelter.isRock(f)?293*t.sy:170);});if(f)return this.onSelect('facility',f.id);const boat=s.world?.lake?.boat;if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);if(p)this.onSelect('patch',p.id);else if(Forest.dist(s.spring,point)<.12)this.onSelect('spring','spring');else this.onSelect(null,null);}
+ selectAt(point){const s=this.state(),pet=this.petAt(point);if(pet)return this.onSelect('pet',pet.id);const f=s.shelters?.facilities.find(f=>{const t=Forest.Shelter.transform(f);return point.x*360>t.x&&point.x*360<t.x+220+t.extra&&point.y*576>t.y&&point.y*576<t.y+(Forest.Shelter.isRock(f)?293*t.sy:170);});if(f)return this.onSelect('facility',f.id);const shelf=Forest.World.stoneShelf(s);if(!this.editing&&shelf&&Math.abs(point.x-shelf.x)<.22&&Math.abs(point.y-shelf.y)<.052)return this.onSelect('patch','stone-shelf');const boat=s.world?.lake?.boat;if(boat&&!Forest.World.frozen(s)&&Forest.dist(boat,point)<.11)return this.onSelect('patch','lily-boat');const p=s.patches.find(p=>Forest.dist(p,point)<.1)||(s.objects?.litter?.piles||[]).find(p=>Forest.dist(p,point)<.05);if(p)this.onSelect('patch',p.id);else if(Forest.dist(s.spring,point)<.12)this.onSelect('spring','spring');else this.onSelect(null,null);}
  springVisible(){const p=this.camera.screen(this.state().spring);return p.x>-30&&p.x<this.vw+30&&p.y>-30&&p.y<this.vh+30;}
 
  frame(t){requestAnimationFrame(n=>this.frame(n));if(this.paused||!this.ready||!this.w||t-this.last<33)return;this.dt=Math.min(.1,(t-this.last)/1000||.033);this.last=t;if(this.inspector){this.inspector.update(this.dt);this.phase=this.inspector.time;}else this.phase=t/1000;this.draw();}
@@ -277,6 +277,22 @@ class ForestScene {
    drop:reduced?0:Math.min(1,Math.max(0,(age-13)/1.5)),
    direction:b.cross?Math.sign(b.cross.landing.x-b.home.x):0};
  }
+ shelfBack(p,pos){
+  const art=this.assets.shelfBacks;
+  const index=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum'].indexOf(p.species);
+  if(!art||index<0)return false;
+  const c=this.ctx,scale=Forest.Shelter.growth(p),x=pos.x*this.w,y=pos.y*this.h;
+  const w=92*scale,h=90*scale;
+  ForestSurfaces.wash(c,x,y,9*scale,2*scale,'68,61,42',.18,1);
+  c.drawImage(art,index%4*160,Math.floor(index/4)*160,160,160,x-w/2,y-h,w,h);
+  return true;
+ }
+ drawStoneShelf(c,s,w,h){
+  const shelf=Forest.World.stoneShelf(s),art=this.assets.stoneShelf;
+  if(!shelf||!art)return;
+  const x=shelf.x*w,y=shelf.y*h;
+  c.drawImage(art,x-105,y-27,180,63);
+ }
  pet(p,pos,kind,phase,night,held=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
   if(!held)ForestSurfaces.wash(c,x,y,9*growth,2*growth,'68,61,42',.20,1);
@@ -451,28 +467,75 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(typeof ForestEffects!=='undefined')return ForestEffects.lakeLight?.(c,s,L,w,h,this.phase,this.assets.lakeFloor,
    dusk&&!includeFloor?()=>this.openWater(dusk):dusk,includeFloor);
  }
+ southLandscape(region,w,h,season){
+  this.southFloors??=new Map();
+  const cached=this.southFloors.get(season);
+  if(cached)return cached;
+  const floor=document.createElement('canvas');
+  floor.width=Math.ceil((region.x1-region.x0)*w*.5);
+  floor.height=Math.ceil((region.y1-region.y0)*h*.5);
+  const c=floor.getContext('2d'),assets=this.assets;
+  const x=v=>(v-region.x0)*w*.5,y=v=>(v-region.y0)*h*.5;
+  const art=name=>assets[name+'_'+season]||assets[name];
+  const tint={spring:'147,165,107',summer:'126,145,100',autumn:'159,141,100',winter:'172,183,187'}[season];
+  // Reflect a full band at each floor edge to preserve the scale and direction of the paper grain.
+  if(season!=='winter'){
+   const edge=document.createElement('canvas');
+   edge.width=floor.width;edge.height=44;
+   const ec=edge.getContext('2d');
+   ec.save();ec.scale(1,-1);
+   const forest=Forest.World.REGIONS.forest;
+   for(const [source,x0,x1,worldHeight] of [
+    [assets.gardenWide,forest.x0,forest.x1,forest.y1-forest.y0],
+    [assets.lakeFloor,1.05,region.x1,1.5]
+   ]){
+    if(!source)continue;
+    const rows=edge.height*source.height/(worldHeight*h*.5);
+    ec.drawImage(source,0,source.height-rows,source.width,rows,x(x0),-edge.height,x(x1)-x(x0),edge.height);
+   }
+   ec.restore();
+   const fade=ec.createLinearGradient(0,0,0,edge.height);
+   fade.addColorStop(0,'black');fade.addColorStop(.55,'rgba(0,0,0,.25)');fade.addColorStop(1,'transparent');
+   ec.globalCompositeOperation='destination-in';ec.fillStyle=fade;ec.fillRect(0,0,edge.width,edge.height);
+   c.drawImage(edge,0,0);
+  }
+  // Keep the center open as a continuation of the paths from the forest and the lake.
+  for(const [px,py,rx,ry] of [[.28,1.43,115,38],[.56,1.73,99,31],[2.71,1.53,115,43],[2.97,1.78,78,27]]){
+   c.save();c.translate(x(px),y(py));c.scale(1,ry/rx);
+   const wash=c.createRadialGradient(0,0,0,0,0,rx);
+   wash.addColorStop(0,'rgba('+tint+',.15)');wash.addColorStop(1,'rgba('+tint+',0)');
+   c.fillStyle=wash;c.fillRect(-rx,-rx,rx*2,rx*2);c.restore();
+  }
+  for(const [px,py,i,dw] of [[-.03,1.37,2,36],[.29,1.48,4,48],[.48,1.75,3,40],[.89,1.86,5,32],
+   [1.56,1.36,2,24],[2.44,1.41,2,27],[2.67,1.62,6,42],[2.92,1.75,3,30],[3.13,1.52,4,35]]){
+   const fern=art('fern'+i);
+   if(!fern)continue;
+   const dh=dw*fern.height/fern.width;
+   c.drawImage(fern,x(px)-dw/2,y(py)-dh,dw,dh);
+  }
+  const terrain=art('terrain');
+  if(terrain){
+   const tileW=terrain.width/3,tileH=terrain.height/2;
+   for(const [px,py,column,size] of [[.18,1.54,1,24],[.42,1.84,1,20],[2.55,1.60,0,24],[2.68,1.64,0,15],[3.0,1.78,0,20]]){
+    c.drawImage(terrain,column*tileW,0,tileW,tileH,x(px)-size/2,y(py)-size*.72,size,size);
+   }
+  }
+  this.southFloors.set(season,floor);
+  return floor;
+ }
  drawSouth(c,w,h,s){
   const W=Forest.World;
   if(!W.southOpen(s))return;
-  const r=W.REGIONS.south,top=r.y0*h,bottom=r.y1*h,width=(r.x1-r.x0)*w;
+  const r=W.REGIONS.south;
   if(this.camera.screen({x:0,y:r.y0}).y>this.vh||this.camera.screen({x:0,y:r.y1}).y<0)return;
-  if(!this.southFloor){
-   const floor=document.createElement('canvas');floor.width=Math.ceil(width);floor.height=Math.ceil(bottom-top);
-   const ctx=floor.getContext('2d');
-   const wash=ctx.createLinearGradient(0,0,0,floor.height);
-   wash.addColorStop(0,'rgba(132,145,104,0)');wash.addColorStop(.65,'rgba(132,145,104,.10)');wash.addColorStop(1,'rgba(132,145,104,0)');
-   ctx.fillStyle=wash;ctx.fillRect(0,0,floor.width,floor.height);
-   for(const [x,y,i,scale] of [[.06,.34,2,.24],[.54,.79,4,.24],[1.22,.80,3,.23],[1.78,.37,2,.22],[2.18,.70,5,.26],[2.82,.46,6,.23],[3.06,.82,3,.20]]){
-    const art=this.assets['fern'+i];if(!art)continue;
-    const dw=art.width*scale,dh=art.height*scale;
-    ctx.drawImage(art,(x-r.x0)*w-dw/2,y*floor.height-dh,dw,dh);
-   }
-   this.southFloor=floor;
-  }
-  c.drawImage(this.southFloor,r.x0*w,top,width,bottom-top);
+  const cal=this.cal();
+  const draw=season=>c.drawImage(this.southLandscape(r,w,h,season),r.x0*w,r.y0*h,(r.x1-r.x0)*w,(r.y1-r.y0)*h);
+  if(cal&&cal.blend<1){
+   c.save();c.globalAlpha*=1-cal.blend;draw(cal.prev);c.restore();
+   c.save();c.globalAlpha*=cal.blend;draw(cal.id);c.restore();
+  }else draw(cal?.id||'summer');
  }
  drawFloor(c,w,h){const A=this.assets,f=Forest.World?.REGIONS.forest,s=this.state();
-  this.drawSouth(c,w,h,s);
   if(A.gardenWide&&f){c.drawImage(A.gardenWide,f.x0*w,f.y0*h,(f.x1-f.x0)*w,(f.y1-f.y0)*h);
    // 0.9.0 동쪽 호수 물가 (0.9.5: the whole lake, art x 1.05..3.3) (fading in over the forest's east edge); only the open part shows (world clip)
    if(Forest.World?.lakeOpen?.(s)){
@@ -513,7 +576,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
-  enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
+  enter();this.drawFloor(c,w,h);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
+  this.drawStoneShelf(c,s,w,h);
   const patches=s.patches.map(p=>({...p,...this.preview[p.id]}));patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();this.drawSkillGround(c,w,h,phase);
   this.springFlow();
   for(const p of s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0)){const g=ForestNeolbi.geometry(p);ForestSurfaces.wash(c,g.cx*w,g.cy*h,g.rx*w,g.ry*h,'71,82,60',.14*p.canopyProgress,1.5);}
@@ -555,6 +619,15 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     if(ns.e<=0&&!target)delete this.nookS[p.id];else{const k=ns.e*ns.e*(3-2*ns.e);pos={x:pos.x+(ns.to.x-pos.x)*k,y:pos.y+(ns.to.y-pos.y)*k};nook=ns.to;seated=ns.e>=1;
      if(ns.e!==was||(ns.e>0&&ns.e<1)){kind='slow';this.facing=this.facing||{};const dx=(ns.to.x-p.x)*(target?1:-1);if(Math.abs(dx)>.0005)this.facing[p.id]=dx<0?-1:1;}
      const g=this.creviceGeom();behind=seated||!!g&&pos.y*this.h<g.px(0,352).y;}}
+   const shelf=s.mode==='game'&&p.stroll?.shelf&&this.carry?.id!==p.id&&Forest.World.stoneShelf(s);
+   let perch=null;
+   if(shelf){
+    const remaining=Forest.Space.distance(pos,p.stroll);
+    if(remaining<.004)perch=Forest.Objects.shelfPose(s,p);
+    const lift=perch?.lift??shelf.rise*Math.max(0,1-remaining/.095);
+    pos={x:pos.x,y:pos.y-lift/h};
+    if(perch)kind='rest';
+   }
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};if(motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
@@ -562,7 +635,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip();
    if(!carry&&!this.recording&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry)this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
+   if(!carry&&!(perch?.back&&this.shelfBack(p,pos)))this.pet(p,pos,kind,phase,night,kind==='held');if(!carry&&seated)this.ctx.restore();if(!carry)this.leafNeighbours(p,pos,phase);if(!carry)this.interaction(p,pos,kind,phase);if(!carry)this.shelterFront(p,pos);
    if(!carry&&this.onRock(pos))riders.push([p,pos,kind,phase]);
    // stones in front of this friend are drawn again over it; when that redraws the sun rock (a friend passing behind
    // it), friends already resting on the rock are drawn again on top, so the rock never covers them (0.6.31)

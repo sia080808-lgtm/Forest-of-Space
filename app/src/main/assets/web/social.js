@@ -59,7 +59,7 @@ function canopyReason(s,p){
 function start(s,type,ps){const ids=ps.map(p=>p.id),key=type+':'+[...ids].sort().join(':');if((s.social.cooldowns[key]||0)>s.worldTick||ps.some(p=>(p.socialUntil||0)>s.worldTick))return;
  if(s.objects){const O=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;for(const p of ps){
   O.release(s,p,'replace');
-  if(type==='CANOPY'||type==='A12'){delete p.stroll;delete p.walkPlan;}
+  if(type==='CANOPY'||type==='A12'||p.stroll?.shelf){delete p.stroll;delete p.walkPlan;}
  }}
  const a={id:'social-'+(++s.social.serial),type,ids,key,phase:'signal',elapsed:0,started:s.worldTick,layout:s.layoutRevision,steps:0,total:0,rain:0,lastTick:-1};s.social.sessions.push(a);return a;}
 function prepare(s,held){init(s);const participants=new Set();for(const p of s.individuals){p.canopy=false;delete p.protectedBy;}
@@ -80,7 +80,7 @@ function prepare(s,held){init(s);const participants=new Set();for(const p of s.i
  // 물 나눔 (A04): 슈퍼범 with more than 10 in its nest brings water to the thirstiest friend (below its 수분 warning line) it can reach.
  // Old sessions with an Ellisii donor stay retired.
  for(const d of free.filter(p=>p.species==='superbum'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){if(!available(s,d))continue;const r=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&(!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&p.active&&!p.mounted&&thirsty(p)&&p.burden<40&&available(s,p)).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id))[0];if(r&&Space.route(s,d,r)){const a=start(s,'A04',[d,r]);if(a)a.ids.forEach(id=>participants.add(id));}}
- const shadeFriends=free.filter(p=>!bedtime(s,p)&&!p.stroll?.lake&&!p.stroll?.puddle);
+ const shadeFriends=free.filter(p=>!bedtime(s,p)&&!p.stroll?.lake&&!p.stroll?.puddle&&!p.stroll?.shelf);
  const ns=shadeFriends.filter(p=>p.species==='neolbi'&&(safe(p,s)||W.leafFit(s,p)&&s.weather.wind<60)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
  if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=shadeFriends.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
  if(['rain','snow'].includes(s.weather.kind)||s.climate.L>=70||s.weather.wind>=50){for(const h of ns.filter(p=>available(s,p)&&!p.canopyClosing)){
