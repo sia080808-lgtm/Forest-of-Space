@@ -82,6 +82,38 @@ click('[data-tab="world"]');const originalScale=scene.camera.scale,originalCanva
 win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume();assert.equal(saved.offline,null);
 // Inspector UI isolation, manual frame, exit and pause lifecycle.
 /* 1.2.6: 검수실 is gone; the 친구 tab shows the friend's skill with '스킬 보기' on the real garden */adminPanel();assert.equal(win.document.querySelector('[data-action="inspect"]'),null,'no 검수실 button');assert.equal(win.document.getElementById('inspect-panel'),null);adminPanel('friend');click('[data-action="admin-friend"]');{const btn=[...win.document.querySelectorAll('[data-action="admin-run"]')].find(b=>b.textContent==='스킬 보기');assert.ok(btn,'skill button');btn.click();assert.doesNotThrow(()=>F.valid(getState()));}click('[data-action="admin-close"]');
+{
+ adminPanel('motion');
+ const panel=win.document.getElementById('admin-panel'),before=JSON.stringify(getState()),stored=JSON.stringify(saved);
+ assert.equal(panel.querySelectorAll('[data-action="admin-motion-species"]').length,7);
+ click('[data-action="admin-motion-species"][data-id="jureong"]');
+ assert.ok(panel.querySelector('[data-action="admin-motion-play"][data-id="willowPerch"]'));
+ click('[data-action="admin-motion-play"][data-id="spore"]');
+ const first=scene.inspector;
+ assert.ok(first);assert.match(panel.textContent,/포자낭 맺히기/);
+ assert.equal(win.document.getElementById('targets').hidden,true);
+ first.update(1.1);
+ assert.ok(first.state.individuals[0].sporeSac);
+ click('[data-action="admin-motion-replay"]');
+ assert.notEqual(scene.inspector,first);
+ assert.equal(scene.inspector.state.individuals[0].sporeSac,undefined);
+ assert.equal(win.RidleyApp.back(),true);
+ assert.equal(scene.inspector,null);
+ assert.equal(win.document.getElementById('targets').hidden,false);
+ click('[data-action="admin-motion-play"][data-id="generation"]');
+ click('[data-action="admin-motion-next"]');
+ assert.match(panel.textContent,/채집한 포자/);
+ click('[data-action="admin-motion-next"]');
+ assert.match(panel.textContent,/2세 코로나가 친구 목록에서 기다려요/);
+ const child=scene.inspector.state.individuals.at(-1);assert.equal(child.active,false);
+ click('[data-action="admin-motion-next"]');
+ assert.equal(child.active,true);
+ click('[data-action="admin-motion-close"]');
+ assert.equal(JSON.stringify(getState()),before);
+ assert.equal(JSON.stringify(saved),stored);
+ click('[data-action="admin-close"]');
+ console.log('PASS: motion preview replays the spore pouch and the second generation with no save writes');
+}
 click('#overview');assert.equal(scene.camera.overview,true);assert.equal(win.document.getElementById('overview').getAttribute('aria-label'),'기본 화면 배율로');click('#overview');assert.equal(scene.camera.overview,false);assert.equal(scene.camera.z,1);assert.equal(win.document.getElementById('overview').getAttribute('aria-label'),'월드 전체 보기');assert.equal(win.document.getElementById('home-view'),null,'one zoom button');assert.ok(win.document.getElementById('photo'),'photo button');{const before=JSON.stringify(getState());const sel=scene.selected;click('#photo');assert.equal(scene.selected,sel,'photo keeps the selection');assert.equal(JSON.stringify(getState()),before,'photo changes nothing');}assert.equal(win.document.getElementById('mode'),null,'no landscape mode button');
 // Detail controls must target the selected individual, and roster saves must preserve identity.
 const companion=JSON.parse(JSON.stringify(getState().individuals[0]));companion.id='ridley-qa-owned';companion.name='검수 친구';companion.active=false;companion.mounted=false;getState().individuals.push(companion);
@@ -155,7 +187,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  assert.equal(win.document.querySelector('[data-action="facility-home"]'),null,'no shelter row in settings');
  click('[data-action="theme-set"][data-v="night"]');assert.equal(saved.settings.theme,'night');click('[data-action="theme-set"][data-v="day"]');assert.equal(saved.settings.theme,'day');assert.equal(win.document.querySelector('[data-action="theme-set"][data-v="auto"]'),null,'only light and dark modes');
  click('[data-action="climate-set"][data-v="C04"]');assert.equal(saved.environment.climateMode,'fixed');click('[data-action="climate-set"][data-v="season"]');assert.equal(saved.environment.climateMode,undefined);
- adminPanel('time');const panel=win.document.getElementById('admin-panel');assert.equal(panel.hidden,false);assert.equal(panel.querySelectorAll('.adm-tab').length,8);
+ adminPanel('time');const panel=win.document.getElementById('admin-panel');assert.equal(panel.hidden,false);assert.equal(panel.querySelectorAll('.adm-tab').length,9);
  const t0=getState().worldTick,run=args=>{const b=[...panel.querySelectorAll('[data-action="admin-run"]')].find(x=>x.dataset.args===JSON.stringify(args));assert.ok(b,'button '+args);b.click();};
  run(['time','night']);assert.ok(getState().worldTick>t0);assert.equal(((saved.worldTick%1200)+1200)%1200,1000);
  click('[data-tab-id="weather"]');run(['weather','rain']);assert.equal(getState().weather.kind==='rain'||getState().weather.kind==='snow',true);

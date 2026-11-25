@@ -43,6 +43,25 @@ test('normal engine completes a shared walk once and releases both friends',()=>
  assert(!s.individuals.some(p=>/함께 산책/.test(F.Objects.reason(s,p))));
  F.valid(s);
 });
+test('copying live state for the next tick keeps the meeting without persisting it in the save',()=>{
+ let s=pair();
+ Object.values(s.objects.friendships)[0].sporeHost='pair-1';
+ begin(s,'dance');
+ assert.match(Friends.pose(s,s.individuals[0]).text,/춤추고/);
+ const original=s,serialized=F.clone(s);
+ assert.equal(Friends.busy(serialized,'pair-0'),false);
+ const moving=[];
+ for(let i=0;i<40&&Friends.busy(s,'pair-0');i++){
+  s=Friends.copyForTick(s,F.clone(s));
+  F.step(s);
+  if(s.individuals[0].motion?.distance>0)moving.push(s.worldTick);
+ }
+ assert.ok(moving.length>3);
+ assert.equal(Friends.busy(s,'pair-0'),false);
+ assert.equal(Friends.busy(original,'pair-0'),true);
+ assert.equal(F.Objects.affinity(s,...s.individuals),4);
+ assert.equal(F.Objects.affinity(original,...original.individuals),3);
+});
 test('close friends complete an unobstructed dance through the real engine',()=>{
  const s=pair(8);begin(s,'dance');
  const start=s.individuals.map(p=>({x:p.x,y:p.y}));
