@@ -10,7 +10,7 @@ const PERCH_COVER=Object.freeze({
 // Crown root x, y and stalk height, in fractions of the standard rig.
 const SPORE_SAC_CROWN=Object.freeze({
  ridley:[.025,-.41,.39],bonbon:[.045,-.42,.37],bosong:[0,-.44,.48],duri:[0,-.42,.46],
- jureong:[.015,-.43,.33],neolbi:[.02,-.67,.42],superbum:[0,-.79,.59]
+ jureong:[0,-.57,.30],neolbi:[.02,-.67,.42],superbum:[0,-.89,.48]
 });
 // Loose canopy washes in the same warm ink as the roots.
 const TREE_SHADOWS=Object.freeze({
@@ -451,14 +451,16 @@ class ForestScene {
     else c.rotate(Math.sin(u*Math.PI*2)*.16);}}
   // The body-cover pass sits behind the front foliage for every species.
   const hasSpore=Forest.Recruitment.hasSporeSac(p);
-  const bodyCover=sphagnum>0||hasSpore?ctx=>{
+  const crownSprout=hasSpore&&['jureong','superbum'].includes(p.species)?ctx=>this.drawSporeSac(ctx,p,48,0,0):undefined;
+  const sporeBehindLeaves=hasSpore&&!crownSprout;
+  const bodyCover=sphagnum>0||sporeBehindLeaves?ctx=>{
    if(sphagnum>0)this.drawPerchSphagnum(ctx,p,sphagnum);
-   if(hasSpore)this.drawSporeSac(ctx,p);
+   if(sporeBehindLeaves)this.drawSporeSac(ctx,p);
   }:undefined;
   // Common intact-body renderer for every current and future character.
   c.save();c.scale(size/1254,size/1254);c.translate(-627,-1065.9);
   const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
-   bodyCover});if(dim)this.dimmed(c,go);else go(c);}c.restore();
+   bodyCover,crownSprout});if(dim)this.dimmed(c,go);else go(c);}c.restore();
   if(RX&&RX.k!=='watch'&&p.species==='superbum'&&(p.V||0)>2){c.save();c.fillStyle='#a8ccd1';c.globalAlpha=.8*(1-RX.u);for(let j=0;j<4;j++){const a=j*1.3+.4,r=size*(.25+RX.u*.35);c.beginPath();c.ellipse(Math.cos(a)*r*.8,-size*.75+RX.u*RX.u*size*.5-Math.sin(a)*r*.3,1.1,1.6,0,0,Math.PI*2);c.fill();}c.restore();}   /* 슈퍼범: the nest water slops over */
   if(p.wetFilm>.1&&p.species!=='neolbi'){c.save();c.globalAlpha=p.wetFilm*.5;c.fillStyle='#bdd6cc';for(let j=0;j<3;j++){c.beginPath();c.ellipse((j-1)*size*.15,-size*(.55+Math.abs(j-1)*.12),.7,1.2,0,0,Math.PI*2);c.fill();}c.restore();}if(p.burden>=20||p.damage>=10){c.save();c.fillStyle=p.burden>=20?'#8da7a2':'#b49e74';c.globalAlpha=.7;c.beginPath();c.ellipse(size*.34,-size*.40,1.7,2.2,0,0,Math.PI*2);c.fill();c.restore();}if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
   c.restore();
@@ -685,12 +687,16 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   draw(cal?.id||'spring',cal?.blend??1);
   c.restore();
  }
- drawSporeSac(c,p){
+ drawSporeSac(c,p,size=1254,originX=627,originY=1065.9){
   const [x,y,height]=SPORE_SAC_CROWN[p.species]||SPORE_SAC_CROWN.ridley;
-  const size=1254,scale=size*.062,ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
-  const tipX=size*.11,tipY=-size*height;
+  const scale=size*.062,ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
+  const seated=originX===0,tipX=size*(seated?.045:.11),tipY=-size*height;
   c.save();
-  c.translate(627+x*size,1065.9+y*size);
+  c.translate(originX+x*size,originY+y*size);
+  if(seated){
+   c.fillStyle='rgba(83,85,51,.36)';
+   c.beginPath();c.ellipse(0,size*.008,size*.033,size*.012,-.12,0,Math.PI*2);c.fill();
+  }
   c.strokeStyle='#777b52';c.lineWidth=size*.023;c.lineCap='round';
   c.beginPath();c.moveTo(0,0);
   c.bezierCurveTo(-size*.045,tipY*.36,tipX*.32,tipY*.78,tipX,tipY);

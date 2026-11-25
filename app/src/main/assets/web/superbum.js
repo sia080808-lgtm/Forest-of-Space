@@ -75,6 +75,10 @@ function eyes(c,set,m,p,a,opt,t){
  c.restore();
 }
 // draws one full layer set; alpha for the dry/wet cross-fade
+function bodyPose(c,p,sit){
+ c.translate(0,p.bob+p.sink+sit*10);
+ c.translate(...ANCHOR);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-ANCHOR[0],-ANCHOR[1]);
+}
 function drawSet(c,a,set,p,opt,t,part){
  const m=META[set],L=k=>a['superbum_'+set+'_'+k],snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
  const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
@@ -92,7 +96,7 @@ function drawSet(c,a,set,p,opt,t,part){
   else{cv=makeCanvas(Math.ceil(560*scale),Math.ceil(460*scale));const o=cv.getContext('2d');o.scale(scale,scale);o.translate(40,20);const keep=c;c=o;try{bentLive(k,py,qa,ql,false);}finally{c=keep;}bakes.set(key,cv);if(bakes.size>BAKE_MAX)bakes.delete(bakes.keys().next().value);}
   c.drawImage(cv,-40,-20,560,460);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // body (round face) first; the feet are attached in front of its lower edge (they move with the body and step on their own); leaves and crown move with the body
- const sit=opt.sit||0,lift=()=>{c.translate(0,p.bob+p.sink+sit*10);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
+ const sit=opt.sit||0,lift=()=>bodyPose(c,p,sit);
  if(part!=='leaves'){
  c.save();lift();img('body');eyes(c,set,m,p,a,opt,t);c.restore();
  for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink*(1-sit));c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
@@ -140,6 +144,11 @@ function drawLocal(c,a,opt={}){
  };
  if(opt.cover){paint('base');opt.cover();paint('leaves');}
  else paint();
+ if(opt.crownSprout){
+  c.save();bodyPose(c,p,opt.sit||0);c.translate(...ANCHOR);
+  const rigUnits=HEIGHT/(RIDLEY_H*SIZE);c.scale(rigUnits,rigUnits);
+  opt.crownSprout(c);c.restore();
+ }
  c.restore();return p;
 }
 let buffer=null;function layerBuffer(){if(!buffer){buffer=typeof document!=='undefined'?document.createElement('canvas'):require('@napi-rs/canvas').createCanvas(480,540);buffer.width=480;buffer.height=540;}return buffer;}
