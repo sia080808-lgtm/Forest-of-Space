@@ -9,10 +9,12 @@ const TYPES=Object.freeze({
  cherry:Object.freeze({name:'산벚나무',limit:20,shade:.23,rain:0,wind:0,rx:.205,ry:.10,width:.45,height:.217,anchor:.445})
 });
 const ABSORPTION=1.25;
-const IDS=Object.freeze(Object.fromEntries(Object.entries(TYPES).flatMap(([type,d])=>Array.from({length:d.limit},(_,i)=>[type+'-'+(i+1),type]))));
+const IDS=Object.create(null);
+for(const [type,{limit}] of Object.entries(TYPES))for(let i=1;i<=limit;i++)IDS[type+'-'+i]=type;
+Object.freeze(IDS);
 const LEAVES={spring:.8,summer:1,autumn:.65,winter:.12};
 const NO_COVER=Object.freeze({shade:0,rain:0,wind:0,willow:false});
-const kind=id=>Object.hasOwn(IDS,id)?IDS[id]:undefined;
+const kind=id=>IDS[id];
 const data=t=>TYPES[kind(t.id)];
 const all=s=>s.world?.trees||[];
 const active=s=>all(s).filter(t=>!t.stored);
@@ -28,10 +30,11 @@ function drafts(s,positions={}){
  for(const [id,p] of Object.entries(positions))if(kind(id)&&!records.some(t=>t.id===id))records.push({id,x:p.x,y:p.y});
  return records;
 }
+const willowOffset=x=>x>World.LAKE.cx?-.047:.047;
 const direction=t=>kind(t.id)==='willow'&&t.x>World.LAKE.cx?-1:1;
 function canopy(t){
- const d=data(t);
- return {x:t.x+(kind(t.id)==='willow'?direction(t)*.047:0),y:t.y+.043,rx:d.rx,ry:d.ry};
+ const type=kind(t.id),d=TYPES[type];
+ return {x:t.x+(type==='willow'?willowOffset(t.x):0),y:t.y+.043,rx:d.rx,ry:d.ry};
 }
 const inside=(ellipse,p)=>Math.hypot((p.x-ellipse.x)/ellipse.rx,(p.y-ellipse.y)/ellipse.ry)<1;
 const trunk=t=>({id:t.id,type:'tree',x:t.x,y:t.y,rx:kind(t.id)==='zelkova'?.05:.035,ry:.022});
@@ -72,16 +75,20 @@ function seasonalCover(s,cover){
 }
 const protection=(s,t)=>seasonalCover(s,data(t));
 function effects(s,p){
- if(!all(s).length||p.mounted||World.inWater(s,p))return NO_COVER;
+ const trees=all(s);
+ if(!trees.length||p.mounted||World.inWater(s,p))return NO_COVER;
  let cover=null;
- for(const t of all(s)){
-  if(t.stored||!inside(canopy(t),p))continue;
+ for(const t of trees){
+  if(t.stored)continue;
+  const type=kind(t.id),d=TYPES[type],dy=p.y-(t.y+.043);
+  if(Math.abs(dy)>=d.ry)continue;
+  const dx=p.x-(t.x+(type==='willow'?willowOffset(t.x):0));
+  if(Math.abs(dx)>=d.rx||!(Math.hypot(dx/d.rx,dy/d.ry)<1))continue;
   cover??={shade:0,rain:0,wind:0,willow:false};
-  const d=data(t);
   cover.shade=Math.max(cover.shade,d.shade);
   cover.rain=Math.max(cover.rain,d.rain);
   cover.wind=Math.max(cover.wind,d.wind);
-  cover.willow||=kind(t.id)==='willow'&&!World.frozen(s);
+  cover.willow||=type==='willow'&&!World.frozen(s);
  }
  if(!cover)return NO_COVER;
  return Object.assign(cover,seasonalCover(s,cover));

@@ -105,6 +105,14 @@ function move(s,p,Space){const a=p.shelter,f=facility(s,a?.facilityId);if(!wants
  if(a.phase==='exiting'&&a.stalled>=3){const q=safeExit(s,p,Space);if(q)a.exitPoint=q;if(a.stalled>=6){if(!intersects(f,p)){if(a.yielding)p.restCooldown=s.worldTick+60;release(p,s.worldTick);if(!p.objectTask){p.action='wander';p.target=null;p.actionSeconds=20;}}else{a.phase='restingInside';a.x=p.x;a.y=p.y;delete a.exitPoint;delete a.yielding;a.stalled=0;}}}
  /* 1.2.3: a seat it could not reach (a friend already sitting in front of it) was booked again and again all night; it is skipped for 90 s so another seat is tried */if(a.stalled>=3&&!occupied(a)){a.replans=(a.replans||0)+1;a.stalled=0;if(a.replans>1){p.shelterAvoid=[...(p.shelterAvoid||[]).filter(v=>v.until>s.worldTick),{x:a.x,y:a.y,until:s.worldTick+90}].slice(-4);release(p,s.worldTick);p.shelter.phase='rerouting';}}
  }return {...m,arrived:inside(s,p),kind:inside(s,p)?'rest':m.kind};}
+function overlapsPathBounds(s,left,top,right,bottom){
+ const margin=1e-7;
+ for(const f of s.shelters?.facilities||[]){
+  const t=transform(f);
+  if(right*360+margin>=t.x&&left*360-margin<=t.x+220+t.extra&&bottom*576+margin>=t.y&&top*576-margin<=t.y+280*t.sy)return true;
+ }
+ return false;
+}
 function blocked(s,q,id){
  const assigned=s.individuals.find(p=>p.id===id)?.shelter;
  const x=q.x*360,y=q.y*576;
@@ -182,5 +190,5 @@ function validate(s){const sh=s.shelters;if(!sh||sh.version!==1||!Number.isSafeI
  if((World.southOpen(s)?rocks<1||rocks>MAX_PER_TYPE:rocks!==0)||all.length-rocks>MAX_PER_TYPE)throw Error('쉼터 기록을 확인해 주세요.');
  const ids=new Set();for(const f of all){if(f.kind!==undefined&&(!isRock(f)||f.base)||ids.has(f.id)||(f.flip!==undefined&&typeof f.flip!=='boolean')||!/^shelter-\d+$/.test(f.id)||![1,2,3].includes(f.level)||!Number.isInteger(f.revision)||f.revision<0||!Number.isFinite(f.x)||!Number.isFinite(f.y)||!World.inside(s,f,World.inner(s,.08,.23,.15,.15))||Number(f.id.slice(8))>=sh.nextId)throw Error('쉼터 위치와 크기를 확인해 주세요.');ids.add(f.id);if(ledger(s,f).free<0)throw Error('쉼터 공간이 겹쳐요.');}if(sh.facilities.filter(f=>f.base).length!==1||!sh.facilities.some(f=>f.base&&f.id==='shelter-0'&&Number.isFinite(f.x)&&Number.isFinite(f.y)))   /* 1.2.6: the base shelter can be moved in 꾸미기 */throw Error('기본 쉼터 기록을 확인해 주세요.');for(const p of s.individuals){const a=p.shelter;if(!a||!PHASES.concat('held').includes(a.phase)||![0,1,2,3].includes(p.visualStage)||!Number.isFinite(a.since))throw Error('쉼터 상태를 확인해 주세요.');if(a.facilityId&&(!facility(s,a.facilityId)||![a.x,a.y,a.units].every(Number.isFinite)||a.units!==units(p)||!Number.isInteger(a.revision)))throw Error('쉼터 예약을 확인해 주세요.');}}
 function rebuild(s){init(s);const old=new Map(s.individuals.map(p=>[p.id,{...p.shelter}]));for(const p of s.individuals)p.shelter={phase:'outside',since:old.get(p.id)?.since??s.worldTick};for(const p of s.individuals.filter(p=>p.active&&!p.mounted).sort((a,b)=>a.id.localeCompare(b.id)))for(const f of s.shelters.facilities){if(fits(f,p)&&room(s,f,p)&&!s.individuals.some(z=>z.id!==p.id&&inside(s,z)&&overlap(p,p,z))){p.shelter={phase:'restingInside',facilityId:f.id,x:p.x,y:p.y,units:units(p),since:old.get(p.id)?.since??s.worldTick,revision:f.revision};break;}}return s;}
-return {canCopy,setupBounds,discoverSouth,isRock,name,standardRoom,storedFor,projectedNeed,seats,room,setPlanned,intersects,safeExit,recovered,outline,plan,build,init,stage,desiredStage,growth,units,capacity,shape,transform,sourceX,polygon,inPoly,bounds,fits,overlap,facility,inside,cover,ledger,entry,seat,priority,wants,release,reserve,prepare,move,blocked,label,validate,rebuild};
+return {canCopy,setupBounds,discoverSouth,isRock,name,standardRoom,storedFor,projectedNeed,seats,room,setPlanned,intersects,safeExit,recovered,outline,plan,build,init,stage,desiredStage,growth,units,capacity,shape,transform,sourceX,polygon,inPoly,bounds,fits,overlap,facility,inside,cover,ledger,entry,seat,priority,wants,release,reserve,prepare,move,overlapsPathBounds,blocked,label,validate,rebuild};
 });
