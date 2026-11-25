@@ -7,10 +7,10 @@ const PERCH_COVER=Object.freeze({
  duri:[-15,-14,31,24],jureong:[-23,-13,48,23],neolbi:[-25,-22,51,34],
  superbum:[-21,-23,43,37]
 });
-// Leaf attachment offsets in fractions of the standard character rig.
-const SPORE_SAC_SEAT=Object.freeze({
- ridley:[.024,-.657],bonbon:[.13,-.71],bosong:[.05,-.78],duri:[.10,-.79],
- jureong:[.12,-.55],neolbi:[.27,-.78],superbum:[.13,-1.14]
+// Crown attachment offsets in fractions of the standard character rig.
+const SPORE_SAC_CROWN=Object.freeze({
+ ridley:[.025,-.45],bonbon:[.045,-.46],bosong:[0,-.48],duri:[0,-.46],
+ jureong:[.015,-.48],neolbi:[.02,-.73],superbum:[0,-.86]
 });
 // Loose canopy washes in the same warm ink as the roots.
 const TREE_SHADOWS=Object.freeze({
@@ -681,15 +681,15 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   c.restore();
  }
  drawSporeSac(c,p,size){
-  const [x,y]=SPORE_SAC_SEAT[p.species]||SPORE_SAC_SEAT.ridley;
+  const [x,y]=SPORE_SAC_CROWN[p.species]||SPORE_SAC_CROWN.ridley;
   const scale=size*.062,ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
   c.save();
   c.translate(x*size,y*size);
   c.scale(scale,scale);
-  c.rotate(-.24);
+  c.rotate(-.12);
   c.strokeStyle='#77745c';c.lineWidth=.25;c.lineCap='round';
-  c.beginPath();c.moveTo(0,1.04);c.quadraticCurveTo(-.13,.35,.07,-.25);c.stroke();
-  // The three capsules share one stem and overlap at the crook of the leaf.
+  c.beginPath();c.moveTo(0,.35);c.quadraticCurveTo(-.13,.09,.07,-.25);c.stroke();
+  // The capsules share a short stem rooted at the top of the head.
   const wash=c.createLinearGradient(-.45,-1.62,.42,.36);
   wash.addColorStop(0,ripe?'#d4b386':'#d8c69c');
   wash.addColorStop(.56,ripe?'#b28f66':'#b5a47b');
