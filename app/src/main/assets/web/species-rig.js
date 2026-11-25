@@ -137,7 +137,13 @@ if(k==='bosong'){c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,M
 // Texture eyelids are a separate animation overlay. The body texture never changes.
 if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h;if(k==='bonbon'||k==='neolbi'){c.save();c.beginPath();c.ellipse(ex,ey,1.6,2.2,0,0,7);c.clip();img(c,d,k==='bonbon'?[d.body[0]+d.body[2]*.30,d.body[1]+d.body[3]*.30,70,80]:[d.body[0]+d.body[2]*.42,d.body[1]+d.body[3]*.72,70,80],ex-1.7,ey-2.3,3.4,4.6);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.65,ey);c.quadraticCurveTo(ex,ey+.6,ex+.65,ey);c.stroke();}}
 
-if(k==='jureong')faceExpr(c,d,k,p,m,t);
+if(k==='jureong'){
+ faceExpr(c,d,k,p,m,t);
+ if(p.crownSprout){
+  // Root inside the painted body crown, before the draping leaf is drawn.
+  c.save();c.translate(0,-d.h-.65);p.crownSprout(c);c.restore();
+ }
+}
 const hands=[];
 // Front arms are composited after the body and head foliage.
 // 1.1.6: the 640 px arm buffer was cleared and composited every frame for every species here (about 1.6 ms a friend, even
@@ -155,7 +161,6 @@ if(k==='bosong'){
  p.cover?.();
  leafLayer(c,d,t,p);
 }else{p.cover?.();leafLayer(c,d,t,p);if(armCanvas)c.drawImage(armCanvas,-32,-32,64,64);}
-p.crownSprout?.(c);
 // Armless species use the physical leaf-tip contact point, never virtual hands.
 const f=d.fol,tip=k==='jureong'?{x:f[0]+2,y:f[1]+f[3]-3}:{x:f[0]+5,y:f[1]+f[3]-2};
 const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x,ty=tip.y-pivot;tip.x=tx*Math.cos(la)-ty*Math.sin(la);tip.y=pivot+tx*Math.sin(la)+ty*Math.cos(la);

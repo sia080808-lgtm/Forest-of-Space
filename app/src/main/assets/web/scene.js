@@ -10,7 +10,7 @@ const PERCH_COVER=Object.freeze({
 // Crown root x, y and stalk height, in fractions of the standard rig.
 const SPORE_SAC_CROWN=Object.freeze({
  ridley:[.025,-.41,.39],bonbon:[.045,-.42,.37],bosong:[0,-.44,.48],duri:[0,-.42,.46],
- jureong:[0,-.57,.30],neolbi:[.02,-.67,.42],superbum:[0,-.89,.48]
+ jureong:[0,0,.48],neolbi:[.02,-.67,.42],superbum:[0,-.89,.48]
 });
 // Loose canopy washes in the same warm ink as the roots.
 const TREE_SHADOWS=Object.freeze({
@@ -690,7 +690,8 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
  drawSporeSac(c,p,size=1254,originX=627,originY=1065.9){
   const [x,y,height]=SPORE_SAC_CROWN[p.species]||SPORE_SAC_CROWN.ridley;
   const scale=size*.062,ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
-  const seated=originX===0,tipX=size*(seated?.045:.11),tipY=-size*height;
+  const seated=originX===0,corona=p.species==='jureong';
+  const tipX=size*(corona?-.10:seated?.045:.11),tipY=-size*height;
   c.save();
   c.translate(originX+x*size,originY+y*size);
   if(seated){
@@ -699,7 +700,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   }
   c.strokeStyle='#777b52';c.lineWidth=size*.023;c.lineCap='round';
   c.beginPath();c.moveTo(0,0);
-  c.bezierCurveTo(-size*.045,tipY*.36,tipX*.32,tipY*.78,tipX,tipY);
+  c.bezierCurveTo(-size*(corona?.19:.045),tipY*.36,tipX*(corona?1.25:.32),tipY*.78,tipX,tipY);
   c.stroke();
   c.translate(tipX,tipY);
   c.scale(scale,scale);
