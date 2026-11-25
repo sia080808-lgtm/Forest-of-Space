@@ -90,3 +90,35 @@ test('an occupied circular route does not reserve either friend',()=>{
  s.individuals.push({...F.clone(a),id:'blocking',x:1.25,y:.86-.15/1.6,action:'rest'});
  assert.equal(Friends.prepare(s,null,()=>0).size,0);
 });
+
+test('at maximum affinity only one adult receives a pouch and only that pair resets',()=>{
+ const s=pair(7),[a,b]=s.individuals,O=F.Objects;
+ const other={...F.clone(a),id:'pair-2',active:true};
+ s.individuals.push(other);
+ for(const p of [a,b])p.visualStage=3;
+ assert.ok(O.awardAffinity(s,a,other));
+ assert.ok(O.awardAffinity(s,b,a));
+ assert.equal(a.sporeSac,b.id);
+ assert.equal(b.sporeSac,undefined);
+ assert.equal(O.affinity(s,a,b),0);
+ assert.equal(O.affinity(s,a,other),1);
+ assert.equal(O.learnedDance(s,a,b),true);
+ assert.equal(O.awardAffinity(s,b,a),false);
+ const saved=F.migrate(F.clone(s));
+ assert.equal(saved.individuals[0].sporeSac,b.id);
+ assert.equal(O.affinity(saved,...saved.individuals),0);
+});
+
+test('a full pair can award its pouch once an eligible adult is available',()=>{
+ const s=pair(7),[a,b]=s.individuals,O=F.Objects;
+ a.visualStage=0;b.visualStage=0;
+ assert.ok(O.awardAffinity(s,a,b));
+ assert.equal(O.affinity(s,a,b),8);
+ assert.equal(a.sporeSac,undefined);
+ assert.equal(b.sporeSac,undefined);
+ b.visualStage=3;
+ s.worldTick+=180;
+ assert.ok(O.awardAffinity(s,a,b));
+ assert.equal(b.sporeSac,a.id);
+ assert.equal(O.affinity(s,a,b),0);
+});

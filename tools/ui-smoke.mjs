@@ -289,9 +289,9 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  scene.selectAt(F.Trees.active(getState()).find(t=>t.id==='cherry-1'));
  const details=win.document.querySelector('#select-card details');details.open=true;
  now+=1000;
- click('#select-card [data-action="cherry-assign"][data-friend="'+adult.id+'"]');
+ click('#select-card [data-action="tree-assign"][data-friend="'+adult.id+'"]');
  assert.equal(F.Trees.perchOwner(saved,'cherry-1')?.id,adult.id,win.document.getElementById('toast').textContent);
- click('#select-card [data-action="cherry-unassign"]');
+ click('#select-card [data-action="tree-unassign"]');
  assert.equal(F.Trees.perchOwner(saved,'cherry-1'),undefined);
  click('[data-tab="decorate"]');
  click('[data-patch="cherry-1"]');

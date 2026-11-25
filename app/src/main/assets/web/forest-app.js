@@ -373,12 +373,14 @@ function offerImport(text){carry.cancel();try{if(text.length>16*1024*1024)throw 
 function sporeDetails(p){
  const r=F.Recruitment,parent=state.individuals.find(other=>other.id===p.parentId);
  const lineage=parent?'<p>부모 · '+escape(parent.name)+'</p>':'';
- if(!p.perchTree&&!p.sporeSeconds&&!p.sporeStored&&!parent)return '';
+ if(!p.perchTree&&!r.hasSporeSac(p)&&!p.sporeStored&&!parent)return '';
  let button='';
  if(p.sporeStored)button='<button class="secondary" data-action="spore-plant" data-id="'+escape(p.id)+'" '+(state.individuals.length>=50?'disabled':'')+'>포자 심기 · '+(r.generation(p)+1)+'세 맞이하기</button>';
  else if(p.sporeSeconds===r.SPORE_SECONDS)button='<button class="secondary" data-action="spore-collect" data-id="'+escape(p.id)+'">포자 채집</button>';
- const progress=p.perchTree||p.sporeSeconds||p.sporeStored?'<p>'+r.sporeStatus(p)+'</p><p class="sub">'+(p.sporeStored?(state.individuals.length>=50?'친구 기록이 가득 찼어요. 포자는 보관 중이에요.':'심으면 어린 친구가 대기 목록에 들어와요.'):'산벚나무 가지에서 광합성한 시간이 누적돼요.')+'</p>':'';
- return '<section class="panel"><h3>착생과 세대 · '+r.generation(p)+'세</h3>'+lineage+progress+button+'</section>';
+ const source=state.individuals.find(other=>other.id===p.sporeSac);
+ const bond=source?'<p class="sub">'+escape(F.Recruitment.josa(source.name,'과','와'))+' 쌓은 친밀도로 포자낭이 맺혔어요.</p>':'';
+ const progress=p.perchTree||r.hasSporeSac(p)||p.sporeStored?'<p>'+r.sporeStatus(p)+'</p><p class="sub">'+(p.sporeStored?(state.individuals.length>=50?'친구 기록이 가득 찼어요. 포자는 보관 중이에요.':'심으면 어린 친구가 대기 목록에 들어와요.'):r.hasSporeSac(p)?(p.perchTree?'착생한 나무에서 광합성한 시간이 누적돼요.':'나무 카드에서 착생 자리를 지정해 주세요.'):'친구 한 명과 친밀도가 최대가 되면 포자낭이 맺혀요.')+'</p>':'';
+ return '<section class="panel"><h3>착생과 세대 · '+r.generation(p)+'세</h3>' +lineage+bond+progress+button+'</section>';
 }
 function updateFriendActivities(){
  if(tab!=='friends'&&tab!=='detail')return;
@@ -435,7 +437,7 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
    selected=child.id;renderPage();targets();notice(child.generation+'세 친구가 자라났어요.');
   });return;
  }
- if(a==='cherry-assign'||a==='cherry-unassign'){commit(s=>{F.Trees.assignPerch(s,b.dataset.id,b.dataset.friend);},showCard);return;}
+ if(a==='tree-assign'||a==='tree-unassign'){commit(s=>{F.Trees.assignPerch(s,b.dataset.id,b.dataset.friend);},showCard);return;}
  if(a==='object-expand'){previewObjectUpgrade(b.dataset.id);return;}
  if(a==='facility-add'){editFacility(null,'add');return;}
  if(a==='facility-expand'&&facilityDraft?.kind==='move'){startFacilityEdit(facilityDraft.id,'expand');return;}
@@ -531,7 +533,7 @@ function saveFailure(){carry.cancel();audio.pause();storageFailed=true;notice('�
 function back(){if(carry.session){carry.cancel();return true;}if($('dialog-root').children.length){closeDialog();return true;}if(adminOpen&&tab==='world'){adminOpen=false;renderAdmin();return true;}if(editor){endEditor();return true;}if(selected||patchSelected){closeCard();if(tab==='detail')switchTab('friends');return true;}if(tab==='admin'){switchTab('settings');return true;}if(tab!=='world'){switchTab('world');return true;}return false;}
 window.RidleyApp={nativePause:pause,nativeResume,back,notice,offerImport};
 function tick(now){requestAnimationFrame(tick);if(!ready||!foreground||storageFailed||inspector||!$('welcome').hidden){last=now;return;}const elapsed=(now-last)/1000;last=now;if(tab==='visit')drawVisit(now/1000);if(elapsed>5){F.pause(state,state.savedAt);nativeResume();return;}if(adminAdvanceStep()){adminOverlay(now);return;}acc+=elapsed*(adminOn?adminSpeed:1);let steps=0;while(acc>=1&&steps<24){acc--;steps++;const next=F.clone(state);if(adminOn&&adminLock){next.weather.remaining=Math.max(next.weather.remaining||0,30);next.weather.strongSeconds=0;}   /* 1.2.11: a locked strong wind keeps blowing (the natural 90 s fade to 45 is skipped) */
- const t0=performance.now();F.step(next,{visible:tab==='world',held:carry.held});adminPerf.tick=adminPerf.tick*.8+(performance.now()-t0)*.2;if(carry.held&&(next.weather.wind>=60||next.individuals.find(p=>p.id===carry.held)?.B<20)){carry.cancel();carry.suppressUntil=performance.now()+700;notice('안전을 위해 원래 자리에서 대피해요.');}lastSave++;const important=next.events.some(e=>['transfer','object-upgrade','spore'].includes(e.type)&&e.tick===next.worldTick)||JSON.stringify(next.discoveries)!==JSON.stringify(state.discoveries)||next.individuals.some((p,i)=>JSON.stringify(p.carriedLeaf)!==JSON.stringify(state.individuals[i]?.carriedLeaf)||p.xp!==state.individuals[i].xp||JSON.stringify(p.first)!==JSON.stringify(state.individuals[i].first));if(lastSave>=5||important){lastSave=0;if(!write(next)){saveFailure();break;}}state=next;update();}if(acc>3)acc=0;adminFollowStep();adminOverlay(now);audio.sync(state,tab==='world'&&foreground&&$('welcome').hidden,scene.springVisible());}
+ const t0=performance.now();F.step(next,{visible:tab==='world',held:carry.held});adminPerf.tick=adminPerf.tick*.8+(performance.now()-t0)*.2;if(carry.held&&(next.weather.wind>=60||next.individuals.find(p=>p.id===carry.held)?.B<20)){carry.cancel();carry.suppressUntil=performance.now()+700;notice('안전을 위해 원래 자리에서 대피해요.');}lastSave++;const important=next.events.some(e=>['transfer','object-upgrade','spore'].includes(e.type)&&e.tick===next.worldTick)||JSON.stringify(next.discoveries)!==JSON.stringify(state.discoveries)||next.individuals.some((p,i)=>JSON.stringify(p.carriedLeaf)!==JSON.stringify(state.individuals[i]?.carriedLeaf)||p.xp!==state.individuals[i].xp||p.sporeSac!==state.individuals[i].sporeSac||JSON.stringify(p.first)!==JSON.stringify(state.individuals[i].first));if(lastSave>=5||important){lastSave=0;if(!write(next)){saveFailure();break;}}state=next;update();}if(acc>3)acc=0;adminFollowStep();adminOverlay(now);audio.sync(state,tab==='world'&&foreground&&$('welcome').hidden,scene.springVisible());}
 /* 1.2.8 entry screen: the art layer starts once the game art is loaded; the season line shows today's forest; a tap skips the intro */
 function welcomeStart(){$('welcome-when').textContent=$('season').textContent+' · '+CLOCK_PHASES[F.Environment.timeKey(state)][1]+' · '+$('weather').textContent;globalThis.ForestWelcome?.start({assets:scene.assets,reduced:!!state?.settings?.reducedMotion});}
 function welcomeSkip(e){if(e.target.closest('#enter'))return;$('welcome').classList.remove('w-play');globalThis.ForestWelcome?.skip();}

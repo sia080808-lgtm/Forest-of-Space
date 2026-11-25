@@ -38,8 +38,10 @@ function duriActor(c,k,x,y,t,pose={}){
  c.lineWidth=.32;c.lineCap='round';c.strokeStyle='#f2e6c7';c.fillStyle='#f2e6c7';
  for(const side of [-1,1]){const xx=fx+side*eyeGap;c.beginPath();if(expr==='sleepy'||blink){c.moveTo(xx-.57,fy);c.quadraticCurveTo(xx,fy+.6,xx+.57,fy);}else if(expr==='happy'){c.moveTo(xx-.6,fy);c.quadraticCurveTo(xx,fy-.85,xx+.6,fy);}else if(expr==='sad'){c.moveTo(xx-.5,fy+.1);c.lineTo(xx+.5,fy+.35);}else{c.moveTo(xx,fy-.65);c.lineTo(xx,fy+.55);}c.stroke();}
  if(expr==='surprised')ellipse(c,fx,fy+2.15,.48,.66,'#f2e6c7');else if(expr!=='sleepy'){c.beginPath();c.moveTo(fx-.45,fy+2.1);c.lineTo(fx+.45,fy+2.1);c.stroke();}
+ const palms=()=>{for(const h of hands)c.drawImage(A.palm,h.x-1.35,h.y-1.6,2.7,3.2);};
+ if(pose.cover){palms();pose.cover();}
  crown(c,k,t,{...pose,rest});
- for(let i=0;i<2;i++){const h=hands[i];c.drawImage(A.palm,h.x-1.35,h.y-1.6,2.7,3.2);}
+ if(!pose.cover)palms();
  if(pose.leafHeld){const h=hands[pose.handSide??1];leaf(c,0,h.x,h.y-1,1.05,Math.sin(t*4)*.3,0,false);}
  if(mode==='drink')ellipse(c,hands[0].x,hands[0].y-.9,.5,.7,'#a8ccd1');
  c.restore();return {hands:hands.map(h=>({x:x+h.x*g,y:y+(h.y+bob-lift+rest*.9)*g})),face:{x:x,y:y+(fy+bob-lift)*g},width:bw*g,height:bh*g};
@@ -66,13 +68,17 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
  const bodyY=bob+rest*.7,tilt=(p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:walk?beat*.03:0);
  for(const [i,n] of [[0,'FootLeft'],[1,'FootRight']]){const f=footPose(i),fx=ELLI.feet[i].x;c.save();c.translate(fx+f.dx,(m==='held'?bodyY:0)+f.dy-1.2);c.rotate(f.rot);c.translate(-fx,1.2);draw(layer(n));c.restore();}
  c.translate(0,bodyY);c.rotate(tilt);const squash=walk?1-Math.abs(beat)*.025:rest?.985:1;c.scale(1/Math.sqrt(squash),squash);
+ const fronds=()=>{
  const dr=p.droop||0;if(layer('FrondLeft')&&(m==='groom'&&!still||dr>0)){for(const [i,n,pv] of [[0,'FrondLeft',[3.66,-20.7]],[1,'FrondRight',[5.49,-20.1]]]){
    // 0.6.34: grooming, 엘리시 nods its two fertile fronds (separate layers since 0.6.34) quickly, one after the other
    const a=m==='groom'&&!still?(i?1:-1)*.22*Math.max(0,Math.sin(t*10+i*Math.PI)):(i?1:-1)*.26*dr;c.save();c.translate(pv[0],pv[1]);c.rotate(a);c.translate(-pv[0],-pv[1]);draw(layer(n),true,ELLI.frondRect);c.restore();}}
  else if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'),true,ELLI.frondRect);c.restore();}
+ };
+ if(!p.cover)fronds();
  const body=layer('Body');draw(body);
  // Closed eyes: cover each eye with plain body texture from the same layer, then draw a soft lid line. No mouth or cheeks.
  if(body&&(m==='sleep'||m==='rest'||m==='moss'))for(const [ex,ey] of ELLI.eyes){c.save();c.beginPath();c.ellipse(ex,ey,ELLI.eyeR[0]+.25,ELLI.eyeR[1]+.25,0,0,7);c.clip();const q=ELLI.patch;c.drawImage(body,q[0],q[1],q[2],q[3],ex-1.8,ey-2.5,3.6,5);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.7,ey+.3);c.quadraticCurveTo(ex,ey+.9,ex+.7,ey+.3);c.stroke();}
+ if(p.cover){p.cover();fronds();}
  // Nest leaf hinges at its top-right attachment: it bounces with each step, flutters when held and settles when resting.
  if(layer('Leaf')){const lift=still?(rest?-.01:0):walk?Math.abs(beat)*(run?.05:.035):m==='held'?Math.sin(t*6)*.06:rest?-.012+Math.sin(t*1.1)*.006:Math.sin(t*1.2)*.012;c.save();c.translate(ELLI.leafPivot.x,ELLI.leafPivot.y);c.rotate(lift);c.translate(-ELLI.leafPivot.x,-ELLI.leafPivot.y);draw(layer('Leaf'),true);c.restore();}
  c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bodyY-(p.lift||0))*g}),tip=toWorld({x:r[0]+3,y:-8});return{hands:[],tip,face:{x,y:y-16*g*.55},width:20.5*g,height:33*g};}
@@ -131,7 +137,13 @@ if(k==='bosong'){c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,M
 // Texture eyelids are a separate animation overlay. The body texture never changes.
 if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h;if(k==='bonbon'||k==='neolbi'){c.save();c.beginPath();c.ellipse(ex,ey,1.6,2.2,0,0,7);c.clip();img(c,d,k==='bonbon'?[d.body[0]+d.body[2]*.30,d.body[1]+d.body[3]*.30,70,80]:[d.body[0]+d.body[2]*.42,d.body[1]+d.body[3]*.72,70,80],ex-1.7,ey-2.3,3.4,4.6);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.65,ey);c.quadraticCurveTo(ex,ey+.6,ex+.65,ey);c.stroke();}}
 
-if(k==='jureong')faceExpr(c,d,k,p,m,t);
+if(k==='jureong'){
+ faceExpr(c,d,k,p,m,t);
+ if(p.crownSprout){
+  // Root inside the painted body crown, before the draping leaf is drawn.
+  c.save();c.translate(0,-d.h-.65);p.crownSprout(c);c.restore();
+ }
+}
 const hands=[];
 // Front arms are composited after the body and head foliage.
 // 1.1.6: the 640 px arm buffer was cleared and composited every frame for every species here (about 1.6 ms a friend, even
@@ -146,14 +158,15 @@ c=bodyContext;
 if(k==='bosong'){
  c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,Math.PI*2);c.clip();img(c,d,d.body,-d.w/2,-d.h-1.5,d.w,d.h);c.restore();
  faceExpr(c,d,k,p,m,t);
+ p.cover?.();
  leafLayer(c,d,t,p);
-}else{leafLayer(c,d,t,p);if(armCanvas)c.drawImage(armCanvas,-32,-32,64,64);}
+}else{p.cover?.();leafLayer(c,d,t,p);if(armCanvas)c.drawImage(armCanvas,-32,-32,64,64);}
 // Armless species use the physical leaf-tip contact point, never virtual hands.
 const f=d.fol,tip=k==='jureong'?{x:f[0]+2,y:f[1]+f[3]-3}:{x:f[0]+5,y:f[1]+f[3]-2};
 const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x,ty=tip.y-pivot;tip.x=tx*Math.cos(la)-ty*Math.sin(la);tip.y=pivot+tx*Math.sin(la)+ty*Math.cos(la);
 c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bob+rest*.7-(p.lift||0))*g});return{hands:hands.map(toWorld),tip:toWorld(tip),face:{x,y:y-d.h*g*.55},width:d.w*g,height:d.h*g};}
 
 const files={ellisiiBody:'assets/forest/species/ellisii-body.png',ellisiiFronds:'assets/forest/species/ellisii-fronds.png',ellisiiFrondLeft:'assets/forest/species/ellisii-frond-left.png',ellisiiFrondRight:'assets/forest/species/ellisii-frond-right.png',ellisiiLeaf:'assets/forest/species/ellisii-leaf.png',ellisiiFootLeft:'assets/forest/species/ellisii-foot-left.png',ellisiiFootRight:'assets/forest/species/ellisii-foot-right.png'};for(const k of ['bonbon','bosong','jureong','duri'])files['species_'+k]='assets/forest/species/'+k+'.png';
-function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:assets.ellisiiFronds,ellisiiFrondLeft:assets.ellisiiFrondLeft,ellisiiFrondRight:assets.ellisiiFrondRight,ellisiiLeaf:assets.ellisiiLeaf,ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
+function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:assets.ellisiiFronds,ellisiiFrondLeft:assets.ellisiiFrondLeft,ellisiiFrondRight:assets.ellisiiFrondRight,ellisiiLeaf:assets.ellisiiLeaf,ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,cover:opt.cover,crownSprout:opt.crownSprout,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
 return {files,draw};
 });
