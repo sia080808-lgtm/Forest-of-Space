@@ -26,6 +26,7 @@ test('regional placement, stored copies and old saves share the same layout vali
  assert.throws(()=>F.layout(old,{'willow-1':willow}),/호수가 열리면/);
  assert.equal(F.migrate(F.clone(old)).world.trees,undefined);
  const s=game();
+ assert.deepEqual(Object.fromEntries(Object.entries(T.TYPES).map(([type,{limit}])=>[type,limit])),{zelkova:5,willow:20,cherry:20});
  assert.throws(()=>F.layout(s,{'willow-1':{x:F.World.LAKE.cx,y:F.World.LAKE.cy}}),/호숫가의 땅/);
  assert.throws(()=>F.layout(s,{'zelkova-1':{x:1.65,y:.55}}),/남쪽 숲/);
  for(const [type,d] of Object.entries(T.TYPES)){
@@ -45,8 +46,8 @@ test('regional placement, stored copies and old saves share the same layout vali
   F.unstoreObject(s,first);
   assert.equal(T.stored(s).length,0);
  }
- assert.equal(T.active(F.migrate(F.clone(s))).length,17);
- assert.equal(T.name('cherry-10'),'산벚나무 10');
+ assert.equal(T.active(F.migrate(F.clone(s))).length,45);
+ assert.equal(T.name('cherry-20'),'산벚나무 20');
 });
 test('moss and willow transfer the same conserved root water with no overlap multiplier',()=>{
  const s=game();

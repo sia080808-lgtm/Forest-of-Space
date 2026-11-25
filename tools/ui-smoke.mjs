@@ -255,6 +255,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
 {
  const ed=win.document.getElementById('editor');
  click('[data-tab="decorate"]');
+ assert.match(ed.querySelector('[data-action="tree-add"][data-id="zelkova"]').textContent,/0[/]5/);
  click('[data-action="tree-add"][data-id="zelkova"]');
  click('[data-action="tree-add"][data-id="willow"]');
  assert.equal(scene.selectedPatch,'willow-1');
@@ -268,7 +269,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-patch="willow-1"]');
  click('[data-action="store-object"][data-id="willow-1"]');
  assert.equal(F.Trees.stored(saved).length,1);
- assert.match(ed.querySelector('[data-action="tree-add"][data-id="willow"]').textContent,/1\/5/);
+ assert.match(ed.querySelector('[data-action="tree-add"][data-id="willow"]').textContent,/1\/20/);
  click('[data-action="unstore-object"][data-id="willow-1"]');
  assert.equal(F.Trees.stored(saved).length,0);
  assert.equal(F.Trees.active(saved).length,2);
@@ -296,7 +297,7 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-tab="decorate"]');
  click('[data-patch="cherry-1"]');
  click('[data-action="store-object"][data-id="cherry-1"]');
- assert.match(win.document.querySelector(addCherry).textContent,/1[/]10/);
+ assert.match(win.document.querySelector(addCherry).textContent,/1[/]20/);
  click('[data-action="unstore-object"][data-id="cherry-1"]');
  assert.equal(F.Trees.stored(saved).length,0);
  click('[data-action="cancel-layout"]');
