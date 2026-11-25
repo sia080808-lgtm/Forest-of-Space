@@ -5,7 +5,8 @@
 'use strict';
 const TYPES=Object.freeze({
  zelkova:Object.freeze({name:'느티나무',limit:2,shade:.28,rain:.30,wind:.25,rx:.23,ry:.11,width:.51,height:.19,anchor:.51}),
- willow:Object.freeze({name:'수양버들',limit:5,shade:.22,rain:.55,wind:0,rx:.19,ry:.095,width:.38,height:.25,anchor:.16})
+ willow:Object.freeze({name:'수양버들',limit:5,shade:.22,rain:.55,wind:0,rx:.19,ry:.095,width:.38,height:.25,anchor:.16}),
+ cherry:Object.freeze({name:'산벚나무',limit:10,shade:.23,rain:0,wind:0,rx:.205,ry:.10,width:.45,height:.217,anchor:.445})
 });
 const ABSORPTION=1.25;
 const IDS=Object.freeze(Object.fromEntries(Object.entries(TYPES).flatMap(([type,d])=>Array.from({length:d.limit},(_,i)=>[type+'-'+(i+1),type]))));
@@ -16,8 +17,10 @@ const data=t=>TYPES[kind(t.id)];
 const all=s=>s.world?.trees||[];
 const active=s=>all(s).filter(t=>!t.stored);
 const stored=s=>all(s).filter(t=>t.stored);
-const name=id=>TYPES[kind(id)].name+' '+id.at(-1);
-const unlocked=(s,type)=>type==='zelkova'?World.southOpen(s):type==='willow'&&World.lakeOpen(s);
+const number=id=>Number(id.slice(id.lastIndexOf('-')+1));
+const name=id=>TYPES[kind(id)].name+' '+number(id);
+const region=type=>type==='willow'?'lakeshore':'south';
+const unlocked=(s,type)=>Object.hasOwn(TYPES,type)&&(region(type)==='south'?World.southOpen(s):World.lakeOpen(s));
 const count=(s,type,positions={})=>new Set([...all(s).map(t=>t.id),...Object.keys(positions)].filter(id=>kind(id)===type)).size;
 const nextId=(s,type,positions={})=>Object.keys(IDS).find(id=>kind(id)===type&&!Object.hasOwn(positions,id)&&!all(s).some(t=>t.id===id));
 function drafts(s,positions={}){
@@ -31,18 +34,23 @@ function canopy(t){
  return {x:t.x+(kind(t.id)==='willow'?direction(t)*.047:0),y:t.y+.043,rx:d.rx,ry:d.ry};
 }
 const inside=(ellipse,p)=>Math.hypot((p.x-ellipse.x)/ellipse.rx,(p.y-ellipse.y)/ellipse.ry)<1;
-const trunk=t=>({id:t.id,type:'tree',x:t.x,y:t.y,rx:kind(t.id)==='willow'?.035:.05,ry:.022});
+const trunk=t=>({id:t.id,type:'tree',x:t.x,y:t.y,rx:kind(t.id)==='zelkova'?.05:.035,ry:.022});
 const extent=t=>{const k=trunk(t);return {x0:k.x-k.rx,x1:k.x+k.rx,y0:k.y-k.ry,y1:k.y+k.ry};};
 function spotError(s,t){
  const type=kind(t.id),r=World.walk(s);
- if(!unlocked(s,type))return type==='zelkova'?'남쪽 숲을 발견하면 느티나무를 심을 수 있어요.':'호수가 열리면 수양버들을 심을 수 있어요.';
+ if(!unlocked(s,type))return (region(type)==='south'?'남쪽 숲이':'호수가')+' 열리면 '+TYPES[type].name+'를 심을 수 있어요.';
  if(!Number.isFinite(t.x)||!Number.isFinite(t.y)||t.x<r.x0+.10||t.x>r.x1-.10||t.y<r.y0+.055||t.y>r.y1-.08)return '나무를 숲 가장자리 안쪽에 심어주세요.';
- if(type==='zelkova')return t.y<World.REGIONS.south.y0+.025?'느티나무는 남쪽 숲에 심어주세요.':null;
+ if(region(type)==='south')return t.y<World.REGIONS.south.y0+.025?TYPES[type].name+'는 남쪽 숲에 심어주세요.':null;
  const d=World.waterD(t.x,t.y);
  return d<World.LAKE.edge+.07||d>World.LAKE.edge+.32?'수양버들은 호숫가의 땅에 심어주세요.':null;
 }
 function candidates(s,type){
  if(!unlocked(s,type))return [];
+ if(type==='cherry'){
+  const points=[{x:1.65,y:1.58}];
+  for(const y of [1.44,1.72,1.85])for(const x of [.05,.36,.67,.98,1.29,1.60,1.91,2.22,2.53,2.84,3.12])points.push({x,y});
+  return points;
+ }
  if(type==='zelkova'){
   const points=[[.63,1.55],[1.65,1.58],[2.70,1.48],[.18,1.76],[1.18,1.77],[2.22,1.75],[2.96,1.76]];
   return points.map(([x,y])=>({x,y}));
@@ -86,5 +94,5 @@ function validate(s){
   ids.add(t.id);
  }
 }
-return Object.freeze({TYPES,ABSORPTION,kind,data,all,active,stored,name,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
+return Object.freeze({TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
 });

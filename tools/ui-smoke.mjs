@@ -274,6 +274,25 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  assert.equal(F.Trees.active(saved).length,2);
  click('[data-action="cancel-layout"]');
 }
+{
+ const addCherry='[data-action="tree-add"][data-id="cherry"]';
+ click('[data-tab="decorate"]');
+ click(addCherry);
+ assert.equal(scene.selectedPatch,'cherry-1');
+ const before=scene.preview['cherry-1'].y;
+ click('[data-move="down"]');
+ assert.equal(scene.preview['cherry-1'].y,before+.025);
+ click('[data-action="save-layout"]');
+ assert.equal(F.Trees.active(saved).filter(t=>F.Trees.kind(t.id)==='cherry').length,1);
+ click('[data-tab="decorate"]');
+ click('[data-patch="cherry-1"]');
+ click('[data-action="store-object"][data-id="cherry-1"]');
+ assert.match(win.document.querySelector(addCherry).textContent,/1[/]10/);
+ click('[data-action="unstore-object"][data-id="cherry-1"]');
+ assert.equal(F.Trees.stored(saved).length,0);
+ click('[data-action="cancel-layout"]');
+ console.log('PASS: mountain cherry planting, movement, storage and restoration');
+}
 console.log('PASS: decorator-only placement, storage, mirror, copy and save');
 console.log('PASS: grouped settings (theme, climate, no shelter row), admin panel (time, weather, friend slider, reset with dialog, speed), back closes it');
 console.log('PASS: all 7 object cards, no state/save mutation, real live quantities, retained details/scroll/summary/action focus, unchanged DOM, switched object reset, pet controls and close');
