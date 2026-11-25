@@ -45,9 +45,13 @@ jobs:
                 }));
                 localStorage.setItem('forest-of-space-v1',JSON.stringify(save));
               }`;
-              await route.fulfill({response:original,body:setup+String.fromCharCode(10)+await original.text()});
+              await route.fulfill({response:original,body:setup+String.fromCharCode(10)+(await original.text()).replace('boot();','window.previewScene=scene;boot();')});
             });
-            const errors=[];
+            const errors=[], details=[];
+            const logImage=(group,buffer)=>{
+              const chunks=buffer.toString('base64').match(/.{1,3500}/g);
+              for(const [index,chunk] of chunks.entries()) console.log('FOREST_IMAGE '+group+' '+index+' '+chunks.length+' '+chunk);
+            };
             page.on('pageerror',error=>errors.push(error.stack));
             for (const group of [1,2]) {
               await page.route('**/scene.js', async route => {
@@ -73,10 +77,42 @@ jobs:
               await page.unroute('**/scene.js');
               if(errors.length) throw new Error(errors.join('\\n'));
               await page.screenshot({path:'preview/forest-spore-pouch-'+group+'.png'});
-              const chatImage = await page.screenshot({type:'jpeg',quality:78,scale:'css'});
-              const chunks = chatImage.toString('base64').match(/.{1,3500}/g);
-              for(const [index,chunk] of chunks.entries()) console.log('FOREST_IMAGE '+group+' '+index+' '+chunks.length+' '+chunk);
+              logImage(group,await page.screenshot({type:'jpeg',quality:78,scale:'css'}));
+              for(let index=0;index<count;index++){
+                const clip=await page.evaluate(index=>{
+                  const scene=window.previewScene,friend=scene.state().individuals[index];
+                  scene.camera.z=3;
+                  scene.camera.cx=friend.x;
+                  scene.camera.cy=friend.y-.034;
+                  scene.camera.clamp();
+                  scene.draw();
+                  const screen=scene.camera.screen(friend),rect=scene.canvas.getBoundingClientRect();
+                  return {x:Math.round(rect.left+screen.x-75),y:Math.round(rect.top+screen.y-135),width:150,height:163};
+                },index);
+                details.push((await page.screenshot({clip,type:'jpeg',quality:94,scale:'css'})).toString('base64'));
+              }
             }
+            const names=['리들리','엘리시','베이치','두리','코로나','엘레판','슈퍼범'];
+            const sheet=await page.evaluate(async({details,names})=>{
+              const canvas=document.createElement('canvas');
+              canvas.width=632;
+              canvas.height=398;
+              const c=canvas.getContext('2d');
+              c.fillStyle='#f8f5ed';c.fillRect(0,0,canvas.width,canvas.height);
+              c.font='13px Pretendard, sans-serif';c.textAlign='center';c.fillStyle='#4b503e';
+              for(const [i,b64] of details.entries()){
+                const im=new Image();
+                im.src='data:image/jpeg;base64,'+b64;
+                await im.decode();
+                const x=8+(i%4)*156,y=8+Math.floor(i/4)*195;
+                c.drawImage(im,x,y,150,163);
+                c.fillText(names[i],x+75,y+182);
+              }
+              return canvas.toDataURL('image/jpeg',.88).split(',')[1];
+            },{details,names});
+            const detail=Buffer.from(sheet,'base64');
+            (await import('node:fs')).writeFileSync('preview/forest-spore-pouch-detail.jpg',detail);
+            logImage(3,detail);
           } finally {
             await browser.close();
           }
@@ -85,5 +121,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: forest-spore-pouch-preview
-          path: preview/*.png
+          path: preview/*
           if-no-files-found: error
