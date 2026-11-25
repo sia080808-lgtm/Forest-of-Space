@@ -196,3 +196,53 @@ test('moving, storing, releasing and greeting a new friend preserve a valid perc
  T.assignPerch(s,id,p.id);T.assignPerch(s,id,null);assert.equal(p.perchTree,undefined);
  F.valid(s);
 });
+
+test('only photosynthesis during occupied cherry rest ripens a spore, even at the XP cap',()=>{
+ const {s,p,id}=cherryVisit(),R=F.Recruitment;
+ p.xp=150;
+ assert.equal(p.sporeSeconds,undefined);
+ s.climate.L=75;F.step(s);
+ assert.equal(p.sporeSeconds,1);
+ const night=F.clone(s);night.worldTick=8000;F.step(night);
+ assert.equal(night.individuals[0].sporeSeconds,1);
+ const thirsty=F.clone(s);thirsty.individuals[0].B=15;F.step(thirsty);
+ assert.equal(thirsty.individuals[0].sporeSeconds,1);
+ const stored=F.clone(s);F.storeObject(stored,id);F.step(stored);
+ assert.equal(stored.individuals[0].sporeSeconds,1);
+ const dark=F.clone(s);R.growSpore(dark.individuals[0],{xp:0});
+ assert.equal(dark.individuals[0].sporeSeconds,1);
+ F.pause(s,1000);F.resume(s,121000);assert.equal(p.sporeSeconds,1);
+ p.sporeSeconds=R.SPORE_SECONDS-1;F.advance(s,3);assert.equal(p.sporeSeconds,R.SPORE_SECONDS);
+ assert.equal(s.events.filter(e=>e.type==='spore'&&e.individual===p.id).length,1);
+ F.storeObject(s,id);R.collectSpore(s,p.id);assert.equal(p.sporeStored,true);
+ assert.throws(()=>R.collectSpore(s,p.id));
+ assert.equal(F.migrate(F.clone(s)).individuals[0].sporeStored,true);
+});
+test('one saved spore creates one young friend with traceable generations and its own state',()=>{
+ const {s,p}=cherryVisit(),R=F.Recruitment;
+ p.name='달빛';p.sporeStored=true;
+ const before=F.totalWater(s);
+ const child=R.germinate(s,p.id,F.personality,F.event);
+ assert.equal(F.totalWater(s)-before,child.B);
+ assert.equal(s.events.at(-1).arrivalWater,child.B);
+ assert.equal(child.active,false);assert.equal(child.xp,0);assert.equal(child.visualStage,0);
+ assert.equal(child.parentId,p.id);assert.equal(child.generation,2);
+ assert.equal(child.species,p.species);assert.equal(child.perchTree,undefined);
+ assert.notEqual(child.name,p.name);assert.notEqual(child.first,p.first);
+ assert.throws(()=>R.germinate(s,p.id,F.personality,F.event));
+ F.valid(s);F.roster(s,child.id,true);F.step(s);F.valid(s);
+ Object.assign(child,{xp:150,visualStage:3,sporeStored:true});
+ const next=R.germinate(s,child.id,F.personality,F.event);
+ assert.equal(next.parentId,child.id);assert.equal(next.generation,3);
+ F.valid(F.migrate(F.clone(s)));
+ const bad=F.clone(s);bad.individuals.at(-1).parentId=next.id;assert.throws(()=>F.valid(bad),/세대/);
+});
+test('a full roster or a failed save leaves the spore available',()=>{
+ const s=game(),p=s.individuals[0],R=F.Recruitment;
+ p.sporeStored=true;
+ assert.throws(()=>F.transaction(s,w=>R.germinate(w,p.id,F.personality,F.event),()=>false),/저장/);
+ assert.equal(s.individuals.length,1);assert.equal(p.sporeStored,true);
+ while(s.individuals.length<50)s.individuals.push({...p,id:'full-'+s.individuals.length,active:false});
+ assert.throws(()=>R.germinate(s,p.id,F.personality,F.event),/50명/);
+ assert.equal(p.sporeStored,true);assert.equal(s.individuals.length,50);
+});

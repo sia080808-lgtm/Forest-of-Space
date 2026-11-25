@@ -300,7 +300,16 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-action="unstore-object"][data-id="cherry-1"]');
  assert.equal(F.Trees.stored(saved).length,0);
  click('[data-action="cancel-layout"]');
- console.log('PASS: mountain cherry planting, movement, storage and restoration');
+ const parent=getState().individuals.find(p=>p.id===adult.id);
+ parent.sporeSeconds=F.Recruitment.SPORE_SECONDS;
+ click('[data-tab="friends"]');click('#page [data-action="detail"][data-id="'+parent.id+'"]');
+ click('#page [data-action="spore-collect"]');
+ assert.equal(saved.individuals.find(p=>p.id===parent.id).sporeStored,true);
+ click('#page [data-action="spore-plant"]');
+ assert.equal(saved.individuals.at(-1).parentId,parent.id);
+ assert.match(win.document.querySelector('#spore-detail').textContent,/2세/);
+ click('#page [data-action="roster"]');assert.equal(saved.individuals.at(-1).active,true);
+ console.log('PASS: mountain cherry, spore collection, germination, lineage and entering the garden');
 }
 console.log('PASS: decorator-only placement, storage, mirror, copy and save');
 console.log('PASS: grouped settings (theme, climate, no shelter row), admin panel (time, weather, friend slider, reset with dialog, speed), back closes it');

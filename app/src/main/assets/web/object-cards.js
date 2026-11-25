@@ -22,8 +22,8 @@ function model(s,id){
    const owner=F.Trees.perchOwner(s,id);
    const actions=owner?[{action:'cherry-unassign',label:'착생 자리 해제'}]:s.individuals.filter(F.Trees.canAssign).map(p=>({action:'cherry-assign',friend:p.id,label:p.name+' 자리 잡기'}));
    return {id,name:F.Trees.name(id),description:'남쪽 숲에 계절의 변화를 보여주는 나무예요.',status:looks[season],
-    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[['착생 자리',owner?.name||'빈자리']],
-    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.','성체 친구 한 명의 수태 자리를 정하면 잔잔한 낮에 스스로 찾아와 쉬어요. 쉬는 동안 기운이 분당 1.5씩, 최대 75까지 차요.'],actions,gauge:null};
+    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[['착생 자리',owner?.name||'빈자리'],...(owner?[['포자',F.Recruitment.sporeStatus(owner)]]:[])],
+    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.','성체 친구 한 명의 수태 자리를 정하면 잔잔한 낮에 스스로 찾아와 쉬어요. 쉬는 동안 기운이 분당 1.5씩, 최대 75까지 차요.',...(owner?['가지에서 광합성한 시간이 쌓이면 친구 상세 화면에서 포자를 채집할 수 있어요.']:[])],actions,gauge:null};
   }
   const willow=type==='willow';
   return {id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',

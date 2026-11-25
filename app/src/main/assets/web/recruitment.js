@@ -31,6 +31,46 @@ function conditions(s,id,Space,Social){const litter=s.patches.find(p=>p.id==='li
  if(id==='jureong')habitat=rawLeaves(s)>=1&&!!dry&&!!accessible(litter)&&!!accessible(dry);
  return {ok:!!base&&!!habitat,safe,habitat:!!habitat,checks,text:needs[id],reason:!safe?'날씨가 잔잔해지면 찾아와요.':!base?'쉼터로 이어지는 길을 비워주세요.':!habitat?josa(needs[id],'을','를')+' 마련해 주세요.':'환경이 준비됐어요.'};}
 function makePet(s,species,id,personality){return {id,species,name:names[ids.indexOf(species)],B:50,Q:0,V:0,snowWater:0,energy:75,mood:75,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.65,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0},visualStage:0,shelter:{phase:'outside',since:s.worldTick},gustExposure:0,braceSeconds:0,windCalmSeconds:0,wet85Seconds:0,wetFilm:0,wetRecovery:false,leafRecovery:false};}
+const SPORE_SECONDS=90;
+const generation=p=>p.generation??1;
+function sporeStatus(p){
+ if(p.sporeStored)return '채집한 포자 1개';
+ if(p.sporeSeconds===SPORE_SECONDS)return '포자가 여물었어요';
+ return '포자 성장 '+(p.sporeSeconds||0)+' / '+SPORE_SECONDS+'초';
+}
+function growSpore(p,photo){
+ if(p.visualStage!==3||!p.stroll?.perch||p.stroll.perch!==p.perchTree||p.stroll.arrivedAt==null||
+    p.sporeStored||photo.xp<=0||p.sporeSeconds===SPORE_SECONDS)return false;
+ p.sporeSeconds=(p.sporeSeconds||0)+1;
+ return p.sporeSeconds===SPORE_SECONDS;
+}
+function collectSpore(s,id){
+ const p=s.individuals.find(p=>p.id===id);
+ if(!p||p.sporeStored||p.sporeSeconds!==SPORE_SECONDS)throw Error('여문 포자가 필요해요.');
+ delete p.sporeSeconds;p.sporeStored=true;
+}
+function germinate(s,id,personality,event){
+ const parent=s.individuals.find(p=>p.id===id);
+ if(!parent?.sporeStored)throw Error('먼저 포자를 채집해 주세요.');
+ if(s.individuals.length>=50)throw Error('친구 기록이 50명으로 가득해요. 포자는 그대로 보관해요.');
+ let n=1;
+ while(s.individuals.some(p=>p.id==='spore-'+n))n++;
+ const child=makePet(s,parent.species,'spore-'+n,personality);
+ child.parentId=parent.id;child.generation=generation(parent)+1;
+ delete parent.sporeStored;s.individuals.push(child);
+ event(s,'welcome',parent.name+'의 포자에서 '+child.generation+'세 친구가 자라났어요.',{individual:child.id,arrivalWater:child.B});
+ return child;
+}
+function validateLineage(s){
+ const byId=new Map(s.individuals.map(p=>[p.id,p]));
+ for(const p of s.individuals){
+  if(p.sporeSeconds!==undefined&&(!Number.isInteger(p.sporeSeconds)||p.sporeSeconds<0||p.sporeSeconds>SPORE_SECONDS)||
+     p.sporeStored!==undefined&&(p.sporeStored!==true||p.sporeSeconds!==undefined))throw Error('포자 성장 기록을 확인해 주세요.');
+  if(p.parentId===undefined&&p.generation===undefined)continue;
+  const parent=byId.get(p.parentId);
+  if(!parent||parent.species!==p.species||!Number.isSafeInteger(p.generation)||p.generation!==generation(parent)+1||p.generation<2||p.generation>s.individuals.length)throw Error('친구의 세대 기록을 확인해 주세요.');
+ }
+}
 function tick(s,{Space,Social,rng,event,personality}){init(s);const r=s.recruitment;if(r.visitor)return;const owned=new Set(s.individuals.map(p=>p.species)),candidates=ids.filter(id=>!owned.has(id)&&!retired.includes(id)&&(r.serial>0||owned.has('bonbon')||id==='bonbon'||s.worldTick>=1200)).sort((a,b)=>(b===r.target)-(a===r.target)||r.progress[b].valid-r.progress[a].valid||ids.indexOf(a)-ids.indexOf(b));for(const id of candidates){const p=r.progress[id],c=conditions(s,id,Space,Social);if(!c.ok)continue;p.valid++;if(id==='bonbon'&&s.worldTick>=240&&r.serial===0){r.pending.push(id);break;}if(p.valid>=180){p.valid-=180;const success=p.failures>=3||rng(s,'recruitment')<.35;if(success){p.failures=0;r.pending.push(id);break;}p.failures++;}}
  if(r.pending.length)arrive(s,r.pending.shift(),personality,event);}
 function arrive(s,species,personality,event){const r=s.recruitment,id='visit-'+(++r.serial)+'-'+species;r.visitor={id,species,pet:makePet(s,species,id,personality),seconds:0,open:false,ready:false,water:20,leaves:3,phase:'adapt',x:.5,y:.77,companion:null};event?.(s,'visitor',josa(names[ids.indexOf(species)],'이','가')+' 숲 입구에 찾아왔어요.');return r.visitor;}
@@ -56,6 +96,6 @@ function steps(s){const r=s.recruitment,v=r?.visitor;if(!v)return null;const p=r
  if(v.species==='superbum'){add('샘터 살피기',a.spring);add('하늘 올려다보기 (둥지잎 펼치기)',a.sky);add('쉬기',p.rest>=20,sec({v:p.rest,max:20}));}
  return {list,ready:v.ready,leaveIn:v.ready?null:Math.max(0,600-v.seconds),buttons:{greet:v.species==='ridley',guide:v.species==='bosong'}};}
 function settle(s,event){const r=s.recruitment,v=r.visitor;if(!v?.ready)throw Error('조금 더 서로 익숙해질 시간이 필요해요.');if(s.individuals.length>=50)throw Error('함께 지낼 친구 기록이 50명으로 가득해요. 준비된 친구는 기다릴 수 있어요.');if(r.settled.includes(v.id))throw Error('이미 함께 살고 있는 친구예요.');const p=JSON.parse(JSON.stringify(v.pet));s.individuals.push(p);r.settled.push(v.id);r.visitor=null;event?.(s,'welcome',josa(p.name,'이','가')+' 함께 살기로 했어요. 친구 목록에서 정원에 들여주세요.',{individual:p.id,arrivalWater:p.B});return p;}
-function validate(s){const r=s.recruitment;if(!r||r.version!==1||!Number.isSafeInteger(r.serial)||r.serial<0||!Array.isArray(r.settled)||new Set(r.settled).size!==r.settled.length||!Array.isArray(r.pending)||r.pending.some(x=>!ids.includes(x))||r.target!==null&&!ids.includes(r.target))throw Error('친구 방문 기록을 확인해 주세요.');for(const id of ids){const p=r.progress[id];if(!p||['valid','failures','comfortable','rest'].some(k=>!Number.isFinite(p[k])||p[k]<0)||!p.actions)throw Error('친구와 함께한 기록을 확인해 주세요.');}const v=r.visitor;if(v&&(!ids.includes(v.species)||typeof v.open!=='boolean'||typeof v.ready!=='boolean'||!Number.isFinite(v.seconds)||v.seconds<0||v.water<0||v.water>20||v.leaves<0||v.leaves>3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))throw Error('방문 중인 친구 기록을 확인해 주세요.');}
-return {arrive,steps,retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
+function validate(s){validateLineage(s);const r=s.recruitment;if(!r||r.version!==1||!Number.isSafeInteger(r.serial)||r.serial<0||!Array.isArray(r.settled)||new Set(r.settled).size!==r.settled.length||!Array.isArray(r.pending)||r.pending.some(x=>!ids.includes(x))||r.target!==null&&!ids.includes(r.target))throw Error('친구 방문 기록을 확인해 주세요.');for(const id of ids){const p=r.progress[id];if(!p||['valid','failures','comfortable','rest'].some(k=>!Number.isFinite(p[k])||p[k]<0)||!p.actions)throw Error('친구와 함께한 기록을 확인해 주세요.');}const v=r.visitor;if(v&&(!ids.includes(v.species)||typeof v.open!=='boolean'||typeof v.ready!=='boolean'||!Number.isFinite(v.seconds)||v.seconds<0||v.water<0||v.water>20||v.leaves<0||v.leaves>3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))throw Error('방문 중인 친구 기록을 확인해 주세요.');}
+return {SPORE_SECONDS,generation,sporeStatus,growSpore,collectSpore,germinate,arrive,steps,retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
 });
