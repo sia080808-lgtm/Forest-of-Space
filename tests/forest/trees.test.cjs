@@ -22,6 +22,7 @@ function plantAvailable(s,type){
 test('regional placement, stored copies and old saves share the same layout validation',()=>{
  const old=F.create(0,18);
  assert.throws(()=>F.layout(old,{'zelkova-1':zelkova}),/남쪽 숲/);
+ assert.throws(()=>F.layout(old,{'cherry-1':zelkova}),/남쪽 숲/);
  assert.throws(()=>F.layout(old,{'willow-1':willow}),/호수가 열리면/);
  assert.equal(F.migrate(F.clone(old)).world.trees,undefined);
  const s=game();
@@ -44,7 +45,8 @@ test('regional placement, stored copies and old saves share the same layout vali
   F.unstoreObject(s,first);
   assert.equal(T.stored(s).length,0);
  }
- assert.equal(T.active(F.migrate(F.clone(s))).length,7);
+ assert.equal(T.active(F.migrate(F.clone(s))).length,17);
+ assert.equal(T.name('cherry-10'),'산벚나무 10');
 });
 test('moss and willow transfer the same conserved root water with no overlap multiplier',()=>{
  const s=game();
@@ -115,4 +117,16 @@ test('two friends finish chatting, and willow watching requires fish in the wate
  bank.world.lake.life=[{id:'test-fish',kind:'medaka',x:1.91,y:.84,born:bank.worldTick}];
  assert(playMeeting(bank).some(text=>text.includes('송사리')));
  assert.equal(F.Objects.affinity(bank,...bank.individuals),4);
+});
+
+test('cherry shade changes with the season and disappears in storage',()=>{
+ const s=game(),id='cherry-1';
+ F.layout(s,{[id]:zelkova});
+ const point=T.canopy(T.active(s)[0]);
+ s.climate.L=80;
+ const light=[320,3920,7520,11120].map(t=>{s.worldTick=t;return F.light(s,point);});
+ assert(light[1]<light[0]&&light[0]<light[2]&&light[2]<light[3]&&light[3]<80);
+ assert.equal(T.effects(s,point).rain,0);
+ assert.equal(T.effects(s,point).wind,0);
+ F.storeObject(s,id);assert.equal(F.light(s,point),80);
 });

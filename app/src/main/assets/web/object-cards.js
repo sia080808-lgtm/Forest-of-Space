@@ -16,7 +16,14 @@ function model(s,id){
  }
  if(F.Trees.kind(id)){
   const tree=F.Trees.active(s).find(t=>t.id===id);if(!tree)return null;
-  const willow=F.Trees.kind(id)==='willow',c=F.Trees.protection(s,tree);
+  const type=F.Trees.kind(id),c=F.Trees.protection(s,tree);
+  if(type==='cherry'){
+   const season=F.Trees.season(s),looks={spring:'연분홍 꽃이 피었어요',summer:'초록 잎이 그늘을 드리워요',autumn:'잎이 붉게 물들어요',winter:'잎이 지고 가지에 눈이 내려요'};
+   return {id,name:F.Trees.name(id),description:'남쪽 숲에 계절의 변화를 보여주는 나무예요.',status:looks[season],
+    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[],
+    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.'],actions:[],gauge:null};
+  }
+  const willow=type==='willow';
   return {id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',
    status:willow&&F.World.frozen(s)?'호수가 얼어 수분 흡수 보너스가 쉬고 있어요':'계절에 따라 그늘이 달라져요',
    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%'),metric('rain','빗방울 줄임',Math.round(c.rain*100)+'%')],

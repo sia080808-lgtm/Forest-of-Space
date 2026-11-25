@@ -73,9 +73,11 @@ function nearbyFish(s,t){
 function treeMeeting(s,ps,sessions){
  const S=dep('spatial'),W=dep('world'),T=dep('trees');
  for(const tree of T.active(s)){
+  const type=T.kind(tree.id);
+  if(type!=='zelkova'&&type!=='willow')continue;
   const shade=T.canopy(tree);
   if(sessions.some(a=>a.tree===tree.id)||ps.some(p=>S.distance(p,shade)>.44))continue;
-  const willow=T.kind(tree.id)==='willow',fish=willow?nearbyFish(s,tree):null;
+  const willow=type==='willow',fish=willow?nearbyFish(s,tree):null;
   if(willow&&!fish)continue;
   for(const y of [shade.y+.01,shade.y-.017,shade.y+.033]){
    const x=shade.x,gap=Math.max(.13,(S.diameter(ps[0])+S.diameter(ps[1]))*.56);
