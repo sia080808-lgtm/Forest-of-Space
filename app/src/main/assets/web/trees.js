@@ -87,7 +87,6 @@ const absorption=(s,p,onMoss)=>onMoss||effects(s,p).willow?ABSORPTION:1;
 // The friend's physical position stays at the accessible foot of the tree during a visit.
 const PERCH_RETURN=240;
 const perchEntry=t=>({x:t.x,y:t.y+.065});
-const perchSeat=t=>({x:t.x+.012,y:t.y-.075});
 const perchOwner=(s,id)=>s.individuals.find(p=>p.perchTree===id);
 const canAssign=p=>p.active&&!p.mounted&&p.visualStage===3&&!p.perchTree;
 function leavePerch(s,p){
@@ -132,5 +131,5 @@ function validate(s){
   ids.add(t.id);
  }
 }
-return Object.freeze({PERCH_RETURN,perchEntry,perchSeat,perchOwner,canAssign,leavePerch,assignPerch,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
+return Object.freeze({PERCH_RETURN,perchEntry,perchOwner,canAssign,leavePerch,assignPerch,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
 });
