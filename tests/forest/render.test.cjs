@@ -118,3 +118,32 @@ test('the flipped shelf preview mirrors around its moved seat anchor',()=>{
  a.deepEqual(calls.find(call=>call.k==='drawImage').args,[art,x*360-105,y*576-27,180,63]);
  a.equal(F.World.stoneShelf(s),before);
 });
+
+test('the cherry cocoon sits over the body and feet, under front foliage layers',()=>{
+ const {scene,s,calls}=sceneFixture(),p=s.individuals[0];
+ const Rig=require('../../app/src/main/assets/web/rig');
+ for(const key of Object.keys(Rig.files))scene.assets[key]={name:key,width:1280,height:1280};
+ const moss=scene.assets.cherrySphagnum={name:'cocoon'};
+ const species=[
+  ['ridley','rigBody','rigLeaves'],
+  ['bonbon','ellisiiBody','ellisiiFronds','ellisiiLeaf'],
+  ['bosong','species_bosong','species_bosong'],
+  ['duri','rigBody','species_duri'],
+  ['jureong','species_jureong','species_jureong'],
+  ['neolbi','neolbiBody','neolbiFront'],
+  ['superbum','superbum_dry_body','superbum_dry_skirt-left','superbum_dry_crown']
+ ];
+ for(const [id,body,...leaves] of species){
+  p.species=id;
+  calls.length=0;
+  scene.pet(p,{x:.5,y:.5},'rest',2,false);
+  a.equal(calls.some(c=>c.k==='drawImage'&&c.args[0]===moss),false,id);
+  calls.length=0;
+  scene.pet(p,{x:.5,y:.5},'rest',2,false,false,1);
+  const layers=calls.filter(c=>c.k==='drawImage').map(c=>c.args[0]?.name);
+  const cover=layers.indexOf('cocoon');
+  a.equal(layers.filter(n=>n==='cocoon').length,1,id);
+  a.ok(layers.indexOf(body)>=0&&layers.indexOf(body)<cover,id+' body');
+  for(const leaf of leaves)a.ok(layers.lastIndexOf(leaf)>cover,id+' '+leaf);
+ }
+});

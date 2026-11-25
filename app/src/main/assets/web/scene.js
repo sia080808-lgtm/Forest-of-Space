@@ -1,15 +1,15 @@
 'use strict';
 const SOUTH_EDGE_OVERLAP=24;
 const MIST_PARTS=Object.freeze([[-1,0,.9],[1,.15,1],[0,-.25,.7],[-.6,.3,.6],[.6,.35,.6]]);   // 1.2.7 엘리시 물안개 숨결: [side, rise, size] of each cloud
-// x and y adjust the seat in world units. Cover bounds are in the adult rig's local pixels. Support is a horizontal fraction of the artwork.
+// x and y adjust the seat in world units. Cover bounds are in the adult rig's local pixels.
 const CHERRY_PERCH=Object.freeze({
- ridley:{x:.012,y:-.075,cover:[-20,-14,41,24],support:.46,drop:.35},
- bonbon:{x:-.011,y:-.075,cover:[-19,-18,37,28],support:.69,drop:.41},
- bosong:{x:.024,y:-.075,cover:[-15,-14,31,24],support:.31,drop:.36},
- duri:{x:.007,y:-.075,cover:[-19,-14,38,24],support:.51,drop:.34},
- jureong:{x:.033,y:-.068,cover:[-32,-12,64,22],support:.32,drop:.47},
- neolbi:{x:.032,y:-.033,cover:[-32,-24,66,36],support:.33,drop:.40},
- superbum:{x:-.079,y:-.002,cover:[-26,-23,52,37],support:.69,drop:.24}
+ ridley:{x:.012,y:-.075,cover:[-17,-14,35,24]},
+ bonbon:{x:-.011,y:-.075,cover:[-15,-19,32,29]},
+ bosong:{x:.024,y:-.075,cover:[-11,-12,23,21]},
+ duri:{x:.007,y:-.075,cover:[-15,-14,31,24]},
+ jureong:{x:.033,y:-.068,cover:[-23,-13,48,23]},
+ neolbi:{x:.032,y:-.033,cover:[-25,-26,51,37]},
+ superbum:{x:-.079,y:-.002,cover:[-21,-23,43,37]}
 });
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
@@ -393,7 +393,7 @@ class ForestScene {
   }
   if(shelf.flip)c.restore();
  }
- pet(p,pos,kind,phase,night,held=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
+ pet(p,pos,kind,phase,night,held=false,sphagnum=0){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
   if(!held)ForestSurfaces.wash(c,x,y,9*growth,2*growth,'68,61,42',.20,1);
   c.save();c.translate(x,y);
@@ -444,7 +444,8 @@ class ForestScene {
     else c.rotate(Math.sin(u*Math.PI*2)*.16);}}
   // Common intact-body renderer for every current and future character.
   c.save();c.scale(size/1254,size/1254);c.translate(-627,-1065.9);
-  const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined});if(dim)this.dimmed(c,go);else go(c);}c.restore();
+  const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
+   bodyCover:sphagnum>0?ctx=>this.drawCherrySphagnum(ctx,p,sphagnum):undefined});if(dim)this.dimmed(c,go);else go(c);}c.restore();
   if(RX&&RX.k!=='watch'&&p.species==='superbum'&&(p.V||0)>2){c.save();c.fillStyle='#a8ccd1';c.globalAlpha=.8*(1-RX.u);for(let j=0;j<4;j++){const a=j*1.3+.4,r=size*(.25+RX.u*.35);c.beginPath();c.ellipse(Math.cos(a)*r*.8,-size*.75+RX.u*RX.u*size*.5-Math.sin(a)*r*.3,1.1,1.6,0,0,Math.PI*2);c.fill();}c.restore();}   /* 슈퍼범: the nest water slops over */
   if(p.wetFilm>.1&&p.species!=='neolbi'){c.save();c.globalAlpha=p.wetFilm*.5;c.fillStyle='#bdd6cc';for(let j=0;j<3;j++){c.beginPath();c.ellipse((j-1)*size*.15,-size*(.55+Math.abs(j-1)*.12),.7,1.2,0,0,Math.PI*2);c.fill();}c.restore();}if(p.burden>=20||p.damage>=10){c.save();c.fillStyle=p.burden>=20?'#8da7a2':'#b49e74';c.globalAlpha=.7;c.beginPath();c.ellipse(size*.34,-size*.40,1.7,2.2,0,0,Math.PI*2);c.fill();c.restore();}if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
   c.restore();
@@ -671,39 +672,15 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   draw(cal?.id||'spring',cal?.blend??1);
   c.restore();
  }
- cherrySphagnumArt(p){
-  const source=this.assets.cherrySphagnum;
-  if(!source)return null;
-  const key=Object.hasOwn(CHERRY_PERCH,p.species)?p.species:'ridley';
-  this.cherrySphagnumCache??={};
-  if(this.cherrySphagnumCache[key])return this.cherrySphagnumCache[key];
-  const {support,drop}=CHERRY_PERCH[key],w=source.width,h=source.height;
-  const image=document.createElement('canvas');
-  image.width=w;image.height=Math.ceil(h*(1+drop));
-  const c=image.getContext('2d');
-  // Bake the drape once per species. The upper edge stays close to the support;
-  // the loose lower fibres stretch down farther with distance from the branch.
-  for(let x=0;x<w;x++){
-   const u=(x+.5)/w,distance=Math.abs(u-support)/Math.max(support,1-support);
-   const sag=h*drop*distance**1.65,upperSag=sag*.22;
-   c.drawImage(source,x,0,1,h,x,upperSag,1,h+sag-upperSag);
-  }
-  this.cherrySphagnumCache[key]=image;
-  return image;
- }
- drawCherrySphagnum(p,pos,amount){
-  if(amount<=0)return;
-  const art=this.cherrySphagnumArt(p);
+ drawCherrySphagnum(c,p,amount){
+  const art=this.assets.cherrySphagnum;
   if(!art)return;
   const [x,y,w,h]=(CHERRY_PERCH[p.species]||CHERRY_PERCH.ridley).cover;
-  const c=this.ctx;
+  const scale=1254/48,spread=.42+.58*amount,rise=.26+.74*amount;
   c.save();
-  c.translate(pos.x*this.w,pos.y*this.h);
   c.globalAlpha*=amount;
-  // The moss creeps up from the feet; the loose ends unfold downwards.
-  const spread=.40+.60*amount,rise=.22+.78*amount;
-  const extra=h*(art.height/this.assets.cherrySphagnum.height-1)*amount;
-  c.drawImage(art,x*spread,y+(1-rise)*h,w*spread,h*rise+extra);
+  // Wrap up from the feet within the same rig frame as the face and foliage.
+  c.drawImage(art,627+x*spread*scale,1065.9+(y+(1-rise)*h)*scale,w*spread*scale,h*rise*scale);
   c.restore();
  }
  treeShadow(){
@@ -885,10 +862,9 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip(p.objectTask?.object);
    if(!carry&&!this.recording&&this.selected===p.id)this.selectionRing(p,pos,phase);
-   if(!carry&&!(perch?.back&&this.shelfBack(p,pos,s.settings.reducedMotion?0:Forest.Objects.shelfGreeting(s,p))))this.pet(p,pos,kind,phase,night,kind==='held');
+   if(!carry&&!(perch?.back&&this.shelfBack(p,pos,s.settings.reducedMotion?0:Forest.Objects.shelfGreeting(s,p))))this.pet(p,pos,kind,phase,night,kind==='held',sphagnum);
    if(!carry&&seated)this.ctx.restore();
    if(!carry){
-    this.drawCherrySphagnum(p,pos,sphagnum);
     this.leafNeighbours(p,pos,phase);
     this.interaction(p,pos,kind,phase);
     this.shelterFront(p,pos);
