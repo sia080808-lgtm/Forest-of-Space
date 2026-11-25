@@ -12,13 +12,14 @@ const Obj=typeof module==='object'?require('./objects.js'):globalThis.ForestObje
 const Creatures=typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures;
 const Traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
+const Trees=typeof module==='object'?require('./trees.js'):globalThis.ForestTrees;
 const Vit=typeof module==='object'?require('./vitals.js'):globalThis.ForestVitals;
 const Boat=typeof module==='object'?require('./lily-boat.js'):globalThis.ForestLilyBoat;
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const NUTR_USE=.08/60;
-const VERSION='1.2.22', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.23', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -101,8 +102,10 @@ function step(s,{visible=true,held=null}={}){
   // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
   // SRS v2.34: basic water use by the water stat; strong light now costs water through photosynthesis (vitals.js)
   const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0||Vit.coolAt(s,p)?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
-  const absorb=Math.min(p.Q,2/60*tr.absorb,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
-  const ground=Obj.groundAt(s,p),safeDry=Sh.inside(s,p)||p.mounted||ground&&Obj.dry(s,ground.id);
+  const ground=Obj.groundAt(s,p),inside=Sh.inside(s,p);
+  const boost=p.Q>0&&!inside&&!p.mounted?Trees.absorption(s,p,Obj.kindOf(ground?.id)==='moss'):1;
+  const absorb=Math.min(p.Q,2/60*tr.absorb*boost,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
+  const safeDry=inside||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
   const weatherDamage=W.physiology(s,p,{safeCare:p.mounted});
   // SRS v2.28 species traits: weather mood (cold or snow / rain on the friend), and 엘레판's tank bonus while its open
@@ -230,6 +233,10 @@ function layoutPlan(s,positions){
  // A stored copy still occupies its slot and can only return via the storage action.
  for(const id of Object.keys(positions)){
   if(id.startsWith('stone-shelf'))continue;
+  if(Trees.kind(id)){
+   if(Trees.stored(s).some(t=>t.id===id))throw Error('보관함에서 나무를 먼저 꺼내주세요.');
+   continue;
+  }
   if(!known.has(id)&&(!Obj.isCopy(id)||(s.objects.stored||[]).some(p=>p.id===id)))throw Error('같은 오브젝트는 최대 3개까지 놓을 수 있어요.');
  }
  const {patches:next,springs}=objectDrafts(s,positions),[spring,...springCopies]=springs;
@@ -250,7 +257,17 @@ function layoutPlan(s,positions){
   if(dist(a,b)<(pool?.15:.135))throw Error(pool?'샘터로 가는 길을 비워주세요.':'다른 자리와 겹쳐요. 조금 떨어뜨려 주세요.');
  }
  const shelves=shelfLayout(s,positions,next,springs);
- const world={...s,patches:next,spring,objects:{...s.objects,springCopies}};
+ const trees=Trees.drafts(s,positions),planted=trees.filter(t=>!t.stored);
+ const world={...s,patches:next,spring,objects:{...s.objects,springCopies},world:{...s.world,trees}};
+ for(const t of planted){
+  const error=Trees.spotError(s,t);if(error)throw Error(error);
+  const footprint=Trees.extent(t),trunk=Trees.trunk(t);
+  if(planted.some(q=>q!==t&&World.boxesOverlap(footprint,Trees.extent(q)))||
+    objects.some(q=>Math.hypot((q.x-t.x)/(trunk.rx+.10),(q.y-t.y)/(trunk.ry+.045))<1)||
+    s.shelters.facilities.some(f=>World.boxesOverlap(footprint,Sh.setupBounds(f)))||
+    World.shelfDrafts(s,positions).some(q=>World.boxesOverlap(footprint,World.shelfBounds(q))))
+   throw Error('나무 줄기와 다른 사물 사이를 비워주세요.');
+ }
  for(const shelf of shelves){
   const entrance=Space.socket(world,'shelter');
   for(const slot of [1,2]){
@@ -261,12 +278,12 @@ function layoutPlan(s,positions){
  }
  for(const id of [...springs.map(Obj.objectId),'shelter',...next.map(p=>p.id)])if(!Space.route(world,Space.socket(world,'shelter'),Space.socket(world,id)))throw Error('샘터와 쉼터로 이어지는 길을 비워주세요.');
  for(const pet of s.individuals)if(pet.active&&Space.walkable(s,pet)&&!Space.walkable(world,pet))throw Error('친구가 있는 자리를 비워주세요.');
- return {patches:next,springs,shelves};
+ return {patches:next,springs,shelves,trees};
 }
 function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
 function layout(s,positions){
- const {patches,springs,shelves}=layoutPlan(s,positions);
- Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;
+ const {patches,springs,shelves,trees}=layoutPlan(s,positions);
+ Friendship.cancel(s);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;
  // Release active tasks before applying positions so returned water and leaves stay in their original pools.
  const place=z=>{
   const saved=Obj.patch(s,Obj.objectId(z));
@@ -276,6 +293,7 @@ function layout(s,positions){
  const copies=springs.slice(1).map(place);
  place(springs[0]);
  if(copies.length)s.objects.springCopies=copies;
+ if(trees.length)s.world.trees=trees;
  for(const {id,...placement} of shelves){
   if(id===World.SHELF_IDS[0])s.world.shelf=placement;
   else (s.world.shelfCopies??={})[id]=placement;
@@ -287,9 +305,25 @@ function layout(s,positions){
 // and the crevice can be put away and brought back. Put away, the object leaves the world (nobody uses it, nothing is drawn, no rain falls
 // on it) and keeps its water in the 보관함; back out, it lands at its old spot or the nearest free one. The spring and the litter bed stay.
 const STORABLE=Object.freeze(['moss','rock','shade','crevice']);
-function storeObject(s,id){if(!STORABLE.includes(Obj.kindOf(id)))throw Error(id==='spring'?'샘터는 숲에 꼭 있어야 해요.':id==='litter'?'낙엽 자리는 거름이 모이는 곳이라 숲에 두어요.':'보관할 수 없는 자리예요.');const i=s.patches.findIndex(p=>p.id===id);if(i<0)throw Error('이미 보관함에 있어요.');
+function storeTree(s,id){
+ const t=Trees.active(s).find(q=>q.id===id);
+ if(!t)throw Error('숲에 놓인 나무가 아니에요.');
+ t.stored=true;Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에 넣었어요.');return s;
+}
+function unstoreTree(s,id){
+ const t=Trees.stored(s).find(q=>q.id===id);
+ if(!t)throw Error('보관함에 없는 나무예요.');
+ const trial={...s,world:{...s.world,trees:Trees.all(s).filter(q=>q.id!==id)}};
+ for(const {x,y} of [t,...Trees.candidates(s,Trees.kind(id))]){
+  try{layoutPlan(trial,{[id]:{x,y}});}catch{continue;}
+  Object.assign(t,{x,y});delete t.stored;
+  Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에서 꺼냈어요.');return {x,y};
+ }
+ throw Error('나무를 꺼내 놓을 빈자리가 없어요.');
+}
+function storeObject(s,id){if(Trees.kind(id))return storeTree(s,id);if(!STORABLE.includes(Obj.kindOf(id)))throw Error(id==='spring'?'샘터는 숲에 꼭 있어야 해요.':id==='litter'?'낙엽 자리는 거름이 모이는 곳이라 숲에 두어요.':'보관할 수 없는 자리예요.');const i=s.patches.findIndex(p=>p.id===id);if(i<0)throw Error('이미 보관함에 있어요.');
  Social.invalidate(s);Obj.invalidate(s);const [p]=s.patches.splice(i,1);(s.objects.stored??=[]).push(p);for(const q of s.individuals)delete q.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에 넣었어요. 물은 그대로 남아 있어요.');return s;}
-function unstoreObject(s,id){const st=s.objects?.stored||[],i=st.findIndex(p=>p.id===id);if(i<0)throw Error('보관함에 없는 자리예요.');const p=st[i],wb=World.walk(s),spots=[{x:p.x,y:p.y}];
+function unstoreObject(s,id){if(Trees.kind(id))return unstoreTree(s,id);const st=s.objects?.stored||[],i=st.findIndex(p=>p.id===id);if(i<0)throw Error('보관함에 없는 자리예요.');const p=st[i],wb=World.walk(s),spots=[{x:p.x,y:p.y}];
  for(let r=.06;r<=.9;r+=.06)for(let k=0;k<12;k++){const a=k/12*Math.PI*2;spots.push({x:.5+Math.cos(a)*r,y:.55+Math.sin(a)*r*.8});}
  for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{shelfLayout(s,{},trial.patches,Obj.springs(s));validateLayout(trial,{});}catch(e){continue;}
   Social.invalidate(s);Obj.invalidate(s);st.splice(i,1);if(!st.length)delete s.objects.stored;s.patches.push({...p,x:q.x,y:q.y});for(const z of s.individuals)delete z.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');return {x:q.x,y:q.y};}
@@ -298,7 +332,7 @@ function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(
 function valid(s){
  if(!s||s.schema!==1||s.app!=='ForestOfSpace'||s.rules!==RULES)throw Error('이 버전에서 읽을 수 있는 여백의 숲 백업이 아니에요.');
  const finite=(v,min=0,max=1e15)=>Number.isFinite(v)&&v>=min&&v<=max;
- World.validate(s);Boat.validate(s);const wb=World.bounds(s);
+ World.validate(s);Trees.validate(s);Boat.validate(s);const wb=World.bounds(s);
  if(!finite(s.savedAt)||!finite(s.worldTick)||!Number.isInteger(s.worldTick)||!finite(s.layoutRevision)||!['game','landscape'].includes(s.mode)||typeof s.started!=='boolean')throw Error('시계 또는 모드 기록이 올바르지 않아요.');
  if(!s.weather||!['sun','cloud','rain','fog','snow'].includes(s.weather.kind)||!finite(s.weather.remaining,0,240)||!finite(s.weather.streak,1,2)||!finite(s.weather.intensity,0,100)||!finite(s.weather.wind,0,100)||!finite(s.weather.strongSeconds)||!finite(s.weather.transition,0,10)||!Number.isFinite(s.weather.lastRainEnd))throw Error('날씨 기록을 확인해 주세요.');
  if(!s.climate||['T','H','L'].some(k=>!finite(s.climate[k],0,100)))throw Error('기후 기록을 확인해 주세요.');
@@ -342,5 +376,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {Boat,World,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject,objectDrafts};
+return {Boat,World,Trees,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject,objectDrafts};
 });

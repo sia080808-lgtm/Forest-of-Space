@@ -151,6 +151,8 @@ function setupBounds(f){
  return {x0:(t.x+20)/360,x1:(t.x+210+t.extra)/360,y0:(t.y+20)/576,y1:entry(f).y+.045};
 }
 function placementError(s,f,replaceId){
+ const Trees=typeof module==='object'?require('./trees.js'):globalThis.ForestTrees;
+ if(Trees.active(s).some(t=>World.boxesOverlap(setupBounds(f),Trees.extent(t))))return '나무 줄기와 쉼터 입구를 떨어뜨려 놓아주세요.';
  if(![f.x,f.y].every(Number.isFinite))return '쉼터 배치를 확인해 주세요.';
  const t=transform(f),box={l:t.x+20,r:t.x+210+t.extra,t:t.y+20,b:t.y+300*t.sy};/* 1.2.0: the whole open forest (0.7.0 wide map) is allowed, not just the old 0..1 garden; never on the lake */const WB=World.bounds(s);if(box.l<WB.x0*360||box.r>WB.x1*360-5||box.t<WB.y0*576||box.b>WB.y1*576-26||!World.inside(s,f,World.inner(s,.08,.23,.15,.15)))return '쉼터가 숲 안에 들어오게 놓아주세요.';if(World.inWater&&(polygon(f).some(q=>World.inWater(s,q))||World.inWater(s,entry(f))))return '물 위에는 쉼터를 놓을 수 없어요.';
  if(World.stoneShelves(s).some(shelf=>World.boxesOverlap(setupBounds(f),World.shelfBounds(shelf))))return '돌 선반과 쉼터 입구가 겹쳐요.';

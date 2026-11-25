@@ -1,6 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestSpace=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
+const Trees=typeof module==='object'?require('./trees.js'):globalThis.ForestTrees;
 const Shelter=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 // One adult body diameter, in a fixed world coordinate system, independent of DPI.
@@ -16,7 +17,7 @@ function obstacles(s){
   const t=STONE[type],shape=t?(LEGACY?{rx:.09,ry:.042}:{x:p.x+t.dx,y:p.y+t.dy,rx:t.rx,ry:t.ry}):{x:p.x-.034,y:p.y+.004,rx:.024,ry:.012};
   return [{...p,...shape,type,...(type==='rock'?{top:rockSurface(p)}:{})}];
  });
- return [...s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0).map(Neolbi.barrier),...springs,...terrain];
+ return [...s.individuals.filter(p=>p.active&&p.species==='neolbi'&&p.canopyProgress>0).map(Neolbi.barrier),...springs,...terrain,...Trees.active(s).map(Trees.trunk)];
 }
 // Stone footprints follow the drawn art, which sits above the patch anchor (terrain cell drawn at -0.75..+0.25 of its size).
 // Routes try these first. If no route exists, the pre-0.6.15 footprint (centred on the anchor) is used so that saved
@@ -32,7 +33,7 @@ function onRockTop(t,p){return ((p.x-t.x)/t.rx)**2+((p.y-t.y)/t.ry)**2<=1+1e-9;}
 function inside(z,p){return Math.hypot((p.x-z.x)/z.rx,(p.y-z.y)/z.ry)<1;}
 // 0.6.29: a friend is not a point. Against the sun rock and the crevice stones the footprint grows by half the friend's
 // body width (and a little in depth), so the body never sinks into the side of the stone art.
-const STONES=['rock','crevice'];
+const STONES=['rock','crevice','tree'];
 function pad(s,id){const p=id&&s.individuals?.find(x=>x.id===id);return p?diameter(p)*.55:0;}
 function solid(z,p,w){return w&&STONES.includes(z.type||z.id)?Math.hypot((p.x-z.x)/(z.rx+w),(p.y-z.y)/(z.ry+w*.2))<1:inside(z,p);}
 function context(s,p){const z=s.patches.find(z=>Obj().kindOf(z.id)==='shade'&&distance(z,p)<.145);if(z)return 'duck';if(s.patches.some(z=>['moss','litter'].includes(Obj().kindOf(z.id))&&distance(z,p)<.13))return 'step';if(obstacles(s).some(z=>distance(z,p)<.18))return 'avoid';return null;}

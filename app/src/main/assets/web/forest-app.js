@@ -271,16 +271,22 @@ const editorViewportObserver=new ResizeObserver(syncEditorViewport);editorViewpo
 // 1.2.6 꾸미기 (user: "꾸미기에서 쉼터도 옮기기 가능하게", "오브젝트들 보관하기(월드에서 없애기)", "꾸미기 창에 보관함", "꾸미기창 gui 직관적이게"):
 // one panel — what is in the forest (objects and shelters), the chosen one with its move pad and 보관하기, and the 보관함 with 꺼내기.
 // A shelter opens its own move view (drag, flip, 보관하기) and comes back here when done.
-const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예요.',spring:'돌과 물, 물 마시는 위치를 함께 옮겨요. 숲에 꼭 있어야 해서 보관할 수 없어요.',moss:'놀며 천천히 쉬는 자리예요. 물은 조금만 보관해요.',rock:'볕을 모아 두는 바위예요. 친구가 위에 올라가 쉬어요.',shade:'주변의 빛을 줄이는 실제 그늘이에요.',crevice:'바람과 비를 피하는 틈이에요. 이끼와 그늘을 가까이 두면 좋아요.',litter:'낙엽이 거름이 되는 자리예요. 숲에 꼭 있어야 해서 보관할 수 없어요.'};
+const treeAbsorptionPct=Math.round((F.Trees.ABSORPTION-1)*100);
+const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예요.',spring:'돌과 물, 물 마시는 위치를 함께 옮겨요. 숲에 꼭 있어야 해서 보관할 수 없어요.',moss:'물을 조금 머금고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.',rock:'볕을 모아 두는 바위예요. 친구가 위에 올라가 쉬어요.',shade:'주변의 빛을 줄이는 실제 그늘이에요.',crevice:'바람과 비를 피하는 틈이에요. 이끼와 그늘을 가까이 두면 좋아요.',litter:'낙엽이 거름이 되는 자리예요. 숲에 꼭 있어야 해서 보관할 수 없어요.'};
 function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const items=scene.editorItems();if(!items.some(x=>x.id===scene.selectedPatch))scene.selectedPatch=items[0]?.id||'spring';const p=items.find(x=>x.id===scene.selectedPatch);
- const type=F.Objects.kindOf(p.id),shelf=F.World.SHELF_IDS.includes(p.id);
+ const tree=F.Trees.kind(p.id),type=F.Objects.kindOf(p.id),shelf=F.World.SHELF_IDS.includes(p.id);
  const copyId=shelf?F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id)):F.Objects.nextCopyId(state,p.id,scene.preview);
- let message=EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=state.objects?.stored||[],sheds=state.shelters.stored||[],canStore=F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
+ let message=(tree==='zelkova'?'남쪽 숲에 심어요. 강한 볕과 비바람을 줄여요.':tree==='willow'?'호숫가에 심어요. 빗방울을 막고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.':null)||EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=[...(state.objects?.stored||[]),...F.Trees.stored(state).map(t=>({...t,name:F.Trees.name(t.id)}))],sheds=state.shelters.stored||[],canStore=tree?F.Trees.active(state).some(t=>t.id===p.id):F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
  const flip=scene.preview[p.id]?.flip??p.flip??false;
  const copies=[...items,...stored].filter(x=>shelf?F.World.SHELF_IDS.includes(x.id):F.Objects.kindOf(x.id)===type).length;
  const addButton=shelf||F.Objects.COPY_KINDS.includes(type)
   ?'<button class="secondary ed-store" data-action="'+(shelf?'shelf-copy':'object-add')+'" '+(copyId?'':'disabled')+'>추가 · '+copies+'/3</button>':'';
 
+ const treeButtons=Object.entries(F.Trees.TYPES).map(([id,d])=>{
+  const ready=F.Trees.unlocked(state,id),count=F.Trees.count(state,id,scene.preview);
+  const label=ready?d.name+' 심기 · '+count+'/'+d.limit:d.name+' · '+(id==='zelkova'?'남쪽 숲 발견 후':'호수 발견 후');
+  return '<button class="chip" data-action="tree-add" data-id="'+id+'" '+(ready&&count<d.limit?'':'disabled')+'>'+escape(label)+'</button>';
+ }).join('');
  const shelters=scene.editorShelters().map(f=>
   '<button class="chip ed-shed" data-action="edit-shelter" data-id="'+escape(f.id)+'">'+escape(f.label)+'</button>'
  ).join('');
@@ -289,6 +295,7 @@ function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const 
   +'<div class="ed-lbl">숲에 놓인 것</div><div class="chips">'+items.map(x=>'<button class="chip '+(p.id===x.id?'active':'')+'" data-patch="'+x.id+'">'+escape(x.name)+'</button>').join('')+'</div>'
   +'<div class="ed-lbl">쉼터</div><div class="chips">'+shelters
   +'<button class="chip" data-action="facility-add" '+(canAdd?'':'disabled')+'>쉼터 추가</button></div>'
+  +'<div class="ed-lbl">나무</div><div class="chips">'+treeButtons+'</div>'
   +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button>':'')+addButton+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
   +'<div class="ed-lbl">보관함 <small>'+(stored.length+sheds.length)+'</small></div><div class="ed-box">'+(stored.length+sheds.length?stored.map(x=>'<div class="ed-kept"><span>'+escape(x.name+(F.Objects.isCopy(x.id)?' '+x.id.at(-1):''))+'</span><button class="secondary" data-action="unstore-object" data-id="'+x.id+'">꺼내기</button></div>').join('')+sheds.map(x=>'<div class="ed-kept"><span>⌂ '+escape(F.Shelter.name(x))+' · '+F.Shelter.capacity(x)/4+'공간</span><button class="secondary" data-action="unstore-shelter" data-id="'+escape(x.id)+'">꺼내기</button></div>').join(''):'<p class="ed-empty">보관한 사물이 여기에 모여요. 숲에서 빼 두고 싶은 것을 골라 보관하기를 눌러요.</p>')+'</div>'
   +'<div class="button-pair"><button class="secondary" data-action="cancel-layout">취소</button><button class="primary" data-action="save-layout" '+(bad?'disabled':'')+'>배치 완료</button></div>';
@@ -425,6 +432,15 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(b.dataset.tab){if(b.dataset.tab==='decorate')startEditor();else switchTab(b.dataset.tab);return;}
  if(b.dataset.dex){dex=b.dataset.dex;renderPage();return;}
  if(b.dataset.patch){scene.selectedPatch=b.dataset.patch;renderEditor();return;}
+ if(a==='tree-add'&&scene.editing){
+  const type=b.dataset.id,id=F.Trees.nextId(state,type,scene.preview);
+  if(!id)return;
+  for(const point of F.Trees.candidates(state,type)){
+   try{F.validateLayout(state,{...scene.preview,[id]:point});}catch{continue;}
+   scene.preview[id]=point;scene.selectedPatch=id;renderEditor();return;
+  }
+  notice('나무를 심을 자리가 부족해요. 주변 사물을 옮겨주세요.');return;
+ }
  if(a==='object-add'&&scene.editing){
   const source=scene.editorItems().find(p=>p.id===scene.selectedPatch);
   const id=source&&F.Objects.nextCopyId(state,source.id,scene.preview);
