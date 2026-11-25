@@ -53,7 +53,11 @@ function shelfOnLand(s,shelf){
 }
 
 const southReady=s=>lakeOpen(s)&&!southOpen(s)&&s.worldTick-(s.environment?.calendar?.start??0)>=2*LAKE.season;
-function inWater(s,p){return lakeOpen(s)&&p.x>1.25&&waterD(p.x,p.y)<LAKE.edge;}
+// The three shoreline waves can only reduce the ellipse distance by 0.095.
+const WATER_BOUND=LAKE.edge+.096;
+function inWater(s,p){
+ return p.x>1.25&&Math.abs(p.x-LAKE.cx)<LAKE.ru*WATER_BOUND&&Math.abs(p.y-LAKE.cy)<LAKE.rv*WATER_BOUND&&lakeOpen(s)&&waterD(p.x,p.y)<LAKE.edge;
+}
 const GARDEN=Object.freeze({x0:0,y0:0,x1:1,y1:1});
 function init(s){if(!s)return s;s.world??={version:1,regions:['forest']};if(!Array.isArray(s.world.regions)||!s.world.regions.length)s.world.regions=['forest'];return s;}
 // bounding box of every open region (a missing world record means a save from before 0.7.0: the forest is open)

@@ -107,8 +107,12 @@ function move(s,p,Space){const a=p.shelter,f=facility(s,a?.facilityId);if(!wants
  }return {...m,arrived:inside(s,p),kind:inside(s,p)?'rest':m.kind};}
 function blocked(s,q,id){
  const assigned=s.individuals.find(p=>p.id===id)?.shelter;
+ const x=q.x*360,y=q.y*576;
  for(const f of s.shelters?.facilities||[]){
-  const t=transform(f),x=q.x*360,y=q.y*576,inRoom=inPoly(q,polygon(f));
+  const t=transform(f);
+  // The room, walls and projected rock surface are all inside this art-space box.
+  if(x<t.x||x>t.x+220+t.extra||y<t.y||y>t.y+280*t.sy)continue;
+  const inRoom=inPoly(q,polygon(f));
   const usesDoor=assigned?.facilityId===f.id&&assigned.phase!=='moving';
   if(isRock(f)&&!usesDoor){
    const artX=(x-t.x)*500/(220+t.extra),artY=(y-t.y)/t.sy;
