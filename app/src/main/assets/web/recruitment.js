@@ -33,21 +33,27 @@ function conditions(s,id,Space,Social){const litter=s.patches.find(p=>p.id==='li
 function makePet(s,species,id,personality){return {id,species,name:names[ids.indexOf(species)],B:50,Q:0,V:0,snowWater:0,energy:75,mood:75,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.65,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0},visualStage:0,shelter:{phase:'outside',since:s.worldTick},gustExposure:0,braceSeconds:0,windCalmSeconds:0,wet85Seconds:0,wetFilm:0,wetRecovery:false,leafRecovery:false};}
 const SPORE_SECONDS=90;
 const generation=p=>p.generation??1;
+// Progress saved by an earlier build already represents a formed pouch.
+const hasSporeSac=p=>!!p.sporeSac||p.sporeSeconds>0;
+const ripeningSpore=p=>hasSporeSac(p)&&p.sporeSeconds!==SPORE_SECONDS;
+const canReceiveSporeSac=p=>p.visualStage===3&&!p.mounted&&!hasSporeSac(p)&&!p.sporeStored;
 function sporeStatus(p){
  if(p.sporeStored)return '채집한 포자 1개';
  if(p.sporeSeconds===SPORE_SECONDS)return '포자가 여물었어요';
+ if(!hasSporeSac(p))return '친밀도가 가득 차면 포자낭이 맺혀요';
+ if(!p.sporeSeconds)return '포자낭이 맺혔어요';
  return '포자 성장 '+(p.sporeSeconds||0)+' / '+SPORE_SECONDS+'초';
 }
 function growSpore(p,photo){
  if(p.visualStage!==3||!p.stroll?.perch||p.stroll.perch!==p.perchTree||p.stroll.arrivedAt==null||
-    p.sporeStored||photo.xp<=0||p.sporeSeconds===SPORE_SECONDS)return false;
+    !ripeningSpore(p)||photo.xp<=0)return false;
  p.sporeSeconds=(p.sporeSeconds||0)+1;
  return p.sporeSeconds===SPORE_SECONDS;
 }
 function collectSpore(s,id){
  const p=s.individuals.find(p=>p.id===id);
  if(!p||p.sporeStored||p.sporeSeconds!==SPORE_SECONDS)throw Error('여문 포자가 필요해요.');
- delete p.sporeSeconds;p.sporeStored=true;
+ delete p.sporeSeconds;delete p.sporeSac;p.sporeStored=true;
 }
 function germinate(s,id,personality,event){
  const parent=s.individuals.find(p=>p.id===id);
@@ -64,6 +70,7 @@ function germinate(s,id,personality,event){
 function validateLineage(s){
  const byId=new Map(s.individuals.map(p=>[p.id,p]));
  for(const p of s.individuals){
+  if(p.sporeSac!==undefined&&(p.sporeSac===p.id||!byId.has(p.sporeSac)||p.sporeStored))throw Error('포자낭 기록을 확인해 주세요.');
   if(p.sporeSeconds!==undefined&&(!Number.isInteger(p.sporeSeconds)||p.sporeSeconds<0||p.sporeSeconds>SPORE_SECONDS)||
      p.sporeStored!==undefined&&(p.sporeStored!==true||p.sporeSeconds!==undefined))throw Error('포자 성장 기록을 확인해 주세요.');
   if(p.parentId===undefined&&p.generation===undefined)continue;
@@ -97,5 +104,5 @@ function steps(s){const r=s.recruitment,v=r?.visitor;if(!v)return null;const p=r
  return {list,ready:v.ready,leaveIn:v.ready?null:Math.max(0,600-v.seconds),buttons:{greet:v.species==='ridley',guide:v.species==='bosong'}};}
 function settle(s,event){const r=s.recruitment,v=r.visitor;if(!v?.ready)throw Error('조금 더 서로 익숙해질 시간이 필요해요.');if(s.individuals.length>=50)throw Error('함께 지낼 친구 기록이 50명으로 가득해요. 준비된 친구는 기다릴 수 있어요.');if(r.settled.includes(v.id))throw Error('이미 함께 살고 있는 친구예요.');const p=JSON.parse(JSON.stringify(v.pet));s.individuals.push(p);r.settled.push(v.id);r.visitor=null;event?.(s,'welcome',josa(p.name,'이','가')+' 함께 살기로 했어요. 친구 목록에서 정원에 들여주세요.',{individual:p.id,arrivalWater:p.B});return p;}
 function validate(s){validateLineage(s);const r=s.recruitment;if(!r||r.version!==1||!Number.isSafeInteger(r.serial)||r.serial<0||!Array.isArray(r.settled)||new Set(r.settled).size!==r.settled.length||!Array.isArray(r.pending)||r.pending.some(x=>!ids.includes(x))||r.target!==null&&!ids.includes(r.target))throw Error('친구 방문 기록을 확인해 주세요.');for(const id of ids){const p=r.progress[id];if(!p||['valid','failures','comfortable','rest'].some(k=>!Number.isFinite(p[k])||p[k]<0)||!p.actions)throw Error('친구와 함께한 기록을 확인해 주세요.');}const v=r.visitor;if(v&&(!ids.includes(v.species)||typeof v.open!=='boolean'||typeof v.ready!=='boolean'||!Number.isFinite(v.seconds)||v.seconds<0||v.water<0||v.water>20||v.leaves<0||v.leaves>3||!Number.isFinite(v.x)||!Number.isFinite(v.y)))throw Error('방문 중인 친구 기록을 확인해 주세요.');}
-return {SPORE_SECONDS,generation,sporeStatus,growSpore,collectSpore,germinate,arrive,steps,retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
+return {SPORE_SECONDS,generation,hasSporeSac,ripeningSpore,canReceiveSporeSac,sporeStatus,growSpore,collectSpore,germinate,arrive,steps,retired,josa,init,tick,conditions,open,close,act,encounterStep,settle,validate,ids,names,needs,goals};
 });

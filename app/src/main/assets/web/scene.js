@@ -7,6 +7,11 @@ const PERCH_COVER=Object.freeze({
  duri:[-15,-14,31,24],jureong:[-23,-13,48,23],neolbi:[-25,-22,51,34],
  superbum:[-21,-23,43,37]
 });
+// Leaf attachment offsets in fractions of the standard character rig.
+const SPORE_SAC_SEAT=Object.freeze({
+ ridley:[.024,-.657],bonbon:[.13,-.71],bosong:[.05,-.78],duri:[.10,-.79],
+ jureong:[.12,-.55],neolbi:[.27,-.78],superbum:[.13,-1.14]
+});
 // Loose canopy washes in the same warm ink as the roots.
 const TREE_SHADOWS=Object.freeze({
  cherry:{crown:[[.30,.49,.20,.23,.66],[.57,.54,.25,.20,.82],[.73,.62,.16,.19,.36]],opacity:.17},
@@ -449,6 +454,7 @@ class ForestScene {
   const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
    bodyCover:sphagnum>0?ctx=>this.drawPerchSphagnum(ctx,p,sphagnum):undefined});if(dim)this.dimmed(c,go);else go(c);}c.restore();
   if(RX&&RX.k!=='watch'&&p.species==='superbum'&&(p.V||0)>2){c.save();c.fillStyle='#a8ccd1';c.globalAlpha=.8*(1-RX.u);for(let j=0;j<4;j++){const a=j*1.3+.4,r=size*(.25+RX.u*.35);c.beginPath();c.ellipse(Math.cos(a)*r*.8,-size*.75+RX.u*RX.u*size*.5-Math.sin(a)*r*.3,1.1,1.6,0,0,Math.PI*2);c.fill();}c.restore();}   /* 슈퍼범: the nest water slops over */
+  if(Forest.Recruitment.hasSporeSac(p))this.drawSporeSac(c,p,size);
   if(p.wetFilm>.1&&p.species!=='neolbi'){c.save();c.globalAlpha=p.wetFilm*.5;c.fillStyle='#bdd6cc';for(let j=0;j<3;j++){c.beginPath();c.ellipse((j-1)*size*.15,-size*(.55+Math.abs(j-1)*.12),.7,1.2,0,0,Math.PI*2);c.fill();}c.restore();}if(p.burden>=20||p.damage>=10){c.save();c.fillStyle=p.burden>=20?'#8da7a2':'#b49e74';c.globalAlpha=.7;c.beginPath();c.ellipse(size*.34,-size*.40,1.7,2.2,0,0,Math.PI*2);c.fill();c.restore();}if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
   c.restore();
  }
@@ -672,6 +678,20 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   }else{c.translate(t.x*w,t.y*h);c.scale(dir,1);}
   if(cal&&cal.blend<1)draw(cal.prev,1-cal.blend);
   draw(cal?.id||'spring',cal?.blend??1);
+  c.restore();
+ }
+ drawSporeSac(c,p,size){
+  const [x,y]=SPORE_SAC_SEAT[p.species]||SPORE_SAC_SEAT.ridley,r=size*.049;
+  c.save();c.translate(x*size,y*size);c.rotate(-.32);
+  // Short stem keeps the pouch attached to the leaf as the adult bobs.
+  c.strokeStyle='#88876a';c.lineWidth=r*.37;c.lineCap='round';
+  c.beginPath();c.moveTo(0,r*1.2);c.quadraticCurveTo(-r*.6,r*.25,r*.2,-r);c.stroke();
+  const ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
+  c.fillStyle=ripe?'#9a7856':'#9a9570';
+  c.beginPath();c.ellipse(0,-r*.63,r*.88,r*1.13,-.18,0,Math.PI*2);c.fill();
+  c.fillStyle=ripe?'#c49d72':'#c6b98c';
+  c.beginPath();c.ellipse(r*.61,-r*.90,r*.62,r*.76,.38,0,Math.PI*2);
+  c.ellipse(-r*.24,-r*.78,r*.36,r*.52,-.37,0,Math.PI*2);c.fill();
   c.restore();
  }
  drawPerchSphagnum(c,p,amount){

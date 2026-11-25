@@ -13,10 +13,10 @@ const PERCH_HINT={
 function treePerch(s,id,type,m){
  const owner=F.Trees.perchOwner(s,id);
  m.rows.push(['착생 자리',owner?.name||'빈자리']);
- m.effects.push(PERCH_HINT[type],'잔잔한 낮에 스스로 찾아와 쉬어요. 기운은 분당 1.5씩, 최대 75까지 차요.');
+ m.effects.push(PERCH_HINT[type],'포자낭이 맺힌 친구는 잔잔한 낮에 찾아와요. 쉬는 동안 기운은 분당 1.5씩, 최대 75까지 차요.');
  if(owner){
   m.rows.push(['포자',F.Recruitment.sporeStatus(owner)]);
-  m.effects.push('착생한 동안 광합성을 하면 포자가 자라요.');
+  m.effects.push('착생 중 광합성을 하면 포자가 자라요.');
   m.actions=[{action:'tree-unassign',label:'착생 자리 해제'}];
  }else m.actions=s.individuals.filter(p=>F.Trees.canAssign(p,id)).map(p=>({action:'tree-assign',friend:p.id,label:p.name+' 자리 잡기'}));
  return m;
