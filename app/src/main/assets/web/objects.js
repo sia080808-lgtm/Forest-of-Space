@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{trees:'ForestTrees',friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{trees:'ForestTrees',recruitment:'ForestRecruitment',friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -240,6 +240,10 @@ const shelfMeetings=new WeakMap();
 const pairIds=(a,b)=>[a.id,b.id].sort();
 const pairKey=(a,b)=>JSON.stringify(pairIds(a,b));
 function affinity(s,a,b){return s.objects?.friendships?.[pairKey(a,b)]?.points??0;}
+function learnedDance(s,a,b){
+ const pair=s.objects?.friendships?.[pairKey(a,b)];
+ return pair?.points===AFFINITY.close||!!pair?.sporeHost;
+}
 const visitShelfId=p=>p.stroll?.shelfId??World.SHELF_IDS[0];
 function trackShelfMeeting(s){
  const previous=shelfMeetings.get(s),meetings=new Map(),tick=s.worldTick;
@@ -265,8 +269,24 @@ function awardAffinity(s,a,b){
  const key=pairKey(a,b),friends=s.objects.friendships??={},previous=friends[key];
  const day=Math.floor(s.worldTick/dep('environment').DAY_SECONDS);
  const today=previous?.day===day?previous.today:0;
- if(today>=AFFINITY.daily||previous?.points>=AFFINITY.close||previous&&s.worldTick-previous.last<AFFINITY.interval)return false;
- friends[key]={ids:pairIds(a,b),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ // A pair at the cap can finish its cycle on a later encounter if a recipient became available.
+ if(previous?.points===AFFINITY.close)return givePairSpore(previous,a,b);
+ if(today>=AFFINITY.daily||previous&&s.worldTick-previous.last<AFFINITY.interval)return false;
+ const current={...previous,ids:pairIds(a,b),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ if(current.points===AFFINITY.close)givePairSpore(current,a,b);
+ friends[key]=current;
+ return true;
+}
+function givePairSpore(pair,a,b){
+ const rec=dep('recruitment');
+ const eligible=[a,b].filter(rec.canReceiveSporeSac);
+ if(!eligible.length)return false;
+ // A ready perch is useful. On equal footing, alternate who carries the next pouch.
+ eligible.sort((x,y)=>Number(!!y.perchTree)-Number(!!x.perchTree)||Number(x.id===pair.sporeHost)-Number(y.id===pair.sporeHost)||x.id.localeCompare(y.id));
+ const host=eligible[0];
+ host.sporeSac=host===a?b.id:a.id;
+ pair.sporeHost=host.id;
+ pair.points=0;
  return true;
 }
 
@@ -425,12 +445,12 @@ function perchWeather(s,p){
  return strollWeather(s)&&!sleepTime(s,p)&&!coldCall(s,p)&&s.weather.wind<30;
 }
 function perchTarget(s,p){
- if(!p.perchTree||p.visualStage!==3||s.worldTick<(p.perchAfter||0)||!perchWeather(s,p)||
+ if(!p.perchTree||p.visualStage!==3||!dep('recruitment').ripeningSpore(p)||s.worldTick<(p.perchAfter||0)||!perchWeather(s,p)||
     p.shelterRequest||p.shelter?.phase!=='outside'||p.skill||p.skillHold||p.canopyProgress||p.sleepHere||p.braceHere)return null;
  const tree=dep('trees').active(s).find(t=>t.id===p.perchTree);
  if(!tree)return null;
  const q=dep('trees').perchEntry(tree),space=dep('spatial');
- if(!space.walkable(s,q,p.id)||s.individuals.some(other=>other.active&&other.id!==p.id&&space.distance(other,q)<(space.diameter(other)+space.diameter(p))/2)){
+ if(World.inWater(s,q)||!space.walkable(s,q,p.id)||s.individuals.some(other=>other.active&&other.id!==p.id&&space.distance(other,q)<(space.diameter(other)+space.diameter(p))/2)){
   p.perchAfter=s.worldTick+30;return null;
  }
  // travel() plans the route once and shares the ordinary walk's stall/deadline checks.
@@ -666,7 +686,11 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return friend.text;
  const t=p.objectTask,w=p.objectWait;
- if(p.stroll?.perch&&!t)return p.stroll.arrivedAt==null?'산벚나무의 수태 자리로 가고 있어요':'산벚나무 낮은 가지에서 쉬고 있어요';
+ if(p.stroll?.perch&&!t){
+  const trees=dep('trees'),type=trees.kind(p.stroll.perch),name=trees.TYPES[type].name;
+  const spot=type==='cherry'?' 낮은 가지':' 줄기';
+  return p.stroll.arrivedAt==null?name+'의 수태 자리로 가고 있어요':name+spot+'에서 쉬고 있어요';
+ }
  if(p.stroll?.shelf&&!t){
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
   if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
@@ -711,8 +735,9 @@ function validate(s){
   if(!records||typeof records!=='object'||Array.isArray(records))throw Error('친밀도 기록을 확인해 주세요.');
   for(const [key,v] of Object.entries(records)){
    if(!v||!Array.isArray(v.ids)||v.ids.length!==2||v.ids[0]>=v.ids[1]||v.ids.some(id=>!people.has(id))||
-    key!==JSON.stringify(v.ids)||!Number.isInteger(v.points)||v.points<1||v.points>AFFINITY.close||
-    !Number.isInteger(v.today)||v.today<1||v.today>Math.min(AFFINITY.daily,v.points)||
+    key!==JSON.stringify(v.ids)||!Number.isInteger(v.points)||v.points<(v.sporeHost?0:1)||v.points>AFFINITY.close||
+    (v.sporeHost!==undefined&&!v.ids.includes(v.sporeHost))||
+    !Number.isInteger(v.today)||v.today<1||v.today>AFFINITY.daily||(!v.sporeHost&&v.today>v.points)||
     !Number.isSafeInteger(v.last)||v.last<0||v.last>s.worldTick||
     v.day!==Math.floor(v.last/dep('environment').DAY_SECONDS))throw Error('친밀도 기록을 확인해 주세요.');
   }
@@ -731,5 +756,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||(isPile(t.object)||isCopy(t.object))&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {COPY_KINDS,objectId,kindOf,isCopy,patchesOf,springs,nextCopyId,litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,awardAffinity,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {COPY_KINDS,objectId,kindOf,isCopy,patchesOf,springs,nextCopyId,litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,awardAffinity,learnedDance,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });

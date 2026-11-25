@@ -28,6 +28,7 @@ function drawLocal(c,a,opt={}){
  if(p.eyes==='neutral'&&!blink&&p.look===0)c.drawImage(a.neolbiEyes,0,0,255,208);
  else {c.save();c.strokeStyle='#f5ecd6';c.lineWidth=4;c.lineCap='round';
  for(const x of [124,157]){c.beginPath();if(p.eyes==='sleepy'||blink){c.moveTo(x-4,124);c.quadraticCurveTo(x,128,x+4,124);}else if(p.eyes==='happy'){c.moveTo(x-4,125);c.quadraticCurveTo(x,119,x+4,125);}else if(p.eyes==='sad'){c.moveTo(x-4,125);c.lineTo(x+3,126);}else {c.moveTo(x+2+p.look,p.eyes==='focused'?121:p.eyes==='surprised'?115:117);c.lineTo(x-1+p.look,p.eyes==='surprised'?132:130);}c.stroke();}c.restore();}
+ opt.cover?.();
  c.save();c.filter=leafFilter;c.translate(90,85);c.rotate(p.front);c.translate(-90,-85);
  const deferred=p.open>0&&opt.deferFront&&typeof opt.onHood==='function'&&opt.onHood(c.getTransform());
  if(!deferred){if(p.open>0){front(c,p.rain?a.neolbiRainCanopy:a.neolbiCanopy,p.open);frontSnow(c,a.neolbiCanopy,p.open,opt.snow||0);}else {c.drawImage(a.neolbiFront,0,0,255,208);if(opt.snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,a.neolbiFront,opt.snow,0,0,255,208);}surface(c,p.open,opt.wetFilm||0,t,opt.rain,opt.reduced);}

@@ -75,7 +75,11 @@ function eyes(c,set,m,p,a,opt,t){
  c.restore();
 }
 // draws one full layer set; alpha for the dry/wet cross-fade
-function drawSet(c,a,set,p,opt,t){
+function bodyPose(c,p,sit){
+ c.translate(0,p.bob+p.sink+sit*10);
+ c.translate(...ANCHOR);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-ANCHOR[0],-ANCHOR[1]);
+}
+function drawSet(c,a,set,p,opt,t,part){
  const m=META[set],L=k=>a['superbum_'+set+'_'+k],snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
  const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // The pendant leaves hang from the cheeks: their top stays attached and only the lower part swings (drawn in thin
@@ -92,9 +96,12 @@ function drawSet(c,a,set,p,opt,t){
   else{cv=makeCanvas(Math.ceil(560*scale),Math.ceil(460*scale));const o=cv.getContext('2d');o.scale(scale,scale);o.translate(40,20);const keep=c;c=o;try{bentLive(k,py,qa,ql,false);}finally{c=keep;}bakes.set(key,cv);if(bakes.size>BAKE_MAX)bakes.delete(bakes.keys().next().value);}
   c.drawImage(cv,-40,-20,560,460);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // body (round face) first; the feet are attached in front of its lower edge (they move with the body and step on their own); leaves and crown move with the body
- const sit=opt.sit||0,lift=()=>{c.translate(0,p.bob+p.sink+sit*10);c.translate(240,404);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-240,-404);};
+ const sit=opt.sit||0,lift=()=>bodyPose(c,p,sit);
+ if(part!=='leaves'){
  c.save();lift();img('body');eyes(c,set,m,p,a,opt,t);c.restore();
  for(const i of [0,1]){const f=p.feet[i],[fx,fy]=m.feet[i];c.save();c.translate(f.dx,f.dy+p.bob+p.sink*(1-sit));c.translate(fx,fy);c.rotate(f.rot);c.translate(-fx,-fy);img(i?'foot-right':'foot-left');c.restore();}
+ if(part==='base')return;
+ }
  c.save();lift();
  // each side's leaves hang over its cheek
  // huddled (0.6.38): the outer tips at the top of the side leaves sit under the nest brim; once the nest folds down they
@@ -122,9 +129,25 @@ function drawLocal(c,a,opt={}){
  const dr=opt.droop||0;if(dr){p.sink=(p.sink||0)+14*dr;p.crownScale=(p.crownScale||1)*(1-.05*dr);p.crownLift=(p.crownLift||0)+14*dr;p.skirt=[(p.skirt?.[0]||0)+.14*dr,(p.skirt?.[1]||0)-.14*dr];p.squash=(p.squash||1)*(1-.03*dr);}
  c.save();c.translate(-ANCHOR[0],-ANCHOR[1]);
  const sets=w<=0?[['dry',1]]:w>=1?[['wet',1]]:[['dry',1],['wet',w]];
- for(const [set,alpha] of sets){
-  if(alpha<1){const cv=layerBuffer(),cc=cv.getContext('2d');cc.setTransform(1,0,0,1,0,0);cc.clearRect(0,0,cv.width,cv.height);cc.translate(0,60);const M=drawSet(cc,a,set,p,{...opt,kind},t);water(cc,M,set,p,t,opt);c.save();c.globalAlpha*=alpha;c.drawImage(cv,0,-60);c.restore();}
-  else {const M=drawSet(c,a,set,p,{...opt,kind},t);water(c,M,set,p,t,opt);}
+ const paint=part=>{
+  for(const [set,alpha] of sets){
+   if(alpha<1){
+    const cv=layerBuffer(),cc=cv.getContext('2d');cc.setTransform(1,0,0,1,0,0);cc.clearRect(0,0,cv.width,cv.height);cc.translate(0,60);
+    const M=drawSet(cc,a,set,p,{...opt,kind},t,part);
+    if(part!=='base')water(cc,M,set,p,t,opt);
+    c.save();c.globalAlpha*=alpha;c.drawImage(cv,0,-60);c.restore();
+   }else{
+    const M=drawSet(c,a,set,p,{...opt,kind},t,part);
+    if(part!=='base')water(c,M,set,p,t,opt);
+   }
+  }
+ };
+ if(opt.cover){paint('base');opt.cover();paint('leaves');}
+ else paint();
+ if(opt.crownSprout){
+  c.save();bodyPose(c,p,opt.sit||0);c.translate(...ANCHOR);
+  const rigUnits=HEIGHT/(RIDLEY_H*SIZE);c.scale(rigUnits,rigUnits);
+  opt.crownSprout(c);c.restore();
  }
  c.restore();return p;
 }
