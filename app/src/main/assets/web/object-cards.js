@@ -5,6 +5,22 @@ const number=v=>Number(Math.max(0,v).toFixed(2)).toString(),amount=v=>v>0&&v<.1?
 const metric=(id,label,value,note='')=>({id,label,value,note});
 function usage(s,id){const ps=s.individuals.filter(p=>p.active&&!p.mounted&&p.objectTask?.object===id),inside=ps.filter(p=>O.at(s,p));return {count:inside.length,moving:ps.length-inside.length,used:inside.reduce((n,p)=>n+Sh.units(p),0)/4,reserved:ps.filter(p=>!inside.includes(p)).reduce((n,p)=>n+Sh.units(p),0)/4};}
 const absorptionLabel=F=>'+'+Math.round((F.Trees.ABSORPTION-1)*100)+'%';
+const PERCH_HINT={
+ cherry:'작은 성체 친구가 낮은 가지에 자리를 잡아요.',
+ zelkova:'엘레판과 슈퍼범은 굵은 줄기에, 작은 성체 친구는 낮은 가지에 자리를 잡아요.',
+ willow:'물을 좋아하는 코로나와 슈퍼범이 물가의 줄기에 자리를 잡아요.'
+};
+function treePerch(s,id,type,m){
+ const owner=F.Trees.perchOwner(s,id);
+ m.rows.push(['착생 자리',owner?.name||'빈자리']);
+ m.effects.push(PERCH_HINT[type],'포자낭이 맺힌 친구는 잔잔한 낮에 찾아와요. 쉬는 동안 기운은 분당 1.5씩, 최대 75까지 차요.');
+ if(owner){
+  m.rows.push(['포자',F.Recruitment.sporeStatus(owner)]);
+  m.effects.push('착생 중 광합성을 하면 포자가 자라요.');
+  m.actions=[{action:'tree-unassign',label:'착생 자리 해제'}];
+ }else m.actions=s.individuals.filter(p=>F.Trees.canAssign(p,id)).map(p=>({action:'tree-assign',friend:p.id,label:p.name+' 자리 잡기'}));
+ return m;
+}
 function model(s,id){
  if(F.World.SHELF_IDS.includes(id)){
   if(!F.World.stoneShelf(s,id))return null;
@@ -19,18 +35,16 @@ function model(s,id){
   const type=F.Trees.kind(id),c=F.Trees.protection(s,tree);
   if(type==='cherry'){
    const season=F.Trees.season(s),looks={spring:'연분홍 꽃이 피었어요',summer:'초록 잎이 그늘을 드리워요',autumn:'잎이 붉게 물들어요',winter:'잎이 지고 가지에 눈이 내려요'};
-   const owner=F.Trees.perchOwner(s,id);
-   const actions=owner?[{action:'cherry-unassign',label:'착생 자리 해제'}]:s.individuals.filter(F.Trees.canAssign).map(p=>({action:'cherry-assign',friend:p.id,label:p.name+' 자리 잡기'}));
-   return {id,name:F.Trees.name(id),description:'남쪽 숲에 계절의 변화를 보여주는 나무예요.',status:looks[season],
-    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[['착생 자리',owner?.name||'빈자리'],...(owner?[['포자',F.Recruitment.sporeStatus(owner)]]:[])],
-    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.','성체 친구 한 명의 수태 자리를 정하면 잔잔한 낮에 스스로 찾아와 쉬어요. 쉬는 동안 기운이 분당 1.5씩, 최대 75까지 차요.',...(owner?['가지에서 광합성한 시간이 쌓이면 친구 상세 화면에서 포자를 채집할 수 있어요.']:[])],actions,gauge:null};
+   return treePerch(s,id,type,{id,name:F.Trees.name(id),description:'남쪽 숲에 계절의 변화를 보여주는 나무예요.',status:looks[season],
+    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[],
+    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.'],gauge:null});
   }
   const willow=type==='willow';
-  return {id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',
+  return treePerch(s,id,type,{id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',
    status:willow&&F.World.frozen(s)?'호수가 얼어 수분 흡수 보너스가 쉬고 있어요':'계절에 따라 그늘이 달라져요',
    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%'),metric('rain','빗방울 줄임',Math.round(c.rain*100)+'%')],
    rows:[willow?['뿌리 수분 흡수',F.World.frozen(s)?'휴식 중':absorptionLabel(F)]:['바람 줄임',Math.round(c.wind*100)+'%']],
-   effects:[willow?'뿌리에 있는 물을 몸으로 더 빨리 옮겨요. 물가에 송사리가 보이면 친한 친구끼리 같이 봐요.':'강한 볕을 누그러뜨려 광합성에 알맞은 빛을 만들 수 있어요. 친한 친구끼리 함께 앉아 수다를 떨어요.'],actions:[],gauge:null};
+   effects:[willow?'뿌리에 있는 물을 몸으로 더 빨리 옮겨요. 물가에 송사리가 보이면 친한 친구끼리 같이 봐요.':'강한 볕을 누그러뜨려 광합성에 알맞은 빛을 만들 수 있어요. 친한 친구끼리 함께 앉아 수다를 떨어요.'],gauge:null});
  }
  if(id==='lily-boat'){
  const b=s.world?.lake?.boat;if(!b)return null;

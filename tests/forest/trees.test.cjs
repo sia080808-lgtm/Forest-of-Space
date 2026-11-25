@@ -131,12 +131,18 @@ test('cherry shade changes with the season and disappears in storage',()=>{
  F.storeObject(s,id);assert.equal(F.light(s,point),80);
 });
 
+function alreadyHasSac(s,p){
+ const partner={...F.clone(p),id:'pouch-partner',active:false,perchTree:undefined,stroll:undefined};
+ s.individuals.push(partner);
+ p.sporeSac=partner.id;
+}
 function cherryVisit(){
  const s=game(),p=s.individuals[0],id='cherry-1';
  F.layout(s,{[id]:zelkova});
  Object.assign(p,{x:1.51,y:1.67,visualStage:3,xp:120,B:50,nutrition:50,energy:70,action:'wander',nextObjectChoice:0});
  s.environment.windTarget=8;
  T.assignPerch(s,id,p.id);
+ alreadyHasSac(s,p);
  F.step(s);
  assert.equal(p.stroll?.perch,id);
  assert.ok(p.motion.distance>0);
@@ -184,7 +190,7 @@ test('moving, storing, releasing and greeting a new friend preserve a valid perc
  assert.equal(newcomer.stroll,undefined);
  assert.throws(()=>T.assignPerch(s,other,newcomer.id));
  const card=require('../../app/src/main/assets/web/object-cards');
- assert.match(card.render(s,id,''),/cherry-unassign/);
+ assert.match(card.render(s,id,''),/tree-unassign/);
  const ground={x:p.x,y:p.y};
  F.layout(s,{[id]:{x:2.52,y:1.7}});
  assert.equal(p.stroll?.perch,undefined);
@@ -192,7 +198,7 @@ test('moving, storing, releasing and greeting a new friend preserve a valid perc
  assert.deepEqual({x:p.x,y:p.y},ground);
  F.storeObject(s,id);assert.equal(p.perchTree,undefined);
  F.unstoreObject(s,id);
- assert.match(card.render(s,id,''),/cherry-assign/);
+ assert.match(card.render(s,id,''),/tree-assign/);
  T.assignPerch(s,id,p.id);T.assignPerch(s,id,null);assert.equal(p.perchTree,undefined);
  F.valid(s);
 });
@@ -220,7 +226,7 @@ test('only photosynthesis during occupied cherry rest ripens a spore, even at th
 });
 test('one saved spore creates one young friend with traceable generations and its own state',()=>{
  const {s,p}=cherryVisit(),R=F.Recruitment;
- p.name='달빛';p.sporeStored=true;
+ p.name='달빛';delete p.sporeSac;p.sporeStored=true;
  const before=F.totalWater(s);
  const child=R.germinate(s,p.id,F.personality,F.event);
  assert.equal(F.totalWater(s)-before,child.B);
@@ -245,4 +251,68 @@ test('a full roster or a failed save leaves the spore available',()=>{
  while(s.individuals.length<50)s.individuals.push({...p,id:'full-'+s.individuals.length,active:false});
  assert.throws(()=>R.germinate(s,p.id,F.personality,F.event),/50명/);
  assert.equal(p.sporeStored,true);assert.equal(s.individuals.length,50);
+});
+
+test('tree cards and assignments use adult size and base water affinity',()=>{
+ const s=game(),p=s.individuals[0],c=plantAvailable(s,'cherry'),z=plantAvailable(s,'zelkova'),w=plantAvailable(s,'willow');
+ p.visualStage=3;p.xp=150;
+ const card=require('../../app/src/main/assets/web/object-cards');
+ for(const [species,allowed] of [
+  ['ridley',[c,z]],['bonbon',[c,z]],['bosong',[c,z]],['duri',[c,z]],
+  ['neolbi',[z]],['jureong',[c,z,w]],['superbum',[z,w]]
+ ]){
+  p.species=species;
+  for(const id of [c,z,w]){
+   const can=allowed.includes(id);
+   assert.equal(T.canAssign(p,id),can,species+' '+id);
+   assert.equal(card.render(s,id,'').includes('data-action="tree-assign"'),can,species+' card '+id);
+   if(can){T.assignPerch(s,id,p.id);T.assignPerch(s,id,null);}
+   else assert.throws(()=>T.assignPerch(s,id,p.id),/나무에 맞는/);
+  }
+ }
+});
+
+test('a willow visit starts on dry land and a stored perch releases its adult',()=>{
+ const s=game(),p=s.individuals[0],w=plantAvailable(s,'willow');
+ const tree=T.active(s).find(t=>t.id===w),entry=T.perchEntry(tree);
+ assert.ok(F.World.waterD(entry.x,entry.y)>F.World.waterD(tree.x,tree.y));
+ assert.equal(F.World.inWater(s,entry),false);
+ Object.assign(p,entry,{species:'superbum',visualStage:3,xp:150,B:50,nutrition:50,energy:70,action:'wander',nextObjectChoice:0});
+ delete p.objectTask;delete p.stroll;
+ s.environment.windTarget=8;
+ T.assignPerch(s,w,p.id);
+ alreadyHasSac(s,p);
+ for(let i=0;i<5&&p.stroll?.arrivedAt==null;i++)F.step(s);
+ assert.equal(p.stroll?.perch,w);
+ assert.ok(Number.isFinite(p.stroll?.arrivedAt));
+ assert.match(F.Objects.reason(s,p),/수양버들 줄기/);
+ F.valid(s);
+ assert.equal(F.migrate(F.clone(s)).individuals[0].perchTree,w);
+ F.storeObject(s,w);
+ assert.equal(p.perchTree,undefined);
+ assert.equal(p.stroll,undefined);
+ F.valid(s);
+});
+
+test('loading a legacy large cherry owner releases the perch and retains its spores',()=>{
+ const {s,p}=cherryVisit();
+ p.species='superbum';delete p.sporeSac;p.sporeStored=true;
+ const loaded=F.migrate(F.clone(s)),adult=loaded.individuals[0];
+ assert.equal(adult.perchTree,undefined);assert.equal(adult.stroll,undefined);
+ assert.equal(adult.sporeStored,true);
+ assert.deepEqual([adult.x,adult.y],[p.x,p.y]);
+});
+
+test('a formed spore sac starts an assigned tree visit',()=>{
+ const s=game(),p=s.individuals[0],id='cherry-1';
+ F.layout(s,{[id]:zelkova});
+ Object.assign(p,{x:1.51,y:1.67,visualStage:3,xp:120,B:50,nutrition:50,energy:70,action:'wander',nextObjectChoice:0});
+ s.environment.windTarget=8;
+ T.assignPerch(s,id,p.id);
+ F.step(s);
+ assert.notEqual(p.stroll?.perch,id);
+ delete p.stroll;delete p.objectTask;p.nextObjectChoice=0;p.action='wander';p.actionSeconds=0;
+ alreadyHasSac(s,p);
+ F.step(s);
+ assert.equal(p.stroll?.perch,id);
 });

@@ -137,7 +137,13 @@ if(k==='bosong'){c.save();c.beginPath();c.ellipse(0,-d.h/2-1.5,d.w/2,d.h/2,0,0,M
 // Texture eyelids are a separate animation overlay. The body texture never changes.
 if(m==='sleep'||m==='rest'||m==='moss')for(const e of d.eyes){const ex=-d.w/2+e[0]*d.w,ey=-d.h-1.5+e[1]*d.h;if(k==='bonbon'||k==='neolbi'){c.save();c.beginPath();c.ellipse(ex,ey,1.6,2.2,0,0,7);c.clip();img(c,d,k==='bonbon'?[d.body[0]+d.body[2]*.30,d.body[1]+d.body[3]*.30,70,80]:[d.body[0]+d.body[2]*.42,d.body[1]+d.body[3]*.72,70,80],ex-1.7,ey-2.3,3.4,4.6);c.restore();c.strokeStyle='#f6ebd3';c.lineWidth=.42;c.lineCap='round';c.beginPath();c.moveTo(ex-.65,ey);c.quadraticCurveTo(ex,ey+.6,ex+.65,ey);c.stroke();}}
 
-if(k==='jureong')faceExpr(c,d,k,p,m,t);
+if(k==='jureong'){
+ faceExpr(c,d,k,p,m,t);
+ if(p.crownSprout){
+  // Root inside the painted body crown, before the draping leaf is drawn.
+  c.save();c.translate(0,-d.h-.65);p.crownSprout(c);c.restore();
+ }
+}
 const hands=[];
 // Front arms are composited after the body and head foliage.
 // 1.1.6: the 640 px arm buffer was cleared and composited every frame for every species here (about 1.6 ms a friend, even
@@ -161,6 +167,6 @@ const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x
 c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bob+rest*.7-(p.lift||0))*g});return{hands:hands.map(toWorld),tip:toWorld(tip),face:{x,y:y-d.h*g*.55},width:d.w*g,height:d.h*g};}
 
 const files={ellisiiBody:'assets/forest/species/ellisii-body.png',ellisiiFronds:'assets/forest/species/ellisii-fronds.png',ellisiiFrondLeft:'assets/forest/species/ellisii-frond-left.png',ellisiiFrondRight:'assets/forest/species/ellisii-frond-right.png',ellisiiLeaf:'assets/forest/species/ellisii-leaf.png',ellisiiFootLeft:'assets/forest/species/ellisii-foot-left.png',ellisiiFootRight:'assets/forest/species/ellisii-foot-right.png'};for(const k of ['bonbon','bosong','jureong','duri'])files['species_'+k]='assets/forest/species/'+k+'.png';
-function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:assets.ellisiiFronds,ellisiiFrondLeft:assets.ellisiiFrondLeft,ellisiiFrondRight:assets.ellisiiFrondRight,ellisiiLeaf:assets.ellisiiLeaf,ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,cover:opt.cover,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
+function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:assets.ellisiiFronds,ellisiiFrondLeft:assets.ellisiiFrondLeft,ellisiiFrondRight:assets.ellisiiFrondRight,ellisiiLeaf:assets.ellisiiLeaf,ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,cover:opt.cover,crownSprout:opt.crownSprout,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
 return {files,draw};
 });

@@ -109,7 +109,7 @@ function prepare(s,held,rng){
    const watching=[a,b].some(p=>W.reaction(s,p)?.kind==='startle');
    if(!watching&&rng(s,'behavior')>=.25)continue;
    const meeting=watching?null:treeMeeting(s,[a,b],st.sessions);
-   const type=meeting?.type??(watching?'watch':O.affinity(s,a,b)>=8&&rng(s,'behavior')<.35?'dance':'walk');
+   const type=meeting?.type??(watching?'watch':O.learnedDance(s,a,b)&&rng(s,'behavior')<.35?'dance':'walk');
    const paths=meeting?.paths??plan(s,[a,b],type);if(!paths)continue;
    for(const p of [a,b]){delete p.stroll;delete p.walkPlan;}
    st.sessions.push({ids:[a.id,b.id],type,paths,leg:0,started:s.worldTick,last:s.worldTick-1,
