@@ -377,7 +377,7 @@ function sporeDetails(p){
  let button='';
  if(p.sporeStored)button='<button class="secondary" data-action="spore-plant" data-id="'+escape(p.id)+'" '+(state.individuals.length>=50?'disabled':'')+'>포자 심기 · '+(r.generation(p)+1)+'세 맞이하기</button>';
  else if(p.sporeSeconds===r.SPORE_SECONDS)button='<button class="secondary" data-action="spore-collect" data-id="'+escape(p.id)+'">포자 채집</button>';
- const progress=p.perchTree||p.sporeSeconds||p.sporeStored?'<p>'+r.sporeStatus(p)+'</p><p class="sub">'+(p.sporeStored?(state.individuals.length>=50?'친구 기록이 가득 찼어요. 포자는 보관 중이에요.':'심으면 어린 친구가 대기 목록에 들어와요.'):'산벚나무 가지에서 광합성한 시간이 누적돼요.')+'</p>':'';
+ const progress=p.perchTree||p.sporeSeconds||p.sporeStored?'<p>'+r.sporeStatus(p)+'</p><p class="sub">'+(p.sporeStored?(state.individuals.length>=50?'친구 기록이 가득 찼어요. 포자는 보관 중이에요.':'심으면 어린 친구가 대기 목록에 들어와요.'):'착생한 나무에서 광합성한 시간이 누적돼요.')+'</p>':'';
  return '<section class="panel"><h3>착생과 세대 · '+r.generation(p)+'세</h3>'+lineage+progress+button+'</section>';
 }
 function updateFriendActivities(){
@@ -435,7 +435,7 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
    selected=child.id;renderPage();targets();notice(child.generation+'세 친구가 자라났어요.');
   });return;
  }
- if(a==='cherry-assign'||a==='cherry-unassign'){commit(s=>{F.Trees.assignPerch(s,b.dataset.id,b.dataset.friend);},showCard);return;}
+ if(a==='tree-assign'||a==='tree-unassign'){commit(s=>{F.Trees.assignPerch(s,b.dataset.id,b.dataset.friend);},showCard);return;}
  if(a==='object-expand'){previewObjectUpgrade(b.dataset.id);return;}
  if(a==='facility-add'){editFacility(null,'add');return;}
  if(a==='facility-expand'&&facilityDraft?.kind==='move'){startFacilityEdit(facilityDraft.id,'expand');return;}

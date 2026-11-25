@@ -1,15 +1,11 @@
 'use strict';
 const SOUTH_EDGE_OVERLAP=24;
 const MIST_PARTS=Object.freeze([[-1,0,.9],[1,.15,1],[0,-.25,.7],[-.6,.3,.6],[.6,.35,.6]]);   // 1.2.7 엘리시 물안개 숨결: [side, rise, size] of each cloud
-// x and y adjust the seat in world units. Cover bounds are in the adult rig's local pixels.
-const CHERRY_PERCH=Object.freeze({
- ridley:{x:.012,y:-.075,cover:[-17,-14,35,24]},
- bonbon:{x:-.011,y:-.075,cover:[-15,-19,32,29]},
- bosong:{x:.024,y:-.075,cover:[-11,-12,23,21]},
- duri:{x:.007,y:-.075,cover:[-15,-14,31,24]},
- jureong:{x:.033,y:-.068,cover:[-23,-13,48,23]},
- neolbi:{x:.032,y:-.033,cover:[-25,-26,51,37]},
- superbum:{x:-.079,y:-.002,cover:[-21,-23,43,37]}
+// Blanket bounds in the adult rig's local pixels.
+const PERCH_COVER=Object.freeze({
+ ridley:[-17,-14,35,24],bonbon:[-15,-19,32,29],bosong:[-11,-12,23,21],
+ duri:[-15,-14,31,24],jureong:[-23,-13,48,23],neolbi:[-25,-22,51,34],
+ superbum:[-21,-23,43,37]
 });
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
@@ -445,7 +441,7 @@ class ForestScene {
   // Common intact-body renderer for every current and future character.
   c.save();c.scale(size/1254,size/1254);c.translate(-627,-1065.9);
   const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
-   bodyCover:sphagnum>0?ctx=>this.drawCherrySphagnum(ctx,p,sphagnum):undefined});if(dim)this.dimmed(c,go);else go(c);}c.restore();
+   bodyCover:sphagnum>0?ctx=>this.drawPerchSphagnum(ctx,p,sphagnum):undefined});if(dim)this.dimmed(c,go);else go(c);}c.restore();
   if(RX&&RX.k!=='watch'&&p.species==='superbum'&&(p.V||0)>2){c.save();c.fillStyle='#a8ccd1';c.globalAlpha=.8*(1-RX.u);for(let j=0;j<4;j++){const a=j*1.3+.4,r=size*(.25+RX.u*.35);c.beginPath();c.ellipse(Math.cos(a)*r*.8,-size*.75+RX.u*RX.u*size*.5-Math.sin(a)*r*.3,1.1,1.6,0,0,Math.PI*2);c.fill();}c.restore();}   /* 슈퍼범: the nest water slops over */
   if(p.wetFilm>.1&&p.species!=='neolbi'){c.save();c.globalAlpha=p.wetFilm*.5;c.fillStyle='#bdd6cc';for(let j=0;j<3;j++){c.beginPath();c.ellipse((j-1)*size*.15,-size*(.55+Math.abs(j-1)*.12),.7,1.2,0,0,Math.PI*2);c.fill();}c.restore();}if(p.burden>=20||p.damage>=10){c.save();c.fillStyle=p.burden>=20?'#8da7a2':'#b49e74';c.globalAlpha=.7;c.beginPath();c.ellipse(size*.34,-size*.40,1.7,2.2,0,0,Math.PI*2);c.fill();c.restore();}if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
   c.restore();
@@ -672,10 +668,10 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   draw(cal?.id||'spring',cal?.blend??1);
   c.restore();
  }
- drawCherrySphagnum(c,p,amount){
+ drawPerchSphagnum(c,p,amount){
   const art=this.assets.cherrySphagnum;
   if(!art)return;
-  const [x,y,w,h]=(CHERRY_PERCH[p.species]||CHERRY_PERCH.ridley).cover;
+  const [x,y,w,h]=PERCH_COVER[p.species]||PERCH_COVER.ridley;
   const scale=1254/48,spread=.42+.58*amount,rise=.26+.74*amount;
   c.save();
   c.globalAlpha*=amount;
@@ -840,21 +836,22 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     pos={x:pos.x,y:pos.y-lift/h};
     if(perch)kind='rest';
    }
-   let sphagnum=0;
+   let sphagnum=0,treeDepth=p.y;
    if(p.stroll?.perch&&p.stroll.arrivedAt!=null&&this.carry?.id!==p.id){
     const tree=Forest.Trees.all(s).find(t=>t.id===p.stroll.perch&&!t.stored);
     if(tree){
-     const seat=CHERRY_PERCH[p.species]||CHERRY_PERCH.ridley;
+     const seat=Forest.Trees.perchSeat(tree,p);
+     treeDepth=Math.max(treeDepth,tree.y);
      const elapsed=s.worldTick+fraction-p.stroll.arrivedAt,left=p.stroll.linger-elapsed;
      const k=s.settings.reducedMotion?1:Math.max(0,Math.min(1,elapsed/2,left/2));
-     pos={x:pos.x+(tree.x+seat.x-pos.x)*k,y:pos.y+(tree.y+seat.y-pos.y)*k};
+     pos={x:pos.x+(seat.x-pos.x)*k,y:pos.y+(seat.y-pos.y)*k};
      kind=k>=1?'rest':'slow';
      const cover=Math.max(0,Math.min(1,elapsed-2,left-2));
      sphagnum=s.settings.reducedMotion?1:cover*cover*(3-2*cover);
     }
    }
    const friendship=typeof ForestFriendship!=='undefined'?ForestFriendship.pose(s,p):null;if(friendship?.face){this.facing??={};this.facing[p.id]=friendship.face;}
-   treesBefore(p.y);
+   treesBefore(treeDepth);
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};if(!friendship?.face&&motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */

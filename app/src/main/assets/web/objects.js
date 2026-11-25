@@ -430,7 +430,7 @@ function perchTarget(s,p){
  const tree=dep('trees').active(s).find(t=>t.id===p.perchTree);
  if(!tree)return null;
  const q=dep('trees').perchEntry(tree),space=dep('spatial');
- if(!space.walkable(s,q,p.id)||s.individuals.some(other=>other.active&&other.id!==p.id&&space.distance(other,q)<(space.diameter(other)+space.diameter(p))/2)){
+ if(World.inWater(s,q)||!space.walkable(s,q,p.id)||s.individuals.some(other=>other.active&&other.id!==p.id&&space.distance(other,q)<(space.diameter(other)+space.diameter(p))/2)){
   p.perchAfter=s.worldTick+30;return null;
  }
  // travel() plans the route once and shares the ordinary walk's stall/deadline checks.
@@ -666,7 +666,11 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return friend.text;
  const t=p.objectTask,w=p.objectWait;
- if(p.stroll?.perch&&!t)return p.stroll.arrivedAt==null?'산벚나무의 수태 자리로 가고 있어요':'산벚나무 낮은 가지에서 쉬고 있어요';
+ if(p.stroll?.perch&&!t){
+  const trees=dep('trees'),type=trees.kind(p.stroll.perch),name=trees.TYPES[type].name;
+  const spot=type==='cherry'?' 낮은 가지':' 줄기';
+  return p.stroll.arrivedAt==null?name+'의 수태 자리로 가고 있어요':name+spot+'에서 쉬고 있어요';
+ }
  if(p.stroll?.shelf&&!t){
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
   if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
