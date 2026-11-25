@@ -36,6 +36,9 @@ function inside(z,p){return Math.hypot((p.x-z.x)/z.rx,(p.y-z.y)/z.ry)<1;}
 const STONES=['rock','crevice','tree'];
 function pad(s,id){const p=id&&s.individuals?.find(x=>x.id===id);return p?diameter(p)*.55:0;}
 function solid(z,p,w){return w&&STONES.includes(z.type||z.id)?Math.hypot((p.x-z.x)/(z.rx+w),(p.y-z.y)/(z.ry+w*.2))<1:inside(z,p);}
+function obstacleBlocks(z,p,w){
+ return solid(z,p,w)&&!(z.top&&onRockTop(z.top,p))&&!(z.type==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3);
+}
 function context(s,p){const z=s.patches.find(z=>Obj().kindOf(z.id)==='shade'&&distance(z,p)<.145);if(z)return 'duck';if(s.patches.some(z=>['moss','litter'].includes(Obj().kindOf(z.id))&&distance(z,p)<.13))return 'step';if(obstacles(s).some(z=>distance(z,p)<.18))return 'avoid';return null;}
 function socket(s,id,individual){const p=Obj().patch(s,id),type=Obj().kindOf(id);if(!p)return null;if(id==='shelter'&&s.shelters)return Shelter.entry(s.shelters.facilities[0]);const q={x:p.x,y:p.y+(type==='moss'?-.025:type==='litter'?-.033:type==='shelter'?.07:type==='shade'?.09:type==='spring'?.017:['rock','crevice'].includes(type)?.085:0)};
  const active=s.individuals.filter(p=>p.active).sort((a,b)=>a.id.localeCompare(b.id));if(!individual||active.length<2)return q;const i=active.findIndex(p=>p.id===individual),offset=[0,-1,1,-2,2][Math.max(0,i)];
@@ -44,20 +47,54 @@ function socket(s,id,individual){const p=Obj().patch(s,id),type=Obj().kindOf(id)
 function walkable(s,p,id,skip,obs,w=pad(s,id),walls=true){
  if(walls&&Shelter.blocked(s,p,id))return false;
  if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||!World.inside(s,p)||World.inWater?.(s,p)&&!World.frozen?.(s))return false;   /* 0.9.3: the frozen lake can be walked on */   // 0.9.0: no walking on the lake
- return !(obs||obstacles(s)).some(z=>skip&&skip.has(z.id)||z.top&&onRockTop(z.top,p)?false:z.type==='spring'&&p.y>=z.y+.008&&Math.abs(p.x-z.x)<z.rx/3?false:solid(z,p,w));
+ return !(obs||obstacles(s)).some(z=>!skip?.has(z.id)&&obstacleBlocks(z,p,w));
+}
+function closestFootprintPoint(z,a,dx,dy,w,left,right,top,bottom){
+ const margin=1e-9,extra=w&&STONES.includes(z.type||z.id)?w:0;
+ const rx=z.rx+extra,ry=z.ry+extra*.2;
+ if(z.x+rx+margin<left||z.x-rx-margin>right||z.y+ry+margin<top||z.y-ry-margin>bottom)return -1;
+ const x=(a.x-z.x)/rx,y=(a.y-z.y)/ry,vx=dx/rx,vy=dy/ry;
+ const t=Math.max(0,Math.min(1,-(x*vx+y*vy)/(vx*vx+vy*vy)));
+ const closest=Number.isNaN(t)?0:t;
+ return Math.hypot(x+vx*closest,y+vy*closest)<1+margin?closest:-1;
 }
 function segment(s,a,b,id,obs=obstacles(s)){
  // Climbing on/off the sun rock ignores its body. A start already inside a stone (old save, drop) may walk out of it,
  // but once outside the segment must not enter it again.
  // Obstacles are built once per segment (not per sample point): 0.6.15 rebuilt them for every sample.
+ const dx=b.x-a.x,dy=b.y-a.y,n=Math.ceil(distance(a,b)/.012);
+ if(!n)return true;
  const w=pad(s,id),left=Math.min(a.x,b.x),right=Math.max(a.x,b.x),top=Math.min(a.y,b.y),bottom=Math.max(a.y,b.y);
- // Only footprints whose bounding boxes cross this segment can block its samples.
- const all=obs.filter(z=>z.x+z.rx+w>=left&&z.x-z.rx-w<=right&&z.y+z.ry+w*.2>=top&&z.y-z.ry-w*.2<=bottom);
- const skip=new Set(all.filter(z=>z.top&&(onRockTop(z.top,a)||onRockTop(z.top,b))).map(z=>z.id));
- const escape=all.filter(z=>!skip.has(z.id)&&solid(z,a,w));escape.forEach(z=>skip.add(z.id));
+ const blockers=[],escape=[];
+ for(const z of obs){
+  const t=closestFootprintPoint(z,a,dx,dy,w,left,right,top,bottom);
+  if(t<0)continue;
+  if(z.top&&(onRockTop(z.top,a)||onRockTop(z.top,b)))continue;
+  if(solid(z,a,w)){escape.push(z);continue;}
+  // Distance to the ellipse centre in normalized coordinates is quadratic along the line.
+  // Only the two samples bracketing its minimum can be the closest. Test those with
+  // the same footprint and interpolation as before.
+  const i=Math.max(1,Math.floor(t*n)),j=Math.min(n,i+1);
+  if(!solid(z,{x:a.x+dx*i/n,y:a.y+dy*i/n},w)&&!solid(z,{x:a.x+dx*j/n,y:a.y+dy*j/n},w))continue;
+  if(!z.top&&z.type!=='spring')return false;
+  blockers.push(z);
+ }
+ const box=World.walk(s),edgeTolerance=1e-9;
+ const checkBounds=left<=box.x0+edgeTolerance||right>=box.x1-edgeTolerance||top<=box.y0+edgeTolerance||bottom>=box.y1-edgeTolerance;
+ const checkWater=World.mayCrossWater(s,left,top,right,bottom)&&!World.frozen(s);
+ const checkShelter=Shelter.overlapsPathBounds(s,left,top,right,bottom);
+ if(!blockers.length&&!escape.length&&!checkBounds&&!checkWater&&!checkShelter)return true;
  // 0.8.3: the same for a start inside the shelter's walls (a friend dropped or left there): walk out, never back in.
- const n=Math.ceil(distance(a,b)/.012),out=escape.map(()=>false);let walls=Shelter.blocked(s,a,id);
- for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(walls&&!Shelter.blocked(s,q,id))walls=false;if(!walkable(s,q,id,skip,all,w,!walls))return false;
+ const out=escape.map(()=>false);let walls=checkShelter&&Shelter.blocked(s,a,id);
+ for(let i=1;i<=n;i++){
+  const q={x:a.x+dx*i/n,y:a.y+dy*i/n};
+  if(checkShelter){
+   const blocked=Shelter.blocked(s,q,id);
+   if(blocked&&!walls)return false;
+   walls=blocked;
+  }
+  if(checkBounds&&!World.inside(s,q,box)||checkWater&&World.inWater(s,q))return false;
+  for(const z of blockers)if(obstacleBlocks(z,q,w))return false;
   for(let k=0;k<escape.length;k++){const inz=solid(escape[k],q,w);if(inz&&out[k])return false;if(!inz)out[k]=true;}}
  return true;}
 function clearFriends(s,p,a,b){
@@ -74,15 +111,16 @@ function clearFriends(s,p,a,b){
 // while a friend stands still. A route that ignores friends depends only on the layout, the friend's size and its
 // shelter, and the two points, so the same question gets the same answer from a small cache (no change in behaviour).
 const routeMemo=new WeakMap();
-function layoutKey(s){const o=obstacles(s);let k=o.map(z=>z.id+':'+z.x+','+z.y+','+z.rx+','+z.ry).join(';')+'|'+(s.world?.regions||[]).join(',')+'|'+(World.frozen?.(s)?1:0);for(const f of s.shelters?.facilities||[])k+='|'+f.id+','+f.level+','+f.x+','+f.y+','+!!f.flip;return k;}
+function copyForTick(from,to){const memo=routeMemo.get(from);if(memo)routeMemo.set(to,memo);return to;}
+function layoutKey(s){const o=obstacles(s);let k=o.map(z=>z.id+':'+z.x+','+z.y+','+z.rx+','+z.ry).join(';')+'|'+(s.world?.regions||[]).join(',')+'|'+(World.frozen?.(s)?1:0);for(const f of s.shelters?.facilities||[])k+='|'+f.id+','+f.kind+','+f.level+','+f.x+','+f.y+','+!!f.flip;return k;}
 function route(s,start,end,id,avoidFriends=false){
- let memo=null,key=null;if(!avoidFriends&&start&&end&&s&&typeof s==='object'){const p=id&&s.individuals?.find(x=>x.id===id);key=(LEGACY?'L':'P')+'|'+(p?diameter(p)+'|'+(p.shelter?.facilityId||''):'-')+'|'+start.x+','+start.y+'|'+end.x+','+end.y;
+ let memo=null,key=null;if(!avoidFriends&&start&&end&&s&&typeof s==='object'){const p=id&&s.individuals?.find(x=>x.id===id);key=(LEGACY?'L':'P')+'|'+(p?diameter(p)+'|'+(p.shelter?.facilityId||'')+'|'+(p.shelter?.phase==='moving'):'-')+'|'+start.x+','+start.y+'|'+end.x+','+end.y;
   const lk=layoutKey(s);memo=routeMemo.get(s);if(!memo||memo.lk!==lk){memo={lk,map:new Map()};routeMemo.set(s,memo);}if(memo.map.has(key)){const r=memo.map.get(key);return r&&r.map(q=>({...q}));}}
  let out=routeOnce(s,start,end,id,avoidFriends);if(!out&&!LEGACY){LEGACY=true;try{out=routeOnce(s,start,end,id,avoidFriends);}finally{LEGACY=false;}}
  if(memo){if(memo.map.size>4000)memo.map.clear();memo.map.set(key,out&&out.map(q=>({x:q.x,y:q.y})));}return out;
 }
 function routeOnce(s,start,end,id,avoidFriends){
- const obs=obstacles(s),actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>segment(s,a,b,id,obs)&&(!actor||clearFriends(s,actor,a,b));
+ const obs=obstacles(s),actor=avoidFriends&&s.individuals.find(p=>p.id===id),clear=(a,b)=>(!actor||clearFriends(s,actor,a,b))&&segment(s,a,b,id,obs);
  if(!end||!walkable(s,end,id,null,obs))return null;if(clear(start,end))return [end];
  const nodes=[{x:start.x,y:start.y},{x:end.x,y:end.y}];
  // Give the visibility graph corners around open water for trips to and from the far bank.
@@ -111,7 +149,7 @@ function routeOnce(s,start,end,id,avoidFriends){
  // the true remaining cost), so the shortest path is the same; far fewer nodes are opened, so far fewer segment checks.
  const cost=nodes.map(()=>Infinity),prev=[],done=new Set(),h=nodes.map(q=>distance(q,end));cost[0]=0;
  while(done.size<nodes.length){let i=-1;for(let j=0;j<nodes.length;j++)if(!done.has(j)&&Number.isFinite(cost[j])&&(i<0||cost[j]+h[j]<cost[i]+h[i]))i=j;if(i<0||!Number.isFinite(cost[i]))break;if(i===1){const path=[];for(let k=1;k!==0;k=prev[k])path.unshift(nodes[k]);return path;}done.add(i);
-  for(let j=1;j<nodes.length;j++)if(!done.has(j)){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]&&clear(nodes[i],nodes[j])){cost[j]=c;prev[j]=i;}}
+  for(let j=1;j<nodes.length;j++)if(!done.has(j)){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]&&c+h[j]<=cost[1]+1e-9&&clear(nodes[i],nodes[j])){cost[j]=c;prev[j]=i;}}
  }return null;
 }
 function placement(s,id,p,correct=true){
@@ -152,5 +190,5 @@ function travel(s,p,destination){if(p.species==='neolbi'&&(p.canopyProgress||0)>
  searched again (up to 8 s). A corner it reaches is now dropped from the kept way */const wp=p.walkPlan?.pts;let moved=0;for(const q of plan){const d=distance(p,q),n=Math.min(d,left);if(d){const nx=p.x+(q.x-p.x)*n/d,ny=p.y+(q.y-p.y)*n/d;if(!clearFriends(s,p,p,{x:nx,y:ny}))break;p.x=nx;p.y=ny;}moved+=n;left-=n;path.push({x:p.x,y:p.y});if(n>=d-1e-12&&wp&&wp.length>1&&Math.abs(wp[0].x-q.x)<1e-9&&Math.abs(wp[0].y-q.y)<1e-9)wp.shift();if(left<=1e-9)break;}
  return {kind:moved>1e-8?g.kind:'idle',path,distance:moved,duration:moved/g.speed,arrived:distance(p,destination)<.001};
 }
-return {diameter,obstacles,context,GU,ASPECT,distance,socket,walkable,segment,route,placement,gait,travel,rockTop,onRock};
+return {diameter,obstacles,context,GU,ASPECT,distance,socket,walkable,segment,route,copyForTick,placement,gait,travel,rockTop,onRock};
 });

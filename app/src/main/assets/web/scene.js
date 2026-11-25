@@ -793,10 +793,16 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    }
   }
  }
- drawTreeReflections(c,trees,w,h,s,cal){
-  const willows=trees.filter(t=>Forest.Trees.kind(t.id)==='willow');
-  if(!willows.length||Forest.World.frozen(s))return;
-  const W=Forest.World,L=W.LAKE;
+ drawTreeReflections(c,trees,w,h,s,cal,view){
+  const W=Forest.World,L=W.LAKE,T=Forest.Trees,d=T.TYPES.willow;
+  if(W.frozen(s))return;
+  const willows=trees.filter(t=>{
+   if(T.kind(t.id)!=='willow')return false;
+   const x=t.x+(L.cx-t.x)*.27,y=t.y+(L.cy-t.y)*.43;
+   const left=x-d.width*(T.direction(t)>0?d.anchor:1-d.anchor);
+   return overlapsView(view,left,y,left+d.width,y+d.height*.38);
+  });
+  if(!willows.length)return;
   this.treeWaterEdge??=Array.from({length:96},(_,i)=>{
    const a=i*Math.PI/48,dx=Math.cos(a)*L.ru,dy=Math.sin(a)*L.rv;
    let lo=.8,hi=1.2;
@@ -819,7 +825,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(Forest.World?.lakeOpen?.(s)&&overlapsView(view,LAKE_FLOOR.x0-.24,LAKE_FLOOR.y0-.15,LAKE_FLOOR.x1+.24,LAKE_FLOOR.y1+.15)){
     const lit=!Forest.World.frozen(s)&&this.drawLakeLight(c,w,h,s,true);
     if(A.lakeFloor&&!lit)c.drawImage(A.lakeFloor,1.05*w,-.25*h,2.25*w,1.5*h);
-    this.drawTreeReflections(c,trees,w,h,s,cal);
+    this.drawTreeReflections(c,trees,w,h,s,cal,view);
     this.drawLilies(c,w,h);this.drawLakeLife(c,w,h);
    }
    for(const [x,y,i,sz,flip] of ForestScene.FERNS){const im=A['fern'+i];if(!im)continue;const k=sz*.55,dw=im.width*k,dh=im.height*k;c.save();c.translate(x*w,y*h);if(flip)c.scale(-1,1);this.seasonal('fern'+i,f=>c.drawImage(f,-dw/2,-dh,dw,dh));c.restore();}}
@@ -853,7 +859,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
  dewGlint(c,x,y,a){c.save();c.globalAlpha=a;c.fillStyle='rgba(255,255,255,.95)';c.beginPath();c.ellipse(x,y,1.3,1.6,0,0,7);c.fill();c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=.6;const L=3*a;c.beginPath();c.moveTo(x-L,y);c.lineTo(x+L,y);c.moveTo(x,y-L);c.lineTo(x,y+L);c.stroke();c.restore();}
  drawWorld(){this.hoodPasses=[];const s=this.state(),c=this.ctx,w=this.w,h=this.h,phase=s.settings.reducedMotion?0:this.phase;
   if(this.tick!==s.worldTick){this.tick=s.worldTick;this.tickAt=this.phase;}const fraction=Math.min(1,Math.max(0,this.phase-(this.tickAt||this.phase)));
-  c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
+  const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
   const a=this.camera.world(0,0),b=this.camera.world(this.vw,this.vh),view={x0:a.x,y0:a.y,x1:b.x,y1:b.y};
   const cal=this.cal(),trees=Forest.Trees.drafts(s,this.preview).filter(t=>!t.stored).sort((a,b)=>a.y-b.y);
