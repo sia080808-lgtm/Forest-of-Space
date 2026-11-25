@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   screenshot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,7 +15,7 @@ jobs:
       - name: Install browser
         run: |
           npm install --no-save --ignore-scripts playwright@1.58.2
-          npx playwright install chromium
+          npx playwright install --with-deps chromium
       - name: Capture the game at mobile size
         run: |
           mkdir -p preview
@@ -50,13 +50,32 @@ jobs:
             const errors=[];
             page.on('pageerror',error=>errors.push(error.stack));
             for (const group of [1,2]) {
+              await page.route('**/scene.js', async route => {
+                const original = await route.fetch();
+                const check = `
+                  globalThis.previewSporeSpecies = new Set();
+                  {
+                    const draw = ForestScene.prototype.drawSporeSac;
+                    ForestScene.prototype.drawSporeSac = function(c,p,size) {
+                      previewSporeSpecies.add(p.species);
+                      return draw.call(this,c,p,size);
+                    };
+                  }`;
+                await route.fulfill({response:original,body:await original.text()+check});
+              });
               await page.goto('http://127.0.0.1:8000/?group='+group,{waitUntil:'networkidle'});
               await page.locator('#enter').click();
               await page.locator('#garden').waitFor({state:'visible'});
               await page.evaluate(()=>document.fonts.ready);
               await page.waitForTimeout(350);
+              const count = await page.evaluate(()=>globalThis.previewSporeSpecies.size);
+              if(count !== (group === 1 ? 4 : 3)) throw new Error('Unexpected rendered species count: '+count);
+              await page.unroute('**/scene.js');
               if(errors.length) throw new Error(errors.join('\\n'));
               await page.screenshot({path:'preview/forest-spore-pouch-'+group+'.png'});
+              const chatImage = await page.screenshot({type:'jpeg',quality:78,scale:'css'});
+              const chunks = chatImage.toString('base64').match(/.{1,3500}/g);
+              for(const [index,chunk] of chunks.entries()) console.log('FOREST_IMAGE '+group+' '+index+' '+chunks.length+' '+chunk);
             }
           } finally {
             await browser.close();
