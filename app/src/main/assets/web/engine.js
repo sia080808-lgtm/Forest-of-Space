@@ -75,6 +75,7 @@ function step(s,{visible=true,held=null}={}){
  Skills.prepare(s,{held,busy:aboard?new Set([...participants,aboard]):participants,event,discovery,visible});
  if(!previousRider)Boat.step(s,held,rng);
  const rider=s.world?.lake?.boat?.rider;
+ for(const p of s.individuals)if(p.stroll?.perch&&(p.id===rider||participants.has(p.id)||p.skill||p.skillHold||p.shelterRequest||p.shelter?.phase!=='outside'))Trees.leavePerch(s,p);
  const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
@@ -113,7 +114,7 @@ function step(s,{visible=true,held=null}={}){
   if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&Vit.isCold(s))p.mood=clamp(p.mood+tr.cold*Vit.chill(s,p)/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);
    if(p.species==='neolbi'&&p.mood<Traits.TANK_MOOD_MAX&&s.social?.sessions?.some(a=>a.type==='CANOPY'&&a.ids[0]===p.id&&a.phase==='rest'))p.mood=Math.min(Traits.TANK_MOOD_MAX,p.mood+Traits.TANK_MOOD/60);}
   // SRS v2.34 능력치: bands, photosynthesis growth, drying, compost, mood and leaf damage folded into 기운 (vitals.js)
-  Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});
+  const photosynthesis=Vit.step(s,p,{light:light(s,p),inside:Sh.inside(s,p),moving:!!(p.objectTask&&!p.objectArrived||p.stroll&&!p.stroll.arrivedAt),held:held===p.id||participants.has(p.id),ledger:s.ledger});
   if((p.wetRecovery||p.leafRecovery||p.burden>=40||p.damage>=30)&&participants.has(p.id)){Social.cancel(s,p.id);participants.delete(p.id);}
   if(p.id===rider){p.motion.kind='rest';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(held===p.id||p.settleUntil>=s.worldTick&&w.wind<60&&p.B>=20){p.motion.kind=held===p.id?'held':'land';p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
@@ -137,6 +138,9 @@ function step(s,{visible=true,held=null}={}){
   if(p.species==='superbum'){if(p.energy<40&&!vNeed&&!p.objectTask&&!p.shelterRequest&&!p.shelter?.facilityId&&s.weather.wind<60)p.restSelf=true;if(p.restSelf&&(p.energy>=75||vNeed||p.objectTask||p.shelterRequest||s.weather.wind>=60))delete p.restSelf;
    if(p.restSelf){p.motion.kind='rest';p.motion.distance=0;p.action='rest';p.energy=Math.min(80,p.energy+1.5/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   const shMotion=Sh.move(s,p,Space),motion=shMotion||Obj.move(s,p)||Obj.stroll(s,p);
+  if(motion?.kind==='rest'&&p.stroll?.perch&&Rec.growSpore(p,photosynthesis)){
+   event(s,'spore',p.name+'의 포자가 여물었어요.',{individual:p.id});
+  }
   if(motion){Object.assign(p.motion,motion);if(motion.distance>0)p.energy=clamp(p.energy-1/60);}
   // Nutrition is metabolism, never a remotely supplied shelter service.
   p.nutrition=clamp(p.nutrition-NUTR_USE);
@@ -283,6 +287,11 @@ function layoutPlan(s,positions){
 function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
 function layout(s,positions){
  const {patches,springs,shelves,trees}=layoutPlan(s,positions);
+ for(const p of s.individuals){
+  if(!p.stroll?.perch)continue;
+  const t=trees.find(t=>t.id===p.perchTree),q=t&&Trees.perchEntry(t);
+  if(!q||q.x!==p.stroll.x||q.y!==p.stroll.y)Trees.leavePerch(s,p);
+ }
  Friendship.cancel(s);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;
  // Release active tasks before applying positions so returned water and leaves stay in their original pools.
  const place=z=>{
@@ -308,6 +317,7 @@ const STORABLE=Object.freeze(['moss','rock','shade','crevice']);
 function storeTree(s,id){
  const t=Trees.active(s).find(q=>q.id===id);
  if(!t)throw Error('숲에 놓인 나무가 아니에요.');
+ Trees.assignPerch(s,id,null);
  t.stored=true;Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에 넣었어요.');return s;
 }
 function unstoreTree(s,id){
@@ -358,7 +368,7 @@ function valid(s){
  return s;
 }
 function migrate(old,now=Date.now()){
- if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');snapTiny(s);Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&s.world?.lake?.boat?.rider!==p.id&&!Space.walkable(s,p,p.id)&&!Space.onRock?.(s,p)&&!['rock','crevice'].includes(p.objectTask?.object)){/* 1.0: a friend on top of the sun rock, or climbing onto it / into the crevice, stays there (it walks out of a stone by itself) */const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}World.init(s);Obj.litterInit(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
+ if(old.app==='ForestOfSpace'){const s=clone(old);if(![RULES,'SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter','SRS-2.18-environment'].includes(s.rules))throw Error('지원하지 않는 규칙 버전이에요. 원본을 유지해요.');snapTiny(s);Obj.migrate(s);if(s.rules==='SRS-2.18-environment')s.rules=RULES;Env.init(Rec.init(s));if(s.rules!==RULES)Sh.rebuild(s);if(s.rules!==RULES&&['SRS-2.5-stage1','SRS-2.8-stage2','SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules)){if(['SRS-2.9-stage2','SRS-2.16-weather','SRS-2.17-shelter'].includes(s.rules))s.rules=RULES;W.init(s);}if(s.rules==='SRS-2.5-stage1'){s.rules=RULES;s.version=VERSION;s.settings.audio={master:.65,music:.35,environment:.45,effects:.55};for(const p of s.patches)p.film=0;}if(s.rules==='SRS-2.8-stage2'){s.rules=RULES;Social.init(s);}if(!s.social&&old.rules==='SRS-2.5-stage1')Social.init(s);s.version=VERSION;for(const p of s.individuals){delete p.personalityClip;delete p.motion;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;if(p.active&&!p.mounted&&s.world?.lake?.boat?.rider!==p.id&&!Space.walkable(s,p,p.id)&&!Space.onRock?.(s,p)&&!['rock','crevice'].includes(p.objectTask?.object)){/* 1.0: a friend on top of the sun rock, or climbing onto it / into the crevice, stays there (it walks out of a stone by itself) */const q=Space.placement(s,p.id,p);if(!q.ok)throw Error('기존 위치를 안전하게 복구하지 못했어요. 원본 기록을 유지해요.');p.x=q.x;p.y=q.y;}}World.init(s);Obj.litterInit(s);Trees.migratePerches(s);valid(s);Social.invalidate(s);s.neighbor.observed=0;for(const p of s.individuals){if(p.name==='새싹이'&&!p.customName)p.name='리들리';if(p.species==='neolbi'&&p.name==='넓이'&&!p.customName)p.name='엘레판';if(p.species==='bonbon'&&p.name==='봉봉'&&!p.customName)p.name='엘리시';if(p.species==='bosong'&&p.name==='보송'&&!p.customName)p.name='베이치';if(p.species==='jureong'&&p.name==='주렁'&&!p.customName)p.name='코로나';}if(s.recruitment?.visitor?.pet?.species==='bosong'&&s.recruitment.visitor.pet.name==='보송')s.recruitment.visitor.pet.name='베이치';if(s.recruitment?.visitor?.pet?.species==='jureong'&&s.recruitment.visitor.pet.name==='주렁')s.recruitment.visitor.pet.name='코로나';return s;}
  if(old.schema!==1||old.app!=='RidleyDeskMobile'||!old.pets?.deully||!Number.isFinite(old.savedAt))throw Error('지원하지 않는 이전 기록이에요. 원본은 바꾸지 않았어요.');
  const s=create(now,seedInt(old.deviceId||'old-ridley')),p=s.individuals[0],o=old.pets.deully;
  for(const [a,b]of [['B','water'],['energy','energy'],['mood','mood'],['nutrition','nutrition'],['damage','damage']]){if(!Number.isFinite(o[b]))throw Error('이전 생활 기록을 읽을 수 없어요.');p[a]=clamp(o[b]);}
@@ -371,7 +381,7 @@ function welcomeNeolbi(s){
  if(s.individuals.some(p=>p.species==='neolbi'))return false;
  const id='neolbi-welcome-'+s.deviceId;
  const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:45,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
- for(const k of ['motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
+ for(const k of ['parentId','generation','sporeSac','sporeStored','sporeSeconds','perchTree','perchAfter','stroll','walkPlan','motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
  s.individuals.push(p);for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])p[k]=0;p.wetRecovery=p.leafRecovery=false;delete p.weatherExposure;delete p.protectedBy;event(s,'welcome','엘레판이 숲에 찾아왔어요. 친구 목록에서 정원에 들일 수 있어요.',{individual:id,arrivalWater:35});return true;
 }
 

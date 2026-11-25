@@ -84,7 +84,83 @@ function effects(s,p){
  return Object.assign(cover,seasonalCover(s,cover));
 }
 const absorption=(s,p,onMoss)=>onMoss||effects(s,p).willow?ABSORPTION:1;
+// The friend's physical position stays at the accessible foot of the tree during a visit.
+const PERCH_RETURN=240;
+function perchEntry(t){
+ if(kind(t.id)!=='willow')return {x:t.x,y:t.y+.065};
+ const {cx,cy,ru,rv}=World.LAKE;
+ const dx=(t.x-cx)/ru**2,dy=(t.y-cy)/rv**2,length=Math.hypot(dx,dy);
+ // Approach the trunk from the landward side, including when there is ice.
+ return length?{x:t.x+.099*dx/length,y:t.y+.048*dy/length}:{x:t.x,y:t.y+.065};
+}
+const perchOwner=(s,id)=>s.individuals.find(p=>p.perchTree===id);
+const largePerch=p=>p.species==='neolbi'||p.species==='superbum';
+function fitsPerch(id,p){
+ switch(kind(id)){
+  case 'cherry':return !largePerch(p);
+  case 'zelkova':return true;
+  case 'willow':{
+   const traits=typeof module==='object'?require('./traits.js'):globalThis.ForestTraits;
+   return traits.HEX[p.species]?.water===5;
+  }
+  default:return false;
+ }
+}
+const canAssign=(p,id)=>p.active&&!p.mounted&&p.visualStage===3&&!p.perchTree&&fitsPerch(id,p);
+const CHERRY_SEATS={ridley:.012,bonbon:-.011,bosong:.024,duri:.007,jureong:.033};
+function perchSeat(t,p){
+ const type=kind(t.id);
+ if(type==='zelkova'){
+  if(p.species==='superbum')return {x:t.x-.048,y:t.y-.023};
+  if(p.species==='neolbi')return {x:t.x+.031,y:t.y-.036};
+  return {x:t.x-.043,y:t.y-.057};
+ }
+ if(type==='willow'){
+  const large=largePerch(p);
+  return {x:t.x+direction(t)*(large?.015:.043),y:t.y-(large?.019:.079)};
+ }
+ return {x:t.x+(CHERRY_SEATS[p.species]??.012),y:t.y-(p.species==='jureong'?.068:.075)};
+}
+function leavePerch(s,p){
+ if(!p.stroll?.perch)return;
+ delete p.stroll;delete p.walkPlan;
+ p.perchAfter=s.worldTick+PERCH_RETURN;p.nextObjectChoice=s.worldTick;
+}
+function assignPerch(s,id,friend){
+ const t=active(s).find(t=>t.id===id);
+ if(!t)throw Error('숲에 심은 나무를 골라주세요.');
+ const owner=perchOwner(s,id);
+ if(friend==null){
+  if(owner){leavePerch(s,owner);delete owner.perchTree;}
+  return;
+ }
+ const p=s.individuals.find(p=>p.id===friend);
+ if(owner||!p||!canAssign(p,id))throw Error('이 나무에 맞는 성체 친구 중 착생 자리가 없는 친구를 골라주세요.');
+ p.perchTree=id;
+}
+function migratePerches(s){
+ // The first version let large adults claim cherry trees. Detach them on load
+ // without moving the friend or discarding the spores they have already grown.
+ for(const p of s.individuals)if(kind(p.perchTree)==='cherry'&&!fitsPerch(p.perchTree,p)){
+  leavePerch(s,p);delete p.perchTree;
+ }
+}
+function validatePerches(s){
+ const used=new Set();
+ for(const p of s.individuals){
+  if(p.perchAfter!==undefined&&(!Number.isSafeInteger(p.perchAfter)||p.perchAfter<0))throw Error('착생 휴식 시간을 확인해 주세요.');
+  if(p.perchTree===undefined&&!p.stroll?.perch)continue;
+  const t=all(s).find(t=>t.id===p.perchTree&&!t.stored&&fitsPerch(t.id,p));
+  if(!t||used.has(t.id))throw Error('착생 나무 기록을 확인해 주세요.');
+  used.add(t.id);
+  if(p.stroll?.perch){
+   const q=perchEntry(t),v=p.stroll;
+   if(v.perch!==t.id||v.x!==q.x||v.y!==q.y||!p.active||p.mounted||p.objectTask||v.arrivedAt!=null&&Math.hypot(p.x-q.x,p.y-q.y)>.004)throw Error('착생 자리 기록을 확인해 주세요.');
+  }
+ }
+}
 function validate(s){
+ validatePerches(s);
  const records=s.world.trees;
  if(records===undefined)return;
  if(!Array.isArray(records)||records.length>Object.keys(IDS).length)throw Error('나무 기록을 확인해 주세요.');
@@ -94,5 +170,5 @@ function validate(s){
   ids.add(t.id);
  }
 }
-return Object.freeze({TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
+return Object.freeze({PERCH_RETURN,perchEntry,perchSeat,perchOwner,canAssign,fitsPerch,leavePerch,assignPerch,migratePerches,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
 });

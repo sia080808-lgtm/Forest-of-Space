@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestObjects=api;})(globalThis,function(){
 'use strict';
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{trees:'ForestTrees',recruitment:'ForestRecruitment',friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
@@ -60,6 +60,7 @@ function migrate(s){
  return s;
 }
 function release(s,p,reason='complete'){
+ if(p.stroll?.perch)dep('trees').leavePerch(s,p);
  if(p.carriedLeaf){const z=patch(s,p.carriedLeaf.pile)||patch(s,'litter');if(!z)throw Error('낙엽의 원래 자리를 찾지 못했어요.');z.O+=p.carriedLeaf.amount;p.objectContact={id:p.carriedLeaf.key+':put',cue:'putdown',tick:s.worldTick};delete p.carriedLeaf;}
  if(p.objectTask){p.lastObject={object:p.objectTask.object,kind:p.objectTask.kind,tick:s.worldTick};delete p.objectTask;}
  if(p.stroll?.shelf&&(reason==='interrupt'||reason==='layout'))leaveShelf(s,p);
@@ -239,6 +240,10 @@ const shelfMeetings=new WeakMap();
 const pairIds=(a,b)=>[a.id,b.id].sort();
 const pairKey=(a,b)=>JSON.stringify(pairIds(a,b));
 function affinity(s,a,b){return s.objects?.friendships?.[pairKey(a,b)]?.points??0;}
+function learnedDance(s,a,b){
+ const pair=s.objects?.friendships?.[pairKey(a,b)];
+ return pair?.points===AFFINITY.close||!!pair?.sporeHost;
+}
 const visitShelfId=p=>p.stroll?.shelfId??World.SHELF_IDS[0];
 function trackShelfMeeting(s){
  const previous=shelfMeetings.get(s),meetings=new Map(),tick=s.worldTick;
@@ -264,8 +269,24 @@ function awardAffinity(s,a,b){
  const key=pairKey(a,b),friends=s.objects.friendships??={},previous=friends[key];
  const day=Math.floor(s.worldTick/dep('environment').DAY_SECONDS);
  const today=previous?.day===day?previous.today:0;
- if(today>=AFFINITY.daily||previous?.points>=AFFINITY.close||previous&&s.worldTick-previous.last<AFFINITY.interval)return false;
- friends[key]={ids:pairIds(a,b),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ // A pair at the cap can finish its cycle on a later encounter if a recipient became available.
+ if(previous?.points===AFFINITY.close)return givePairSpore(previous,a,b);
+ if(today>=AFFINITY.daily||previous&&s.worldTick-previous.last<AFFINITY.interval)return false;
+ const current={...previous,ids:pairIds(a,b),points:(previous?.points??0)+1,day,today:today+1,last:s.worldTick};
+ if(current.points===AFFINITY.close)givePairSpore(current,a,b);
+ friends[key]=current;
+ return true;
+}
+function givePairSpore(pair,a,b){
+ const rec=dep('recruitment');
+ const eligible=[a,b].filter(rec.canReceiveSporeSac);
+ if(!eligible.length)return false;
+ // A ready perch is useful. On equal footing, alternate who carries the next pouch.
+ eligible.sort((x,y)=>Number(!!y.perchTree)-Number(!!x.perchTree)||Number(x.id===pair.sporeHost)-Number(y.id===pair.sporeHost)||x.id.localeCompare(y.id));
+ const host=eligible[0];
+ host.sporeSac=host===a?b.id:a.id;
+ pair.sporeHost=host.id;
+ pair.points=0;
  return true;
 }
 
@@ -353,6 +374,11 @@ function strollPose(s,p,t=s.worldTick){const r=p.stroll;if(!r||r.arrivedAt==null
  if(e<0||e>=L-1)return {pose:'idle'};if(e<4)return {pose:'look',face:Math.floor(e/1.3)%2?1:-1};if(e<6.5)return {pose:'sniff'};if(e>=sit)return {pose:'sit'};
  return {pose:'look',face:Math.floor(e/1.8)%2?-1:1};}
 function stroll(s,p){const t=p.stroll;if(!t)return null;if(p.objectTask||!p.active||p.mounted){delete p.stroll;return null;}
+ if(t.perch&&t.arrivedAt!=null){
+  if(s.worldTick-t.arrivedAt>=t.linger){dep('trees').leavePerch(s,p);return null;}
+  if(p.energy<75)p.energy=Math.min(75,p.energy+1.5/60);
+  return {kind:'rest',distance:0};
+ }
  if(t.shelf){
   if(!shelfWeather(s)||!World.stoneShelf(s,visitShelfId(p))||Object.values(needs(p)).some(Boolean)){leaveShelf(s,p);return null;}
   if(t.arrivedAt!=null){
@@ -415,6 +441,21 @@ function ambleSpot(s,p,rng){const Space=dep('spatial');for(let k=0;k<6;k++){cons
 // 1.0.2: a started task is held at most 5 minutes; after that the friend chooses again (a feed that cannot reach its
 // target, e.g. while mealybugs drain 영양 faster than it eats, must not block grooming forever)
 const HOLD=300;
+function perchWeather(s,p){
+ return strollWeather(s)&&!sleepTime(s,p)&&!coldCall(s,p)&&s.weather.wind<30;
+}
+function perchTarget(s,p){
+ if(!p.perchTree||p.visualStage!==3||!dep('recruitment').ripeningSpore(p)||s.worldTick<(p.perchAfter||0)||!perchWeather(s,p)||
+    p.shelterRequest||p.shelter?.phase!=='outside'||p.skill||p.skillHold||p.canopyProgress||p.sleepHere||p.braceHere)return null;
+ const tree=dep('trees').active(s).find(t=>t.id===p.perchTree);
+ if(!tree)return null;
+ const q=dep('trees').perchEntry(tree),space=dep('spatial');
+ if(World.inWater(s,q)||!space.walkable(s,q,p.id)||s.individuals.some(other=>other.active&&other.id!==p.id&&space.distance(other,q)<(space.diameter(other)+space.diameter(p))/2)){
+  p.perchAfter=s.worldTick+30;return null;
+ }
+ // travel() plans the route once and shares the ordinary walk's stall/deadline checks.
+ return {...q,perch:tree.id};
+}
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
@@ -428,6 +469,7 @@ function choose(s,p,rng){
  // elsewhere instead of waiting all night (sleep, rain, a free visit); a tired friend or one sheltering from a storm keeps waiting.
  {const c=p.objectTask;if(c&&c.object==='shelter'&&['sleep','shelterRain','free','warm','safety'].includes(c.reason)&&(p.shelter?.phase==='waitingOutside'&&['crowd','capacity'].includes(p.shelter.waitReason)||blockedDoor(p))){c.fullWait=(c.fullWait||0)+1;if(c.fullWait>=8){const door=blockedDoor(p);release(s,p,'full');p.restCooldown=s.worldTick+(door?300:120);p.nextObjectChoice=0;}}}
  const current=p.objectTask,danger=(Sh.inside(s,p)?s.weather.wind:W.wind(s,p))>=60||p.burden>=40||p.wetRecovery||((p.leafRecovery||p.damage>=10)&&p.B>=40&&p.nutrition>=40);
+ if(p.stroll?.perch&&(danger||!perchWeather(s,p)||Object.values(n).some(Boolean)||p.B>dep('vitals').band(p).hi))dep('trees').leavePerch(s,p);
  if(p.stroll?.shelf&&(!shelfWeather(s)||danger||coldCall(s,p)||Object.values(n).some(Boolean)))leaveShelf(s,p);
  const grade=urgency(s,p),valid=current&&effectsValid(s,p,current)&&!goalsDone(s,p,current);
  const emergencyChange=current&&grade<(current.grade??2);
@@ -494,6 +536,13 @@ function choose(s,p,rng){
  else {
   // Free visits preserve species expression without competing with actual needs.
   if(p.stroll&&!current){p.nextObjectChoice=s.worldTick+5;return;}
+  const seat=(!current||current.free&&!valid)&&perchTarget(s,p);
+  if(seat){
+   if(current)release(s,p,'complete');
+   delete p.objectWait;p.action='wander';p.target=null;
+   p.stroll={...seat,since:s.worldTick,deadline:s.worldTick+150,linger:32};
+   p.perchAfter=s.worldTick+dep('trees').PERCH_RETURN;p.nextObjectChoice=s.worldTick+5;return;
+  }
   const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
   const winterOuting=s.weather.kind==='sun'&&iceWeather(s);
   const walkChance=winterOuting ? .65 : STROLL.chance;
@@ -637,6 +686,11 @@ function planUpgrade(s,id){
 function upgrade(s,id){planUpgrade(s,id);const m=s.objects.upgrades[id];m.level++;m.stageUseSeconds=0;m.pressureSeconds=0;m.pressureEvidence=false;init(s);s.layoutRevision++;}
 function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return friend.text;
  const t=p.objectTask,w=p.objectWait;
+ if(p.stroll?.perch&&!t){
+  const trees=dep('trees'),type=trees.kind(p.stroll.perch),name=trees.TYPES[type].name;
+  const spot=type==='cherry'?' 낮은 가지':' 줄기';
+  return p.stroll.arrivedAt==null?name+'의 수태 자리로 가고 있어요':name+spot+'에서 쉬고 있어요';
+ }
  if(p.stroll?.shelf&&!t){
   if(!shelfPose(s,p))return '돌 선반으로 걸어가고 있어요';
   if(shelfGreeting(s,p))return '익숙한 친구에게 옆자리를 내주고 있어요';
@@ -681,8 +735,9 @@ function validate(s){
   if(!records||typeof records!=='object'||Array.isArray(records))throw Error('친밀도 기록을 확인해 주세요.');
   for(const [key,v] of Object.entries(records)){
    if(!v||!Array.isArray(v.ids)||v.ids.length!==2||v.ids[0]>=v.ids[1]||v.ids.some(id=>!people.has(id))||
-    key!==JSON.stringify(v.ids)||!Number.isInteger(v.points)||v.points<1||v.points>AFFINITY.close||
-    !Number.isInteger(v.today)||v.today<1||v.today>Math.min(AFFINITY.daily,v.points)||
+    key!==JSON.stringify(v.ids)||!Number.isInteger(v.points)||v.points<(v.sporeHost?0:1)||v.points>AFFINITY.close||
+    (v.sporeHost!==undefined&&!v.ids.includes(v.sporeHost))||
+    !Number.isInteger(v.today)||v.today<1||v.today>AFFINITY.daily||(!v.sporeHost&&v.today>v.points)||
     !Number.isSafeInteger(v.last)||v.last<0||v.last>s.worldTick||
     v.day!==Math.floor(v.last/dep('environment').DAY_SECONDS))throw Error('친밀도 기록을 확인해 주세요.');
   }
@@ -701,5 +756,5 @@ function validate(s){
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
  for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||(isPile(t.object)||isCopy(t.object))&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
-return {COPY_KINDS,objectId,kindOf,isCopy,patchesOf,springs,nextCopyId,litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,awardAffinity,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
+return {COPY_KINDS,objectId,kindOf,isCopy,patchesOf,springs,nextCopyId,litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,affinity,awardAffinity,learnedDance,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });
