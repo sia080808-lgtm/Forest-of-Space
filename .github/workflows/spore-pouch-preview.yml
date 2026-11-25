@@ -1,7 +1,5 @@
 name: In-game spore pouch preview
 on:
-  push:
-    branches: [feat/spore-pouch-in-game]
   pull_request:
     branches: [feat/perch-tree-types]
 permissions:
@@ -41,13 +39,13 @@ jobs:
                 const species = ['ridley','bonbon','bosong','duri','jureong','neolbi','superbum'];
                 const group = new URLSearchParams(location.search).get('group') === '2' ? species.slice(4) : species.slice(0,4);
                 save.individuals = group.map((species,index) => ({
-                  ...Forest.clone(first),id:'preview-'+index,species,visualStage:3,level:10,active:true,
+                  ...Forest.clone(first),id:'preview-'+index,species,visualStage:3,xp:150,active:true,
                   x:.33+(index%2)*.31,y:.40+Math.floor(index/2)*.20,
                   sporeSac:'preview-'+((index+1)%group.length),shelter:{phase:'outside',since:0}
                 }));
                 localStorage.setItem('forest-of-space-v1',JSON.stringify(save));
-              }\\n`;
-              await route.fulfill({response:original,body:setup+await original.text()});
+              }`;
+              await route.fulfill({response:original,body:setup+String.fromCharCode(10)+await original.text()});
             });
             const errors=[];
             page.on('pageerror',error=>errors.push(error.stack));
