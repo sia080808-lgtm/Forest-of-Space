@@ -81,13 +81,13 @@ jobs:
               for(let index=0;index<count;index++){
                 const clip=await page.evaluate(index=>{
                   const scene=window.previewScene,friend=scene.state().individuals[index];
-                  scene.camera.z=3;
+                  scene.camera.z=2;
                   scene.camera.cx=friend.x;
                   scene.camera.cy=friend.y-.034;
                   scene.camera.clamp();
                   scene.draw();
                   const screen=scene.camera.screen(friend),rect=scene.canvas.getBoundingClientRect();
-                  return {x:Math.round(rect.left+screen.x-75),y:Math.round(rect.top+screen.y-135),width:150,height:163};
+                  return {x:Math.round(rect.left+screen.x-105),y:Math.round(rect.top+screen.y-178),width:210,height:212};
                 },index);
                 details.push((await page.screenshot({clip,type:'jpeg',quality:94,scale:'css'})).toString('base64'));
               }
@@ -95,8 +95,8 @@ jobs:
             const names=['리들리','엘리시','베이치','두리','코로나','엘레판','슈퍼범'];
             const sheet=await page.evaluate(async({details,names})=>{
               const canvas=document.createElement('canvas');
-              canvas.width=632;
-              canvas.height=398;
+              canvas.width=872;
+              canvas.height=496;
               const c=canvas.getContext('2d');
               c.fillStyle='#f8f5ed';c.fillRect(0,0,canvas.width,canvas.height);
               c.font='13px Pretendard, sans-serif';c.textAlign='center';c.fillStyle='#4b503e';
@@ -104,9 +104,9 @@ jobs:
                 const im=new Image();
                 im.src='data:image/jpeg;base64,'+b64;
                 await im.decode();
-                const x=8+(i%4)*156,y=8+Math.floor(i/4)*195;
-                c.drawImage(im,x,y,150,163);
-                c.fillText(names[i],x+75,y+182);
+                const x=8+(i%4)*216,y=8+Math.floor(i/4)*244;
+                c.drawImage(im,x,y,210,212);
+                c.fillText(names[i],x+105,y+231);
               }
               return canvas.toDataURL('image/jpeg',.88).split(',')[1];
             },{details,names});
