@@ -82,7 +82,7 @@ const slides=new Map(),slideSel=new Set(),slideCls=n=>typeof n.className==='stri
 function slideKey(el){let k='',n=el;while(n&&n!==document.body){if(n.id){k='#'+n.id+k;break;}const c=slideCls(n),par=n.parentElement,i=par?[...par.children].filter(x=>x.tagName===n.tagName&&slideCls(x).join('.')===c.join('.')).indexOf(n):0;k='>'+n.tagName+(c.length?'.'+c.join('.'):'')+':'+i+k;n=par;}return tab+'|'+k;}
 document.addEventListener('scroll',e=>{const el=e.target;if(!(el instanceof Element)||el.scrollWidth<=el.clientWidth+1)return;slides.set(slideKey(el),el.scrollLeft);const c=slideCls(el);slideSel.add(el.tagName.toLowerCase()+(c.length?'.'+c.map(x=>CSS.escape(x)).join('.'):''));},true);
 new MutationObserver(ms=>{if(!slides.size)return;const sel=[...slideSel].join(',');for(const m of ms)for(const nd of m.addedNodes){if(!(nd instanceof Element))continue;for(const el of [...(nd.matches(sel)?[nd]:[]),...nd.querySelectorAll(sel)]){const v=slides.get(slideKey(el));if(v!=null&&el.scrollLeft!==v&&el.scrollWidth>el.clientWidth+1)el.scrollLeft=v;}}}).observe(document.body,{childList:true,subtree:true});
-function switchTab(next){if(next!==tab){slides.clear();slideSel.clear();pageView='';}setTimeout(()=>renderAdmin(),0);if(tab==='visit'&&next!=='visit'&&state.recruitment.visitor?.open)commit(s=>F.Recruitment.close(s));editorReturn=null;scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;scene.camera.setBottomOcclusion(0);$('world').classList.remove('editing-layout');carry.cancel();audio.cancelShots();scene.silentTick=state.worldTick;if(editor){editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;}tab=next;closeCard();$('world').hidden=next!=='world';$('page').hidden=next==='world';scene.paused=next!=='world'||!foreground;$('nav').querySelectorAll('button').forEach(b=>{const active=b.dataset.tab===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(next==='world'){scene.measure();targets();}else renderPage();}
+function switchTab(next){stopMotionPreview();if(next!==tab){slides.clear();slideSel.clear();pageView='';}setTimeout(()=>renderAdmin(),0);if(tab==='visit'&&next!=='visit'&&state.recruitment.visitor?.open)commit(s=>F.Recruitment.close(s));editorReturn=null;scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;scene.camera.setBottomOcclusion(0);$('world').classList.remove('editing-layout');carry.cancel();audio.cancelShots();scene.silentTick=state.worldTick;if(editor){editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;}tab=next;closeCard();$('world').hidden=next!=='world';$('page').hidden=next==='world';scene.paused=next!=='world'||!foreground;$('nav').querySelectorAll('button').forEach(b=>{const active=b.dataset.tab===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(next==='world'){scene.measure();targets();}else renderPage();}
 // 1.2.6: choosing an item on a page (a climate card low in 설정, a friend's switch in 자세히 보기, a 도감 entry) rebuilt the page and
 // sent it back to the top. The same view keeps its scroll; a different tab, 도감 tab or friend starts at the top.
 let pageView='';function renderPage(){const page=$('page'),view=tab+'|'+(tab==='dex'?dex:'')+'|'+(tab==='detail'?selected:''),keep=view===pageView?page.scrollTop:0;renderPageNow();pageView=view;page.scrollTop=keep;}
@@ -150,13 +150,44 @@ function settingsPage(page){/* 1.2.0 (user: "설정은 ㄹㅇ 유저가 쓰는 �
    tabs (friend, time, weather, objects, creatures, lake, unlocks, view) and drawings over the world (paths, what each
    friend is doing, skill reach, shelter room, speed). Every change still goes through the save transaction (ForestAdmin). */
 let adminOn=(()=>{try{return localStorage.getItem('forest-admin-mode')==='1';}catch{return false;}})(),adminOpen=false,adminTab='friend',adminSpeed=1,adminLock=false,adminFriend=null,adminView={path:false,task:false,range:false,room:false,perf:false},adminPerf={frames:0,since:0,fps:0,tick:0},adminDrawn=0;
-const ADMIN_TABS=[['friend','친구'],['time','시간'],['weather','날씨'],['object','사물'],['creature','생물'],['lake','호수'],['unlock','해금'],['view','보기']];
+const ADMIN_TABS=[['friend','친구'],['motion','모션 보기'],['time','시간'],['weather','날씨'],['object','사물'],['creature','생물'],['lake','호수'],['unlock','해금'],['view','보기']];
+let motionSpecies=null;
+function stopMotionPreview(){
+ if(!inspector)return;
+ Object.assign(scene.camera,inspectionCamera);
+ inspectionCamera=null;inspector=null;scene.inspector=null;
+ scene.inputLocked=false;scene.tick=null;scene.display={};$('targets').hidden=false;
+ last=performance.now();scene.cameraChanged();update();
+}
+function startMotionPreview(kind,species){
+ if(!adminOn||!adminOpen||tab!=='world'||editor||rec)return;
+ try{
+  const next=window.ForestAdmin.motionPreview(F,kind,species,state.settings.reducedMotion);
+  carry.cancel();audio.cancelShots();closeCard();
+  inspectionCamera??={...scene.camera};
+  inspector=scene.inspector=next;
+  scene.inputLocked=true;scene.tick=null;scene.display={};$('targets').hidden=true;
+  $('admin-view').innerHTML='';
+  scene.camera.setOverview(false);scene.syncWorld(F.World.bounds(next.state));
+  scene.camera.z=1.75;scene.camera.cx=next.point.x;scene.camera.cy=next.point.y;
+  renderAdmin();scene.camera.cx=next.point.x;scene.camera.cy=next.point.y;scene.camera.clamp();scene.cameraChanged();
+ }catch(e){notice(e.message);}
+}
+function renderMotionPreview(panel){
+ const A=window.ForestAdmin,v=inspector,button=(action,label)=>'<button class="pill" data-action="'+action+'">'+label+'</button>';
+ panel.innerHTML='<div class="adm-grab"></div><div class="adm-bar"><div class="adm-clock"><b>'+escape(A.MOTIONS[v.kind])+'</b>저장에 반영하지 않는 미리보기</div>'
+  +'<button class="adm-x" data-action="admin-motion-close" aria-label="미리보기 닫기">'+icon('close')+'</button></div><div class="adm-body">'
+  +'<p id="admin-motion-status" class="adm-note">'+escape(v.status())+'</p><div class="adm-row">'
+  +button('admin-motion-replay','다시 보기')+(v.nextLabel()?button('admin-motion-next',v.nextLabel()):'')+'</div></div>';
+ scene.camera.setBottomOcclusion(Math.max(0,$('garden').getBoundingClientRect().bottom-panel.getBoundingClientRect().top));
+}
 function setAdminMode(on){adminOn=on;try{localStorage.setItem('forest-admin-mode',on?'1':'0');}catch{}if(!on){adminOpen=false;adminSpeed=1;adminLock=false;}adminButton();renderAdmin();}
 function adminButton(){const b=$('admin-tool');if(!b)return;b.hidden=!adminOn;b.classList.toggle('on',adminOpen);b.setAttribute('aria-pressed',String(adminOpen));}
 function adminClock(){const cal=F.Environment.calendar(state),tt=((state.worldTick%1200)+1200)%1200,phase={morning:'이른 햇살',noon:'한낮',dusk:'노을',night:'밤',deep:'깊은 밤',dawn:'새벽'}[F.Environment.timeKey(state)]||'';
  return '<b>'+F.Environment.SEASON_NAMES[cal.id]+' '+(Math.floor(cal.into/1200)+1)+'일째 · '+phase+' <span class="adm-sec">'+tt+'/1200초</span></b>'+F.Environment.NAMES[F.Environment.weatherKey(state)]+' · 바람 '+Math.round(state.weather.wind)+' · '+F.Environment.CLIMATES[state.environment.climate].name+(state.environment.climateMode==='fixed'?'(고정)':'')+(adminLock?' · 날씨 고정':'');}
 function adminPick(){const list=state.individuals.filter(p=>p.active);if(!list.some(p=>p.id===adminFriend))adminFriend=null;return adminFriend?list.find(p=>p.id===adminFriend):null;}
 function renderAdmin(){const panel=$('admin-panel');if(!panel)return;adminButton();if(!adminOn||!adminOpen||tab!=='world'){panel.hidden=true;$('admin-view').innerHTML='';if(tab==='world'&&!editor&&!inspector)scene.camera.setBottomOcclusion(0);return;}panel.hidden=false;closeCard();
+ if(inspector){renderMotionPreview(panel);return;}
  const A=window.ForestAdmin,b=(label,args,cls='')=>'<button class="pill '+cls+'" data-action="admin-run" data-args="'+escape(JSON.stringify(args))+'">'+label+'</button>',row=x=>'<div class="adm-row">'+x.join('')+'</div>',lbl=t=>'<div class="adm-lbl">'+t+'</div>';
  const p=adminPick(),friends=state.individuals.filter(q=>q.active),others=F.SPECIES.filter(([id])=>!state.individuals.some(q=>q.species===id)&&!F.Recruitment.retired.includes(id));
  const chips=friends.map(q=>'<button class="pill'+(q.id===adminFriend?' go':'')+'" data-action="admin-friend" data-id="'+escape(q.id)+'">'+escape(q.name)+'</button>').join('');
@@ -170,6 +201,13 @@ function renderAdmin(){const panel=$('admin-panel');if(!panel)return;adminButton
     +lbl('다른 친구')+row([chips])
     +lbl('정원 친구 모두')+row([b('모두 적정하게',['stats','all','full']),b('모두 스킬 대기 없애기',['skillReady','all']),b('모든 친구 레벨 초기화',['resetLevels'],'warn')]);}
   body+=lbl('찾아오는 친구')+(others.length?row(others.map(([id,n])=>b(n+' 부르기',['summon',id])).concat(others.map(([id,n])=>b(n+' 바로 들이기',['welcome',id])))):'<p class="adm-note">모든 친구가 함께 살고 있어요.</p>')+(state.recruitment.visitor?row([b('입구 손님 돌려보내기',['dismiss'])]):'');}
+ else if(adminTab==='motion'){
+  const species=motionSpecies??p?.species??friends[0]?.species??'ridley';
+  body=lbl('미리 볼 친구')+row(F.SPECIES.map(([id,name])=>'<button class="pill'+(id===species?' go':'')+'" aria-pressed="'+(id===species)+'" data-action="admin-motion-species" data-id="'+id+'">'+escape(name)+'</button>'))
+   +lbl('모션')+row(Object.entries(A.MOTIONS).filter(([id])=>id!=='willowPerch'||F.Trees.fitsPerch('willow-1',{species})).map(([id,label])=>
+    '<button class="pill" data-action="admin-motion-play" data-id="'+id+'" data-species="'+species+'">'+escape(label)+'</button>'))
+   +'<p class="adm-note">포자 심기 후 어린 친구가 목록에 생기는 과정과 정원 입장까지 확인할 수 있어요.</p>';
+ }
  else if(adminTab==='time')body=lbl('그 시각으로 (앞으로만)')+row(Object.entries(A.TIMES).map(([k,v])=>b(v[1],['time',k])))+lbl('실제로 진행')+row([b('1분',['advance',60]),b('10분',['advance',600]),b('하루',['advance',1200])])+lbl('계절 첫날로')+row(A.SEASONS.map((n,i)=>b(n,['season',i])))+'<p class="adm-note">위의 ⏸ · 1× · 4× · 16×로 시간을 멈추거나 빨리 감아요. 빨리 감기는 관리자 모드를 끄면 1×로 돌아와요.</p>';
  else if(adminTab==='weather')body=lbl('날씨')+row(Object.entries(A.WEATHER).map(([k,v])=>b(v[3],['weather',k])))+'<div class="adm-tog"><div>날씨 고정<small>켜 두면 지금 날씨가 바뀌지 않아요(이 화면을 닫아도 관리자 모드 동안 유지)</small></div><button class="switch" role="switch" aria-checked="'+adminLock+'" data-action="admin-lock" aria-label="날씨 고정"></button></div>'+lbl('기후')+row([b('계절마다 바뀜',['climateAuto'],state.environment.climateMode==='fixed'?'':'go'),...Object.entries(F.Environment.CLIMATES).map(([id,c])=>b(c.name,['climate',id],state.environment.climateMode==='fixed'&&state.environment.climate===id?'go':''))]);
  else if(adminTab==='object'){/* 1.2.1 (user: "햇살바위 가득채우기 눌러도 … 안 채워지고", "낙엽자리 관리자 기능 직관적이지 않음"): the values changed but the panel never showed them; each tool now sits under its live amount */const L=F.Litter,z=state.patches.find(q=>q.id==='litter'),V=window.ForestVitals,now=(t,v)=>'<div class="adm-lbl">'+t+' <b class="adm-val">'+v+'</b></div>';
@@ -192,7 +230,7 @@ function renderAdmin(){const panel=$('admin-panel');if(!panel)return;adminButton
 // second in one go and froze the screen until it was done (a day is 1,200 full steps). Now it runs as many seconds as fit
 // in ~40 ms per frame while the world keeps drawing, with progress and a stop button in the panel.
 let adminAdvance=null;
-function adminAdvanceStep(){const a=adminAdvance;if(!a)return false;if(!adminOn){adminAdvance=null;return false;}const next=F.clone(state),t0=performance.now();
+function adminAdvanceStep(){const a=adminAdvance;if(!a)return false;if(!adminOn){adminAdvance=null;return false;}const next=window.ForestFriendship.copyForTick(state,F.clone(state)),t0=performance.now();
  while(a.left>0&&performance.now()-t0<40){F.step(next,{visible:false});a.left--;}
  const done=a.left<=0||a.stop;if(done)F.event(next,'admin','관리자 · '+Math.round((a.total-a.left)/60)+'분을 실제로 진행했어요.');
  if(!write(next)){adminAdvance=null;saveFailure();return true;}state=next;acc=0;update();
@@ -430,6 +468,15 @@ function update(){if(!state)return;updateFriendActivities();if(adminOpen){const 
   $('hint').hidden=!!inspector;$('hint').classList.toggle('show',!!msg&&now<hintUntil&&state.settings.showSpeech&&!editor&&!carry.session);}
  $('world-note').textContent=editor?'배치를 살펴보는 동안에도 게임 시간은 흘러요.':'';if(tab==='visit'){if(state.recruitment.visitor)updateVisit();else{switchTab('friends');notice('친구가 잠시 돌아갔어요. 함께한 기록은 이어져요.');}}showCard();if(native)native.theme(night);}
 function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dataset.action;
+ if(inspector){
+  if(a==='admin-motion-close'||a==='admin-toggle'){stopMotionPreview();renderAdmin();}
+  if(a==='admin-motion-replay')startMotionPreview(inspector.kind,inspector.species);
+  if(a==='admin-motion-next'){try{inspector.next();renderAdmin();}catch(error){notice(error.message);}}
+  if(b.dataset.tab){stopMotionPreview();if(b.dataset.tab==='decorate')startEditor();else switchTab(b.dataset.tab);}
+  return;
+ }
+ if(a==='admin-motion-species'&&adminOpen){motionSpecies=b.dataset.id;renderAdmin();return;}
+ if(a==='admin-motion-play'){startMotionPreview(b.dataset.id,b.dataset.species);return;}
  if(a==='spore-collect'){commit(s=>F.Recruitment.collectSpore(s,b.dataset.id),()=>notice('포자를 채집했어요.'));return;}
  if(a==='spore-plant'){
   let child;
@@ -527,12 +574,12 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(a==='restore-last'){try{const text=archiveRead();if(text)offerImport(text);else notice('아직 안전 백업이 없어요.');}catch{notice('최근 백업을 읽지 못했어요.');}}
  if(a==='home'){const w=$('welcome');w.hidden=false;w.classList.remove('w-play');void w.offsetWidth;w.classList.add('w-play');welcomeStart();scene.paused=true;pause();}
 }
-function pause(){stopRecording();if(!state||!ready)return;carry.cancel();audio.pause();foreground=false;scene.paused=true;F.pause(state);if(!write(state))saveFailure();last=performance.now();acc=0;}
+function pause(){if(inspector){stopMotionPreview();renderAdmin();}stopRecording();if(!state||!ready)return;carry.cancel();audio.pause();foreground=false;scene.paused=true;F.pause(state);if(!write(state))saveFailure();last=performance.now();acc=0;}
 function nativeResume(){if(!ready)return;foreground=true;audio.unlock();scene.tick=null;const next=F.clone(state),summary=F.resume(next);if(!write(next)){saveFailure();return;}state=next;for(const p of state.individuals)delete p.motion;last=performance.now();acc=0;scene.paused=tab!=='world'||!$('welcome').hidden;if(summary.seconds>60)notice('쉬는 동안 기운을 천천히 회복했어요.'+(summary.xp?' 성장 +'+summary.xp+' XP':''));update();}
 function saveFailure(){carry.cancel();audio.pause();storageFailed=true;notice('저장 공간을 확인해 주세요. 기록을 지키기 위해 생활을 잠시 멈췄어요.');dialog('저장하지 못했어요','기존 저장은 유지돼요. 저장 공간을 확보한 뒤 다시 시도해 주세요.',[{label:'다시 저장',fn:()=>{if(write(state)){storageFailed=false;closeDialog();notice('기록을 저장했어요.');}}}]);}
-function back(){if(carry.session){carry.cancel();return true;}if($('dialog-root').children.length){closeDialog();return true;}if(adminOpen&&tab==='world'){adminOpen=false;renderAdmin();return true;}if(editor){endEditor();return true;}if(selected||patchSelected){closeCard();if(tab==='detail')switchTab('friends');return true;}if(tab==='admin'){switchTab('settings');return true;}if(tab!=='world'){switchTab('world');return true;}return false;}
+function back(){if(carry.session){carry.cancel();return true;}if($('dialog-root').children.length){closeDialog();return true;}if(inspector){stopMotionPreview();renderAdmin();return true;}if(adminOpen&&tab==='world'){adminOpen=false;renderAdmin();return true;}if(editor){endEditor();return true;}if(selected||patchSelected){closeCard();if(tab==='detail')switchTab('friends');return true;}if(tab==='admin'){switchTab('settings');return true;}if(tab!=='world'){switchTab('world');return true;}return false;}
 window.RidleyApp={nativePause:pause,nativeResume,back,notice,offerImport};
-function tick(now){requestAnimationFrame(tick);if(!ready||!foreground||storageFailed||inspector||!$('welcome').hidden){last=now;return;}const elapsed=(now-last)/1000;last=now;if(tab==='visit')drawVisit(now/1000);if(elapsed>5){F.pause(state,state.savedAt);nativeResume();return;}if(adminAdvanceStep()){adminOverlay(now);return;}acc+=elapsed*(adminOn?adminSpeed:1);let steps=0;while(acc>=1&&steps<24){acc--;steps++;const next=F.clone(state);if(adminOn&&adminLock){next.weather.remaining=Math.max(next.weather.remaining||0,30);next.weather.strongSeconds=0;}   /* 1.2.11: a locked strong wind keeps blowing (the natural 90 s fade to 45 is skipped) */
+function tick(now){requestAnimationFrame(tick);if(inspector){const label=$('admin-motion-status'),value=inspector.status();if(label&&label.textContent!==value)label.textContent=value;last=now;return;}if(!ready||!foreground||storageFailed||!$('welcome').hidden){last=now;return;}const elapsed=(now-last)/1000;last=now;if(tab==='visit')drawVisit(now/1000);if(elapsed>5){F.pause(state,state.savedAt);nativeResume();return;}if(adminAdvanceStep()){adminOverlay(now);return;}acc+=elapsed*(adminOn?adminSpeed:1);let steps=0;while(acc>=1&&steps<24){acc--;steps++;const next=window.ForestFriendship.copyForTick(state,F.clone(state));if(adminOn&&adminLock){next.weather.remaining=Math.max(next.weather.remaining||0,30);next.weather.strongSeconds=0;}   /* 1.2.11: a locked strong wind keeps blowing (the natural 90 s fade to 45 is skipped) */
  const t0=performance.now();F.step(next,{visible:tab==='world',held:carry.held});adminPerf.tick=adminPerf.tick*.8+(performance.now()-t0)*.2;if(carry.held&&(next.weather.wind>=60||next.individuals.find(p=>p.id===carry.held)?.B<20)){carry.cancel();carry.suppressUntil=performance.now()+700;notice('안전을 위해 원래 자리에서 대피해요.');}lastSave++;const important=next.events.some(e=>['transfer','object-upgrade','spore'].includes(e.type)&&e.tick===next.worldTick)||JSON.stringify(next.discoveries)!==JSON.stringify(state.discoveries)||next.individuals.some((p,i)=>JSON.stringify(p.carriedLeaf)!==JSON.stringify(state.individuals[i]?.carriedLeaf)||p.xp!==state.individuals[i].xp||p.sporeSac!==state.individuals[i].sporeSac||JSON.stringify(p.first)!==JSON.stringify(state.individuals[i].first));if(lastSave>=5||important){lastSave=0;if(!write(next)){saveFailure();break;}}state=next;update();}if(acc>3)acc=0;adminFollowStep();adminOverlay(now);audio.sync(state,tab==='world'&&foreground&&$('welcome').hidden,scene.springVisible());}
 /* 1.2.8 entry screen: the art layer starts once the game art is loaded; the season line shows today's forest; a tap skips the intro */
 function welcomeStart(){$('welcome-when').textContent=$('season').textContent+' · '+CLOCK_PHASES[F.Environment.timeKey(state)][1]+' · '+$('weather').textContent;globalThis.ForestWelcome?.start({assets:scene.assets,reduced:!!state?.settings?.reducedMotion});}

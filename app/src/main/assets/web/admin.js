@@ -108,5 +108,88 @@ function climateAuto(F,s){delete s.environment.climateMode;delete s.environment.
 function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 아직 열리지 않았어요.');const E=F.Environment;if(E.season(s)!=='summer')season(F,s,1);time(F,s,'night');weather(F,s,'sun');s.world.lake.fx??={};s.world.lake.fx.fire={night:Math.floor((s.worldTick-620)/1200),on:true,seen:false};return '여름 밤으로 옮기고 반딧불을 띄웠어요.';}
 const ACTIONS=Object.freeze({skillShow,time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,floorLeaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
-return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,CALL,ACTIONS,run});
+const MOTIONS=Object.freeze({
+ walk:'함께 산책',dance:'빙글빙글 춤추기',chat:'느티나무 아래 수다',fish:'수양버들 아래 송사리 보기',
+ spore:'포자낭 맺히기',perch:'나무 착생과 수태 이불',willowPerch:'수양버들 착생',generation:'포자 채집·심기와 2세'
+});
+function motionPreview(F,kind,species,reducedMotion=false){
+ const name=F.SPECIES.find(([id])=>id===species)?.[1];
+ if(!name||!Object.hasOwn(MOTIONS,kind))throw Error('미리 볼 친구와 모션을 골라 주세요.');
+ const friends=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
+ const s=F.create(0,18),T=F.Trees,R=F.Recruitment,p=s.individuals[0];
+ s.started=true;s.environment.tutorialDone=true;s.settings.reducedMotion=reducedMotion;
+ s.recruitment.nextAttempt=1e9;
+ F.World.openLake(s);s.worldTick=7199;F.step(s);s.worldTick=7380;
+ const perch=kind==='perch'||kind==='willowPerch',meeting=['walk','dance','chat','fish'].includes(kind);
+ weather(F,s,meeting?'cloud':'sun');
+ if(meeting)s.climate.L=45;
+ const treeType=kind==='fish'||kind==='willowPerch'?'willow':
+  kind==='chat'||perch&&!T.fitsPerch('cherry-1',{species})?'zelkova':perch?'cherry':null;
+ const tree=treeType&&{id:treeType+'-1',...(treeType==='willow'?{x:1.724,y:1.01}:{x:1.65,y:1.58})};
+ if(tree){
+  if(perch&&!T.fitsPerch(tree.id,{species}))throw Error('이 친구는 수양버들에 착생할 수 없어요.');
+  F.layout(s,{[tree.id]:tree});
+ }
+ const shade=tree&&T.canopy(tree),entry=perch&&T.perchEntry(tree);
+ const spot=perch?{x:entry.x,y:entry.y+.065}:shade?{x:shade.x-.14,y:shade.y+.01}:
+  meeting?{x:1.10,y:.86}:{x:.40,y:.65};
+ Object.assign(p,spot,{id:'preview-a',species,name,xp:150,visualStage:3,B:60,nutrition:65,energy:75,
+  motion:null,action:'wander',target:null,actionSeconds:0,objectTask:null,stroll:null,
+  nextObjectChoice:perch?0:s.worldTick+60,shelter:{phase:'outside',since:0}});
+ const partner={...F.clone(p),id:'preview-b',species:species==='ridley'?'bosong':'ridley',
+  name:species==='ridley'?'베이치':'리들리',active:meeting||kind==='spore',
+  visualStage:kind==='spore'?0:3,xp:kind==='spore'?0:150,
+  x:shade?shade.x+.14:spot.x+.30,y:spot.y};
+ s.individuals.push(partner);
+ const ids=[p.id,partner.id];
+ if(kind==='fish')s.world.lake.life=[{id:'preview-fish',kind:'medaka',x:1.91,y:.84,born:s.worldTick}];
+ if(meeting||kind==='spore'){
+  const points=kind==='spore'?F.Objects.AFFINITY.close-1:3;
+  const pair={ids,points,day:Math.floor(s.worldTick/F.Environment.DAY_SECONDS),today:1,last:s.worldTick-F.Objects.AFFINITY.interval};
+  if(kind==='dance')pair.sporeHost=partner.id;
+  s.objects.friendships={[JSON.stringify(ids)]:pair};
+ }
+ if(meeting){
+  let roll=0;
+  p.motion={kind:'idle',tick:s.worldTick};
+  partner.motion={kind:'idle',tick:s.worldTick};
+  if(friends.prepare(s,null,()=>kind==='dance'||roll++===0?0:.99).size!==2)
+   throw Error('이 모션을 재생할 자리를 잡지 못했어요.');
+  friends.tick(s);
+ }
+ if(perch){T.assignPerch(s,tree.id,p.id);p.sporeSac=partner.id;}
+ if(kind==='generation'){p.sporeSac=partner.id;p.sporeSeconds=R.SPORE_SECONDS;}
+ const point=tree?{x:tree.x,y:tree.y-.08}:meeting?{x:1.32,y:.80}:{x:.55,y:.60};
+ let child=null,finished=false,elapsed=0;
+ const preview={state:s,kind,species,point,time:0,
+  update(dt){
+   this.time+=dt;
+   if(kind==='spore'&&this.time>=1&&!finished){F.Objects.awardAffinity(s,p,partner);finished=true;}
+   if(finished||!perch&&!meeting)return;
+   elapsed+=dt;
+   if(elapsed<1)return;
+   elapsed-=1;F.step(s);
+   finished=meeting?!friends.busy(s,p.id):!!p.perchAfter&&!p.stroll?.perch;
+  },
+  status(){
+   if(kind==='generation'){
+    if(!child)return R.sporeStatus(p);
+    const subject=R.josa(child.name,'이','가');
+    return child.active?'어린 '+subject+' 정원에 들어왔어요.':child.generation+'세 '+subject+' 친구 목록에서 기다려요.';
+   }
+   if(kind==='spore')return finished?'친밀도가 차서 '+name+'에게 포자낭이 맺혔어요.':'친밀도가 차면 정수리에 포자낭이 나타나요.';
+   if(finished)return '재생이 끝났어요.';
+   return friends.pose(s,p)?.text||F.Objects.reason(s,p)||MOTIONS[kind];
+  },
+  nextLabel(){return kind!=='generation'||child?.active?'':child?'정원에 들이기':p.sporeStored?'포자 심기':'포자 채집';},
+  next(){
+   if(!this.nextLabel())return;
+   if(child)F.roster(s,child.id,true);
+   else if(p.sporeStored)child=R.germinate(s,p.id,F.personality,F.event);
+   else R.collectSpore(s,p.id);
+  }
+ };
+ return preview;
+}
+return Object.freeze({ro,TIMES,SEASONS,WEATHER,STATS,CALL,ACTIONS,run,MOTIONS,motionPreview});
 });

@@ -12,6 +12,11 @@ function state(s){
  if(!value){value={sessions:[],after:{},next:0};states.set(s,value);}
  return value;
 }
+function copyForTick(from,to){
+ const live=states.get(from);
+ if(live)states.set(to,{...live,after:{...live.after},sessions:live.sessions.map(meeting=>({...meeting}))});
+ return to;
+}
 function busy(s,id){return states.get(s)?.sessions.some(a=>a.ids.includes(id))||false;}
 function ready(s,p,held){
  const V=dep('vitals'),E=dep('environment'),W=dep('world');
@@ -168,5 +173,5 @@ function pose(s,p){
  return {face:look?face:viewFace,text:a.type==='watch'?'놀란 친구를 돌아보고 함께 물가를 보고 있어요':
   a.type==='dance'?'친한 친구와 빙글빙글 춤추고 있어요':'친구를 기다리며 함께 산책하고 있어요'};
 }
-return {prepare,tick,cancel,busy,pose};
+return {prepare,tick,cancel,busy,pose,copyForTick};
 });
