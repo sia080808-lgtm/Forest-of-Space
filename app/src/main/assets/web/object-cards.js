@@ -19,9 +19,11 @@ function model(s,id){
   const type=F.Trees.kind(id),c=F.Trees.protection(s,tree);
   if(type==='cherry'){
    const season=F.Trees.season(s),looks={spring:'연분홍 꽃이 피었어요',summer:'초록 잎이 그늘을 드리워요',autumn:'잎이 붉게 물들어요',winter:'잎이 지고 가지에 눈이 내려요'};
+   const owner=F.Trees.perchOwner(s,id);
+   const actions=owner?[{action:'cherry-unassign',label:'착생 자리 해제'}]:s.individuals.filter(F.Trees.canAssign).map(p=>({action:'cherry-assign',friend:p.id,label:p.name+' 자리 잡기'}));
    return {id,name:F.Trees.name(id),description:'남쪽 숲에 계절의 변화를 보여주는 나무예요.',status:looks[season],
-    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[],
-    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.'],actions:[],gauge:null};
+    metrics:[metric('shade','빛 줄임',Math.round(c.shade*100)+'%')],rows:[['착생 자리',owner?.name||'빈자리']],
+    effects:['잎과 꽃이 무성할수록 그늘이 짙어져요.','성체 친구 한 명의 수태 자리를 정하면 잔잔한 낮에 스스로 찾아와 쉬어요. 쉬는 동안 기운이 분당 1.5씩, 최대 75까지 차요.'],actions,gauge:null};
   }
   const willow=type==='willow';
   return {id,name:F.Trees.name(id),description:willow?'호숫가를 덮는 부드러운 그늘이에요.':'남쪽 숲에서 친구들이 나란히 머물 수 있는 그늘이에요.',
@@ -84,7 +86,7 @@ function model(s,id){
  return m;
 }
 function render(s,id,closeIcon='×'){const m=model(s,id);if(!m)return '';const gauge=m.gauge?'<div class="object-gauge" role="img" aria-label="'+escape(m.gauge.label)+'"><div class="object-meter">'+m.gauge.parts.map(p=>'<i class="tone-'+p.tone+'" style="width:'+Math.max(0,Math.min(100,p.value/m.gauge.max*100))+'%"></i>').join('')+'</div><div class="object-legend">'+m.gauge.parts.filter(p=>p.value>0).map(p=>'<span class="tone-'+p.tone+'">'+escape(p.label)+' '+escape(amount(p.value))+'</span>').join('')+'<span>여유 '+escape(amount(m.gauge.free))+'</span></div></div>':'';
- return '<div class="select-head object-head"><div><h2>'+escape(m.name)+'</h2><p>'+escape(m.description)+'</p></div><button class="icon close" data-action="close-card" aria-label="선택 닫기">'+closeIcon+'</button></div><div class="object-metrics">'+m.metrics.map(v=>'<div data-metric="'+v.id+'"><span>'+escape(v.label)+'</span><strong>'+escape(v.value)+'</strong>'+(v.note?'<small>'+escape(v.note)+'</small>':'')+'</div>').join('')+'</div>'+gauge+'<p class="object-status">'+escape(m.status)+'</p><details data-object-details="conditions"><summary>'+(m.facility?'이용 안내':'이용·보충·확장 조건')+'</summary><dl class="object-facts">'+m.rows.map(([k,v])=>'<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>').join('')+'</dl>'+m.effects.map(t=>'<p class="sub">'+escape(t)+'</p>').join('')+(m.actions.length?'<div class="button-pair object-actions">'+m.actions.map(a=>'<button class="secondary" data-action="'+a.action+'" data-id="'+escape(m.id)+'" '+(a.disabled?'disabled':'')+'>'+escape(a.label)+'</button>').join('')+'</div>':'')+'</details>';
+ return '<div class="select-head object-head"><div><h2>'+escape(m.name)+'</h2><p>'+escape(m.description)+'</p></div><button class="icon close" data-action="close-card" aria-label="선택 닫기">'+closeIcon+'</button></div><div class="object-metrics">'+m.metrics.map(v=>'<div data-metric="'+v.id+'"><span>'+escape(v.label)+'</span><strong>'+escape(v.value)+'</strong>'+(v.note?'<small>'+escape(v.note)+'</small>':'')+'</div>').join('')+'</div>'+gauge+'<p class="object-status">'+escape(m.status)+'</p><details data-object-details="conditions"><summary>'+(m.facility?'이용 안내':'이용·보충·확장 조건')+'</summary><dl class="object-facts">'+m.rows.map(([k,v])=>'<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>').join('')+'</dl>'+m.effects.map(t=>'<p class="sub">'+escape(t)+'</p>').join('')+(m.actions.length?'<div class="button-pair object-actions">'+m.actions.map(a=>'<button class="secondary" data-action="'+a.action+'" data-id="'+escape(m.id)+'" '+(a.friend?'data-friend="'+escape(a.friend)+'" ':'')+(a.disabled?'disabled':'')+'>'+escape(a.label)+'</button>').join('')+'</div>':'')+'</details>';
 }
 return {model,render,usage,number,amount};
 });

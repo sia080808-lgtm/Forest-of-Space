@@ -413,6 +413,7 @@ function update(){if(!state)return;updateFriendActivities();if(adminOpen){const 
   $('hint').hidden=!!inspector;$('hint').classList.toggle('show',!!msg&&now<hintUntil&&state.settings.showSpeech&&!editor&&!carry.session);}
  $('world-note').textContent=editor?'배치를 살펴보는 동안에도 게임 시간은 흘러요.':'';if(tab==='visit'){if(state.recruitment.visitor)updateVisit();else{switchTab('friends');notice('친구가 잠시 돌아갔어요. 함께한 기록은 이어져요.');}}showCard();if(native)native.theme(night);}
 function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dataset.action;
+ if(a==='cherry-assign'||a==='cherry-unassign'){commit(s=>{F.Trees.assignPerch(s,b.dataset.id,b.dataset.friend);},showCard);return;}
  if(a==='object-expand'){previewObjectUpgrade(b.dataset.id);return;}
  if(a==='facility-add'){editFacility(null,'add');return;}
  if(a==='facility-expand'&&facilityDraft?.kind==='move'){startFacilityEdit(facilityDraft.id,'expand');return;}

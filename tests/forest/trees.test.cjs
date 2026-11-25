@@ -130,3 +130,69 @@ test('cherry shade changes with the season and disappears in storage',()=>{
  assert.equal(T.effects(s,point).wind,0);
  F.storeObject(s,id);assert.equal(F.light(s,point),80);
 });
+
+function cherryVisit(){
+ const s=game(),p=s.individuals[0],id='cherry-1';
+ F.layout(s,{[id]:zelkova});
+ Object.assign(p,{x:1.51,y:1.67,visualStage:3,xp:120,B:50,nutrition:50,energy:70,action:'wander',nextObjectChoice:0});
+ s.environment.windTarget=8;
+ T.assignPerch(s,id,p.id);
+ F.step(s);
+ assert.equal(p.stroll?.perch,id);
+ assert.ok(p.motion.distance>0);
+ assert.equal(p.stroll.arrivedAt,undefined);
+ for(let i=0;i<10&&p.stroll?.arrivedAt==null;i++)F.step(s);
+ assert.ok(p.stroll?.arrivedAt);
+ return {s,p,id};
+}
+test('an adult walks to its assigned cherry, rests on arrival, and leaves with a return delay',()=>{
+ const {s,p,id}=cherryVisit();
+ const saved=F.migrate(F.clone(s));
+ assert.deepEqual(saved.individuals[0].stroll,p.stroll);
+ assert.equal(saved.individuals[0].perchTree,id);
+ assert.match(F.Objects.reason(s,p),/낮은 가지/);
+ const start=s.worldTick;
+ F.advance(s,32);
+ assert.equal(s.worldTick-start,32);
+ assert.equal(p.stroll?.perch,undefined);
+ assert.equal(p.perchAfter,s.worldTick+240);
+ F.advance(s,10);assert.equal(p.stroll?.perch,undefined);
+ F.valid(s);
+});
+test('care and weather interrupt a perch on the next tick',()=>{
+ const {s}=cherryVisit();
+ for(const change of [
+  (s,p)=>{p.B=15;},(s,p)=>{p.nutrition=15;},
+  s=>{s.worldTick=8000;},s=>{s.weather.kind='rain';},
+  s=>{s.weather.wind=45;s.environment.windTarget=45;}
+ ]){
+  const trial=F.clone(s),p=trial.individuals[0];
+  change(trial,p);F.step(trial);
+  assert.equal(p.stroll?.perch,undefined);
+  assert.equal(p.perchTree,'cherry-1');assert.ok(p.perchAfter>trial.worldTick);
+  F.valid(trial);
+ }
+});
+test('moving, storing, releasing and greeting a new friend preserve a valid perch assignment',()=>{
+ const {s,p,id}=cherryVisit();
+ const other=plantAvailable(s,'cherry');
+ assert.throws(()=>T.assignPerch(s,other,p.id));
+ assert.throws(()=>T.assignPerch(s,id,p.id));
+ F.welcomeNeolbi(s);
+ const newcomer=s.individuals.at(-1);
+ assert.equal(newcomer.perchTree,undefined);
+ assert.equal(newcomer.stroll,undefined);
+ assert.throws(()=>T.assignPerch(s,other,newcomer.id));
+ const card=require('../../app/src/main/assets/web/object-cards');
+ assert.match(card.render(s,id,''),/cherry-unassign/);
+ const ground={x:p.x,y:p.y};
+ F.layout(s,{[id]:{x:2.52,y:1.7}});
+ assert.equal(p.stroll?.perch,undefined);
+ assert.equal(p.perchTree,id);
+ assert.deepEqual({x:p.x,y:p.y},ground);
+ F.storeObject(s,id);assert.equal(p.perchTree,undefined);
+ F.unstoreObject(s,id);
+ assert.match(card.render(s,id,''),/cherry-assign/);
+ T.assignPerch(s,id,p.id);T.assignPerch(s,id,null);assert.equal(p.perchTree,undefined);
+ F.valid(s);
+});

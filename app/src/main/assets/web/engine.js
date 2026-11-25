@@ -75,6 +75,7 @@ function step(s,{visible=true,held=null}={}){
  Skills.prepare(s,{held,busy:aboard?new Set([...participants,aboard]):participants,event,discovery,visible});
  if(!previousRider)Boat.step(s,held,rng);
  const rider=s.world?.lake?.boat?.rider;
+ for(const p of s.individuals)if(p.stroll?.perch&&(p.id===rider||participants.has(p.id)||p.skill||p.skillHold||p.shelterRequest||p.shelter?.phase!=='outside'))Trees.leavePerch(s,p);
  const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
  for(const p of s.patches){
   const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
@@ -283,6 +284,11 @@ function layoutPlan(s,positions){
 function validateLayout(s,positions){return layoutPlan(s,positions).patches;}
 function layout(s,positions){
  const {patches,springs,shelves,trees}=layoutPlan(s,positions);
+ for(const p of s.individuals){
+  if(!p.stroll?.perch)continue;
+  const t=trees.find(t=>t.id===p.perchTree),q=t&&Trees.perchEntry(t);
+  if(!q||q.x!==p.stroll.x||q.y!==p.stroll.y)Trees.leavePerch(s,p);
+ }
  Friendship.cancel(s);Social.invalidate(s);Obj.invalidate(s);s.neighbor.observed=0;
  // Release active tasks before applying positions so returned water and leaves stay in their original pools.
  const place=z=>{
@@ -308,6 +314,7 @@ const STORABLE=Object.freeze(['moss','rock','shade','crevice']);
 function storeTree(s,id){
  const t=Trees.active(s).find(q=>q.id===id);
  if(!t)throw Error('숲에 놓인 나무가 아니에요.');
+ if(Trees.kind(id)==='cherry')Trees.assignPerch(s,id,null);
  t.stored=true;Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에 넣었어요.');return s;
 }
 function unstoreTree(s,id){
@@ -371,7 +378,7 @@ function welcomeNeolbi(s){
  if(s.individuals.some(p=>p.species==='neolbi'))return false;
  const id='neolbi-welcome-'+s.deviceId;
  const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:45,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
- for(const k of ['motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
+ for(const k of ['perchTree','perchAfter','stroll','walkPlan','motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
  s.individuals.push(p);for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])p[k]=0;p.wetRecovery=p.leafRecovery=false;delete p.weatherExposure;delete p.protectedBy;event(s,'welcome','엘레판이 숲에 찾아왔어요. 친구 목록에서 정원에 들일 수 있어요.',{individual:id,arrivalWater:35});return true;
 }
 

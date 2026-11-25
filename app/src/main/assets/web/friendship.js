@@ -101,7 +101,7 @@ function prepare(s,held,rng){
  if(s.worldTick>=st.next){
   st.next=s.worldTick+10;
   const free=s.individuals.filter(p=>ready(s,p,held)&&!busy(s,p.id)&&!(st.after[p.id]>s.worldTick)&&
-   p.action==='wander'&&!p.stroll?.shelf&&!p.stroll?.board&&!p.stroll?.lake&&!p.stroll?.puddle);
+   p.action==='wander'&&!p.stroll?.perch&&!p.stroll?.shelf&&!p.stroll?.board&&!p.stroll?.lake&&!p.stroll?.puddle);
   for(let i=0;i<free.length;i++){
    const a=free[i];if(busy(s,a.id))continue;
    const b=free.slice(i+1).find(p=>!busy(s,p.id)&&O.affinity(s,a,p)>=3&&S.distance(a,p)<.42);

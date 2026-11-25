@@ -84,7 +84,45 @@ function effects(s,p){
  return Object.assign(cover,seasonalCover(s,cover));
 }
 const absorption=(s,p,onMoss)=>onMoss||effects(s,p).willow?ABSORPTION:1;
+// The friend's physical position stays at the accessible foot of the tree during a visit.
+const PERCH_RETURN=240;
+const perchEntry=t=>({x:t.x,y:t.y+.065});
+const perchSeat=t=>({x:t.x+.012,y:t.y-.075});
+const perchOwner=(s,id)=>s.individuals.find(p=>p.perchTree===id);
+const canAssign=p=>p.active&&!p.mounted&&p.visualStage===3&&!p.perchTree;
+function leavePerch(s,p){
+ if(!p.stroll?.perch)return;
+ delete p.stroll;delete p.walkPlan;
+ p.perchAfter=s.worldTick+PERCH_RETURN;p.nextObjectChoice=s.worldTick;
+}
+function assignPerch(s,id,friend){
+ const t=active(s).find(t=>t.id===id&&kind(id)==='cherry');
+ if(!t)throw Error('숲에 심은 산벚나무를 골라주세요.');
+ const owner=perchOwner(s,id);
+ if(friend==null){
+  if(owner){leavePerch(s,owner);delete owner.perchTree;}
+  return;
+ }
+ const p=s.individuals.find(p=>p.id===friend);
+ if(owner||!p||!canAssign(p))throw Error('아직 착생 자리가 없는 성체 친구를 골라주세요.');
+ p.perchTree=id;
+}
+function validatePerches(s){
+ const used=new Set();
+ for(const p of s.individuals){
+  if(p.perchAfter!==undefined&&(!Number.isSafeInteger(p.perchAfter)||p.perchAfter<0))throw Error('착생 휴식 시간을 확인해 주세요.');
+  if(p.perchTree===undefined&&!p.stroll?.perch)continue;
+  const t=all(s).find(t=>t.id===p.perchTree&&!t.stored&&kind(t.id)==='cherry');
+  if(!t||used.has(t.id))throw Error('착생 나무 기록을 확인해 주세요.');
+  used.add(t.id);
+  if(p.stroll?.perch){
+   const q=perchEntry(t),v=p.stroll;
+   if(v.perch!==t.id||v.x!==q.x||v.y!==q.y||!p.active||p.mounted||p.objectTask||v.arrivedAt!=null&&Math.hypot(p.x-q.x,p.y-q.y)>.004)throw Error('착생 자리 기록을 확인해 주세요.');
+  }
+ }
+}
 function validate(s){
+ validatePerches(s);
  const records=s.world.trees;
  if(records===undefined)return;
  if(!Array.isArray(records)||records.length>Object.keys(IDS).length)throw Error('나무 기록을 확인해 주세요.');
@@ -94,5 +132,5 @@ function validate(s){
   ids.add(t.id);
  }
 }
-return Object.freeze({TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
+return Object.freeze({PERCH_RETURN,perchEntry,perchSeat,perchOwner,canAssign,leavePerch,assignPerch,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
 });

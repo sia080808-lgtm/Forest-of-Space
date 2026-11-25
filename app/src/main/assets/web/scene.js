@@ -658,7 +658,16 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    c.scale(dir,-.38);c.globalAlpha*=.17;
   }else{c.translate(t.x*w,t.y*h);c.scale(dir,1);}
   if(cal&&cal.blend<1)draw(cal.prev,1-cal.blend);
-  draw(cal?.id||'spring',cal?.blend??1);c.restore();
+  draw(cal?.id||'spring',cal?.blend??1);
+  if(T.kind(t.id)==='cherry'&&T.perchOwner(this.state(),t.id)){
+   const q=T.perchSeat(t);
+   c.translate((q.x-t.x)*w,(q.y-t.y)*h);
+   for(let i=0;i<7;i++){
+    c.fillStyle=['#737253','#969474','#828261'][i%3];
+    c.beginPath();c.ellipse((i-3)*.0055*w,Math.sin(i*2)*.0018*h,.009*w,.004*h,0,0,Math.PI*2);c.fill();
+   }
+  }
+  c.restore();
  }
  treeShadow(){
   if(this.treeShadowImg)return this.treeShadowImg;
@@ -816,6 +825,15 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
     const lift=perch?.lift??shelf.rise*Math.max(0,1-remaining/.095);
     pos={x:pos.x,y:pos.y-lift/h};
     if(perch)kind='rest';
+   }
+   if(p.stroll?.perch&&p.stroll.arrivedAt!=null&&this.carry?.id!==p.id){
+    const tree=Forest.Trees.active(s).find(t=>t.id===p.perchTree);
+    if(tree){
+     const q=Forest.Trees.perchSeat(tree),elapsed=s.worldTick+fraction-p.stroll.arrivedAt;
+     const k=s.settings.reducedMotion?1:Math.max(0,Math.min(1,elapsed/2,(p.stroll.linger-elapsed)/2));
+     pos={x:pos.x+(q.x-pos.x)*k,y:pos.y+(q.y-pos.y)*k};
+     kind=k>=1?'rest':'slow';
+    }
    }
    const friendship=typeof ForestFriendship!=='undefined'?ForestFriendship.pose(s,p):null;if(friendship?.face){this.facing??={};this.facing[p.id]=friendship.face;}
    treesBefore(p.y);

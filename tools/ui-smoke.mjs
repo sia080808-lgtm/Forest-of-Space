@@ -284,6 +284,15 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  assert.equal(scene.preview['cherry-1'].y,before+.025);
  click('[data-action="save-layout"]');
  assert.equal(F.Trees.active(saved).filter(t=>F.Trees.kind(t.id)==='cherry').length,1);
+ const adult=getState().individuals.find(p=>p.active);
+ adult.visualStage=3;adult.xp=120;
+ scene.selectAt(F.Trees.active(getState()).find(t=>t.id==='cherry-1'));
+ const details=win.document.querySelector('#select-card details');details.open=true;
+ now+=1000;
+ click('#select-card [data-action="cherry-assign"][data-friend="'+adult.id+'"]');
+ assert.equal(F.Trees.perchOwner(saved,'cherry-1')?.id,adult.id,win.document.getElementById('toast').textContent);
+ click('#select-card [data-action="cherry-unassign"]');
+ assert.equal(F.Trees.perchOwner(saved,'cherry-1'),undefined);
  click('[data-tab="decorate"]');
  click('[data-patch="cherry-1"]');
  click('[data-action="store-object"][data-id="cherry-1"]');
