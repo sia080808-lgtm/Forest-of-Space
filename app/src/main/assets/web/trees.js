@@ -4,7 +4,7 @@
 })(globalThis,function(World){
 'use strict';
 const TYPES=Object.freeze({
- zelkova:Object.freeze({name:'느티나무',limit:2,shade:.28,rain:.30,wind:.25,rx:.23,ry:.11,width:.51,height:.19,anchor:.51}),
+ zelkova:Object.freeze({name:'느티나무',limit:2,shade:.28,rain:.30,wind:.25,rx:.23,ry:.11,width:1.02,height:.38,anchor:.51}),
  willow:Object.freeze({name:'수양버들',limit:5,shade:.22,rain:.55,wind:0,rx:.19,ry:.095,width:.38,height:.25,anchor:.16}),
  cherry:Object.freeze({name:'산벚나무',limit:10,shade:.23,rain:0,wind:0,rx:.205,ry:.10,width:.45,height:.217,anchor:.445})
 });
@@ -111,9 +111,9 @@ const CHERRY_SEATS={ridley:.012,bonbon:-.011,bosong:.024,duri:.007,jureong:.033}
 function perchSeat(t,p){
  const type=kind(t.id);
  if(type==='zelkova'){
-  if(p.species==='superbum')return {x:t.x-.048,y:t.y-.023};
-  if(p.species==='neolbi')return {x:t.x+.031,y:t.y-.036};
-  return {x:t.x-.043,y:t.y-.057};
+  if(p.species==='superbum')return {x:t.x-.096,y:t.y-.046};
+  if(p.species==='neolbi')return {x:t.x+.062,y:t.y-.072};
+  return {x:t.x-.086,y:t.y-.114};
  }
  if(type==='willow'){
   const large=largePerch(p);

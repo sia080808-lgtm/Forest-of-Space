@@ -50,10 +50,14 @@ function segment(s,a,b,id,obs=obstacles(s)){
  // Climbing on/off the sun rock ignores its body. A start already inside a stone (old save, drop) may walk out of it,
  // but once outside the segment must not enter it again.
  // Obstacles are built once per segment (not per sample point): 0.6.15 rebuilt them for every sample.
- const w=pad(s,id),all=obs   /* 0.8.3: a friend standing inside any footprint (the spring's stones, Elephan's spread leaf, a stone) may walk out of it; before only stones and the shade stem allowed this and a friend left inside the spring basin could not find any route */,skip=new Set(all.filter(z=>z.top&&(onRockTop(z.top,a)||onRockTop(z.top,b))).map(z=>z.id)),escape=all.filter(z=>!skip.has(z.id)&&solid(z,a,w));escape.forEach(z=>skip.add(z.id));
+ const w=pad(s,id),left=Math.min(a.x,b.x),right=Math.max(a.x,b.x),top=Math.min(a.y,b.y),bottom=Math.max(a.y,b.y);
+ // Only footprints whose bounding boxes cross this segment can block its samples.
+ const all=obs.filter(z=>z.x+z.rx+w>=left&&z.x-z.rx-w<=right&&z.y+z.ry+w*.2>=top&&z.y-z.ry-w*.2<=bottom);
+ const skip=new Set(all.filter(z=>z.top&&(onRockTop(z.top,a)||onRockTop(z.top,b))).map(z=>z.id));
+ const escape=all.filter(z=>!skip.has(z.id)&&solid(z,a,w));escape.forEach(z=>skip.add(z.id));
  // 0.8.3: the same for a start inside the shelter's walls (a friend dropped or left there): walk out, never back in.
  const n=Math.ceil(distance(a,b)/.012),out=escape.map(()=>false);let walls=Shelter.blocked(s,a,id);
- for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(walls&&!Shelter.blocked(s,q,id))walls=false;if(!walkable(s,q,id,skip,obs,w,!walls))return false;
+ for(let i=1;i<=n;i++){const q={x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n};if(walls&&!Shelter.blocked(s,q,id))walls=false;if(!walkable(s,q,id,skip,all,w,!walls))return false;
   for(let k=0;k<escape.length;k++){const inz=solid(escape[k],q,w);if(inz&&out[k])return false;if(!inz)out[k]=true;}}
  return true;}
 function clearFriends(s,p,a,b){
@@ -107,7 +111,7 @@ function routeOnce(s,start,end,id,avoidFriends){
  // the true remaining cost), so the shortest path is the same; far fewer nodes are opened, so far fewer segment checks.
  const cost=nodes.map(()=>Infinity),prev=[],done=new Set(),h=nodes.map(q=>distance(q,end));cost[0]=0;
  while(done.size<nodes.length){let i=-1;for(let j=0;j<nodes.length;j++)if(!done.has(j)&&Number.isFinite(cost[j])&&(i<0||cost[j]+h[j]<cost[i]+h[i]))i=j;if(i<0||!Number.isFinite(cost[i]))break;if(i===1){const path=[];for(let k=1;k!==0;k=prev[k])path.unshift(nodes[k]);return path;}done.add(i);
-  for(let j=1;j<nodes.length;j++)if(!done.has(j)&&clear(nodes[i],nodes[j])){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]){cost[j]=c;prev[j]=i;}}
+  for(let j=1;j<nodes.length;j++)if(!done.has(j)){const c=cost[i]+distance(nodes[i],nodes[j]);if(c<cost[j]&&clear(nodes[i],nodes[j])){cost[j]=c;prev[j]=i;}}
  }return null;
 }
 function placement(s,id,p,correct=true){
