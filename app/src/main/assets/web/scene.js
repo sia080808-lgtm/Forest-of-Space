@@ -7,6 +7,12 @@ const PERCH_COVER=Object.freeze({
  duri:[-15,-14,31,24],jureong:[-23,-13,48,23],neolbi:[-25,-22,51,34],
  superbum:[-21,-23,43,37]
 });
+// Loose canopy washes in the same warm ink as the roots.
+const TREE_SHADOWS=Object.freeze({
+ cherry:{crown:[[.30,.49,.20,.23,.66],[.57,.54,.25,.20,.82],[.73,.62,.16,.19,.36]],opacity:.17},
+ zelkova:{crown:[[.27,.52,.24,.24,.64],[.50,.45,.29,.23,.92],[.74,.49,.24,.22,.64]],opacity:.21},
+ willow:{crown:[[.40,.37,.18,.23,.79],[.55,.61,.20,.26,.80],[.69,.70,.15,.19,.44]],opacity:.18}
+});
 class ForestScene {
  // fern clumps on the new ground (world units; the garden is 0..1): x, y, sprite, size, mirrored. Decoration only.
  // 0.8.0 사계절: seasonal pictures of the fern frame, the fern clumps and the leaf-shade plant (tools/build-season-art.py,
@@ -679,33 +685,41 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   c.drawImage(art,627+x*spread*scale,1065.9+(y+(1-rise)*h)*scale,w*spread*scale,h*rise*scale);
   c.restore();
  }
- treeShadow(){
-  if(this.treeShadowImg)return this.treeShadowImg;
-  // One shared alpha texture keeps the soft edge and scattered gaps inexpensive.
-  const image=document.createElement('canvas');image.width=144;image.height=88;
-  const g=image.getContext('2d'),pixels=g.createImageData(144,88);
-  const leaves=[[.34,.39,.29,.33],[.62,.39,.32,.31],[.51,.60,.34,.33],[.74,.56,.23,.26]];
-  const gaps=[[.29,.38,.10,.07],[.46,.57,.10,.08],[.57,.35,.12,.08],[.71,.60,.095,.08],[.80,.42,.062,.075]];
-  const falloff=(x,y,[cx,cy,rx,ry])=>Math.max(0,1-((x-cx)/rx)**2-((y-cy)/ry)**2)**2;
-  for(let y=0;y<88;y++)for(let x=0;x<144;x++){
-   const u=x/144,v=y/88,i=(y*144+x)*4;
-   const density=leaves.reduce((a,leaf)=>a+falloff(u,v,leaf),0);
-   const light=gaps.reduce((a,gap)=>Math.max(a,falloff(u,v,gap)),0);
-   const texture=.94+.06*Math.sin(x*1.73+y*2.27);
-   pixels.data.set([69,73,54,255*Math.min(1,density*.82)*(1-light*.84)*texture],i);
+ treeShadow(type){
+  this.treeShadows??={};
+  if(this.treeShadows[type])return this.treeShadows[type];
+  const profile=TREE_SHADOWS[type],image=document.createElement('canvas');
+  image.width=144;image.height=88;
+  const g=image.getContext('2d'),pixels=g.createImageData(image.width,image.height);
+  const smooth=v=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
+  for(let y=0;y<image.height;y++)for(let x=0;x<image.width;x++){
+   const u=x/(image.width-1),v=y/(image.height-1);
+   let density=0;
+   for(const [cx,cy,rx,ry,a] of profile.crown)density+=a*Math.exp(-.5*(((u-cx)/rx)**2+((v-cy)/ry)**2));
+   const edge=smooth(u/.24)*smooth((1-u)/.24)*smooth(v/.29)*smooth((1-v)/.29);
+   const wash=.94+.06*Math.sin(u*13+v*8)*Math.cos(u*9-v*7);
+   pixels.data.set([101,93,73,255*profile.opacity*Math.min(1,density*.86)*edge*wash],(y*image.width+x)*4);
   }
   g.putImageData(pixels,0,0);
-  return this.treeShadowImg=image;
+  return (this.treeShadows[type]=image);
  }
- drawTreeGround(c,s,trees,w,h,cal,phase){
+ drawTreeGround(c,s,trees,w,h,cal){
   if(!trees.length)return;
-  const T=Forest.Trees,image=this.treeShadow(),leaves=cal?T.leafiness(cal.id)*cal.blend+T.leafiness(cal.prev)*(1-cal.blend):.8;
-  const sun=Math.max(.15,Math.min(1,s.climate.L/75))*(s.weather.kind==='sun'?1:.62);
+  const T=Forest.Trees,leaves=cal?T.leafiness(cal.id)*cal.blend+T.leafiness(cal.prev)*(1-cal.blend):.8;
+  const clock=Forest.Environment.dayTime(s),day=Forest.Environment.TIME_START.night;
+  const dayProgress=Math.min(1,clock/day),daylight=clock<day?Math.sin(Math.PI*dayProgress):0;
+  const brightness=Math.min(1,s.climate.L/72),clear=s.weather.kind==='sun';
+  const contrast=(.22+.78*brightness)*(.24+.76*daylight)*(clear?1:.55);
+  const castX=(1-2*dayProgress)*.032*daylight*(clear?1:.4);
   for(const t of trees){
-   const p=T.canopy(t),seed=T.number(t.id)*2.4,shadow=leaves*sun*(T.kind(t.id)==='willow'?.37:T.kind(t.id)==='cherry'?.38:.46);
-   const trunk=T.trunk(t),x=t.x*w,y=t.y*h;
-   ForestSurfaces.wash(c,x,y,trunk.rx*w*1.53,trunk.ry*h,'93,79,57',.18,seed);
-   if(leaves>.2&&T.region(T.kind(t.id))==='south'){
+   const p=T.canopy(t),type=T.kind(t.id),seed=T.number(t.id)*2.4,trunk=T.trunk(t),x=t.x*w,y=t.y*h;
+   c.save();c.globalAlpha*=leaves*contrast;
+   c.translate((p.x+castX)*w,(p.y-.010)*h);
+   c.scale(T.direction(t),1);
+   c.drawImage(this.treeShadow(type),-p.rx*w,-p.ry*h,p.rx*2*w,p.ry*2*h);
+   c.restore();
+   ForestSurfaces.wash(c,x+castX*w*.14,y,trunk.rx*w*1.35,trunk.ry*h*.70,'93,79,57',.15+.09*contrast,seed);
+   if(leaves>.2&&T.region(type)==='south'){
     const grass=this.sa('fern4');
     if(grass){
      c.save();c.globalAlpha*=Math.min(.48,leaves*.64);
@@ -714,10 +728,6 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
      c.restore();
     }
    }
-   c.save();c.globalAlpha*=shadow;
-   const sway=phase?Math.sin(phase*.72+seed)*.007:0;
-   c.drawImage(image,(p.x-p.rx+sway)*w,(p.y-p.ry)*h,p.rx*2*w,p.ry*2*h);
-   c.restore();
   }
  }
  drawTreeReflections(c,trees,w,h,s,cal){
@@ -782,7 +792,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   c.clearRect(0,0,this.vw,this.vh);const paper=this.assets.garden;c.drawImage(paper,paper.width*.44,paper.height*.02,paper.width*.16,paper.height*.1,0,0,this.vw,this.vh);/* 0.9.5: the screen backdrop is a plain patch of paper (the old crop held a bit of fern leaf that showed, stretched, at the bottom left: user "노란 조각") */{const cal=this.cal(),snow=!cal?0:cal.id==='winter'?cal.blend:cal.prev==='winter'?1-cal.blend:0;if(snow>0){c.save();c.globalAlpha=snow;c.fillStyle='rgb(250,250,247)';c.fillRect(0,0,this.vw,this.vh);c.restore();}}/* 0.8.1: in winter the area outside the forest is snow too */const wb=Forest.World?Forest.World.bounds(s):{x0:0,y0:0,x1:1,y1:1};this.syncWorld(wb);const base=c.getTransform();
   const enter=()=>{c.save();c.translate(this.camera.tx,this.camera.ty);c.scale(this.camera.scale,this.camera.scale);c.beginPath();c.rect(wb.x0*w,wb.y0*h,(wb.x1-wb.x0)*w,(wb.y1-wb.y0)*h);c.clip();};
   const cal=this.cal(),trees=Forest.Trees.drafts(s,this.preview).filter(t=>!t.stored).sort((a,b)=>a.y-b.y);
-  enter();this.drawFloor(c,w,h,trees,cal);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();this.drawTreeGround(c,s,trees,w,h,cal,phase);for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
+  enter();this.drawFloor(c,w,h,trees,cal);this.seasonProps(c,w,h);this.drawSouth(c,w,h,s);c.restore();this.drawFrame(c,base);enter();this.drawTreeGround(c,s,trees,w,h,cal);for(const f of s.shelters?.facilities||[])this.shelterArt(this.facilityPreview?.id===f.id?this.facilityPreview:f);if(this.facilityPreview&&!s.shelters.facilities.some(f=>f.id===this.facilityPreview.id)){c.save();c.globalAlpha=.65;this.shelterArt(this.facilityPreview);c.restore();}
   this.drawStoneShelf(c,s,w,h);
   const {patches,springs}=Forest.objectDrafts(s,this.preview);const type=p=>Forest.Objects.kindOf(p?.id);patches.sort((a,b)=>a.y-b.y).forEach(p=>this.terrain(p));this.drawFallen();this.drawSkillGround(c,w,h,phase);
   this.springFlow(springs);
