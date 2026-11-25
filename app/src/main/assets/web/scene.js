@@ -681,17 +681,27 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   c.restore();
  }
  drawSporeSac(c,p,size){
-  const [x,y]=SPORE_SAC_SEAT[p.species]||SPORE_SAC_SEAT.ridley,r=size*.049;
-  c.save();c.translate(x*size,y*size);c.rotate(-.32);
-  // Short stem keeps the pouch attached to the leaf as the adult bobs.
-  c.strokeStyle='#88876a';c.lineWidth=r*.37;c.lineCap='round';
-  c.beginPath();c.moveTo(0,r*1.2);c.quadraticCurveTo(-r*.6,r*.25,r*.2,-r);c.stroke();
-  const ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
-  c.fillStyle=ripe?'#9a7856':'#9a9570';
-  c.beginPath();c.ellipse(0,-r*.63,r*.88,r*1.13,-.18,0,Math.PI*2);c.fill();
-  c.fillStyle=ripe?'#c49d72':'#c6b98c';
-  c.beginPath();c.ellipse(r*.61,-r*.90,r*.62,r*.76,.38,0,Math.PI*2);
-  c.ellipse(-r*.24,-r*.78,r*.36,r*.52,-.37,0,Math.PI*2);c.fill();
+  const [x,y]=SPORE_SAC_SEAT[p.species]||SPORE_SAC_SEAT.ridley;
+  const scale=size*.062,ripe=p.sporeSeconds===Forest.Recruitment.SPORE_SECONDS;
+  c.save();
+  c.translate(x*size,y*size);
+  c.scale(scale,scale);
+  c.rotate(-.24);
+  c.strokeStyle='#77745c';c.lineWidth=.25;c.lineCap='round';
+  c.beginPath();c.moveTo(0,1.04);c.quadraticCurveTo(-.13,.35,.07,-.25);c.stroke();
+  // The three capsules share one stem and overlap at the crook of the leaf.
+  const wash=c.createLinearGradient(-.45,-1.62,.42,.36);
+  wash.addColorStop(0,ripe?'#d4b386':'#d8c69c');
+  wash.addColorStop(.56,ripe?'#b28f66':'#b5a47b');
+  wash.addColorStop(1,ripe?'#846947':'#8b805e');
+  c.fillStyle=ripe?'#ac8b66':'#a69b75';
+  c.beginPath();c.ellipse(.74,-.82,.55,.73,.44,0,Math.PI*2);c.fill();
+  c.fillStyle=wash;
+  c.beginPath();c.moveTo(-.63,-.15);c.bezierCurveTo(-1.13,-.53,-.94,-1.52,-.4,-1.66);
+  c.bezierCurveTo(.27,-1.83,.58,-1.26,.43,-.63);c.bezierCurveTo(.31,-.13,-.11,.21,-.63,-.15);
+  c.fill();
+  c.fillStyle=ripe?'#c9a677':'#c8b787';
+  c.beginPath();c.ellipse(.34,.02,.42,.48,-.32,0,Math.PI*2);c.fill();
   c.restore();
  }
  drawPerchSphagnum(c,p,amount){
