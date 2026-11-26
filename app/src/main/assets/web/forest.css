@@ -75,7 +75,8 @@
 .stat.two .track{position:relative;height:10px;border-radius:6px;background:linear-gradient(90deg,#d9c39a 0,#efe6d2 30%,#efe6d2 70%,#a9c2c6 100%);flex:1;min-width:60px}
 .stat.two .fit{position:absolute;top:0;bottom:0;background:#9fbf8a;border-radius:6px;opacity:.85}
 .stat.two .mark{position:absolute;top:-3px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--ink)}
-.stat.two.dangerLow b,.stat.two.dangerHigh b{color:#9a3b2c}
+.stat.two.dangerLow b,.stat.two.dangerHigh b{color:#9a3b2c;font-weight:600}
+.stat.temperature .track{background:linear-gradient(90deg,#a9c9dc,#dce9eb 34%,#eeebda 52%,#f0dcc5 67%,#deaa85)}
 .hexstats svg{display:block;width:240px!important;height:216px!important;max-width:100%;margin:0 auto}
 .hexstats polygon.r5{fill:#f3efe4;stroke:var(--line)}.hexstats polygon.r3{fill:none;stroke:var(--line);stroke-dasharray:2 2}
 .hexstats polygon.me{fill:#9fbf8a88;stroke:var(--green);stroke-width:1.5}.hexstats text{font-size:8px;fill:var(--ink);stroke:none}
@@ -149,8 +150,13 @@
 .region-entry h3{margin:14px 0 6px}.region-entry p{margin:6px 0}.region-art{height:150px;border-radius:14px;background-size:cover;background-color:var(--wash);display:grid;place-items:center}.region-entry.unmet{background:var(--wash)}.region-entry.unmet .region-art{background:none;border:1px dashed var(--line);height:90px}.region-art span{font-family:Gowun;font-size:32px;color:#999989}
 .adm input[type=range]{touch-action:pan-y}.adm-body{touch-action:pan-y}
 .adm-prog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 10px;border-radius:12px;background:var(--wash);font-size:13px}
-/* 1.2.3 친구 카드: 네 막대가 같은 열에 서도록 이름·막대·숫자 칸 너비를 고정 */
-.stats .stat{display:grid;grid-template-columns:43px minmax(0,1fr) 54px;column-gap:6px;align-items:center}.stats .stat b{padding-left:5.3px}.stats .stat b{text-align:left;font-size:10.5px;font-variant-numeric:tabular-nums;min-width:0;letter-spacing:-.2px}.stats .stat progress,.stats .stat .track{width:100%;min-width:0}
+/* Friend card: fill bars on the left and condition ranges on the right. */
+.stats{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(10px,4vw,24px)}
+.stats .stat{display:grid;grid-template-columns:2em minmax(0,1fr) 56px;column-gap:clamp(4px,1.6vw,9px);align-items:center}
+.stats .stat.two{grid-template-columns:2em minmax(0,1fr) 48px}
+.stats .stat span{width:auto;white-space:nowrap}
+.stats .stat b{text-align:left;font-size:11px;font-variant-numeric:tabular-nums;min-width:0;letter-spacing:-.2px}
+.stats .stat progress,.stats .stat .track{width:100%;min-width:0}
 .stat.grow progress{accent-color:#b59a5a}.stat.grow progress::-webkit-progress-value{background:#c2a865}
 /* 1.2.3 검수실 (애니메이션 검수 + 대표 장면 검수 하나로) */
 #inspect-panel{left:0;right:0;bottom:0;border-radius:22px 22px 0 0;border:0;border-top:1px solid var(--line);max-height:58%;padding:0 0 10px;background:var(--panel);color:var(--ink);display:flex;flex-direction:column}

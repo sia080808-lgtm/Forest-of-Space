@@ -45,8 +45,19 @@ const SNOW_EAT=3/60;
 // 1.0.1 겨울의 따뜻한 자리 (user: "따듯하게 해주는 오브젝트"): on a cold day (temperature under 35 or snow) the cold costs
 // nothing on the sun rock while it still holds stored sun (and the stored sun gives 기운, see step), half beside a litter
 // pile or the litter spot rich in compost (rotting leaves are warm), and nothing in the shelter (engine; shelter rest is faster).
-const isCold=s=>s.climate.T<35||s.weather.kind==='snow';
+const TEMPERATURE_BAND=Object.freeze({lo:35,hi:65});
+const isCold=s=>s.climate.T<TEMPERATURE_BAND.lo||s.weather.kind==='snow';
 function chill(s,p){if(restingAt(p,'rock')&&rockSun(s,p.objectTask?.object)>0)return 0;const warm=[...Obj().patchesOf(s,'litter'),...(s.objects?.litter?.piles||[])].some(z=>z&&z.U>=5&&Math.hypot(z.x-p.x,(z.y-p.y)*1.6)<.1);return warm?.5:1;}
+// Display index uses the same protection as the cold rule. The upper band is informational.
+function temperature(s,p){
+ const {lo,hi}=TEMPERATURE_BAND,cold=isCold(s),ambient=clamp(s.climate.T);
+ let value=cold?Math.min(ambient,lo-1):ambient;
+ if(cold&&p?.active){
+  const exposure=p.mounted||dep('shelter').inside(s,p)?0:chill(s,p);
+  value=exposure===0?(lo+hi)/2:lo+(value-lo)*exposure;
+ }
+ return {value,label:value<lo?'추움':value>hi?'더움':'적정'};
+}
 const restingAt=(p,id)=>p.objectArrived&&Obj().kindOf(p.objectTask?.object)===id&&['rest','moss'].includes(p.objectTask.kind);
 function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=100-p.B,to=Math.min(q,room);p.B+=to;p.Q=q-to;
  p.energy=clamp(((p.energy??70)+(p.mood??p.energy??70))/2-(p.damage||0)*.5);p.mood=p.energy;p.moodSync=p.mood;p.damageSync=p.damage||0;p.vit=2;return true;}
@@ -99,5 +110,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  if(Obj().patchesOf(s,'rock').some(r=>r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100)))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({ROCK_BOOST,NUTRITION_USE,COMPOST_FEED,baseWaterUse,photoWaterUse,photoGrade,restingAt,band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({ROCK_BOOST,NUTRITION_USE,COMPOST_FEED,baseWaterUse,photoWaterUse,photoGrade,restingAt,band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,TEMPERATURE_BAND,temperature,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });
