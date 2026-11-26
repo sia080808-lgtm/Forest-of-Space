@@ -20,13 +20,15 @@ const make=(w,h)=>{
  const cv=typeof document==='undefined'?require('@napi-rs/canvas').createCanvas(w,h):document.createElement('canvas');
  cv.width=w;cv.height=h;return cv;
 };
-function layerPixels(canvas,full,recolor,split,topLeaf,fade){
+function layerPixels(canvas,full,recolor,split,topLeaf,fade,preserveWater){
  const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
  const src=c.getImageData(0,0,w,h),leaf=split?make(w,h):canvas,lc=leaf.getContext('2d');
  const art=split?lc.createImageData(w,h):src;
  for(let y=0,i=0;y<h;y++)for(let x=0;x<w;x++,i+=4){
   const r=src.data[i],g=src.data[i+1],b=src.data[i+2],a=src.data[i+3];
-  const isLeaf=a>0&&(!full||y/h<topLeaf||(g>=113&&g-b>=9&&r-g<48&&(y/h<.59||x/w<.32||x/w>.73)));
+  // Maria's olive leaves can overlap the face along a curve. Use the
+  // source palette through that whole curve instead of rectangular exclusions.
+  const isLeaf=a>0&&(!full||y/h<topLeaf||(g>=96&&2*g-r-b>=14));
   if(!isLeaf)continue;
   if(split){
    art.data[i]=r;art.data[i+1]=g;art.data[i+2]=b;art.data[i+3]=a;
@@ -34,7 +36,10 @@ function layerPixels(canvas,full,recolor,split,topLeaf,fade){
   }
   if(recolor){
    const light=Math.min(1,(r+g+b)/720),tone=206+Math.round(light*41);
-   const amount=fade?smooth((1-(y+.5)/h)/fade):1;
+   // The wet crown combines teal water and olive foliage in one image.
+   // Leave the water and its highlights out of the bleach.
+   const leafDye=preserveWater?smooth((g-b-47)/12):1;
+   const amount=leafDye*(fade?smooth((1-(y+.5)/h)/fade):1);
    art.data[i]=r+(Math.min(255,tone+12)-r)*amount;art.data[i+1]=g+(tone+5-g)*amount;art.data[i+2]=b+(tone-17-b)*amount;
   }
  }
@@ -72,7 +77,6 @@ const wiltShapes={
  neolbiFront:{base:[.45,.70],tips:[.12,.89],drop:[.18,.24]},
  neolbiRear:{base:[.40,.73],tips:[.06,.79],drop:[.21,.03],stem:[.32,.14,-.037]},
  neolbiOpen:{base:[.45,.69],tips:[.08,.91],drop:[.16,.18]},
- ellisiiLeaf:{base:[.42,.69],tips:[.04,.71],drop:[.18,0]},
  jureong:{base:[.34,.55],tips:[.03,.98],drop:[.27,.29],sag:[.44,.17,.12]},
  superbumCrown:{base:[.35,.65],tips:[.04,.95],drop:[.22,.24],stem:[.49,.23,.025]},
  'skirt-left':{base:[.25,.37],tips:[.08,.36],drop:[.24,0],sag:[.57,.13,.07]},
@@ -139,11 +143,12 @@ function texture(src,key,state,rect){
  if(entries.has(id))return entries.get(id);
  const r=rect||[0,0,src.width,src.height],k=Math.min(1,MAX_SIDE/Math.max(r[2],r[3]));
  const canvas=make(Math.max(1,Math.round(r[2]*k)),Math.max(1,Math.round(r[3]*k))),c=canvas.getContext('2d');
- const w=canvas.width,h=canvas.height,shape=wiltShapes[key],full=shape?.topLeaf!=null,dry=!!(state&DRY)&&!!shape;
+ const w=canvas.width,h=canvas.height,wetCrown=key==='superbumWetCrown',leafKey=wetCrown?'superbumCrown':key;
+ const shape=wiltShapes[leafKey],full=shape?.topLeaf!=null,dry=!!(state&DRY)&&!!shape;
  c.drawImage(src,...r,0,0,w,h);
  const apart=full||dry;
- const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0,shape?.paleFade):canvas;
- if(state&TORN&&options[key])tear(leaf,...options[key]);
+ const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0,shape?.paleFade,wetCrown):canvas;
+ if(state&TORN&&options[leafKey])tear(leaf,...options[leafKey]);
  if(apart){
   if(dry)wilt(canvas,leaf,shape);
   else c.drawImage(leaf,0,0);
