@@ -3,6 +3,7 @@
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{trees:'ForestTrees',recruitment:'ForestRecruitment',friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
+const LITTER_PATH_RETRY=45,MEALY_FEED_BREAK=180;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
 // quota is fixed by the season at the start of that day. None of these values is 20/30/40, so the 0.6.x mapping never
@@ -67,7 +68,10 @@ function release(s,p,reason='complete'){
  delete p.objectWait;delete p.objectArrived;delete p.objectDebug;
  if(reason!=='replace'){delete p.nextObjectChoice;p.target=null;p.action='wander';p.actionSeconds=0;}
 }
-function invalidate(s){for(const p of s.individuals)if(p.objectTask||p.carriedLeaf||p.stroll?.shelf)release(s,p,'layout');}
+function invalidate(s){for(const p of s.individuals){
+ delete p.litterRouteRetry;
+ if(p.objectTask||p.carriedLeaf||p.stroll?.shelf)release(s,p,'layout');
+}}
 function relayout(s){if(s.objects?.litter)dep('litter').relocate(s);if(s.objects?.creatures)(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).relocate(s);}
 function springWater(s){
  const E=dep('environment');if(s.objects.lastResourceTick===s.worldTick)return;
@@ -198,12 +202,14 @@ function points(s,p,id,kind){
  }
  return spots;
 }
+function litterPathCooling(s,p,id){return p?.litterRouteRetry?.some(r=>r.object===id&&r.until>s.worldTick);}
 function option(s,p,id,kind,reason,free=false,avoidFriends=false){
  const Space=dep('spatial'),Sh=dep('shelter');if(!patch(s,id))return {fail:'stored',object:id,kind};   /* 1.2.6: put away in the 보관함 */
  // 0.6.37: the crevice gap holds one friend at a time (its rest spot is a narrow strip right in front of the stones since
  // 0.6.35, and the friend tucks into the gap). A second friend used to get a spot beside the first, was blocked by its
  // body on the way, gave up and chose the crevice again, so it looked frozen "heading to the crevice".
  const type=kindOf(id);
+ if(type==='litter'&&litterPathCooling(s,p,id))return {fail:'blocked_path',object:id,kind};
  if(type==='crevice'&&s.individuals.some(z=>z.id!==p.id&&z.active&&z.objectTask?.object===id))return {fail:'capacity',object:id,kind};if(id!=='shelter'&&used(s,id,p.id)+(kind==='nutrition'?Math.min(Sh.units(p),spaceCapacity(s,id)):Sh.units(p))>spaceCapacity(s,id))return {fail:'capacity',object:id,kind};   /* 1.0: a big friend may eat at compost alone */
  let fail='shape',best;
  for(const q of points(s,p,id,kind)){
@@ -229,7 +235,7 @@ function option(s,p,id,kind,reason,free=false,avoidFriends=false){
 }
 // Piles with something to use come first (nearest to the old spot order is by id for determinism); the old litter spot stays usable.
 // Only the two nearest usable piles are routed (routing every pile each choice is costly); the old spot stays a fallback.
-function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>key==='O'?z.O>=.5:z.U>eps).sort((a,b)=>(p?Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y):0)||a.id.localeCompare(b.id)).slice(0,2).map(z=>z.id);return [...ps,'litter'];}
+function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>!litterPathCooling(s,p,z.id)&&(key==='O'?z.O>=.5:z.U>eps)).sort((a,b)=>(p?Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y):0)||a.id.localeCompare(b.id)).slice(0,2).map(z=>z.id);return [...ps,'litter'];}
 // 0.8.5 빈 땅 산책 (user: "1번 ㄱㄱ"): a free friend sometimes walks out to the open ground of the wide forest (0.7.0 ring
 // outside the old garden), lingers there for a while and then chooses again. It only happens on a free choice (no need,
 // not night, not rain), keeps no object or resource, and any need, night, rain or danger ends it.
@@ -437,7 +443,7 @@ function puddleDrink(s,p,current,forced){if(p.stroll?.puddle&&(p.stroll.arrivedA
  const Space=dep('spatial'),list=dep('skills').puddles(s).filter(d=>d.W>=.5&&(!forced||d.id===forced)).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)||a.id.localeCompare(b.id)),d=list[0];if(!d)return false;
  const sp=nearestSpring(s,p),dd=Math.hypot(d.x-p.x,d.y-p.y),ds=Math.hypot(sp.x-p.x,sp.y-p.y);if(!forced&&!(sp.water<2||dd<ds*.8))return false;if(!Space.route(s,p,d))return false;
  if(current)release(s,p,'replace');delete p.objectWait;p.stroll={x:d.x,y:d.y,since:s.worldTick,deadline:s.worldTick+LAKE_DRINK.deadline,linger:LAKE_DRINK.linger,puddle:d.id};p.action='drink';p.target=null;p.nextObjectChoice=s.worldTick+5;return true;}
-function ambleSpot(s,p,rng){const Space=dep('spatial');for(let k=0;k<6;k++){const a=rng(s,'behavior')*6.283,r=.06+rng(s,'behavior')*.08,q={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r*.7};if(Space.walkable(s,q,p.id))return q;}return null;}
+function ambleSpot(s,p,rng,blocked=false){const Space=dep('spatial');for(let k=0;k<6;k++){const a=rng(s,'behavior')*6.283,r=.06+rng(s,'behavior')*.08,q={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r*.7};if(Space.walkable(s,q,p.id)&&(!blocked||Space.route(s,p,q,p.id,true)))return q;}return null;}
 // 1.0.2: a started task is held at most 5 minutes; after that the friend chooses again (a feed that cannot reach its
 // target, e.g. while mealybugs drain 영양 faster than it eats, must not block grooming forever)
 const HOLD=300;
@@ -482,6 +488,15 @@ function choose(s,p,rng){
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
  // gives way only when 수분 or 영양 falls 3 below the band (danger and a sharper urgency still interrupt).
  /* 1.2.1: heavy rain or a hard cold ends a drink/feed/rest hold, so the friend can take cover */const weatherCall=rainCover(s,p)||coldCall(s,p);
+ // Repeatedly eating can stall below 50 while dense mealybugs feed. Pause a
+ // long meal briefly for leaf care, unless water, nutrition or shelter is urgent.
+ if(valid&&!danger&&!weatherCall&&current.kind==='nutrition'&&current.arrived&&
+   s.worldTick-(current.fedSince??current.since)>=MEALY_FEED_BREAK&&p.nutrition>=20&&
+   p.B>=dep('vitals').band(p).warnLo&&(dep('creatures').onLeaf(s,p.id).mealy?.density||0)>=20){
+  release(s,p,'complete');p.action='groom';p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;
+ }
+ if(!current&&!danger&&!weatherCall&&grade>1&&p.objectWait?.reason==='blocked_path'&&
+   p.stroll?.amble&&p.stroll.arrivedAt==null&&p.stroll.deadline>s.worldTick)return;
  if(valid&&!emergencyChange&&!danger&&!weatherCall&&s.worldTick-(current.since??s.worldTick)<HOLD){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
  if(valid&&!emergencyChange&&current.reason==='safety'&&danger){p.nextObjectChoice=s.worldTick+5;return;}
  if(!current&&!danger&&!Object.values(n).some(Boolean)&&p.action==='groom'&&p.actionSeconds>0)return;
@@ -573,7 +588,7 @@ function choose(s,p,rng){
   // 0.9.5 (user: "케릭터들 웰케 정적으로 멈춰만 있냐"): instead of standing still until a spot frees up, a friend with
   // nowhere to sleep sleeps where it stands, and one waiting for a spot (spring busy or empty, shelter full) ambles nearby.
   {const why=definitions[0]?.[2];if(danger&&s.weather.wind>=60&&!p.burden&&!p.wetRecovery){p.braceHere=true;p.objectWait.reason='brace_here';p.action='rest';p.nextObjectChoice=s.worldTick+10;}else if((why==='sleep'||why==='shelterRain')&&!danger){p.sleepHere=true;p.objectWait.reason='sleep_here';p.action='rest';p.nextObjectChoice=s.worldTick+20;}
-   else if(!danger){const q=ambleSpot(s,p,rng);if(q){p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+30,linger:4+Math.floor(rng(s,'behavior')*5),amble:true};}}}
+   else if(!danger){const q=ambleSpot(s,p,rng,p.objectWait.reason==='blocked_path');if(q){p.stroll={x:q.x,y:q.y,since:s.worldTick,deadline:s.worldTick+30,linger:4+Math.floor(rng(s,'behavior')*5),amble:true};}}}
 
  }
 }
@@ -601,7 +616,14 @@ function move(s,p){
     delete p.walkPlan;
    }
   }
-  if(t.replans>1){release(s,p,'blocked');p.objectWait={reason:'blocked_path',object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;}
+  if(t.replans>1){
+   if(kindOf(t.object)==='litter'){
+    const recent=(p.litterRouteRetry||[]).filter(r=>r.until>s.worldTick&&r.object!==t.object);
+    p.litterRouteRetry=[...recent,{object:t.object,until:s.worldTick+LITTER_PATH_RETRY}].slice(-3);
+    delete p.walkPlan;
+   }
+   release(s,p,'blocked');p.objectWait={reason:'blocked_path',object:t.object,since:t.since};p.nextObjectChoice=s.worldTick+5;
+  }
  }
  // 0.6.37: a friend that reaches its spot while the spot has become unusable (the crevice turned wet or windy, the spring
  // ran dry, ...) used to count as arrived, so the stuck timeout above never fired and it stood there for good, still
@@ -638,6 +660,7 @@ function receive(s,p,requests){
   if(!p.carriedLeaf&&z.O>=.5){z.O-=.5;p.carriedLeaf={amount:.5,pile:t.object,key:'leaf:'+p.id+':'+t.serial};p.objectContact={id:p.carriedLeaf.key+':pick',cue:'pickup',tick:s.worldTick};}
   if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';if(t.object!=='litter')z.playBoostUntil=s.worldTick+120;else s.objects.playBoostUntil=s.worldTick+120;}
  }else if(t.kind==='nutrition'){
+  t.fedSince??=s.worldTick;
   add(z,'U',Math.min(dep('vitals').COMPOST_FEED*dep('traits').ofPet(p).nutr,50-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
  // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
@@ -742,6 +765,9 @@ function validate(s){
  }
  const shelfSlots=new Set();
  for(const p of s.individuals){
+  const retries=p.litterRouteRetry;
+  if(retries!==undefined&&(!Array.isArray(retries)||retries.length>3||
+   retries.some(r=>!r||kindOf(r.object)!=='litter'||!f(r.until))))throw Error('낙엽 자리 경로 대기 기록을 확인해 주세요.');
   const slot=p.stroll?.shelf;
   if(slot!=null){
    const id=visitShelfId(p),shelf=World.stoneShelf(s,id),key=id+':'+slot;
@@ -752,7 +778,7 @@ function validate(s){
   if(p.shelfAfter!=null&&!f(p.shelfAfter))throw Error('돌 선반 대기 기록을 확인해 주세요.');
  }
  for(const p of s.individuals){const r=p.stroll;if(r&&(!Number.isFinite(r.x)||!Number.isFinite(r.y)||!f(r.since)||!f(r.deadline)||!f(r.linger,60)||r.arrivedAt!=null&&!f(r.arrivedAt)||r.stalled!=null&&!f(r.stalled,1e6)||r.lake!=null&&r.lake!=='drink'||r.amble!=null&&r.amble!==true||r.cool!=null&&r.cool!==true||r.view!=null&&r.view!==true||r.south!=null&&(r.south!==true||!World.southOpen(s))))throw Error('산책 기록을 확인해 주세요.');}
- for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||(isPile(t.object)||isCopy(t.object))&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
+ for(const p of s.individuals){const t=p.objectTask;if(t&&(!nameOf(t.object)||(isPile(t.object)||isCopy(t.object))&&!patch(s,t.object)||!['moss','rest','drink','edgeDrink','rootDrink','splash','litterPlay','nutrition'].includes(t.kind)||!Number.isFinite(t.x)||!Number.isFinite(t.y)||!Number.isInteger(t.serial)||t.serial<1||t.serial>=st.nextSession||!f(t.since)||!Number.isFinite(t.remaining)||t.fedSince!=null&&(!f(t.fedSince)||t.fedSince<t.since)))throw Error('오브젝트 이용 기록을 확인해 주세요.');if(p.carriedLeaf&&(!f(p.carriedLeaf.amount,.5)||p.carriedLeaf.pile!=='litter'&&!patch(s,p.carriedLeaf.pile)||typeof p.carriedLeaf.key!=='string'))throw Error('운반 중인 낙엽을 확인해 주세요.');}
 }
 return {COPY_KINDS,objectId,kindOf,isCopy,patchesOf,springs,nextCopyId,litterInit:s=>{if(s.objects&&s.shelters){{const k=OLD_DAILY.indexOf(s.objects.dayQuota);if(k>=0)s.objects.dayQuota=BASE_DAILY[k];}dep('litter').init(s);(typeof module==='object'?require('./creatures.js'):globalThis.ForestCreatures).init(s);}return s;},litterRates,litterSpots,isPile,nameOf,relayout,init,migrate,resources,springWater,storedLeaf,patch,level,capacity,scale,rates,region,fits,groundAt,windAt,dry,spaceCapacity,used,option,prepare,choose,at,move,stroll,strollPose,strollTarget,shelfTarget,shelfPose,shelfVisitors,shelfGreeting,AFFINITY,affinity,awardAffinity,learnedDance,coldCall,STROLL,SHORE_WALK,receive,rootRequests,grant,needs,release,invalidate,progress,planUpgrade,upgrade,upgradeStatus,reason,validate};
 });

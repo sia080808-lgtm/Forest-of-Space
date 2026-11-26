@@ -62,9 +62,44 @@ test('all eight active species draw three distinct leaf conditions and reuse cac
   }
  }
  assert.notDeepEqual(render('dico',0,true),render('dico',0));
+ for(const young of [false,true]){
+  const intact=render('dico',0,young),belowFronds=119*152*4;
+  for(const state of [Leaf.DRY,Leaf.PALE,Leaf.TORN,7]){
+   const altered=render('dico',state,young);
+   assert.notDeepEqual(altered.subarray(0,belowFronds),intact.subarray(0,belowFronds));
+   assert.deepEqual(altered.subarray(belowFronds),intact.subarray(belowFronds),'Dico body and feet · '+young+' / '+state);
+  }
+ }
  const leaf=assets.rigLeaves;
  assert.equal(Leaf.texture(leaf,'ridley',Leaf.TORN),Leaf.texture(leaf,'ridley',Leaf.TORN));
  assert.equal(Leaf.texture(leaf,'ridley',0),leaf);
+});
+
+test('drought keeps the crown and hood attached while both outer hood tips sag',async()=>{
+ const alphaAt=(canvas,x,y)=>canvas.getContext('2d').getImageData(
+  Math.round(x*(canvas.width-1)),Math.round(y*(canvas.height-1)),1,1).data[3];
+ for(const [asset,key,points] of [
+  ['rigLeaves','ridley',[[.50,.43],[.55,.48]]],
+  ['neolbiFront','neolbiFront',[[.56,.27],[.60,.28],[.61,.35]]],
+  ['neolbiRear','neolbiRear',[[.57,.17],[.61,.19],[.52,.23]]],
+ ]){
+  const im=await loadImage(path.join(web,R.files[asset]));
+  const normal=Leaf.texture(im,key,Leaf.PALE),dry=Leaf.texture(im,key,Leaf.DRY);
+  for(const [x,y] of points){
+   assert.ok(alphaAt(normal,x,y)>240,key+' original attachment');
+   assert.ok(alphaAt(dry,x,y)>240,key+' dry attachment');
+  }
+  if(key==='neolbiFront'){
+   const edgeY=(canvas,x)=>{
+    for(let row=canvas.height-1;row>=0;row--){
+     const y=row/(canvas.height-1);
+     if(alphaAt(canvas,x,y)>175)return y;
+    }
+    throw Error('no visible hood edge');
+   };
+   for(const x of [.18,.86])assert.ok(edgeY(dry,x)-edgeY(normal,x)>.035,key+' outer tip '+x);
+  }
+ }
 });
 
 test('Dico approaches a resting friend in normal play, grants energy once and observes cooldown',()=>{

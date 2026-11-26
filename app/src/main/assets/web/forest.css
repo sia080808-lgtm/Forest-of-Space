@@ -150,7 +150,7 @@
 .adm input[type=range]{touch-action:pan-y}.adm-body{touch-action:pan-y}
 .adm-prog{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 10px;border-radius:12px;background:var(--wash);font-size:13px}
 /* 1.2.3 친구 카드: 네 막대가 같은 열에 서도록 이름·막대·숫자 칸 너비를 고정 */
-.stats .stat{display:grid;grid-template-columns:26px minmax(0,1fr) 54px;column-gap:6px;align-items:center}.stats .stat b{padding-left:5.3px}.stats .stat b{text-align:left;font-size:10.5px;font-variant-numeric:tabular-nums;min-width:0;letter-spacing:-.2px}.stats .stat progress,.stats .stat .track{width:100%;min-width:0}
+.stats .stat{display:grid;grid-template-columns:43px minmax(0,1fr) 54px;column-gap:6px;align-items:center}.stats .stat b{padding-left:5.3px}.stats .stat b{text-align:left;font-size:10.5px;font-variant-numeric:tabular-nums;min-width:0;letter-spacing:-.2px}.stats .stat progress,.stats .stat .track{width:100%;min-width:0}
 .stat.grow progress{accent-color:#b59a5a}.stat.grow progress::-webkit-progress-value{background:#c2a865}
 /* 1.2.3 검수실 (애니메이션 검수 + 대표 장면 검수 하나로) */
 #inspect-panel{left:0;right:0;bottom:0;border-radius:22px 22px 0 0;border:0;border-top:1px solid var(--line);max-height:58%;padding:0 0 10px;background:var(--panel);color:var(--ink);display:flex;flex-direction:column}

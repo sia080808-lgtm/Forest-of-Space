@@ -20,7 +20,7 @@ const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSk
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const NUTR_USE=Vit.NUTRITION_USE;
-const VERSION='1.2.30', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.31', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -389,7 +389,7 @@ function welcomeNeolbi(s){
  if(s.individuals.some(p=>p.species==='neolbi'))return false;
  const id='neolbi-welcome-'+s.deviceId;
  const p={...clone(s.individuals[0]),id,species:'neolbi',name:'엘레판',B:45,Q:0,V:0,energy:70,mood:70,nutrition:50,vit:2,damage:0,burden:0,wetSeconds:0,x:.5,y:.55,xp:0,growthSeconds:0,mounted:false,active:false,action:'wander',actionSeconds:0,target:null,drinkCycle:false,first:{},personality:personality(id),sources:{rain:0,other:0,unknown:0}};
- for(const k of ['parentId','generation','sporeSac','sporeStored','sporeSeconds','perchTree','perchAfter','stroll','walkPlan','motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
+ for(const k of ['parentId','generation','sporeSac','sporeStored','sporeSeconds','perchTree','perchAfter','stroll','walkPlan','motion','canopy','canopyProgress','canopyClosing','socialUntil','socialRole','customName','objectTask','objectWait','objectNeeds','objectContact','carriedLeaf','rootLitter','nextObjectChoice','lastObject','litterRouteRetry','objectDebug','objectArrived','skill','skillRest','skillDay','skillHold','guideTo'])delete p[k];
  s.individuals.push(p);for(const k of ['gustExposure','braceSeconds','windCalmSeconds','wet85Seconds','wetFilm'])p[k]=0;p.wetRecovery=p.leafRecovery=false;delete p.weatherExposure;delete p.protectedBy;event(s,'welcome','엘레판이 숲에 찾아왔어요. 친구 목록에서 정원에 들일 수 있어요.',{individual:id,arrivalWater:35});return true;
 }
 
