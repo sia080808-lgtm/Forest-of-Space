@@ -57,7 +57,9 @@ function drawDico(c,image,opt){
  const {kind,phase,reduced,expression,cover,sit,leafState,young}=opt;
  const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.025;
  const w=image.width,h=image.height,cx=w*.5,feet=h*.96,scale=1.79*520/h;
- const im=Leaf.texture(image,young?'dicoYoung':'dico',leafState),xscale=im.width/w,yscale=im.height/h;
+ // The free fronds end above the head wrap in both source sprites. Read them
+ // as a distinct layer, with the intact head, face and feet painted separately.
+ const leafHeight=Math.floor(h*(young?.51:.55));
  const paint=(x,y,sw,sh,dx=x,dy=y)=>c.drawImage(image,x,y,sw,sh,dx,dy,sw,sh);
  const knee=h*.915;
  c.save();c.translate(627,1065.9);c.scale(scale,scale);c.translate(-cx,-feet);
@@ -65,7 +67,11 @@ function drawDico(c,image,opt){
   paint(x,knee,w*.39,h-knee,x+i*stride*8,knee-Math.max(0,i*stride)*21);}
  c.translate(0,(sit||kind==='rest'||kind==='repose'?14:0)-Math.abs(stride)*7);
  c.translate(cx,h*.66);c.rotate(sway);c.translate(-cx,-h*.66);
- c.drawImage(im,0,0,w*xscale,knee*yscale,0,0,w,knee);
+ if(leafState){
+  const fronds=Leaf.texture(image,young?'dicoYoung':'dico',leafState,[0,0,w,leafHeight]);
+  c.drawImage(fronds,0,0,w,leafHeight);
+  paint(0,leafHeight,w,knee-leafHeight);
+ }else paint(0,0,w,knee);
  if(cover)cover();
  if(expression==='sleepy'||kind==='rest'||kind==='repose'||!reduced&&phase%4.8>4.66){
   paint(w*.32,h*.82,w*.35,h*.075,w*.32,h*.715);

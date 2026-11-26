@@ -92,3 +92,48 @@ test('compost feeds 1.5 nutrition per minute before the 0.12 upkeep and debits t
  near(z.U,18.5);
  near(s.objects.ledger.absorbed,1.5);
 });
+
+test('Corona beside a blocked shelter wall stops retrying the same litter route, then resumes eating',()=>{
+ const s=game(),p=s.individuals[0],litter=O.patch(s,'litter');
+ s.worldTick=1440;Object.assign(s.weather,{kind:'sun',wind:20,transition:0,remaining:1000});
+ Object.assign(p,{species:'jureong',xp:15,visualStage:2,energy:90,mood:90,B:56,nutrition:28,x:.12,y:.21});
+ litter.U=40;litter.W=0;
+ const q=O.option(s,p,'litter','nutrition','nutrition');
+ a.ok(!q.fail);
+ Object.assign(p,{objectTask:{...q,since:s.worldTick,deadline:s.worldTick+100,serial:s.objects.nextSession++,remaining:15},action:'feed',target:q.object});
+ const blocker={...F.clone(p),id:'door-block',species:'superbum',xp:115,visualStage:3,x:.12,y:.24,
+  objectTask:null,action:'wander',target:null,settleUntil:1e9};
+ s.individuals.push(blocker);
+ a.equal(F.Space.route(s,p,q,p.id,true),null);
+ F.advance(s,6,{visible:false});
+ a.equal(p.objectWait?.reason,'blocked_path');
+ for(let i=0;i<17;i++){
+  F.step(s,{visible:false});a.notEqual(p.objectTask?.object,'litter');
+ }
+ blocker.active=false;
+ F.advance(s,60,{visible:false});
+ a.ok(O.at(s,p));
+ a.ok(p.nutrition>28);
+});
+
+test('a long meal under dense mealybugs pauses for leaf grooming and can resume',()=>{
+ const s=game(),p=s.individuals[0],litter=O.patch(s,'litter'),C=F.Creatures;
+ s.worldTick=1440;s.environment.climate='C02';s.environment.climateMode='fixed';
+ Object.assign(s.weather,{kind:'sun',wind:20,transition:0,remaining:1000});
+ Object.assign(p,{species:'jureong',xp:15,visualStage:2,energy:90,mood:90,B:56,nutrition:28,x:litter.x,y:litter.y-.035});
+ litter.U=40;litter.W=0;
+ const st=s.objects.creatures;
+ st.lastPest=1e9;st.lastArrival=1e9;
+ const group={id:'cr:'+st.nextId++,kind:'mealy',host:p.id,density:100,honey:40,low:0,since:s.worldTick,bad:0,lastWork:0,carry:null};
+ st.groups.push(group);
+ F.advance(s,170,{visible:false});
+ a.equal(p.objectTask?.kind,'nutrition');
+ let groomed=false;
+ for(let i=0;i<20;i++){F.step(s,{visible:false});if(p.action==='groom'){groomed=true;break;}}
+ a.ok(groomed);a.equal(p.objectTask,undefined);
+ const before=C.onLeaf(s,p.id).mealy.density;
+ F.advance(s,6,{visible:false});
+ a.equal(p.motion.kind,'groom');a.ok(group.density<before);
+ F.advance(s,12,{visible:false});
+ a.equal(p.objectTask?.kind,'nutrition');
+});

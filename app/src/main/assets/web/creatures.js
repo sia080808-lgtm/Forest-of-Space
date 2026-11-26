@@ -26,7 +26,7 @@ const MITE={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,GONE:5,GONE_SECONDS:60,PAU
 const GNAT={START:12,MAX:100,BREED:4,DECLINE:6,EGG:90,LARVA:180,ADULT_LIFE:600,FIT_M:70,HOLD_M:50,ORGANIC:4,T_MIN:45,T_MAX:80,HURT:2,NEAR:.12,LONG_EXPOSURE:120,LONG_MULTIPLIER:3,GONE:5,GONE_SECONDS:60,PAUSE:300},
  SOIL={MIN_PREY:5,M_MIN:35,M_MAX:65,W_MAX:10,EAT:8,U:1},
  MEALY={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,T_MIN:50,T_MAX:80,SAC:20,HONEY:8,HONEY_DECAY:.6,HONEY_MAX:100,HURT:2,GONE:5,GONE_SECONDS:60,PAUSE:300,GAP_FADE:600,GAP_MAX:240},
- LADY={MIN_PREY:20,NOTICE:120,EAT:8,TENDED:.5,HOP:.2},TEND={ON:10,ON_SECONDS:30,OFF:5,OFF_SECONDS:60},HARM_MAX=2,PEST_TYPES=2;
+ LADY={MIN_PREY:20,NOTICE:120,EAT:8,TENDED:.625,HOP:.2},TEND={ON:10,ON_SECONDS:30,OFF:5,OFF_SECONDS:60},HARM_MAX=2,PEST_TYPES=2;
 const PESTS=['mite','gnat','mealy'];
 // 0.6.28: 쏙쏙이 (Dalotia coriaria, rove beetle) — a second root-zone predator. Needs real root-fly larvae/eggs (>= 5) at a
 // site whose soil is moist but drained AND a hideout (바위틈 or 햇살 바위 within 0.3) for 120 s; ECO-07 arrival. Eats up to
@@ -220,13 +220,13 @@ function soilStep(s,g,event){const st=state(s),z=site(s,g.site),f=z&&gnatAt(s,g.
 // growth there. Nutrition burden 2/min x density/100 (shared cap). Honeydew density/100 x 4/min, -2/min, max 100 (ECO-15).
 // Egg sacs (density >= 20) let 점박이 come. Under 5 for 60 s = recovered, 300 s before a new arrival on that friend.
 function mealyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host);if(!p||!live(p))return;const T=s.climate.T,inside=!!dep('shelter').inside?.(s,p);
- const wet=['rain','fog','snow'].includes(s.weather.kind);let d=g.density;if(winter(s))d-=WINTER_REST/60;else if(inside)d-=MEALY.CLEAN/60;else if(T<MEALY.T_MIN||T>MEALY.T_MAX)d-=MEALY.DECLINE/60;else if(!wet)d+=MEALY.GROW/60;
+ const wet=['rain','fog','snow'].includes(s.weather.kind);let d=g.density;if(winter(s))d-=WINTER_REST/60;else if(inside)d-=MEALY.CLEAN/60;else if(T<MEALY.T_MIN||T>MEALY.T_MAX)d-=MEALY.DECLINE/60;else if(!wet&&p.action!=='groom')d+=MEALY.GROW/60;
  if(p.action==='groom')d-=MEALY.CLEAN/60;g.density=Math.max(0,Math.min(MEALY.MAX,d));
  g.honey=Math.max(0,Math.min(MEALY.HONEY_MAX,g.honey+(MEALY.HONEY*g.density/100-MEALY.HONEY_DECAY)/60));
  harm(s,p,'nutrition',Math.min(MEALY.HURT,MEALY.HURT*g.density/100)/60);
  g.low=g.density<MEALY.GONE?g.low+1:0;if(g.low>=MEALY.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause['mealy:'+p.id]=s.worldTick+MEALY.PAUSE;st.log.cleared++;event?.(s,'creature',`${p.name}의 잎 사이가 깨끗해졌어요. 솜깍지가 거의 사라졌어요.`);}}
 // ----- 점박이 (Cryptolaemus): egg sacs (mealybug >= 20) on a reachable friend for 120 s, then 30%/60 s, sure at 300 s.
-// The adult looks around for 120 s (notice), then the larval stage eats up to 8/min (x0.5 while ants tend the honeydew).
+// The adult looks around for 120 s (notice), then the larval stage eats up to 8/min (5/min while ants tend the honeydew).
 function ladyStep(s,g,event){const st=state(s),p=s.individuals.find(q=>q.id===g.host),m=mealyOn(s,g.host);if(!p){st.groups=st.groups.filter(x=>x!==g);return;}if(!live(p))return;
  if(g.stage==='adult'&&s.worldTick-g.since>=LADY.NOTICE){g.stage='larva';event?.(s,'creature','점박이 유충이 솜깍지를 먹기 시작했어요.');}
  if(g.stage==='larva'&&m&&m.density>0){const k=tendedBy(s,g.host)?LADY.TENDED:1,bite=Math.min(m.density,LADY.EAT*k/60);m.density-=bite;g.eaten=(g.eaten||0)+bite;st.log.eaten+=bite;}

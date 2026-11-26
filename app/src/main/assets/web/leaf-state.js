@@ -20,7 +20,7 @@ const make=(w,h)=>{
  const cv=typeof document==='undefined'?require('@napi-rs/canvas').createCanvas(w,h):document.createElement('canvas');
  cv.width=w;cv.height=h;return cv;
 };
-function layerPixels(canvas,full,recolor,split,topLeaf){
+function layerPixels(canvas,full,recolor,split,topLeaf,fade){
  const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
  const src=c.getImageData(0,0,w,h),leaf=split?make(w,h):canvas,lc=leaf.getContext('2d');
  const art=split?lc.createImageData(w,h):src;
@@ -34,7 +34,8 @@ function layerPixels(canvas,full,recolor,split,topLeaf){
   }
   if(recolor){
    const light=Math.min(1,(r+g+b)/720),tone=206+Math.round(light*41);
-   art.data[i]=Math.min(255,tone+12);art.data[i+1]=tone+5;art.data[i+2]=tone-17;
+   const amount=fade?smooth((1-(y+.5)/h)/fade):1;
+   art.data[i]=r+(Math.min(255,tone+12)-r)*amount;art.data[i+1]=g+(tone+5-g)*amount;art.data[i+2]=b+(tone-17-b)*amount;
   }
  }
  if(split)c.putImageData(src,0,0);
@@ -78,8 +79,8 @@ const wiltShapes={
  'skirt-right':{base:[.63,.74],tips:[.63,.93],drop:[0,.24],sag:[.57,.13,.07]},
  bosong:{base:[.38,.57],tips:[.06,.95],drop:[.18,.20],stem:[.49,.24,-.125]},
  maria:{base:[.44,.59],tips:[.06,.96],drop:[.25,.20],stem:[.46,.20,.04],sag:[.45,.15,.15],topLeaf:.37},
- dico:{base:[.39,.59],tips:[.06,.96],drop:[.21,.25],stem:[.57,.23,.09],topLeaf:.52},
- dicoYoung:{base:[.33,.66],tips:[.05,.96],drop:[.23,.26],stem:[.58,.25,.10],topLeaf:.49}
+ dico:{base:[.37,.62],tips:[.19,.89],drop:[.19,.23],stem:[.86,.18,.073],paleFade:.22},
+ dicoYoung:{base:[.36,.62],tips:[.20,.79],drop:[.14,.18],stem:[.84,.20,.095],paleFade:.22}
 };
 const smooth=x=>{const u=Math.max(0,Math.min(1,x));return u*u*(3-2*u);};
 function wilt(canvas,leaf,shape){
@@ -126,7 +127,7 @@ function interpolate(src,dst,w,h,x,y,to){
  if(alpha){dst[to]=red/alpha;dst[to+1]=green/alpha;dst[to+2]=blue/alpha;dst[to+3]=alpha;}
 }
 const options={
- ridley:[-1,.23,.30],maria:[1,.23,.34],dico:[1,.26,.37],dicoYoung:[1,.26,.37],
+ ridley:[-1,.23,.30],maria:[1,.23,.34],dico:[1,.37,.20],dicoYoung:[-1,.34,.20],
  ellisiiFronds:[-1,.28,.36],ellisiiFrondLeft:[-1,.27,.39],ellisiiFrondRight:[1,.28,.34],
  neolbiRear:[-1,.49,.35],neolbiFront:[-1,.67,.22],neolbiOpen:[-1,.49,.26],
  superbumCrown:[1,.29,.35],bosong:[1,.22,.39],jureong:[1,.77,.31]
@@ -141,7 +142,7 @@ function texture(src,key,state,rect){
  const w=canvas.width,h=canvas.height,shape=wiltShapes[key],full=shape?.topLeaf!=null,dry=!!(state&DRY)&&!!shape;
  c.drawImage(src,...r,0,0,w,h);
  const apart=full||dry;
- const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0):canvas;
+ const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0,shape?.paleFade):canvas;
  if(state&TORN&&options[key])tear(leaf,...options[key]);
  if(apart){
   if(dry)wilt(canvas,leaf,shape);

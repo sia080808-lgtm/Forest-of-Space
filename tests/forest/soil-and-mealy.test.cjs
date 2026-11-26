@@ -44,10 +44,13 @@ test('P03/ECO-15 솜깍지: honeydew density/100 x 8/min - 0.6/min (0.6.33: was 
  for(let t=0;t<60;t++)tick(s,{T:90,kind:'sun'});a.ok(Math.abs(g.density-74)<1e-6,'-6/min when too hot');
 });
 
-test('X04/AC-10 ants tend honeydew >= 10 for 30 s and stop carrying (0.6.33: was 20); 점박이 eats at half speed while tended; ants return after honeydew < 5 for 60 s',()=>{
+test('X04/AC-10 ants tend honeydew >= 10 for 30 s and stop carrying (0.6.33: was 20); 점박이 eats 5/min while tended; ants return after honeydew < 5 for 60 s',()=>{
  const s=game(),p=s.individuals[0];p.B=50;p.energy=70;const ant=add(s,{kind:'ant',nest:{x:.5,y:.6},host:p.id,away:0,hungry:0});a.ok(C.colonies(s).includes(ant));const m=add(s,{kind:'mealy',host:p.id,density:60,honey:25,low:0});
  for(let t=0;t<29;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.equal(ant.tend??null,null);tick(s,{T:60,kind:'rain'});a.equal(ant.tend,p.id);a.ok(C.tendedBy(s,p.id));
- const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});m.density=60;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.ok(Math.abs(L.eaten-4)<.05,'tended: 4/min, ate '+L.eaten);
+ const L=add(s,{kind:'lady',host:p.id,stage:'larva',eaten:0});m.density=60;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=25;}a.ok(Math.abs(L.eaten-5)<.05,'tended: 5/min, ate '+L.eaten);
+ const heldDensity=m.density;
+ for(let t=0;t<60;t++)tick(s,{T:60,kind:'sun'});
+ a.ok(Math.abs(m.density-(heldDensity-1))<.05,'tended larva still beats warm, dry growth by 1/min');
  for(let t=0;t<61;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.equal(ant.tend,null,'back to carrying');const e=L.eaten;for(let t=0;t<60;t++){tick(s,{T:60,kind:'rain'});m.honey=3;}a.ok(Math.abs(L.eaten-e-8)<.05,'untended: 8/min');
 });
 
