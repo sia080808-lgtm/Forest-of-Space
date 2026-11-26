@@ -231,20 +231,42 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  click('[data-tab-id="friend"]');const id=getState().individuals.find(p=>p.active).id;win.__qa.scene.onSelect('pet',id);assert.ok(panel.querySelector('[data-admin-set="B"]'),'friend sliders');
  const damaged=getState().individuals.find(p=>p.id===id),oldDamage=damaged.damage;
  damaged.damage=6.29;win.__qa.update();
- assert.equal(panel.querySelector('[data-admin-leaf-damage]').textContent,'잎 손상 6.2 / 100');
+ assert.equal(panel.querySelector('[data-admin-leaf-damage]').textContent,'손상 93.7 / 100');
  damaged.damage=oldDamage;win.__qa.update();
  const sl=panel.querySelector('[data-admin-set="B"]');sl.value='80';sl.dispatchEvent(new win.Event('change',{bubbles:true}));assert.equal(saved.individuals.find(p=>p.id===id).B,80);
  run(['resetLevels']);assert.ok(win.document.querySelector('.dialog'),'reset asks first');[...win.document.querySelectorAll('.dialog button')].find(b=>b.textContent==='하기').click();assert.ok(saved.individuals.every(p=>p.xp===0));
  click('[data-action="admin-speed"][data-v="0"]');click('[data-action="admin-speed"][data-v="1"]');
  assert.equal(win.RidleyApp.back(),true);assert.equal(panel.hidden,true,'back closes the panel');
  click('#settings');click('[data-action="admin-mode"]');assert.equal(win.document.getElementById('admin-tool').hidden,true);click('[data-tab="world"]');
- const pet=getState().individuals.find(p=>p.id===id),damage=pet.damage;
- pet.damage=5.85;win.__qa.scene.onSelect('pet',id);
- const meter='progress[aria-label="잎 손상 · 찢어짐"]';
- assert.equal(win.document.querySelector('#select-card '+meter).getAttribute('value'),'5.85');
+ const s=getState(),pet=s.individuals.find(p=>p.id===id);
+ const original={damage:pet.damage,B:pet.B,nutrition:pet.nutrition,x:pet.x,y:pet.y,shelter:pet.shelter,objectTask:pet.objectTask};
+ const originalT=s.climate.T,originalWeather=s.weather.kind;
+ const stat=(label,root='#select-card')=>[...win.document.querySelectorAll(root+' .stats .stat')].find(el=>el.firstElementChild.textContent===label);
+ Object.assign(pet,{damage:0,B:24,nutrition:52,shelter:{phase:'outside'},objectTask:null});
+ s.climate.T=24;s.weather.kind='fog';win.__qa.scene.onSelect('pet',id);win.__qa.update();
+ assert.deepEqual([...win.document.querySelectorAll('#select-card .stat > span')].map(el=>el.textContent),['기운','수분','손상','영양','성장','온도']);
+ assert.equal(stat('손상').querySelector('progress').value,100);
+ assert.equal(stat('수분').querySelector('b').textContent,'24 · 마름');
+ assert.equal(stat('영양').querySelector('b').textContent,'52 · 적정');
+ assert.equal(stat('온도').querySelector('b').textContent,'추움');
+ assert.equal(win.document.getElementById('weather').textContent,'안개 · 추움');
+
+ const home=s.shelters.facilities[0],seat=F.Shelter.seat(s,home,pet);
+ assert.ok(seat);
+ Object.assign(pet,{x:seat.x,y:seat.y,shelter:{...seat,phase:'restingInside',facilityId:home.id},objectTask:{reason:'warm'},damage:5.85});
+ assert.equal(F.Shelter.inside(s,pet),true);
+ win.__qa.update();
+ assert.equal(stat('온도').querySelector('b').textContent,'적정');
+ assert.equal(stat('온도').querySelector('[role="meter"]').getAttribute('aria-valuenow'),'50');
+ assert.equal(win.document.getElementById('weather').textContent,'안개 · 추움');
+ const meter='progress[aria-label="손상 · 찢어짐"]';
+ assert.equal(win.document.querySelector('#select-card '+meter).value,94.15);
  click('#select-card [data-action="detail"]');
- assert.match(win.document.querySelector('#page '+meter).parentElement.textContent,/5.8 \/ 100/);
- pet.damage=damage;click('[data-tab="world"]');}
+ assert.match(win.document.querySelector('#page '+meter).parentElement.textContent,/94.1 \/ 100/);
+ s.climate.T=72;s.weather.kind='sun';win.__qa.update();
+ assert.equal(stat('온도','#page').querySelector('b').textContent,'더움');
+ Object.assign(pet,original);s.climate.T=originalT;s.weather.kind=originalWeather;
+ click('[data-tab="world"]');}
 {
  const st=getState();
  if(!F.World.lakeOpen(st))F.World.openLake(st);

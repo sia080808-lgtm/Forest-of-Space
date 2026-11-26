@@ -27,17 +27,36 @@ function skillHtml(p){const K=window.ForestSkills,i=K?.INFO[p.species];if(!i)ret
 function skillText(id){const K=window.ForestSkills,i=K?.INFO[id];if(!i)return '';const a=K.levelLines?.({species:id,xp:0}),b=K.levelLines?.({species:id,xp:150});return '\n\n고유 스킬 · '+i.name+'\n'+i.line+(a&&b?'\nLv1 · '+a.now+'\nLv10 · '+b.now:'');}
 function traitHtml(id){const t=globalThis.ForestTraits?.text(id);if(!t||!t.good.length)return '';const li=a=>a.map(x=>'<li>'+escape(x)+'</li>').join('');return '<div class="panel traits"><h3>타고난 특성</h3><div class="trait-cols"><div><small>강한 점</small><ul>'+li(t.good)+'</ul></div><div><small>약한 점</small><ul>'+li(t.bad)+'</ul></div></div></div>';}
 function actionReason(p){const swim=F.Swim.reason(state,p);if(swim)return swim;const boat=F.Boat.reason(state,p);if(boat)return boat;const canopy=F.Social.canopyReason(state,p);if(canopy)return canopy;if(!p.active)return '정원 밖에서 쉬고 있어요 · 친구들 화면에서 정원에 들일 수 있어요';if(p.mounted||(p.shelter?.phase&&p.shelter.phase!=='outside')||p.action==='rest'&&p.target==='shelter'&&!p.protectedBy)return F.Shelter.label(state,p);{const k=window.ForestSkills?.status(state,p);if(k&&(p.skill||p.skillHold||p.guideTo||!F.Objects.reason(state,p)))return k;}if(p.species==='superbum'&&p.restSelf&&p.motion?.kind==='rest')return '둥지잎을 접고 제자리에서 쉬어요';if(F.Objects.reason(state,p))return F.Objects.reason(state,p);if(p.protectedBy)return '엘레판의 잎 아래서 비와 바람을 피하고 있어요';if(p.wetRecovery)return '뿌리가 오래 젖어 마른 자리로 가요';if(p.leafRecovery||p.damage>=10)return '잎이 지쳐 안전한 곳에서 쉬어요';if(p.motion?.kind==='umbrella')return '큰 잎으로 친구의 빗방울을 덜어줘요';if(p.species==='bonbon'&&F.Social.ellisiiHabitat(state,p))return '잎틈에서 작은 이웃이 쉬기 좋은 자리를 살펴요';if(p.motion?.kind==='share')return '모아 둔 물을 친구에게 나눠요';if(p.species==='superbum'&&p.harvestTick>0)return '둥지잎에 빗물을 모으고 있어요';if(p.motion?.kind==='receive')return '친구가 건넨 물을 마셔요';if(p.motion?.kind==='shade')return '큰 잎으로 그늘을 만들어요';if(p.mounted)return '목부작 자리에서 쉬고 있어요';if(p.action==='drink')return p.motion?.water>0?'물가에서 천천히 물을 마시고 있어요':'목이 말라 샘터로 가고 있어요';if(p.motion?.kind==='run')return '바람을 피해 쉼터로 달려가요';if(p.action==='rest')return p.protectedBy?'잎 그늘 아래서 쉬고 있어요':F.Shelter.label(state,p);if(p.action==='groom')return '자기 잎을 살며시 정돈하고 있어요';return '정원의 작은 변화를 살피고 있어요';}
-function leafDamageLabel(p){
- const value=Math.floor((p.damage||0)*10)/10;
- return value+' / 100';
-}
+function leafCondition(p){return 100-clampPct(p.damage||0);}
+function leafConditionLabel(p){return Math.floor(leafCondition(p)*10)/10+' / 100';}
 function leafDamageStat(p){
- const value=p.damage||0,torn=Boolean(F.Leaf.flags(p)&F.Leaf.TORN);
- return '<div class="stat"><span>잎 손상</span><progress max="100" value="'+value+'" aria-label="잎 손상'+(torn?' · 찢어짐':'')+'"></progress><b>'+leafDamageLabel(p)+'</b></div>';
+ const torn=Boolean(F.Leaf.flags(p)&F.Leaf.TORN);
+ return '<div class="stat"><span>손상</span><progress max="100" value="'+leafCondition(p)+'" aria-label="손상'+(torn?' · 찢어짐':'')+'" aria-valuetext="'+leafConditionLabel(p)+'"></progress><b>'+leafConditionLabel(p)+'</b></div>';
 }
-// 수분·영양 read both ways (the fit band is green, a line marks the friend), 기운 fills its own pool.
-function stats(p){const V=window.ForestVitals,b=V.band(p),zn={dangerLow:'위험',low:'',ok:'적정',high:'',dangerHigh:'위험'},two=(label,v,low,high)=>{const z=V.zone(v,b),name=z==='ok'?'적정':z==='low'||z==='dangerLow'?low:high;return '<div class="stat two '+z+'"><span>'+label+'</span><div class="track" role="meter" aria-label="'+label+' '+Math.round(v)+' '+name+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(v)+'"><i class="fit" style="left:'+b.lo+'%;width:'+(b.hi-b.lo)+'%"></i><i class="mark" style="left:'+clampPct(v)+'%"></i></div><b>'+name+(zn[z]==='위험'?' !':'')+'</b></div>';},e=V.shown(p);
- return '<div class="stats">'+two('수분',p.B,'마름','과습')+two('영양',p.nutrition,'결핍','과잉')+'<div class="stat"><span>기운</span><progress max="100" value="'+p.energy+'" aria-label="기운"></progress><b>'+e.now+' / '+e.max+'</b></div>'+leafDamageStat(p)+growthStat(p)+'</div>';}
+function rangeStat(label,value,band,status,readout,style){
+ const position=Math.round(clampPct(value)*10)/10;
+ return '<div class="stat two '+style+'"><span>'+label+'</span><div class="track" role="meter" aria-label="'+label+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+position+'" aria-valuetext="'+readout+'"><i class="fit" style="left:'+band.lo+'%;width:'+(band.hi-band.lo)+'%"></i><i class="mark" style="left:'+position+'%"></i></div><b>'+status+'</b></div>';
+}
+function stats(p){
+ const V=window.ForestVitals,band=V.band(p),energy=V.shown(p);
+ const care=(label,value,low,high)=>{
+  const zone=V.zone(value,band),name=zone==='ok'?'적정':value<band.lo?low:high;
+  const readout=Math.round(value)+' · '+name;
+  return rangeStat(label,value,band,readout,readout,zone);
+ };
+ const temp=V.temperature(state,p);
+ const temperature=p.active?rangeStat('온도',temp.value,V.TEMPERATURE_BAND,temp.label,temp.label,'temperature'):
+  '<div class="stat two temperature"><span>온도</span><div class="track" aria-hidden="true"></div><b>—</b></div>';
+ const vigor='<div class="stat"><span>기운</span><progress max="100" value="'+p.energy+'" aria-label="기운"></progress><b>'+energy.now+' / '+energy.max+'</b></div>';
+ return '<div class="stats">'+vigor+care('수분',p.B,'마름','과습')+
+  leafDamageStat(p)+care('영양',p.nutrition,'결핍','과잉')+growthStat(p)+temperature+'</div>';
+}
+function refreshStats(container,p){
+ const current=container.querySelector('.stats');
+ if(!current)return;
+ const html=stats(p);
+ if(current.outerHTML!==html)current.outerHTML=html;
+}
 // 1.2.3 (user: "성장 경험도 바 형태로 … 기운 오른쪽 영양 아래 … 성장으로 표시하고 … 총량분에 몇 채워졌다"): progress through the current level
 function growthStat(p){const L=F.level(p),lo=F.LEVELS[L-1],hi=F.LEVELS[L],top=hi==null,got=top?1:Math.floor(p.xp)-lo,need=top?1:hi-lo;return '<div class="stat grow"><span>성장</span><progress max="'+need+'" value="'+got+'" aria-label="성장 '+(top?'최대':got+' / '+need)+'"></progress><b>'+(top?'최대':got+' / '+need)+'</b></div>';}
 function clampPct(v){return Math.max(0,Math.min(100,v));}
@@ -79,7 +98,7 @@ function updateObjectCard(card,id){const html=ForestObjectCards.render(state,id,
 }
 function previewObjectUpgrade(id){try{const next=F.Objects.planUpgrade(state,id),u=F.Objects.upgradeStatus(state,id);scene.objectExpansionPreview={id,scale:F.Objects.scale(next,id)};const cancel=()=>{scene.objectExpansionPreview=null;closeDialog();};dialog('자리를 넓힐까요?','보유량 '+u.capacity+' → '+u.nextCapacity+'. 지금 남아 있는 양은 그대로이고 비용은 없어요.',[{label:'취소',fn:cancel},{label:'넓히기',fn:()=>commit(s=>{F.Objects.upgrade(s,id);F.event(s,'object-upgrade','자리를 넓혔어요.',{object:id});},()=>{cancel();showCard();})}]);}catch(e){notice(e.message);}}
 function showCard(){if(editor)return;const card=$('select-card');if(!selected&&!patchSelected){card.hidden=true;return;}card.hidden=false;
- if(selected){card.classList.remove('object-card');delete card.dataset.objectId;delete card.dataset.objectHtml;const p=state.individuals.find(x=>x.id===selected);if(!p){closeCard();return;}const key=p.id+'|'+p.name+'|'+state.settings.showState;if(card.dataset.key===key){card.querySelector('.badge').textContent='Lv.'+F.level(p);card.querySelector('.select-head p').textContent=actionReason(p)+leafNote(p);/* 1.2.3: the live refresh still wrote the pre-1.0 order (수분·기운·기분·영양) into the bars, so 기운 showed 수분 as a bare number and 수분·영양 marks never moved; redraw the bars instead */const st=card.querySelector('.stats');if(st){const html=stats(p);if(st.outerHTML!==html)st.outerHTML=html;}return;}card.dataset.key=key;card.innerHTML='<div class="select-head"><img class="portrait" src="'+portrait(p.species)+'" alt=""><div><h2>'+escape(p.name)+' <span class="badge">Lv.'+F.level(p)+'</span></h2><p>'+actionReason(p)+escape(leafNote(p))+'</p></div><button class="icon close" data-action="close-card" aria-label="선택 닫기">'+icon('close')+'</button></div>'+(state.settings.showState?stats(p):'<p class="sub">상태 수치는 설정에서 다시 켤 수 있어요.</p>')+'<div class="button-pair"><button class="secondary" data-action="move-pet" data-id="'+escape(p.id)+'">옮기기</button><button class="primary" data-action="detail" data-id="'+escape(p.id)+'">자세히 보기</button></div>';
+ if(selected){card.classList.remove('object-card');delete card.dataset.objectId;delete card.dataset.objectHtml;const p=state.individuals.find(x=>x.id===selected);if(!p){closeCard();return;}const key=p.id+'|'+p.name+'|'+state.settings.showState;if(card.dataset.key===key){card.querySelector('.badge').textContent='Lv.'+F.level(p);card.querySelector('.select-head p').textContent=actionReason(p)+leafNote(p);refreshStats(card,p);return;}card.dataset.key=key;card.innerHTML='<div class="select-head"><img class="portrait" src="'+portrait(p.species)+'" alt=""><div><h2>'+escape(p.name)+' <span class="badge">Lv.'+F.level(p)+'</span></h2><p>'+actionReason(p)+escape(leafNote(p))+'</p></div><button class="icon close" data-action="close-card" aria-label="선택 닫기">'+icon('close')+'</button></div>'+(state.settings.showState?stats(p):'<p class="sub">상태 수치는 설정에서 다시 켤 수 있어요.</p>')+'<div class="button-pair"><button class="secondary" data-action="move-pet" data-id="'+escape(p.id)+'">옮기기</button><button class="primary" data-action="detail" data-id="'+escape(p.id)+'">자세히 보기</button></div>';
  }else {delete card.dataset.key;if(patchSelected==='shelter')patchSelected='shelter-0';updateObjectCard(card,patchSelected);}
 }
 
@@ -206,7 +225,7 @@ function renderAdmin(){const panel=$('admin-panel');if(!panel)return;adminButton
   if(!p)body='<p class="adm-note">월드에서 친구를 눌러 고르세요. 고른 친구의 수치를 바로 바꿀 수 있어요.</p>'+row([chips]);
   else{const V=window.ForestVitals,band=V.band(p),e=V.shown(p),sl=(key,name,val,min,max,shown,lo,hi)=>'<label class="adm-sl"><span>'+name+'</span><div class="adm-track">'+(lo!=null?'<i class="band" style="left:'+(lo-min)/(max-min)*100+'%;width:'+(hi-lo)/(max-min)*100+'%"></i>':'')+'<input type="range" min="'+min+'" max="'+max+'" step="1" value="'+val+'" data-admin-set="'+key+'" aria-label="'+name+'"></div><output>'+shown+'</output></label>';
    body='<div class="adm-who"><img src="'+portrait(p.species)+'" alt=""><div><b>'+escape(p.name)+'</b> <small>Lv.'+F.level(p)+'</small><small class="doing">'+actionReason(p)+'</small></div></div>'
-    +sl('B','수분',Math.round(p.B),0,100,Math.round(p.B),band.lo,band.hi)+sl('nutrition','영양',Math.round(p.nutrition),0,100,Math.round(p.nutrition),band.lo,band.hi)+sl('energy','기운',Math.round(p.energy),0,100,e.now+' / '+e.max)+'<p class="adm-note" data-admin-leaf-damage>잎 손상 '+leafDamageLabel(p)+'</p>'+sl('level','레벨',F.level(p),1,F.LEVELS.length,'Lv.'+F.level(p))
+    +sl('B','수분',Math.round(p.B),0,100,Math.round(p.B),band.lo,band.hi)+sl('nutrition','영양',Math.round(p.nutrition),0,100,Math.round(p.nutrition),band.lo,band.hi)+sl('energy','기운',Math.round(p.energy),0,100,e.now+' / '+e.max)+'<p class="adm-note" data-admin-leaf-damage>손상 '+leafConditionLabel(p)+'</p>'+sl('level','레벨',F.level(p),1,F.LEVELS.length,'Lv.'+F.level(p))
     +(window.ForestSkills?.INFO[p.species]?lbl('고유 스킬 · '+escape(window.ForestSkills.INFO[p.species].name))+row([p.species==='maria'||p.species==='dico'?motionButton(p.species==='maria'?'swim':'repose','스킬 보기',p.species):b('스킬 보기',['skillShow',p.id])]):'')+row([b('스킬 대기 없애기',['skillReady',p.id]),...Object.entries(A.STATS).map(([k,v])=>b(v[0],['stats',p.id,k]))])
     +lbl('다른 친구')+row([chips])
     +lbl('정원 친구 모두')+row([b('모두 적정하게',['stats','all','full']),b('모두 스킬 대기 없애기',['skillReady','all']),b('모든 친구 레벨 초기화',['resetLevels'],'warn')]);}
@@ -457,7 +476,8 @@ function clockDetail(){
 }
 function updateClock(){
  const E=F.Environment,key=E.timeKey(state),[label,,symbol]=CLOCK_PHASES[key],clock=$('forest-clock');
- const status=$('clock-phase').parentElement,weather=E.NAMES[E.weatherKey(state)];
+ const status=$('clock-phase').parentElement;
+ const weather=E.NAMES[E.weatherKey(state)]+' · '+window.ForestVitals.temperature(state).label;
  if(clock.dataset.phase!==key||!$('clock-icon').firstElementChild){
   clock.dataset.phase=status.dataset.phase=key;
   $('clock-icon').innerHTML=icon(symbol);
@@ -469,7 +489,12 @@ function updateClock(){
  const details=$('forest-clock-detail');
  if(details)details.textContent=clockDetail();
 }
-function update(){if(!state)return;updateFriendActivities();if(adminOpen){const c=$('admin-clock');if(c)c.innerHTML=adminClock();const d=document.querySelector('#admin-panel .doing');const ap=adminPick();if(d&&ap)d.innerHTML=actionReason(ap);const damage=document.querySelector('#admin-panel [data-admin-leaf-damage]');if(damage&&ap){const label='잎 손상 '+leafDamageLabel(ap);if(damage.textContent!==label)damage.textContent=label;}}const night=state.settings.theme==='night';$('shell').classList.toggle('night',night);$('shell').classList.toggle('reduced',state.settings.reducedMotion);{const c=F.Environment.calendar(state);$('season').textContent=c.name+' '+c.day+'일째';$('season').dataset.season=c.id;}updateClock();
+function update(){if(!state)return;updateFriendActivities();
+ if(tab==='detail'){
+  const p=state.individuals.find(x=>x.id===selected)||state.individuals[0];
+  refreshStats($('page'),p);
+ }
+ if(adminOpen){const c=$('admin-clock');if(c)c.innerHTML=adminClock();const d=document.querySelector('#admin-panel .doing');const ap=adminPick();if(d&&ap)d.innerHTML=actionReason(ap);const damage=document.querySelector('#admin-panel [data-admin-leaf-damage]');if(damage&&ap){const label='손상 '+leafConditionLabel(ap);if(damage.textContent!==label)damage.textContent=label;}}const night=state.settings.theme==='night';$('shell').classList.toggle('night',night);$('shell').classList.toggle('reduced',state.settings.reducedMotion);{const c=F.Environment.calendar(state);$('season').textContent=c.name+' '+c.day+'일째';$('season').dataset.season=c.id;}updateClock();
  /* 0.8.2 (user: "안내 문구는 해당 안내가 필요할 때만 5초 정도 떴다가 사라지게 … 월드 하단 중간"): a hint appears only when
     something new needs saying (a guest, rain starting, a small neighbour by the rocks; 1.1.1: no thirst notices, the friend card shows that) and fades after 5 s */
  {const lakeEv=[...state.events].reverse().find(e=>(e.type==='world'||e.type==='season'&&e.climate)&&state.worldTick-e.tick<=6),msg=lakeEv?lakeEv.text:state.recruitment.visitor?F.Recruitment.josa(state.recruitment.visitor.pet.name,'이','가')+' 찾아왔어요 · 눌러서 만나기':state.weather.kind==='rain'?'비가 내리면, 자리마다 물기가 달라져요.':state.neighbor.stage==='visiting'?'바위 틈에 작은 이웃이 쉬고 있어요.':'',now=performance.now();
