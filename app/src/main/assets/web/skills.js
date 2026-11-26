@@ -37,6 +37,7 @@ function umbrella(h){return {rain:lv(h,'umbrella','rain'),wind:lv(h,'umbrella','
 function share(d){return {total:lv(d,'share','total'),nest:lv(d,'share','nest')};}
 const NEXT=[3,6,9,10];
 const INFO=Object.freeze({
+ maria:{name:'같이 수영할래?',line:'잔잔한 낮에 친구를 호수로 이끌어 함께 헤엄쳐요. 약 20초 동안 각자 수분 적정 상한까지 채워요. (대기 5분)'},
  superbum:{name:'빗물 나눔',line:'머리 둥지에 모은 빗물을 목마른 친구에게 걸어가 나눠 줘요.'},
  bosong:{name:'물 찾기',line:'비가 없을 때 촉촉한 흙에서 숨은 물을 찾아 웅덩이를 만들고, 목마른 친구에게 물이 있는 곳을 알려 줘요.'},
  neolbi:{name:'잎 우산',line:'비가 오면 넓은 잎을 펴서 곁의 친구를 비에서 지켜 줘요.'},
@@ -185,6 +186,7 @@ function status(s,p){const t=p.skill;if(p.skillHold){const h=s.individuals.find(
  return null;}
 // 1.1.3 card text for the 고유 스킬 칸: what this friend's level gives now, and what the next step adds (UI only)
 const LINE=Object.freeze({
+ maria:p=>'수영 20초 · 마리아의 수분 '+band(p).hi+'까지 · 동행은 각자 상한 · 대기 5분',
  bosong:p=>'웅덩이 물 최대 '+lv(p,'dig','amount')+' · 찾는 범위 '+lv(p,'dig','reach')+' · 대기 '+lv(p,'dig','rest')/60+'분',
  jureong:p=>'한 번에 낱잎 '+lv(p,'rake','count')+'장 · 기운 '+lv(p,'rake','energy')+'% 이상에서 시작',
  ridley:p=>(lv(p,'brush','amount')>=100?'해충을 모두':'해충 '+lv(p,'brush','amount')+'만큼')+' 털어 냄(자기 머리 정돈도 같음) · 범위 '+lv(p,'brush','reach')+' · 대기 '+lv(p,'brush','rest')/60+'분',

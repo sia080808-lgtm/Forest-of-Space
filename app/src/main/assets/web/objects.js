@@ -346,7 +346,7 @@ function strollTarget(s,p,rng){const W=dep('world'),Space=dep('spatial'),b=W.wal
  // free shore; in the morning (before 400 of the 1,200 s day, so it is back well before dusk) a quarter of these go to any shore around the
  // lake, the far east end included. 1.0.1 had kept walks within 0.9 because a friend far east re-planned very long paths every choice;
  // 1.1.4 keeps found paths, so an occasional far walk is cheap now (measured in the release note).
- {const V=dep('vitals'),E=dep('environment'),season=E.season(s),share=SHORE_WALK[season]??0;if(V.isDay(s)&&W.shorePoint&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&strollWeather(s)&&rng(s,'behavior')<share){const t=((s.worldTick%1200)+1200)%1200,far=t<400&&W.shoreAnywhere&&rng(s,'behavior')<.25;const q0=far?W.shoreAnywhere(s,p,rng(s,'behavior')):W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,...(season==='summer'?{cool:true}:{view:true}),...(far?{far:true}:{})};}}}
+ {const V=dep('vitals'),E=dep('environment'),season=E.season(s),share=p.species==='maria'?Math.min(.80,(SHORE_WALK[season]??0)+.25):SHORE_WALK[season]??0;if(V.isDay(s)&&W.shorePoint&&share>0&&W.lakeOpen(s)&&!W.frozen(s)&&strollWeather(s)&&rng(s,'behavior')<share){const t=((s.worldTick%1200)+1200)%1200,far=t<400&&W.shoreAnywhere&&rng(s,'behavior')<.25;const q0=far?W.shoreAnywhere(s,p,rng(s,'behavior')):W.shorePoint(s,p);if(q0)for(let i=0;i<6;i++){const q={x:q0.x-.06+.12*rng(s,'behavior'),y:q0.y-.06+.12*rng(s,'behavior')};if(!W.inWater(s,q)&&Math.hypot(q.x-p.x,q.y-p.y)>=STROLL.min&&Space.walkable(s,q,p.id))return {...q,...(season==='summer'?{cool:true}:{view:true}),...(far?{far:true}:{})};}}}
  // 0.9.3 겨울 얼음 놀이: when the lake is frozen, some walks go out onto the ice
  if(iceWeather(s)&&!coldCall(s,p)&&rng(s,'behavior')<(s.weather.kind==='sun'?.85:.60)){
   const lake=W.LAKE;
@@ -582,7 +582,7 @@ function choose(s,p,rng){
 function prepare(s,held,rng){
  for(const p of [...s.individuals].sort((a,b)=>urgency(s,a)-urgency(s,b)||(a.objectWait?.since??s.worldTick)-(b.objectWait?.since??s.worldTick)||a.id.localeCompare(b.id))){
   if(!p.active||p.mounted||held===p.id){release(s,p,'interrupt');continue;}
-  if(dep('friendship').busy(s,p.id)||p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
+  if(dep('friendship').busy(s,p.id)||s.world?.lake?.swim?.ids.includes(p.id)||p.id===s.world?.lake?.boat?.rider||s.social.sessions.some(a=>a.ids.includes(p.id)))continue;
   choose(s,p,rng);
  }
  trackShelfMeeting(s);
