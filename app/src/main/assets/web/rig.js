@@ -5,6 +5,7 @@ const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNe
 const Superbum=typeof module==='object'?require('./superbum.js'):globalThis.ForestSuperbum;
 const Species=typeof module==='object'?require('./species-rig.js'):globalThis.ForestSpeciesRig;
 const Art=typeof module==='object'?require('./creature-art.js'):globalThis.ForestCreatureArt;
+const effects=()=>typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;
 const files=Object.freeze({maria:'assets/forest/species/maria.webp',dico:'assets/forest/species/dico.webp',dicoYoung:'assets/forest/species/dico-young.webp',...Species.files,...Neolbi.files,...Superbum.files,...(Art?.ANT_FILES||{}),rigBody:'assets/forest/rig/body.png',rigLeaves:'assets/forest/rig/leaves.png',rigLegLeft:'assets/forest/rig/leg-left.png',rigLegRight:'assets/forest/rig/leg-right.png',rigPalm:'assets/forest/rig/palm.png',rigFace:'assets/forest/rig/face.png'});
 // Species share the intact-body invariant; armless Neolbi uses its dedicated leaf/foot rig.
 // Species-specific art may replace these independent layers without replacing the motion renderer.
@@ -15,29 +16,63 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
+// Replace only the boxes that contain baked facial marks, matching each row
+// to its untouched skin at either side. All poses reuse the same clean face.
+function eraseFace(data,boxes,top=0){
+ const {width,data:pixels}=data;
+ for(const [x0,y0,x1,y1] of boxes){
+  for(let y=y0;y<y1;y++){
+   const row=(y-top)*width;
+   for(let k=0;k<3;k++){
+    let left=0,right=0;
+    for(let n=2;n<=4;n++){
+     left+=pixels[(row+x0-n)*4+k];
+     right+=pixels[(row+x1+n)*4+k];
+    }
+    for(let x=x0;x<x1;x++){
+     const u=(x-x0+1)/(x1-x0+1);
+     pixels[(row+x)*4+k]=(left*(1-u)+right*u)/3;
+    }
+   }
+  }
+ }
+}
+const mariaSkin=new WeakMap();
+function mariaWithoutFace(image){
+ const cached=mariaSkin.get(image);
+ if(cached)return cached;
+ const canvas=effects().canvas(image.width,image.height),c=canvas.getContext('2d');
+ c.drawImage(image,0,0);
+ const data=c.getImageData(0,0,canvas.width,canvas.height);
+ eraseFace(data,[[321,360,352,419],[416,359,441,418],[377,413,400,427]]);
+ c.putImageData(data,0,0);
+ mariaSkin.set(image,canvas);return canvas;
+}
 function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm,leafState}){
  // Coordinates are in the same 1254-unit rig as the other friends; the visible
  // body is 594 units across, and the extra width belongs to the dangling leaves.
  const stride=pose(kind,phase,reduced).left;
  const shift=reduced?0:Math.sin(phase*2)*5;
- const k=594/309,leaf=Leaf.texture(image,'maria',leafState),sx=leaf.width/image.width,sy=leaf.height/image.height;
+ const blink=!reduced&&phase%4.9>4.75;
+ const newFace=['sleepy','happy','sad','focused','surprised'].includes(expression)||blink;
+ const k=594/309,leaf=Leaf.texture(newFace?mariaWithoutFace(image):image,'maria',leafState);
+ const sx=leaf.width/image.width,sy=leaf.height/image.height;
+ const paintLeaf=(x,y,w,h)=>c.drawImage(leaf,x*sx,y*sy,w*sx,h*sy,x,y,w,h);
  const paint=(x,y,w,h,dx=x,dy=y)=>c.drawImage(image,x,y,w,h,dx,dy,w,h);
  c.save();c.translate(627,1065.9);c.scale(k,k);c.translate(-345.5,-581);
  for(const [i,x,w] of [[-1,235,73],[1,380,73]])paint(x,547,w,38,x+stride*i*8,547-Math.max(0,stride*i)*24);
  c.translate(0,sit*20+droop*15-Math.abs(stride)*10);
  c.rotate((expression==='focused'?.052:0)+shift*.0015);
- c.drawImage(leaf,0,0,656*sx,554*sy,0,0,656,554);
+ paintLeaf(0,0,656,554);
  if(cover){
-  cover();paint(302,354,145,55);
+  cover();paintLeaf(302,354,145,55);
  }
- if(['sleepy','happy','sad','focused','surprised'].includes(expression)||!reduced&&phase%4.9>4.75){
-  // Use nearby unpainted soil from the same raster as the background for the eyes.
-  c.drawImage(image,340,437,94,66,320,360,127,67);
+ if(newFace){
   c.strokeStyle='#ecdfc5';c.fillStyle='#ecdfc5';c.lineWidth=5.5;c.lineCap='round';
   for(const [side,x] of [[-1,345],[1,423]]){
    const y=expression==='focused'&&side<0?392:388;
    c.beginPath();
-   if(expression==='sleepy'||expression==='happy'||!reduced&&phase%4.9>4.75){
+   if(expression==='sleepy'||expression==='happy'||blink){
     c.moveTo(x-8,y);c.quadraticCurveTo(x,y+(expression==='happy'?-7:6),x+8,y);
    }else{c.moveTo(x,y-9);c.lineTo(x+1,y+(expression==='surprised'?14:8));}
    c.stroke();
@@ -53,31 +88,96 @@ function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,w
  }
  c.restore();
 }
-function drawDico(c,image,opt){
- const {kind,phase,reduced,expression,cover,sit,leafState,young}=opt;
- const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.025;
- const w=image.width,h=image.height,cx=w*.5,feet=h*.96,scale=1.79*520/h;
- // The free fronds end above the head wrap in both source sprites. Read them
- // as a distinct layer, with the intact head, face and feet painted separately.
- const leafHeight=Math.floor(h*(young?.51:.55));
- const paint=(x,y,sw,sh,dx=x,dy=y)=>c.drawImage(image,x,y,sw,sh,dx,dy,sw,sh);
- const knee=h*.915;
- c.save();c.translate(627,1065.9);c.scale(scale,scale);c.translate(-cx,-feet);
- for(const i of [-1,1]){const x=i<0?w*.11:cx;
-  paint(x,knee,w*.39,h-knee,x+i*stride*8,knee-Math.max(0,i*stride)*21);}
- c.translate(0,(sit||kind==='rest'||kind==='repose'?14:0)-Math.abs(stride)*7);
- c.translate(cx,h*.66);c.rotate(sway);c.translate(-cx,-h*.66);
- if(leafState){
-  const fronds=Leaf.texture(image,young?'dicoYoung':'dico',leafState,[0,0,w,leafHeight]);
-  c.drawImage(fronds,0,0,w,leafHeight);
-  paint(0,leafHeight,w,knee-leafHeight);
- }else paint(0,0,w,knee);
- if(cover)cover();
- if(expression==='sleepy'||kind==='rest'||kind==='repose'||!reduced&&phase%4.8>4.66){
-  paint(w*.32,h*.82,w*.35,h*.075,w*.32,h*.715);
-  c.strokeStyle='#ecdfc5';c.lineWidth=4.3;c.lineCap='round';
-  for(const x of [w*.385,w*.615]){c.beginPath();c.moveTo(x-6,h*.75);c.quadraticCurveTo(x,h*.762,x+6,h*.75);c.stroke();}
+const DICO={
+ adult:{
+  key:'dico',leafHeight:286,face:[[122,344,139,389],[197,344,215,389],[155,383,184,396]],
+  eyes:[[129.5,366.5],[206,366.5]],mouth:[169,389],stroke:8,eyeHeight:30,
+  feet:[[[84,487],[94,491],[111,495],[132,498]],[[200,498],[219,494],[236,490],[248,486]]],rootOverlap:13
+ },
+ young:{
+  key:'dicoYoung',leafHeight:193,face:[[59,256,73,287],[110,255,123,287],[77,284,102,296]],
+  eyes:[[65.9,272],[116,272]],mouth:[89.4,289.6],stroke:5.5,eyeHeight:18,
+  feet:[[[38,352],[49,357],[62,361],[76,364]],[[119,364],[131,362],[147,357],[157,351]]],rootOverlap:9
  }
+};
+const dicoLayers=new WeakMap();
+function dicoFoot(E,data,curve,rootOverlap,top){
+ const [first,last]=[curve[0],curve.at(-1)],x=first[0],w=last[0]-x+1;
+ const y=Math.min(...curve.map(q=>q[1]))-rootOverlap,h=data.height+top-y;
+ const canvas=E.canvas(w,h),c=canvas.getContext('2d'),foot=c.createImageData(w,h);
+ let segment=0;
+ for(let col=0;col<w;col++){
+  const sx=x+col;
+  while(segment<curve.length-2&&sx>curve[segment+1][0])segment++;
+  const [x0,y0]=curve[segment],[x1,y1]=curve[segment+1];
+  const edge=y0+(y1-y0)*(sx-x0)/(x1-x0);
+  for(let row=Math.max(0,Math.floor(edge-rootOverlap-y));row<h;row++){
+   const sy=y+row,from=((sy-top)*data.width+sx)*4,to=(row*w+col)*4;
+   for(let k=0;k<4;k++)foot.data[to+k]=data.data[from+k];
+   // Leave the attachment in both layers. The body covers the root of the
+   // moving foot and keeps a continuous undersurface between both joints.
+   data.data[from+3]*=Math.max(0,Math.min(1,edge+.5-sy));
+  }
+ }
+ c.putImageData(foot,0,0);
+ return {canvas,x,y,px:x+w*.5,py:(first[1]+last[1])*.5-rootOverlap*.4};
+}
+function splitDico(image,spec){
+ const cached=dicoLayers.get(image);
+ if(cached)return cached;
+ const E=effects(),w=image.width,h=image.height,top=spec.leafHeight;
+ // The original leaf pixels extend behind the rim of the head wrap so
+ // resampling the two layers cannot uncover a hairline across the stem.
+ const stemOverlap=4,body=E.canvas(w,h-top),ctx=body.getContext('2d'),fronds=E.canvas(w,top+stemOverlap);
+ ctx.drawImage(image,0,top,w,h-top,0,0,w,h-top);
+ fronds.getContext('2d').drawImage(image,0,0,w,fronds.height,0,0,w,fronds.height);
+ const data=ctx.getImageData(0,0,w,h-top);
+ eraseFace(data,spec.face,top);
+ const feet=spec.feet.map(curve=>dicoFoot(E,data,curve,spec.rootOverlap,top));
+ ctx.putImageData(data,0,0);
+ const layers={body,fronds,feet};
+ dicoLayers.set(image,layers);return layers;
+}
+function dicoFace(c,spec,closed){
+ c.save();c.strokeStyle='#f0e5ca';c.lineCap='round';
+ for(const [x,y] of spec.eyes){
+  c.lineWidth=closed?spec.stroke*.7:spec.stroke;c.beginPath();
+  if(closed){
+   c.moveTo(x-spec.stroke*1.6,y);
+   c.quadraticCurveTo(x,y+spec.stroke*1.1,x+spec.stroke*1.6,y);
+  }else{
+   c.moveTo(x,y-spec.eyeHeight*.5);c.lineTo(x,y+spec.eyeHeight*.5);
+  }
+  c.stroke();
+ }
+ if(!closed){
+  const [x,y]=spec.mouth;
+  c.lineWidth=spec.stroke*.6;c.beginPath();
+  c.moveTo(x-spec.stroke*.83,y);c.lineTo(x+spec.stroke*.83,y);c.stroke();
+ }
+ c.restore();
+}
+function drawDico(c,image,opt){
+ const {kind,phase,reduced,expression,cover,sit,leafState,young}=opt,spec=young?DICO.young:DICO.adult;
+ const {body,fronds,feet}=splitDico(image,spec),w=image.width,h=image.height,cx=w*.5;
+ const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.018;
+ const resting=kind==='rest'||kind==='sleep'||kind==='repose'||kind==='moss';
+ const closed=resting||expression==='sleepy'||!reduced&&mod(phase,4.8)>4.66;
+ c.save();
+ // The world flips this complete front-facing rig around the same anchor
+ // for either direction. Eyes and feet share the body's facing and pivot.
+ c.translate(627,1065.9);c.scale(1.79*520/h,1.79*520/h);c.translate(-cx,-h*.96);
+ c.translate(0,(sit||resting?10:0)*h/520-Math.abs(stride)*3*h/520);
+ c.translate(cx,h*.66);c.rotate(sway);c.translate(-cx,-h*.66);
+ for(const [i,foot] of feet.entries()){
+  const step=stride*(i===0?-1:1);
+  c.save();c.translate(foot.px+step*6*h/520,foot.py-Math.max(0,step)*16*h/520);
+  c.rotate(step*.32);c.drawImage(foot.canvas,foot.x-foot.px,foot.y-foot.py);c.restore();
+ }
+ c.drawImage(body,0,spec.leafHeight);
+ cover?.();
+ Leaf.draw(c,fronds,spec.key,leafState,0,0);
+ dicoFace(c,spec,closed);
  c.restore();
 }
 function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm,leafState=0,young=false}={}){

@@ -20,7 +20,7 @@ const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSk
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const NUTR_USE=Vit.NUTRITION_USE;
-const VERSION='1.2.31', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.32', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},

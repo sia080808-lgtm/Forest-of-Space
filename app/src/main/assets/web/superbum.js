@@ -83,7 +83,8 @@ function bodyPose(c,p,sit){
 function drawSet(c,a,set,p,opt,t,part){
  const m=META[set],L=k=>{
   const im=a['superbum_'+set+'_'+k];
-  return k==='crown'||k.startsWith('skirt')?Leaf.texture(im,k==='crown'?'superbumCrown':k,opt.leafState):im;
+  if(k==='crown')return Leaf.texture(im,set==='wet'?'superbumWetCrown':'superbumCrown',opt.leafState);
+  return k.startsWith('skirt')?Leaf.texture(im,k,opt.leafState):im;
  },snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
  const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // The pendant leaves hang from the cheeks: their top stays attached and only the lower part swings (drawn in thin
