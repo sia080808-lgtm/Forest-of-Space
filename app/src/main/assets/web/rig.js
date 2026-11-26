@@ -1,10 +1,11 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestRig=api;})(globalThis,function(){
 'use strict';
+const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Superbum=typeof module==='object'?require('./superbum.js'):globalThis.ForestSuperbum;
 const Species=typeof module==='object'?require('./species-rig.js'):globalThis.ForestSpeciesRig;
 const Art=typeof module==='object'?require('./creature-art.js'):globalThis.ForestCreatureArt;
-const files=Object.freeze({maria:'assets/forest/species/maria.webp',...Species.files,...Neolbi.files,...Superbum.files,...(Art?.ANT_FILES||{}),rigBody:'assets/forest/rig/body.png',rigLeaves:'assets/forest/rig/leaves.png',rigLegLeft:'assets/forest/rig/leg-left.png',rigLegRight:'assets/forest/rig/leg-right.png',rigPalm:'assets/forest/rig/palm.png',rigFace:'assets/forest/rig/face.png'});
+const files=Object.freeze({maria:'assets/forest/species/maria.webp',dico:'assets/forest/species/dico.webp',dicoYoung:'assets/forest/species/dico-young.webp',...Species.files,...Neolbi.files,...Superbum.files,...(Art?.ANT_FILES||{}),rigBody:'assets/forest/rig/body.png',rigLeaves:'assets/forest/rig/leaves.png',rigLegLeft:'assets/forest/rig/leg-left.png',rigLegRight:'assets/forest/rig/leg-right.png',rigPalm:'assets/forest/rig/palm.png',rigFace:'assets/forest/rig/face.png'});
 // Species share the intact-body invariant; armless Neolbi uses its dedicated leaf/foot rig.
 // Species-specific art may replace these independent layers without replacing the motion renderer.
 const definition=Object.freeze({width:1254,height:1254,body:'rigBody',leaves:'rigLeaves',legs:Object.freeze(['rigLegLeft','rigLegRight']),palm:'rigPalm'});
@@ -14,17 +15,18 @@ function pose(kind,t,reduced=false,wiggle=0){
  const cycle=((t%4)+4)%4,reach=kind==='groom'?(cycle<.8?Math.sin(cycle/.8*Math.PI/2):cycle<2.8?1:cycle<3.6?Math.cos((cycle-2.8)/.8*Math.PI/2):0):0;
  return {left:wave*.32+wiggle*.12,right:-wave*.32-wiggle*.12,bob:-Math.abs(wave)*13,reach,stroke:reach===1?Math.sin(cycle*9)*8:0,swing:wave*.08};
 }
-function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm}){
+function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm,leafState}){
  // Coordinates are in the same 1254-unit rig as the other friends; the visible
  // body is 594 units across, and the extra width belongs to the dangling leaves.
  const stride=pose(kind,phase,reduced).left;
  const shift=reduced?0:Math.sin(phase*2)*5;
- const k=594/309,paint=(x,y,w,h,dx=x,dy=y)=>c.drawImage(image,x,y,w,h,dx,dy,w,h);
+ const k=594/309,leaf=Leaf.texture(image,'maria',leafState),sx=leaf.width/image.width,sy=leaf.height/image.height;
+ const paint=(x,y,w,h,dx=x,dy=y)=>c.drawImage(image,x,y,w,h,dx,dy,w,h);
  c.save();c.translate(627,1065.9);c.scale(k,k);c.translate(-345.5,-581);
  for(const [i,x,w] of [[-1,235,73],[1,380,73]])paint(x,547,w,38,x+stride*i*8,547-Math.max(0,stride*i)*24);
  c.translate(0,sit*20+droop*15-Math.abs(stride)*10);
  c.rotate((expression==='focused'?.052:0)+shift*.0015);
- paint(0,0,656,554);
+ c.drawImage(leaf,0,0,656*sx,554*sy,0,0,656,554);
  if(cover){
   cover();paint(302,354,145,55);
  }
@@ -51,15 +53,37 @@ function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,w
  }
  c.restore();
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm}={}){
+function drawDico(c,image,opt){
+ const {kind,phase,reduced,expression,cover,sit,leafState}=opt;
+ const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.025;
+ const w=image.width,h=image.height,cx=w*.5,feet=h*.96,scale=1.79*520/h;
+ const im=Leaf.texture(image,'dico',leafState),xscale=im.width/w,yscale=im.height/h;
+ const paint=(x,y,sw,sh,dx=x,dy=y)=>c.drawImage(image,x,y,sw,sh,dx,dy,sw,sh);
+ const knee=h*.915;
+ c.save();c.translate(627,1065.9);c.scale(scale,scale);c.translate(-cx,-feet);
+ for(const i of [-1,1]){const x=i<0?w*.11:cx;
+  paint(x,knee,w*.39,h-knee,x+i*stride*8,knee-Math.max(0,i*stride)*21);}
+ c.translate(0,(sit||kind==='rest'||kind==='repose'?14:0)-Math.abs(stride)*7);
+ c.translate(cx,h*.66);c.rotate(sway);c.translate(-cx,-h*.66);
+ c.drawImage(im,0,0,w*xscale,knee*yscale,0,0,w,knee);
+ if(cover)cover();
+ if(expression==='sleepy'||kind==='rest'||kind==='repose'||!reduced&&phase%4.8>4.66){
+  paint(w*.32,h*.82,w*.35,h*.075,w*.32,h*.715);
+  c.strokeStyle='#ecdfc5';c.lineWidth=4.3;c.lineCap='round';
+  for(const x of [w*.385,w*.615]){c.beginPath();c.moveTo(x-6,h*.75);c.quadraticCurveTo(x,h*.762,x+6,h*.75);c.stroke();}
+ }
+ c.restore();
+}
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm,leafState=0,young=false}={}){
  const origin=bodyCover&&c.getTransform();
  const cover=bodyCover&&(()=>{
   c.save();c.setTransform(origin);bodyCover(c);c.restore();
  });
- if(species==='maria'&&assets.maria)return drawMaria(c,assets.maria,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm});
- if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop,cover,crownSprout});
- if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop,cover});
- if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop,cover,crownSprout}))return;
+ if(species==='maria'&&assets.maria)return drawMaria(c,assets.maria,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm,leafState});
+ if(species==='dico'&&assets.dico)return drawDico(c,young&&assets.dicoYoung||assets.dico,{kind,phase,reduced,expression,cover,sit,leafState});
+ if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop,cover,crownSprout,leafState});
+ if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop,cover,leafState});
+ if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop,cover,crownSprout,leafState}))return;
  const p=pose(kind,phase,reduced,wiggle);c.save();c.translate(0,p.bob);
  for(const [i,x]of [515,795].entries()){c.save();c.translate(x,930);c.rotate(i?p.right:p.left);c.drawImage(assets[definition.legs[i]],-49,-45,98,202.385);c.restore();}
  // 0.8.7 sit (stroll rest): the legs stay on the ground, everything above settles over them like 엘리시
@@ -78,7 +102,7 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
    for(const x of [592,762]){c.beginPath();if(e==='sleepy'||blink){c.moveTo(x-17,793);c.quadraticCurveTo(x,809,x+17,793);}else if(e==='happy'){c.moveTo(x-16,796);c.quadraticCurveTo(x,775,x+16,796);}else if(e==='sad'){c.moveTo(x-15,796);c.lineTo(x+15,803);}else {c.moveTo(x,775);c.lineTo(x,812);}c.stroke();}
    if(e==='surprised'){c.beginPath();c.ellipse(678,849,13,17,0,0,Math.PI*2);c.fill();}else if(e!=='sleepy'){c.beginPath();c.moveTo(664,849);c.lineTo(690,849);c.stroke();}c.restore();}
   cover?.();
-  c.save();c.translate(640,690);c.rotate(leafTilt+restBlend*.04+droop*.07+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.scale(1+droop*.05,1-droop*.06);c.translate(-640,-690);c.drawImage(assets[definition.leaves],0,restBlend*12+droop*34);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
+  c.save();c.translate(640,690);c.rotate(leafTilt+restBlend*.04+droop*.07+(reduced?0:Math.sin(phase*1.4+seed)*.008));c.scale(1+droop*.05,1-droop*.06);c.translate(-640,-690);Leaf.draw(c,assets[definition.leaves],'ridley',leafState,0,restBlend*12+droop*34);if(snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,assets[definition.leaves],snow,0,restBlend*12);c.restore();
  }
  if(!cover)paintHands();
  c.restore();
@@ -162,13 +186,13 @@ function sigh(c,x,y,h,a,k){c.save();c.globalAlpha=a;c.lineCap='round';c.translat
  for(const [w,col] of [[h*.05,'rgba(255,255,255,.9)'],[h*.018,'rgba(150,160,170,.55)']]){c.strokeStyle=col;c.lineWidth=w;c.beginPath();c.moveTo(0,0);c.bezierCurveTo(h*.12,-h*.02,h*.2,h*.06,h*.17,h*.12);c.bezierCurveTo(h*.15,h*.17,h*.09,h*.15,h*.11,h*.11);c.stroke();}c.restore();}
 function sweat(c,x,y,r){c.save();c.fillStyle='rgba(170,210,235,.95)';c.strokeStyle='rgba(80,120,150,.7)';c.lineWidth=r*.15;c.beginPath();c.moveTo(x,y-r*1.6);c.quadraticCurveTo(x+r,y-r*.2,x,y+r*.6);c.quadraticCurveTo(x-r,y-r*.2,x,y-r*1.6);c.fill();c.stroke();c.restore();}
 function vigor(c,assets,opt,kind,sp,t,h){const v=opt.vigor,red=opt.reduced,walk=kind!=='idle',top=FEET[1]-h*(VTOP[sp]||.82),mouth=VMOUTH[sp]||[.28,.38];
- let dy=0,sq=1,rot=0,dx=0,droop=0,expr=opt.expression,u=mod(t+(opt.seed||0)*1.3,SIGH)/SIGH,br=0;
+ let dy=0,sq=1,rot=0,dx=0,expr=opt.expression,u=mod(t+(opt.seed||0)*1.3,SIGH)/SIGH,br=0;
  if(v==='high'){if(!expr||expr==='neutral')expr='happy';if(!red){if(walk){const b=Math.abs(Math.sin(t*Math.PI*2.4));dy=-b*h*.1;sq=b<.15?.94:1.03;}else{const q=mod(t+(opt.seed||0),3);if(q<.7){const b=Math.sin(q/.7*Math.PI);dy=-b*h*.1;sq=1+.04*b;}}}}
  else{if(!expr||['neutral','happy'].includes(expr))expr='sad';
-  if(v==='low'){br=walk||red?0:u<.45?Math.sin(u/.45*Math.PI/2):Math.cos((u-.45)/.55*Math.PI/2);droop=walk?.75:.85-.3*br;}
-  else {droop=1;if(!red){const w=Math.sin(t*1.4);rot=w*.06;dx=w*h*.035;}}}
+  if(v==='low'){br=walk||red?0:u<.45?Math.sin(u/.45*Math.PI/2):Math.cos((u-.45)/.55*Math.PI/2);sq=walk?.98:.98+.02*br;}
+  else {sq=.94;if(!red){const w=Math.sin(t*1.4);rot=w*.06;dx=w*h*.035;}}}
  c.save();c.translate(FEET[0]+dx,FEET[1]);c.rotate(rot);c.scale(1/Math.sqrt(sq),sq);c.translate(0,dy);c.translate(-FEET[0],-FEET[1]);
- draw(c,assets,{...opt,vigorDone:true,droop,expression:expr});c.restore();
+ draw(c,assets,{...opt,vigorDone:true,expression:expr});c.restore();
  if(v==='high'){if(!red)for(let i=0;i<3;i++){const q=mod(t*.8+i/3,1);sparkle(c,FEET[0]+h*(-.35+.35*i),top-h*.1-q*h*.25+dy,h*.05,Math.sin(q*Math.PI));}return;}
  const gt=top+h*(v==='faint'?.06:.04);gloom(c,FEET[0]-h*.05+dx,gt-h*.02,h,v==='faint'?.85:.6,t,red);
  if(v==='low'&&!walk&&!red&&u>.45&&u<.9){const q=(u-.45)/.45;sigh(c,FEET[0]+h*mouth[0],FEET[1]-h*mouth[1]-q*h*.05,h,Math.sin(q*Math.PI),.8+.5*q);}

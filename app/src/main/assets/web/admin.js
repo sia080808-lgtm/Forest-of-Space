@@ -39,7 +39,7 @@ function climate(F,s,id){const E=F.Environment;E.init(s);if(!E.CLIMATES[id])thro
 function level(F,s,who,lv){if(!Number.isInteger(lv)||lv<1||lv>F.LEVELS.length)throw Error('레벨을 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');for(const p of list){p.xp=F.LEVELS[lv-1];p.growthSeconds=0;}return (who==='all'?'정원 친구 모두':list[0].name)+' 레벨을 '+ro(lv)+' 맞췄어요.';}
 function resetLevels(F,s){for(const p of s.individuals){p.xp=0;p.growthSeconds=0;}return '모든 친구의 레벨을 1로 되돌렸어요. 성장 경험도 0이에요.';}
 function stats(F,s,who,key){const st=STATS[key];if(!st)throw Error('상태를 고를 수 없어요.');const list=pick(F,s,who);if(!list.length)throw Error('친구를 찾지 못했어요.');
- for(const p of list){for(const [k,v]of Object.entries(st[1])){if(k==='B')water(s,p,v);else if(k==='Q')root(s,p,v);else p[k]=clamp(v);}if(key==='full'){p.wetRecovery=false;p.leafRecovery=false;delete p.sleepHere;delete p.braceHere;}if('energy' in st[1])p.mood=p.energy;p.moodSync=p.mood;if(key!=='hurt')p.damageSync=p.damage;p.nextObjectChoice=s.worldTick;}
+ for(const p of list){for(const [k,v]of Object.entries(st[1])){if(k==='B')water(s,p,v);else if(k==='Q')root(s,p,v);else p[k]=clamp(v);}if(key==='full'){p.wetRecovery=false;p.leafRecovery=false;delete p.tornLeaves;delete p.sleepHere;delete p.braceHere;}if('energy' in st[1])p.mood=p.energy;p.moodSync=p.mood;if(key!=='hurt')p.damageSync=p.damage;p.nextObjectChoice=s.worldTick;}
  return (who==='all'?'정원 친구 모두':list[0].name)+' 상태를 '+st[0]+' 했어요.';}
 function summon(F,s,species){const R=F.Recruitment;R.init(s);if(!R.ids.includes(species)||R.retired.includes(species))throw Error('부를 수 없는 친구예요.');if(s.individuals.some(p=>p.species===species))throw Error('이미 함께 사는 친구예요.');s.recruitment.visitor=null;R.arrive(s,species,F.personality,F.event);return R.josa(R.names[R.ids.indexOf(species)],'이','가')+' 숲 입구에 찾아왔어요.';}
 function welcome(F,s,species){summon(F,s,species);const v=s.recruitment.visitor;v.ready=true;const p=F.Recruitment.settle(s,F.event);p.active=true;return F.Recruitment.josa(p.name,'이','가')+' 바로 정원에 들어왔어요.';}
@@ -109,6 +109,7 @@ function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 �
 const ACTIONS=Object.freeze({skillShow,time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,floorLeaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
 const MOTIONS=Object.freeze({
+ leafCondition:'잎 상태 보기',repose:'잠깐 쉬고 가',
  appearance:'모습 보기',walk:'함께 산책',dance:'빙글빙글 춤추기',chat:'느티나무 아래 수다',fish:'수양버들 아래 송사리 보기',
  spore:'포자낭 맺히기',perch:'나무 착생과 수태 이불',willowPerch:'수양버들 착생',generation:'포자 채집·심기와 2세',swim:'마리아와 함께 수영'
 });
@@ -157,6 +158,29 @@ function motionPreview(F,kind,species,reducedMotion=false){
  Object.assign(p,spot,{id:'preview-a',species,name,xp:150,visualStage:3,B:60,nutrition:65,energy:75,
   motion:null,action:'wander',target:null,actionSeconds:0,objectTask:null,stroll:null,
   nextObjectChoice:perch?0:s.worldTick+60,shelter:{phase:'outside',since:0}});
+ if(kind==='leafCondition'){
+  const states=[['정상',60,60,0],['수분 부족',12,60,0],['영양 부족',60,12,0],['잎손상',60,60,8]];
+  let i=0;
+  return {state:s,kind,species,point:spot,time:0,
+   update(dt){this.time+=dt;},status(){return states[i][0];},
+   nextLabel(){return states[(i+1)%states.length][0]+' 보기';},
+   next(){i=(i+1)%states.length;const [,B,nutrition,damage]=states[i];Object.assign(p,{B,nutrition,damage});}
+  };
+ }
+ if(kind==='repose'){
+  if(species!=='dico')throw Error('디코의 스킬이에요.');
+  const S=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
+  const friend={...F.clone(p),id:'preview-rest-friend',species:'ridley',name:'리들리',
+   x:p.x+.08,energy:35,mood:35,moodSync:35,action:'rest',restSelf:true};
+  s.individuals.push(friend);S.startRepose(s,p,null,new Set(),true);
+  let elapsed=0,done=false;
+  return {state:s,kind,species,point:spot,time:0,
+   update(dt){this.time+=dt;elapsed+=dt;while(elapsed>=1&&!done){elapsed--;s.worldTick++;
+    p.motion=S.act(s,p)||{kind:'idle',distance:0};friend.motion={kind:'rest',distance:0};done=!p.skill;}},
+   status(){return done?'리들리 기운 35% → 55%':'디코가 곁에서 쉬고 있어요 · 기운 35%';},
+   nextLabel(){return '';},next(){}
+  };
+ }
  if(kind==='appearance')return {state:s,kind,species,point:spot,time:0,
   update(dt){this.time+=dt;},
   status(){return (p.visualStage===0?'어린 ':'성체 ')+name;},

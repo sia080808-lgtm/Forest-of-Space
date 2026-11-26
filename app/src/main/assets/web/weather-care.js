@@ -4,6 +4,7 @@ const Trees=typeof module==='object'?require('./trees.js'):globalThis.ForestTree
 const Sh=typeof module==='object'?require('./shelter.js'):globalThis.ForestShelter;
 const Obj=()=>typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const trait=p=>(typeof module==='object'?require('./traits.js'):globalThis.ForestTraits).ofPet(p);
 // 1.1.3: 엘레판's umbrella numbers grow with its level (skills.js LEVEL.umbrella); Lv1 = 50% rain, 40% wind, wind 70
 const U=h=>(typeof module==='object'?require('./skills.js'):globalThis.ForestSkills)?.umbrella?.(h)||{rain:.5,wind:.4,limit:70};
@@ -28,7 +29,8 @@ function physiology(s,p,{safeCare=false}={}){const r=Math.max(p.Q*5,p.B),   /* S
  if(p.wetRecovery&&p.burden<30&&r<60)p.wetRecovery=false;
  if(p.damage>=30)p.leafRecovery=true;if(p.leafRecovery&&p.damage<20)p.leafRecovery=false;
  const a=wind(s,p),before=counters(s,p,a);let damage=0;
- if(!safeCare&&s.worldTick>600&&a>=60&&before>=10){damage=Math.min(4,1+3*(a-60)/40)/60*trait(p).wind*trait(p).leaf;p.damage=clamp(p.damage+damage);}
+ if(!safeCare&&s.worldTick>600&&a>=60&&before>=10){damage=Math.min(9,4+(a-60)/3)/60*trait(p).leaf;p.damage=clamp(p.damage+damage);}
+ Leaf.update(p);
  const rain=((typeof module==='object'?require('./environment.js'):globalThis.ForestEnvironment).precipitation(s,'rain')>0)?s.weather.intensity/100*(1-rainCover(s,p)):0;
  p.wetFilm=clamp(p.wetFilm+(rain>0?.012*rain:-.003),0,1);
  p.weatherExposure={wind:a,rain,damage,protectedBy:host(s,p)?.id||null};

@@ -5,7 +5,7 @@ const josa=(w,a,b)=>{const c=String(w).charCodeAt(String(w).length-1)-0xac00;ret
 const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNeolbi;
 const Motion=typeof module==='object'?require('./neolbi-motion.js'):globalThis.ForestNeolbiMotion;
 const W=typeof module==='object'?require('./weather-care.js'):globalThis.ForestWeatherCare;
-const supported=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum','maria'],R=.13;
+const supported=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum','maria','dico'],R=.13;
 function init(s){W.init(s);s.social??={version:1,serial:0,sessions:[],cooldowns:{},observations:{}};for(const p of s.individuals)p.sources??={rain:0,other:0,unknown:p.V};return s;}
 function credit(p,n,source){const amount=Math.max(0,Math.min(n,SH(p).nest-p.V));p.sources[source]+=amount;p.V+=amount;return amount;}
 function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const k of ['rain','other','unknown']){parts[k]=p.V>0?p.sources[k]*amount/p.V:0;p.sources[k]=Math.max(0,p.sources[k]-parts[k]);}p.V=Math.max(0,p.V-amount);return {amount,parts};}

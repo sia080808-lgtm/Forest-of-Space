@@ -85,7 +85,20 @@ win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume(
 {
  adminPanel('motion');
  const panel=win.document.getElementById('admin-panel'),before=JSON.stringify(getState()),stored=JSON.stringify(saved);
- assert.equal(panel.querySelectorAll('[data-action="admin-motion-species"]').length,F.SPECIES.length);
+ assert.equal(panel.querySelectorAll('[data-action="admin-motion-species"]').length,F.SPECIES.filter(([id])=>!F.Recruitment.retired.includes(id)).length);
+ assert.equal(panel.querySelector('[data-action="admin-motion-species"][data-id="duri"]'),null);
+ click('[data-action="admin-motion-species"][data-id="dico"]');
+ click('[data-action="admin-motion-play"][data-id="leafCondition"]');
+ for(const label of ['수분 부족','영양 부족','잎손상','정상']){
+  click('[data-action="admin-motion-next"]');
+  assert.equal(scene.inspector.status(),label);
+ }
+ assert.equal(win.RidleyApp.back(),true);
+ click('[data-action="admin-motion-play"][data-id="repose"]');
+ scene.inspector.update(20.5);
+ assert.match(scene.inspector.status(),/35% → 55%/);
+ assert.equal(scene.inspector.state.individuals[1].energy,55);
+ assert.equal(win.RidleyApp.back(),true);
  assert.ok(panel.querySelector('[data-action="admin-motion-species"][data-id="maria"]'));
  assert.ok(panel.querySelector('[data-action="admin-motion-play"][data-id="swim"]'));
  click('[data-action="admin-motion-species"][data-id="jureong"]');

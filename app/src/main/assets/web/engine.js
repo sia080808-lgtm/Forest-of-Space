@@ -19,6 +19,7 @@ const Swim=typeof module==='object'?require('./shore-swim.js'):globalThis.Forest
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 // SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
+const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const NUTR_USE=.08/60;
 const VERSION='1.2.23', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
@@ -30,7 +31,7 @@ const PATCHES=[
  {id:'shelter',name:'기본 쉼터',cap:10,pool:6,infiltration:6,drain:3,exposure:.1,x:.23,y:.22},
  {id:'litter',name:'낙엽 자리',cap:30,pool:10,infiltration:8,drain:1.5,exposure:.8,x:.54,y:.83}
 ];
-const SPECIES=[['ridley','리들리','Platycerium ridleyi','호기심 많은 작은 관찰자'],['bonbon','엘리시','Platycerium ellisii','둥근 잎틈에 작은 이웃이 머물 자리를 내어줘요'],['neolbi','엘레판','Platycerium elephantotis','큰 잎 아래 그늘을 만들어요'],['bosong','베이치','Platycerium veitchii','마른 날 물이 있는 곳을 찾아요'],['jureong','코로나','Platycerium coronarium','바람에 날린 낙엽을 모아요'],['duri','두리','Platycerium bifurcatum','친구와 나란히 쉬는 걸 좋아해요'],['superbum','슈퍼범','Platycerium superbum','둥지잎에 빗물을 모아 목마른 친구에게 나눠줘요'],['maria','마리아','Platycerium stemaria','새침한 호숫가 친구. 먼저 물에 들어가고는 친구가 따라오는지 슬쩍 돌아봐요.']];
+const SPECIES=[['ridley','리들리','Platycerium ridleyi','호기심 많은 작은 관찰자'],['bonbon','엘리시','Platycerium ellisii','둥근 잎틈에 작은 이웃이 머물 자리를 내어줘요'],['neolbi','엘레판','Platycerium elephantotis','큰 잎 아래 그늘을 만들어요'],['bosong','베이치','Platycerium veitchii','마른 날 물이 있는 곳을 찾아요'],['jureong','코로나','Platycerium coronarium','바람에 날린 낙엽을 모아요'],['duri','두리','Platycerium bifurcatum','친구와 나란히 쉬는 걸 좋아해요'],['superbum','슈퍼범','Platycerium superbum','둥지잎에 빗물을 모아 목마른 친구에게 나눠줘요'],['maria','마리아','Platycerium stemaria','새침한 호숫가 친구. 먼저 물에 들어가고는 친구가 따라오는지 슬쩍 돌아봐요.'],['dico','디코','Platycerium quadridichotomum','힘이 빠진 친구 곁에서 조용히 함께 쉬어요.']];
 const clone=x=>JSON.parse(JSON.stringify(x));
 const clamp=(v,min=0,max=100)=>Math.max(min,Math.min(max,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -126,7 +127,7 @@ function step(s,{visible=true,held=null}={}){
   if(participants.has(p.id)){p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}
   if(p.mounted){p.motion.kind='rest';if(p.energy<75)p.energy=Math.min(75,p.energy+4/60);continue;}
   // SRS v2.36 고유 스킬: a friend busy with its skill (or held still while its leaves are brushed) spends the tick on it
-  {const sm=Skills.act(s,p,{event,discovery,visible});if(sm){Object.assign(p.motion,sm);if(sm.distance>0)p.energy=clamp(p.energy-1/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
+  {const sm=Skills.act(s,p,{event,discovery,visible,held,busy});if(sm){Object.assign(p.motion,sm);if(sm.distance>0)p.energy=clamp(p.energy-1/60);p.nutrition=clamp(p.nutrition-NUTR_USE);continue;}}
   // 슈퍼범 is too large for most rest spots: when tired and nothing else holds it (no object task, no shelter request
   // or seat), it folds its nest frond and rests where it stands (1.5/min up to 75), like other friends on a rest spot.
   // 0.9.5 (user: "오브젝트로 가는 길을 찾고 있는 버그"): a friend with nowhere to sleep at night or to shelter from the rain
@@ -151,7 +152,9 @@ function step(s,{visible=true,held=null}={}){
   p.nutrition=clamp(p.nutrition-NUTR_USE);
   const resting=Obj.receive(s,p,requests);
   Obj.rootRequests(s,p,requests);
-  if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage)p.damage=clamp(p.damage-1/60);
+  if(resting&&p.B>=40&&p.energy>=40&&p.nutrition>=40&&p.burden<40&&!weatherDamage){
+   p.damage=clamp(p.damage-(inside?2:1)/60);Leaf.update(p);
+  }
   if(!p.objectTask&&p.action==='groom'){p.motion.kind='groom';const was=p.actionSeconds;p.actionSeconds=Math.max(0,p.actionSeconds-1);if(was>0&&p.actionSeconds===0)Skills.selfBrush(s,p,{event});}
   if(p.species==='neolbi'&&p.action==='groom'&&p.actionSeconds===7)Motion.start(s,'PE05',{parent:'A02',ids:[p.id],session:p.id+':groom:'+s.worldTick,valid:true,visible,carrying:false});
   if(p.personalityClip&&(!Motion.active(s,p)||held===p.id||p.motion.distance>0||p.action!=='groom'&&p.personalityClip.parent==='A02'))delete p.personalityClip;
@@ -361,6 +364,7 @@ function valid(s){
  for(const p of s.individuals){if(typeof p.id!=='string'||!/^[-A-Za-z0-9_]{1,100}$/.test(p.id)||typeof p.name!=='string'||p.name.length>40||!Social.supported.includes(p.species)||typeof p.active!=='boolean'||typeof p.mounted!=='boolean'||typeof p.drinkCycle!=='boolean'||!['wander','drink','rest','groom','feed','play'].includes(p.action)||!finite(p.x,wb.x0,wb.x1)||!finite(p.y,wb.y0,wb.y1)||!finite(p.actionSeconds,-10,1000)||!finite(p.wetSeconds)||!p.first)throw Error('친구 기록을 확인해 주세요.');
   if(p.target!==null&&p.target!=='spring'&&!PATCHES.some(z=>z.id===p.target)&&!((Obj.isCopy(p.target)||Obj.isPile(p.target))&&Obj.patch(s,p.target)))throw Error('이동 목적지가 올바르지 않아요.');
   for(const k of ['B','energy','mood','nutrition','damage','burden'])if(!finite(p[k],0,100))throw Error('생활 상태가 범위를 벗어났어요.');
+  if(p.tornLeaves!==undefined&&typeof p.tornLeaves!=='boolean')throw Error('잎손상 외형 기록을 확인해 주세요.');
   if(p.next_personality_tick!==undefined&&!finite(p.next_personality_tick))throw Error('성격 연출 대기 기록을 확인해 주세요.');
   if(!finite(p.Q,0,20)||!finite(p.V,0,50)||!finite(p.xp,0,150)||!finite(p.growthSeconds,0,360)||!p.personality||['a','c','e'].some(k=>![-1,0,1].includes(p.personality[k])))throw Error('성장 또는 성격 기록을 확인해 주세요.');
  }

@@ -5,6 +5,7 @@
 // Layers share one 480x420 canvas, feet on the ground at ANCHOR. No arms: the pendant antler leaves (skirt) are the limbs.
 const SIZE=1.7,ANCHOR=[240,404],HEIGHT=382,RIDLEY_H=38.5;
 const HUDDLE={crown:.15,lift:10,skirt:-.15};
+const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const LAYERS=['body','foot-left','foot-right','skirt-left','skirt-right','crown'];
 const files={};for(const st of ['dry','wet'])for(const k of LAYERS)files['superbum_'+st+'_'+k]='assets/forest/species/superbum-'+st+'-'+k+'.png';
 const META={
@@ -80,7 +81,10 @@ function bodyPose(c,p,sit){
  c.translate(...ANCHOR);c.rotate(p.tilt);c.scale(1/Math.sqrt(p.squash),p.squash);c.translate(-ANCHOR[0],-ANCHOR[1]);
 }
 function drawSet(c,a,set,p,opt,t,part){
- const m=META[set],L=k=>a['superbum_'+set+'_'+k],snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
+ const m=META[set],L=k=>{
+  const im=a['superbum_'+set+'_'+k];
+  return k==='crown'||k.startsWith('skirt')?Leaf.texture(im,k==='crown'?'superbumCrown':k,opt.leafState):im;
+ },snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
  const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // The pendant leaves hang from the cheeks: their top stays attached and only the lower part swings (drawn in thin
  // horizontal strips, each shifted more the further it hangs), so a leaf bends instead of coming apart from the face.
@@ -91,7 +95,7 @@ function drawSet(c,a,set,p,opt,t,part){
   if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  const bentLive=bend;
  const bendCached=(k,py,ang,lift,snowy)=>{const im=L(k);if(!im)return;if(Math.abs(ang)<1e-4&&Math.abs(lift)<1e-4||Math.abs(ang)>BAKE_SMALL||Math.abs(lift)>BAKE_SMALL)return bentLive(k,py,ang,lift,snowy);
-  const T=c.getTransform(),scale=Math.min(1,Math.ceil(Math.hypot(T.a,T.b)*1.25*4)/4)||1,qa=Math.round(ang/BAKE_STEP)*BAKE_STEP,ql=Math.round(lift/BAKE_STEP)*BAKE_STEP,key=set+k+'|'+qa.toFixed(3)+'|'+ql.toFixed(3)+'|'+scale;
+  const T=c.getTransform(),scale=Math.min(1,Math.ceil(Math.hypot(T.a,T.b)*1.25*4)/4)||1,qa=Math.round(ang/BAKE_STEP)*BAKE_STEP,ql=Math.round(lift/BAKE_STEP)*BAKE_STEP,key=set+k+'|'+(opt.leafState||0)+'|'+qa.toFixed(3)+'|'+ql.toFixed(3)+'|'+scale;
   let cv=bakes.get(key);if(cv){bakes.delete(key);bakes.set(key,cv);}
   else{cv=makeCanvas(Math.ceil(560*scale),Math.ceil(460*scale));const o=cv.getContext('2d');o.scale(scale,scale);o.translate(40,20);const keep=c;c=o;try{bentLive(k,py,qa,ql,false);}finally{c=keep;}bakes.set(key,cv);if(bakes.size>BAKE_MAX)bakes.delete(bakes.keys().next().value);}
   c.drawImage(cv,-40,-20,560,460);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
