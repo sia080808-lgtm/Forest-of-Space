@@ -229,11 +229,22 @@ console.log('PASS: small-neighbour guide shows pictures for met neighbours and t
  run(['time','night']);assert.ok(getState().worldTick>t0);assert.equal(((saved.worldTick%1200)+1200)%1200,1000);
  click('[data-tab-id="weather"]');run(['weather','rain']);assert.equal(getState().weather.kind==='rain'||getState().weather.kind==='snow',true);
  click('[data-tab-id="friend"]');const id=getState().individuals.find(p=>p.active).id;win.__qa.scene.onSelect('pet',id);assert.ok(panel.querySelector('[data-admin-set="B"]'),'friend sliders');
+ const damaged=getState().individuals.find(p=>p.id===id),oldDamage=damaged.damage;
+ damaged.damage=6.29;win.__qa.update();
+ assert.equal(panel.querySelector('[data-admin-leaf-damage]').textContent,'잎 손상 6.2 / 100');
+ damaged.damage=oldDamage;win.__qa.update();
  const sl=panel.querySelector('[data-admin-set="B"]');sl.value='80';sl.dispatchEvent(new win.Event('change',{bubbles:true}));assert.equal(saved.individuals.find(p=>p.id===id).B,80);
  run(['resetLevels']);assert.ok(win.document.querySelector('.dialog'),'reset asks first');[...win.document.querySelectorAll('.dialog button')].find(b=>b.textContent==='하기').click();assert.ok(saved.individuals.every(p=>p.xp===0));
  click('[data-action="admin-speed"][data-v="0"]');click('[data-action="admin-speed"][data-v="1"]');
  assert.equal(win.RidleyApp.back(),true);assert.equal(panel.hidden,true,'back closes the panel');
- click('#settings');click('[data-action="admin-mode"]');assert.equal(win.document.getElementById('admin-tool').hidden,true);click('[data-tab="world"]');}
+ click('#settings');click('[data-action="admin-mode"]');assert.equal(win.document.getElementById('admin-tool').hidden,true);click('[data-tab="world"]');
+ const pet=getState().individuals.find(p=>p.id===id),damage=pet.damage;
+ pet.damage=5.85;win.__qa.scene.onSelect('pet',id);
+ const meter='progress[aria-label="잎 손상 · 찢어짐"]';
+ assert.equal(win.document.querySelector('#select-card '+meter).getAttribute('value'),'5.85');
+ click('#select-card [data-action="detail"]');
+ assert.match(win.document.querySelector('#page '+meter).parentElement.textContent,/5.8 \/ 100/);
+ pet.damage=damage;click('[data-tab="world"]');}
 {
  const st=getState();
  if(!F.World.lakeOpen(st))F.World.openLake(st);

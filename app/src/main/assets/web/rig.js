@@ -54,10 +54,10 @@ function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,w
  c.restore();
 }
 function drawDico(c,image,opt){
- const {kind,phase,reduced,expression,cover,sit,leafState}=opt;
+ const {kind,phase,reduced,expression,cover,sit,leafState,young}=opt;
  const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.025;
  const w=image.width,h=image.height,cx=w*.5,feet=h*.96,scale=1.79*520/h;
- const im=Leaf.texture(image,'dico',leafState),xscale=im.width/w,yscale=im.height/h;
+ const im=Leaf.texture(image,young?'dicoYoung':'dico',leafState),xscale=im.width/w,yscale=im.height/h;
  const paint=(x,y,sw,sh,dx=x,dy=y)=>c.drawImage(image,x,y,sw,sh,dx,dy,sw,sh);
  const knee=h*.915;
  c.save();c.translate(627,1065.9);c.scale(scale,scale);c.translate(-cx,-feet);
@@ -80,7 +80,7 @@ function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha
   c.save();c.setTransform(origin);bodyCover(c);c.restore();
  });
  if(species==='maria'&&assets.maria)return drawMaria(c,assets.maria,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm,leafState});
- if(species==='dico'&&assets.dico)return drawDico(c,young&&assets.dicoYoung||assets.dico,{kind,phase,reduced,expression,cover,sit,leafState});
+ if(species==='dico'&&assets.dico)return drawDico(c,young&&assets.dicoYoung||assets.dico,{kind,phase,reduced,expression,cover,sit,leafState,young:young&&!!assets.dicoYoung});
  if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop,cover,crownSprout,leafState});
  if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop,cover,leafState});
  if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop,cover,crownSprout,leafState}))return;
