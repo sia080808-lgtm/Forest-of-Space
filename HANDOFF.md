@@ -1105,3 +1105,14 @@
 정상 완료 때 공통 적립 함수를 호출한다. 야간·갈증·배고픔·피로·비·집기·배치 변경·시계 점프·길 막힘은 보상 없이 해제한다.
 검증은 관련 자동 검사 48개, DOM UI 검사, 실제 엔진과 scene.js 렌더의 원형 이동·종료 확인. 7종 참여·저장 복원·공유 한도·막힌 원 경로도 검사했다.
 Android 실기기 프레임률과 설치는 미검증. 전체 장시간 시뮬레이션 검사는 별도로 실행 중이며 통과로 간주하지 않는다.
+
+
+---
+
+## 2026-11-27 · 디코 유년기·성체 이동 방향
+
+- 작업 ID: DICO-WALKING-DIRECTION. 정면 리그의 좌우 미러링을 유지하며, 디코가 걷는 방향을 두 성장 단계 모두 알아보기 쉽게 표시했다.
+- 브랜치: [fix/dico-walking-direction](https://github.com/sia080808-lgtm/Forest-of-Space/tree/fix/dico-walking-direction). 기준 `2f424f4568b1c16975616b2d5f3e2f36cdb58f6b`, [기능 커밋](https://github.com/sia080808-lgtm/Forest-of-Space/commit/a3a4e7698e96ecf8e2a98db3abbddf2a88551337).
+- `rig.js`는 유년기·성체의 오른쪽 보행 포즈에서 눈·입 위치와 몸 기울기를 조정한다. `scene.js`는 디코가 실제로 통과 중인 길 구간의 방향을 사용한다. 원본 그림과 레이어 분리는 유지했다.
+- 검증: 렌더·리그·유년기 검사 22개와 `npm run test:ui` 통과. Chromium에서 두 성장 단계가 오른쪽으로 걷다가 구간이 꺾일 때 왼쪽을 향하는 것을 확인했다.
+- 다음 단계: PR 검토 뒤 병합과 APK 릴리즈. Android 실기기 확인 대기.
