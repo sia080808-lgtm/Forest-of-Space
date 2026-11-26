@@ -1,3 +1,13 @@
+# 2026-11-27 · 친구 카드 온도와 손상 표시
+
+- 작업 ID: FRIEND-CARD-TEMPERATURE. 승인된 시안대로 왼쪽은 기운·손상·성장, 오른쪽은 수분·영양·온도로 배치했다.
+- 브랜치: [feat/friend-card-temperature](https://github.com/sia080808-lgtm/Forest-of-Space/tree/feat/friend-card-temperature). 기준 `2f424f4568b1c16975616b2d5f3e2f36cdb58f6b`, [기능 커밋](https://github.com/sia080808-lgtm/Forest-of-Space/commit/482e4eb592f511b8d0cdb9afe0a84e90d929d9ae).
+- `forest-app.js`, `forest.css`, `vitals.js`: 손상은 100에서 줄어드는 방향으로 표시한다. 월드 상단에 바깥 기온을, 친구 카드에는 현재 위치의 온도 구간을 표시한다. 현재 추위·보호 판정을 재사용하며 더움 표시는 안내용이다. 저장·행동 규칙은 유지한다.
+- 검증: `npm test` 492개 통과, `npm run test:ui` 통과. Chromium 320·360·390·430px에서 카드 두 열의 정렬과 값 겹침을 확인했다.
+- 다음 단계: PR 검토 뒤 병합과 APK 릴리즈. Android 실기기 확인 대기.
+
+---
+
 # 2026-11-23 · 계절별 호수 방문과 친구 행동 카드
 
 현재 작업은 `fix/seasonal-lake-visits`에서 검토한다. 기준은 1.2.19의 PR #93 병합본 `cbfe13b`이다. 아래쪽 같은 날짜의 기록에 재현 조건과 검증 결과를 남겼다. [기능 커밋](https://github.com/sia080808-lgtm/Forest-of-Space/commit/806cc859910229f18f297e034191d72c5b3514cb)
