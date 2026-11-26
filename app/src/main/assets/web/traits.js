@@ -14,12 +14,13 @@ const HEX=Object.freeze({
  bosong:  {water:1,sun:5,leaf:3,pest:3,cold:3,nutr:3},
  jureong: {water:5,sun:2,leaf:3,pest:2,cold:1,nutr:5},
  superbum:{water:5,sun:3,leaf:2,pest:1,cold:5,nutr:2},
- duri:    {water:3,sun:3,leaf:3,pest:3,cold:3,nutr:3}});
+ duri:    {water:3,sun:3,leaf:3,pest:3,cold:3,nutr:3},
+ maria:   {water:5,sun:3,leaf:2,pest:3,cold:2,nutr:3}});
 const WEAK=[1.4,1.2,1,.8,.6],GAIN=[.6,.8,1,1.2,1.4],COLD=[-2,-1.5,-1,-.5,0];
 // favourite light (the sun stat): photosynthesis is best inside this band
 const LIGHT=[[25,55],[30,60],[40,70],[45,80],[50,85]];
 // rain liking stays apart from the six stats (likes rain = energy +/min while it rains on the friend)
-const RAIN=Object.freeze({ridley:1,bonbon:.5,neolbi:0,bosong:-.5,jureong:1.5,superbum:1,duri:.5});
+const RAIN=Object.freeze({ridley:1,bonbon:.5,neolbi:0,bosong:-.5,jureong:1.5,superbum:1,duri:.5,maria:0});
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 function level(xp){let n=1;LEVELS.forEach((x,i)=>{if((xp||0)>=x)n=i+1;});return n;}
 function hex(species,lv=1){const h={...(HEX[species]||HEX.duri)};for(const at of [3,6,9])if(lv>=at){const k=KEYS.reduce((a,b)=>h[b]<h[a]?b:a,KEYS[0]);if(h[k]<5)h[k]++;}return h;}
@@ -37,6 +38,7 @@ const TEXT={
  bosong:{good:['은빛 털이 강한 볕을 막아 줘요'],bad:['건조한 곳 출신이라 과습에 약해요 · 이끼에서 천천히 물을 마셔요']},
  jureong:{good:['물에 강하고 과습이 잘 안 와요','물과 거름을 아주 잘 빨아들여요'],bad:['추위에 가장 약해요','강한 볕과 벌레에 약해요']},
  superbum:{good:['둥지잎으로 빗물을 모아요 · 물에 강해요','추위에 강해요'],bad:['넓은 잎이 바람을 받아요','둥지잎 안쪽에 깍지벌레가 숨어요','몸이 커서 영양이 많이 들어요']},
+ maria:{good:['물에 강하고 호숫가의 은은한 볕을 좋아해요','친구 한 명과 헤엄쳐 각자 적정 상한까지 수분을 채워요'],bad:['넓은 잎이 강풍에 약하고 추위를 타요']},
  duri:{good:['무난하고 튼튼해요'],bad:['특별히 약한 곳은 없어요']}};
 function text(species){return TEXT[species]||{good:[],bad:[]};}
 return Object.freeze({KEYS,NAMES,HEX,WEAK,GAIN,COLD,LIGHT,RAIN,LEVELS,level,hex,of,ofPet,TANK_MOOD,TANK_MOOD_MAX,TEXT,text});

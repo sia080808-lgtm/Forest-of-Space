@@ -57,7 +57,7 @@ function offerCrossing(s,p,rng){
 // Use the same needs and warmth thresholds as ordinary object selection.
 function canRide(s,p,held){
  const objects=dep('objects','ForestObjects');
- if(!p.active||p.mounted||p.id===held||p.skill||p.skillHold||p.objectTask||
+ if(!p.active||p.mounted||p.id===held||s.world?.lake?.swim?.ids.includes(p.id)||p.skill||p.skillHold||p.objectTask||
     p.shelter?.facilityId||p.shelterRequest||p.sleepHere||p.braceHere||p.restSelf||
     p.settleUntil>=s.worldTick||p.guideTo?.until>s.worldTick||p.wetRecovery||
     p.leafRecovery||p.damage>=10||p.burden>=40||p.B>vitals().band(p).hi||
@@ -145,7 +145,7 @@ function step(s,held,rng){
    for(const group of [leaf.mite,leaf.mealy])if(group)group.density=Math.max(0,group.density-2);}
   return;
  }
- if(!calm(s))return;
+ if(!calm(s)||lake.swim)return;
  if(b.drift){
   const d=b.drift,t=Math.min(1,(s.worldTick-d.start)/60);
   b.x=d.x+(d.to.x-d.x)*t;b.y=d.y+(d.to.y-d.y)*t;

@@ -7,12 +7,12 @@ const MIST_PARTS=Object.freeze([[-1,0,.9],[1,.15,1],[0,-.25,.7],[-.6,.3,.6],[.6,
 const PERCH_COVER=Object.freeze({
  ridley:[-17,-14,35,24],bonbon:[-15,-19,32,29],bosong:[-11,-12,23,21],
  duri:[-15,-14,31,24],jureong:[-23,-13,48,23],neolbi:[-25,-22,51,34],
- superbum:[-21,-23,43,37]
+ superbum:[-21,-23,43,37],maria:[-15,-16,31,25]
 });
 // Crown root x, y and stalk height, in fractions of the standard rig.
 const SPORE_SAC_CROWN=Object.freeze({
  ridley:[.025,-.41,.39],bonbon:[.045,-.42,.37],bosong:[0,-.44,.48],duri:[0,-.42,.46],
- jureong:[0,0,.48],neolbi:[.02,-.67,.42],superbum:[0,-.89,.48]
+ jureong:[0,0,.48],neolbi:[.02,-.67,.42],superbum:[0,-.89,.48],maria:[.02,-.53,.46]
 });
 // Loose canopy washes in the same warm ink as the roots.
 const TREE_SHADOWS=Object.freeze({
@@ -402,9 +402,51 @@ class ForestScene {
   }
   if(shelf.flip)c.restore();
  }
- pet(p,pos,kind,phase,night,held=false,sphagnum=0){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
+ swimPet(p,pose,phase,night){
+  const c=this.ctx,s=this.state(),x=pose.x*this.w,y=pose.y*this.h,size=this.petSize(p);
+  const face=pose.face;
+  this.facing[p.id]=face;
+  if(!pose.depth){
+   this.pet(p,pose,pose.shake&&!s.settings.reducedMotion?'groom':'idle',phase,night);
+   if(pose.shake&&!s.settings.reducedMotion){
+    c.save();c.globalAlpha=(1-pose.shake)*.7;c.fillStyle='#9ec4c7';
+    for(const side of [-1,1]){
+     c.beginPath();c.ellipse(x+side*size*(.26+pose.shake*.22),y-size*(.35+pose.shake*.25),1,1.8,side*.25,0,Math.PI*2);c.fill();
+    }
+    c.restore();
+   }
+   return;
+  }
+  const still=s.settings.reducedMotion;
+  const phaseOffset=pose.i*.35;
+  const beat=still?0:Math.sin((phase+phaseOffset)*11);
+  const depth=size*(p.species==='maria'?.22:.17)*pose.depth;
+  // The wake trails the direction of travel. The swaying body itself is drawn once.
+  c.save();c.translate(x,y);c.rotate(Math.atan2(pose.dy*this.h,pose.dx*this.w));
+  if(pose.speed>.02){
+   const age=still?.2:((phase+phaseOffset)*.85)%1;
+   c.globalAlpha=pose.depth*(.75-age*.33);c.strokeStyle='#e9f4eb';c.lineWidth=.9;
+   const tail=size*(.26+.29*age),spread=size*(.08+.12*age);
+   c.beginPath();
+   c.moveTo(-tail,spread);c.quadraticCurveTo(-tail*.53,spread*.25,-tail*.25,1.4);
+   c.moveTo(-tail*.25,-1.4);c.quadraticCurveTo(-tail*.53,-spread*.25,-tail,-spread);
+   c.stroke();
+  }
+  c.restore();
+  c.save();c.globalAlpha=.21*pose.depth;c.fillStyle='#547f84';c.beginPath();
+  c.ellipse(x-face*(3+beat),y+2,size*.24,size*.063,0,0,Math.PI*2);c.fill();
+  c.restore();
+  c.save();c.beginPath();
+  c.rect(x-size*1.5,y-size*1.8,size*3,size*1.8+1);c.clip();
+  this.pet(p,{x:pose.x,y:pose.y+(depth+beat*.55)/this.h},pose.glance?'sniff':'walk',phase+phaseOffset,night,false,0,true);
+  c.restore();
+  c.save();c.globalAlpha=pose.depth*.76;c.strokeStyle='#eaf5ee';c.lineWidth=.85;c.beginPath();
+  c.moveTo(x-size*.31,y);c.quadraticCurveTo(x,y+3,x+size*.31,y);c.stroke();c.restore();
+ }
+
+ pet(p,pos,kind,phase,night,held=false,sphagnum=0,swimming=false){const c=this.ctx,s=this.state(),level=Forest.level(p),growth=Forest.Shelter.growth(p),size=48*growth,x=pos.x*this.w,y=pos.y*this.h;
   const moving=['walk','slow','hurry','run','duck','step','avoid'].includes(kind),reduced=s.settings.reducedMotion,beat=phase*(kind==='run'?16:kind==='hurry'?12:kind==='slow'?6:9),stride=moving&&!reduced?Math.sin(beat):0;
-  if(!held)ForestSurfaces.wash(c,x,y,9*growth,2*growth,'68,61,42',.20,1);
+  if(!held&&!swimming)ForestSurfaces.wash(c,x,y,9*growth,2*growth,'68,61,42',.20,1);
   c.save();c.translate(x,y);
   if(p.stroll?.gliding&&moving&&!held&&!reduced){c.rotate(.065*Math.sin(phase*3));}
   const ride=!held&&this.lilyRidePose(p);
@@ -418,7 +460,7 @@ class ForestScene {
   }
   if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}   /* 0.8.7: smelling the grass, leaning forward; (user "킁킁 할 때 살짝 까닥") every 1.1 s three quick little nods (킁킁킁), then a pause */c.scale(ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:this.facing?.[p.id]||1),1);   /* 0.8.7 (user: "왼쪽으로 갈 땐 왼쪽 보고 오른쪽으로 갈 땐 오른쪽"): 엘레판 also faces where it walks, except while its leaf umbrella is open or closing (the friends' seats under it are on its right) */const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
   const heldAge=held?Math.max(0,this.inspector?phase%3:phase-(this.carry?.phaseStart??phase)):0,wriggleAge=heldAge-.2,wiggle=held&&!reduced&&wriggleAge>=0&&wriggleAge<.8?Math.sin(wriggleAge*Math.PI*5)*Math.sin(wriggleAge*Math.PI/.8):0;
-  const context=held?null:Forest.Space.context(s,pos);if(moving&&!reduced){if(context==='duck'||kind==='duck'){c.translate(0,1.5*growth);c.rotate(-.10);}if(context==='step'||kind==='step')c.translate(0,-Math.abs(stride)*2*growth);if(context==='avoid'||kind==='avoid')c.rotate(stride*.045);}
+  const context=held||swimming?null:Forest.Space.context(s,pos);if(moving&&!reduced){if(context==='duck'||kind==='duck'){c.translate(0,1.5*growth);c.rotate(-.10);}if(context==='step'||kind==='step')c.translate(0,-Math.abs(stride)*2*growth);if(context==='avoid'||kind==='avoid')c.rotate(stride*.045);}
   const visual=this.visual||(this.visual={}),v=visual[p.id]||(visual[p.id]={rest:rest?1:0,phase:phase});
   const elapsed=Math.min(.1,Math.max(0,phase-v.phase));v.phase=phase;v.rest+=Math.sign((rest?1:0)-v.rest)*Math.min(Math.abs((rest?1:0)-v.rest),elapsed/0.8);if(reduced)v.rest=rest?1:0;
   // 0.6.38: a 슈퍼범 entering, resting in or leaving a shelter folds its nest leaf (render only; the shelter outline is this pose)
@@ -461,7 +503,7 @@ class ForestScene {
   }:undefined;
   // Common intact-body renderer for every current and future character.
   c.save();c.scale(size/1254,size/1254);c.translate(-627,-1065.9);
-  const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
+  const expression=this.inspector?.expression!=='auto'&&this.inspector?.expression|| (RX?.k==='watch'?'happy':RX?'surprised':kind==='photo'?'happy':kind==='bask'?'sleepy':rest?'sleepy':held?'surprised':p.B<35||p.energy<40||p.burden>=40?'sad':groom||drink||kind==='sniff'?'focused':this.selected===p.id?'happy':'neutral');const rigOpt={kind:ride?.reach?'drink':p.species==='superbum'&&kind==='idle'&&p.harvestTick>0?'collect':kind==='sniff'?'drink':RX&&RX.k!=='watch'&&['bosong','neolbi'].includes(p.species)?RX.k:kind,water:p.species==='superbum'?(p.V||0)/Forest.Social.NEST:0,phase:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?s.worldTick-(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null).start+(phase%1):phase,reduced,wiggle,seed,restBlend:v.rest,huddle:v.huddle||0,vigor:held||RX||rest||swimming?null:p.energy>=80?'high':p.energy<15?'faint':p.energy<40?'low':null,photo:['bask','photo'].includes(kind)&&this.photoOnRock?.[p.id],expression:swimming?(kind==='sniff'?'focused':'neutral'):expression,species:p.species,itch:(Forest.Creatures?.onLeaf?.(s,p.id)?.mite?.density||0)>=5,personality:p.personality,clip:(typeof ForestNeolbi!=='undefined'&&p.species==='neolbi'?ForestNeolbi.Motion.active(s,p):null)?.id,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wetFilm:p.wetFilm||0,damage:p.damage||0,burden:p.burden||0,canopy:v.canopy,wind:s.weather.wind,rain:s.weather.kind==='rain',deferFront:p.species==='neolbi'&&!held&&v.canopy>.001,onHood:m=>{if(!m||![m.a,m.b,m.c,m.d,m.e,m.f].every(Number.isFinite))return false;(this.hoodPasses??=[]).push({matrix:[m.a,m.b,m.c,m.d,m.e,m.f],open:v.canopy,snow:Math.min(1,(p.snowWater||0)/(12*Forest.Environment.area(p))),wet:p.wetFilm||0,time:phase,reduced,filter:c.filter,alpha:c.globalAlpha,rain:s.weather.kind==='rain'});return true;}};{const dim=this.dimNext;this.dimNext=false;const go=cx=>ForestRig.draw(cx,this.assets,{...rigOpt,sit:v.sit>0||sitTo?v.sitK:undefined,
    bodyCover,crownSprout});if(dim)this.dimmed(c,go);else go(c);}c.restore();
   if(RX&&RX.k!=='watch'&&p.species==='superbum'&&(p.V||0)>2){c.save();c.fillStyle='#a8ccd1';c.globalAlpha=.8*(1-RX.u);for(let j=0;j<4;j++){const a=j*1.3+.4,r=size*(.25+RX.u*.35);c.beginPath();c.ellipse(Math.cos(a)*r*.8,-size*.75+RX.u*RX.u*size*.5-Math.sin(a)*r*.3,1.1,1.6,0,0,Math.PI*2);c.fill();}c.restore();}   /* 슈퍼범: the nest water slops over */
   if(p.wetFilm>.1&&p.species!=='neolbi'){c.save();c.globalAlpha=p.wetFilm*.5;c.fillStyle='#bdd6cc';for(let j=0;j<3;j++){c.beginPath();c.ellipse((j-1)*size*.15,-size*(.55+Math.abs(j-1)*.12),.7,1.2,0,0,Math.PI*2);c.fill();}c.restore();}if(p.burden>=20||p.damage>=10){c.save();c.fillStyle=p.burden>=20?'#8da7a2':'#b49e74';c.globalAlpha=.7;c.beginPath();c.ellipse(size*.34,-size*.40,1.7,2.2,0,0,Math.PI*2);c.fill();c.restore();}if(drink){c.fillStyle='#a8ccd1';c.beginPath();c.arc(size*.04,-size*.17,1.2,0,Math.PI*2);c.fill();}
@@ -879,6 +921,9 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(Art&&this.assets.pillbug){const r=this.pillRoll,walk=r<.001,sw=walk?Math.sin(tt*.25):(this.pillSway??0),x=(bx+sw*.012)*w,dir=walk?(Math.cos(tt*.25)>=0?1:-1):(this.pillDir??1);if(walk){this.pillSway=sw;this.pillDir=dir;}
     if(r>=.999)Art.neighbour(c,this.assets,'pillbugBall',{x,y:by*h,size:w*.02,still:true});else if(walk)Art.neighbour(c,this.assets,'pillbug',{x,y:by*h,size:w*.04,dir,phase:tt,still});else Art.pillbugCurl(c,this.assets,{x,y:by*h,size:w*.04,ball:w*.02,dir,r});}
    else{const x=bx*w,y=by*h;c.fillStyle='#777a69';c.beginPath();c.ellipse(x,y,5,3.6,-.2,0,Math.PI*2);c.fill();}}
+  const swimming=s.world?.lake?.swim?.ids.map(id=>Forest.Swim.pose(s,id,fraction));
+  const swimFor=id=>swimming?.[s.world.lake.swim.ids.indexOf(id)];
+  const drawOrder=p=>swimFor(p.id)?.y??p.y;
   let treeIndex=0;
   const treesBefore=y=>{
    while(treeIndex<trees.length&&trees[treeIndex].y<=y){
@@ -888,9 +933,20 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    }
   };
   const riders=[];// friends drawn on top of the sun rock this frame (0.6.31)
-  for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>a.y-b.y)){
+  for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>drawOrder(a)-drawOrder(b))){
    const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y};
    if(motion?.tick===s.worldTick&&motion.distance>0){let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};for(let i=1;i<path.length;i++){const d=Forest.Space.distance(path[i-1],path[i]),n=Math.min(d,remaining);if(d)pos={x:path[i-1].x+(path[i].x-path[i-1].x)*n/d,y:path[i-1].y+(path[i].y-path[i-1].y)*n/d};remaining-=n;if(remaining<=0)break;}}
+   const swim=swimFor(p.id);
+   if(swim&&this.carry?.id!==p.id){
+    treesBefore(swim.y);this.display[p.id]=swim;this.facing??={};
+    const pt=this.camera.screen(swim),button=document.querySelector('[data-pet="'+p.id+'"]');
+    if(button){button.style.left=pt.x+'px';button.style.top=pt.y+'px';const size=this.petSize(p)*this.camera.scale;button.style.width=Math.max(48,size*.8)+'px';button.style.height=Math.max(48,size*.9)+'px';button.hidden=pt.x<0||pt.x>this.vw||pt.y<0||pt.y>this.vh;}
+    if(overlapsView(view,swim.x-.15,swim.y-.16,swim.x+.15,swim.y+.08)){
+     if(!this.recording&&this.selected===p.id)this.selectionRing(p,swim,phase);
+     this.swimPet(p,swim,phase,night);
+    }
+    continue;
+   }
    const boat=s.world?.lake?.boat;
    if(boat?.rider===p.id)pos=this.boatPosition(boat);
    let kind=motion?.kind||'idle';if(kind==='drink'&&p.objectTask?.kind!=='edgeDrink'&&s.worldTick%8<5)kind='splash';if(motion?.distance>0&&fraction>=1&&['walk','slow','hurry','run'].includes(kind))kind='idle';if(s.mode!=='game')kind='idle';

@@ -109,12 +109,33 @@ function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 �
 const ACTIONS=Object.freeze({skillShow,time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,floorLeaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
 const MOTIONS=Object.freeze({
- walk:'함께 산책',dance:'빙글빙글 춤추기',chat:'느티나무 아래 수다',fish:'수양버들 아래 송사리 보기',
- spore:'포자낭 맺히기',perch:'나무 착생과 수태 이불',willowPerch:'수양버들 착생',generation:'포자 채집·심기와 2세'
+ appearance:'모습 보기',walk:'함께 산책',dance:'빙글빙글 춤추기',chat:'느티나무 아래 수다',fish:'수양버들 아래 송사리 보기',
+ spore:'포자낭 맺히기',perch:'나무 착생과 수태 이불',willowPerch:'수양버들 착생',generation:'포자 채집·심기와 2세',swim:'마리아와 함께 수영'
 });
+function swimPreview(F,species,reducedMotion){
+ const s=F.create(0,2),maria=s.individuals[0];
+ s.started=true;s.worldTick=3709;s.environment.tutorialDone=true;s.settings.reducedMotion=reducedMotion;
+ F.World.openLake(s);
+ Object.assign(s.weather,{kind:'sun',wind:3,intensity:0,remaining:180,transition:0});
+ Object.assign(s.climate,{T:60,L:50});
+ const shore=F.World.nearShore(s,{x:1.46,y:.67});
+ Object.assign(maria,{...shore,id:'preview-maria',name:'마리아',species:'maria',x:shore.x-.10,y:shore.y-.02,
+  B:46,nutrition:65,energy:70,nextObjectChoice:9999,xp:150,visualStage:3});
+ const id=species==='maria'?'ridley':species,name=F.SPECIES.find(row=>row[0]===id)[1];
+ const buddy={...F.clone(maria),id:'preview-swim-buddy',species:id,name,x:shore.x-.032,y:shore.y+.105,B:45,xp:0,visualStage:0};
+ s.individuals.push(buddy);F.step(s);
+ let elapsed=0,done=false;
+ return {state:s,kind:'swim',species,point:{x:shore.x+.13,y:shore.y},time:0,
+  update(dt){this.time+=dt;elapsed+=dt;while(!done&&elapsed>=1){
+   elapsed--;F.step(s);done=!s.world.lake.swim;
+  }},
+  status(){return F.Swim.reason(s,maria)||'수영을 마쳤어요.';},nextLabel(){return '';},next(){}
+ };
+}
 function motionPreview(F,kind,species,reducedMotion=false){
  const name=F.SPECIES.find(([id])=>id===species)?.[1];
  if(!name||!Object.hasOwn(MOTIONS,kind))throw Error('미리 볼 친구와 모션을 골라 주세요.');
+ if(kind==='swim')return swimPreview(F,species,reducedMotion);
  const friends=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
  const s=F.create(0,18),T=F.Trees,R=F.Recruitment,p=s.individuals[0];
  s.started=true;s.environment.tutorialDone=true;s.settings.reducedMotion=reducedMotion;
@@ -136,6 +157,12 @@ function motionPreview(F,kind,species,reducedMotion=false){
  Object.assign(p,spot,{id:'preview-a',species,name,xp:150,visualStage:3,B:60,nutrition:65,energy:75,
   motion:null,action:'wander',target:null,actionSeconds:0,objectTask:null,stroll:null,
   nextObjectChoice:perch?0:s.worldTick+60,shelter:{phase:'outside',since:0}});
+ if(kind==='appearance')return {state:s,kind,species,point:spot,time:0,
+  update(dt){this.time+=dt;},
+  status(){return (p.visualStage===0?'어린 ':'성체 ')+name;},
+  nextLabel(){return p.visualStage===0?'성체 보기':'어린 모습 보기';},
+  next(){const young=p.visualStage!==0;p.visualStage=young?0:3;p.xp=young?0:150;}
+ };
  const partner={...F.clone(p),id:'preview-b',species:species==='ridley'?'bosong':'ridley',
   name:species==='ridley'?'베이치':'리들리',active:meeting||kind==='spore',
   visualStage:kind==='spore'?0:3,xp:kind==='spore'?0:150,

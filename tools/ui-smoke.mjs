@@ -85,7 +85,9 @@ win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume(
 {
  adminPanel('motion');
  const panel=win.document.getElementById('admin-panel'),before=JSON.stringify(getState()),stored=JSON.stringify(saved);
- assert.equal(panel.querySelectorAll('[data-action="admin-motion-species"]').length,7);
+ assert.equal(panel.querySelectorAll('[data-action="admin-motion-species"]').length,F.SPECIES.length);
+ assert.ok(panel.querySelector('[data-action="admin-motion-species"][data-id="maria"]'));
+ assert.ok(panel.querySelector('[data-action="admin-motion-play"][data-id="swim"]'));
  click('[data-action="admin-motion-species"][data-id="jureong"]');
  assert.ok(panel.querySelector('[data-action="admin-motion-play"][data-id="willowPerch"]'));
  click('[data-action="admin-motion-play"][data-id="spore"]');
@@ -109,10 +111,32 @@ win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume(
  click('[data-action="admin-motion-next"]');
  assert.equal(child.active,true);
  click('[data-action="admin-motion-close"]');
+ click('[data-action="admin-motion-species"][data-id="maria"]');
+ click('[data-action="admin-motion-play"][data-id="appearance"]');
+ assert.match(panel.textContent,/성체 마리아/);
+ assert.equal(scene.inspector.state.individuals[0].species,'maria');
+ click('[data-action="admin-motion-next"]');
+ assert.match(panel.textContent,/어린 마리아/);
+ assert.equal(scene.inspector.state.individuals[0].xp,0);
+ click('[data-action="admin-motion-close"]');
+ click('[data-action="admin-motion-play"][data-id="swim"]');
+ assert.match(panel.textContent,/마리아와 함께 수영/);
+ assert.ok(scene.inspector.state.world.lake.swim);
+ click('[data-action="admin-motion-close"]');
+ assert.equal(JSON.stringify(getState()),before);
+ assert.equal(JSON.stringify(saved),stored);
+ const roster=getState().individuals;
+ roster.push({...roster[0],id:'qa-maria',species:'maria',name:'마리아'});
+ click('[data-tab-id="friend"]');
+ click('[data-action="admin-friend"][data-id="qa-maria"]');
+ click('[data-action="admin-motion-play"][data-id="swim"][data-species="maria"]');
+ assert.equal(scene.inspector.kind,'swim');
+ click('[data-action="admin-motion-close"]');
+ roster.pop();
  assert.equal(JSON.stringify(getState()),before);
  assert.equal(JSON.stringify(saved),stored);
  click('[data-action="admin-close"]');
- console.log('PASS: motion preview replays the spore pouch and the second generation with no save writes');
+ console.log('PASS: motion preview shows Maria, swimming, spores and the second generation with no save writes');
 }
 click('#overview');assert.equal(scene.camera.overview,true);assert.equal(win.document.getElementById('overview').getAttribute('aria-label'),'기본 화면 배율로');click('#overview');assert.equal(scene.camera.overview,false);assert.equal(scene.camera.z,1);assert.equal(win.document.getElementById('overview').getAttribute('aria-label'),'월드 전체 보기');assert.equal(win.document.getElementById('home-view'),null,'one zoom button');assert.ok(win.document.getElementById('photo'),'photo button');{const before=JSON.stringify(getState());const sel=scene.selected;click('#photo');assert.equal(scene.selected,sel,'photo keeps the selection');assert.equal(JSON.stringify(getState()),before,'photo changes nothing');}assert.equal(win.document.getElementById('mode'),null,'no landscape mode button');
 // Detail controls must target the selected individual, and roster saves must preserve identity.

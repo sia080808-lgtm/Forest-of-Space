@@ -22,7 +22,7 @@ function ready(s,p,held){
  const V=dep('vitals'),E=dep('environment'),W=dep('world');
  return p&&p.active&&!p.mounted&&p.id!==held&&!V.sleepTime(s,p)&&V.isDay(s)&&
   !['rain','snow'].includes(s.weather.kind)&&E.precipitation(s,'rain')+E.precipitation(s,'snow')<.05&&s.weather.wind<30&&
-  !W.onIce(s,p)&&!W.inWater(s,p)&&p.id!==s.world?.lake?.boat?.rider&&
+  !W.onIce(s,p)&&!W.inWater(s,p)&&p.id!==s.world?.lake?.boat?.rider&&!s.world?.lake?.swim?.ids.includes(p.id)&&
   p.B>=V.band(p).lo&&p.nutrition>=V.band(p).lo&&p.energy>=50&&p.burden<40&&p.damage<30&&
   !p.wetRecovery&&!p.leafRecovery&&!p.skill&&!p.skillHold&&!p.shelterRequest&&!p.shelter?.facilityId&&
   (!p.shelter?.phase||p.shelter.phase==='outside')&&!p.objectTask&&!p.sleepHere&&!p.restSelf&&
