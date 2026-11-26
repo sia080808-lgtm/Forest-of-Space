@@ -934,8 +934,18 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   };
   const riders=[];// friends drawn on top of the sun rock this frame (0.6.31)
   for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>drawOrder(a)-drawOrder(b))){
-   const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y};
-   if(motion?.tick===s.worldTick&&motion.distance>0){let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};for(let i=1;i<path.length;i++){const d=Forest.Space.distance(path[i-1],path[i]),n=Math.min(d,remaining);if(d)pos={x:path[i-1].x+(path[i].x-path[i-1].x)*n/d,y:path[i-1].y+(path[i].y-path[i-1].y)*n/d};remaining-=n;if(remaining<=0)break;}}
+   const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y},segmentDx;
+   if(motion?.tick===s.worldTick&&motion.distance>0){
+    let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};
+    for(let i=1;i<path.length;i++){
+     const from=path[i-1],to=path[i],d=Forest.Space.distance(from,to);
+     if(!d)continue;
+     const n=Math.min(d,remaining);
+     segmentDx=to.x-from.x;
+     pos={x:from.x+segmentDx*n/d,y:from.y+(to.y-from.y)*n/d};
+     remaining-=n;if(remaining<=0)break;
+    }
+   }
    const swim=swimFor(p.id);
    if(swim&&this.carry?.id!==p.id){
     treesBefore(swim.y);this.display[p.id]=swim;this.facing??={};
@@ -997,7 +1007,13 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    treesBefore(treeDepth);
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
-   this.facing=this.facing||{};if(!friendship?.face&&motion?.path?.length>1){const dx=motion.path.at(-1).x-motion.path[0].x;if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;}if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
+   this.facing=this.facing||{};
+   if(!friendship?.face&&path.length>1){
+    // Dico turns with the segment currently drawn, even if the rest of the route bends back.
+    const dx=p.species==='dico'&&segmentDx!==undefined?segmentDx:path.at(-1).x-path[0].x;
+    if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;
+   }
+   if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
    // 0.6.35: a friend tucked into the crevice is not drawn where the small front stone stands or below it (its feet and
    // hand used to peek out as dark bits under the stone's lower edge)
    if(!carry&&seated)this.nookClip(p.objectTask?.object);

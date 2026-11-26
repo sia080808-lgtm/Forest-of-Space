@@ -1,6 +1,32 @@
 const {test}=require('node:test'),a=require('node:assert/strict'),path=require('node:path'),{createCanvas,loadImage}=require('@napi-rs/canvas');
 const web=path.resolve(__dirname,'../../app/src/main/assets/web'),R=require(web+'/rig.js');
 async function assets(){const out={};for(const [k,v]of Object.entries(R.files))out[k]=await loadImage(web+'/'+v);return out;}
+test('adult and young Dico face the walking direction when the front rig is mirrored',async()=>{
+ const images={};
+ for(const key of ['dico','dicoYoung'])images[key]=await loadImage(web+'/'+R.files[key]);
+ const size=260,canvas=createCanvas(size,size),c=canvas.getContext('2d');
+ for(const young of [false,true])for(const face of [-1,1])for(const reduced of [false,true]){
+  c.resetTransform();c.clearRect(0,0,size,size);c.translate(130,255);
+  c.scale(face*.20,.20);c.translate(-627,-1065.9);
+  R.draw(c,images,{species:'dico',kind:'walk',young,phase:.9,reduced});
+  const {data}=c.getImageData(0,0,size,size);
+  let offset=0,count=0;
+  // Measure the painted facial strokes against the midpoint of each torso row.
+  for(let y=192;y<=228;y++){
+   let left=size,right=-1,sum=0,strokes=0;
+   for(let x=0;x<size;x++){
+    const i=(y*size+x)*4;
+    if(data[i+3]<240)continue;
+    left=Math.min(left,x);right=x;
+    if(data[i]>=226&&data[i+1]>=211&&data[i+2]>=162){sum+=x;strokes++;}
+   }
+   offset+=sum-strokes*(left+right)/2;
+   count+=strokes;
+  }
+  a.ok(count>20,'the eyes and mouth were rendered');
+  a.ok(face*offset/count>6,`stage young=${young}, face=${face}, reduced motion=${reduced}`);
+ }
+});
 test('intact body remains opaque through all limb positions and both directions',async()=>{const images=await assets(),can=createCanvas(320,320),c=can.getContext('2d');
  for(const face of [-1,1]){c.resetTransform();c.clearRect(0,0,320,320);c.translate(160,278);c.scale(face*.25,.25);c.translate(-627,-1065.9);c.drawImage(images.rigBody,0,0);const base=c.getImageData(0,0,320,320).data;
  // 'groom' is left out of this in-place check since 0.6.33: it shakes the whole intact body (the next test still checks one body and both hands)
