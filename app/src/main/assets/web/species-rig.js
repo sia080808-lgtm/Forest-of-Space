@@ -1,5 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object')module.exports=api;else root.ForestSpeciesRig=api;})(globalThis,function(){
 'use strict';
+const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 let A={},armBuffer;const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>(x=clamp(x))*x*(3-2*x),lerp=(a,b,t)=>a+(b-a)*t;
 const createCanvas=(w,h)=>{const c=typeof document!=='undefined'?document.createElement('canvas'):require('@napi-rs/canvas').createCanvas(w,h);c.width=w;c.height=h;return c;};
 function ellipse(c,x,y,rx,ry,color){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();}
@@ -48,7 +49,16 @@ function duriActor(c,k,x,y,t,pose={}){
 }
 function img(c,d,r,x,y,w,h){c.drawImage(d.im,...r,x,y,w,h);if(r===d.leaf&&d.snow>0){const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects;if(!d.snowLeaf){d.snowLeaf=createCanvas(r[2],r[3]);d.snowLeaf.getContext('2d').drawImage(d.im,...r,0,0,r[2],r[3]);}E.snow(c,d.snowLeaf,d.snow,x,y,w,h);}}
 function hatLayer(c,d,t,p,inside){const held=p.mode==='held',amp=held?.055:.012,phase=0,angle=(p.leafAngle||0)+Math.sin(t*5+phase)*amp;c.save();c.translate(0,-d.h*.83);c.rotate(angle);c.translate(0,d.h*.83);if(inside)c.drawImage(d.hat,243,876,865,338,-14,-22.5,29,12);else c.drawImage(d.hat,85,40,1090,645,-23,-35.5,46,27.2);c.restore();}
-function leafLayer(c,d,t,p){const dr=p.droop||0;if(dr&&p.mode!=='groom'){const J=d===data.jureong;c.save();c.translate(0,-d.h*.78);c.rotate(dr*(J?0:.1));c.scale(1+dr*(J?.12:.05),1-dr*(J?.1:.15));c.translate(0,d.h*.78+dr*(J?.8:.9));leafLayer(c,d,t,{...p,droop:0});c.restore();return;}if(d===data.bosong){img(c,d,d.leaf,...d.fol);return;}if(d.hat){hatLayer(c,d,t,p,false);return;}
+function leafLayer(c,d,t,p){
+ if(p.leafState){
+  const k=d===data.bosong?'bosong':'jureong',f=d.fol,im=Leaf.texture(d.im,k,p.leafState,d.leaf);
+  c.save();c.translate(0,-d.h*.78);c.rotate((p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012);c.translate(0,d.h*.78);
+  const shade=im===d.im?null:im;
+  if(shade)c.drawImage(shade,...f);else img(c,d,d.leaf,...f);
+  if(shade&&d.snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,shade,d.snow,...f);
+  c.restore();return;
+ }
+ const dr=p.droop||0;if(dr&&p.mode!=='groom'){const J=d===data.jureong;c.save();c.translate(0,-d.h*.78);c.rotate(dr*(J?0:.1));c.scale(1+dr*(J?.12:.05),1-dr*(J?.1:.15));c.translate(0,d.h*.78+dr*(J?.8:.9));leafLayer(c,d,t,{...p,droop:0});c.restore();return;}if(d===data.bosong){img(c,d,d.leaf,...d.fol);return;}if(d.hat){hatLayer(c,d,t,p,false);return;}
  // 0.6.34: 코로나 grooms by nodding its many drooping fronds: the leaf is drawn in vertical strips, the outer ends bob quickly,
  // left and right side in turn, while the crown over the head stays put.
  if(d===data.jureong&&p.mode==='groom'&&!p.reduced){const f=d.fol,r=d.leaf,N=72,w=f[2]/N,sw=r[2]/N,env=Math.min(1,(t%6)/.4)*Math.min(1,Math.max(0,(5.6-t%6)/.4));
@@ -167,6 +177,6 @@ const la=(p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012, pivot=-d.h*.78, tx=tip.x
 c.restore();const toWorld=h=>({x:x+h.x*g,y:y+(h.y+bob+rest*.7-(p.lift||0))*g});return{hands:hands.map(toWorld),tip:toWorld(tip),face:{x,y:y-d.h*g*.55},width:d.w*g,height:d.h*g};}
 
 const files={ellisiiBody:'assets/forest/species/ellisii-body.png',ellisiiFronds:'assets/forest/species/ellisii-fronds.png',ellisiiFrondLeft:'assets/forest/species/ellisii-frond-left.png',ellisiiFrondRight:'assets/forest/species/ellisii-frond-right.png',ellisiiLeaf:'assets/forest/species/ellisii-leaf.png',ellisiiFootLeft:'assets/forest/species/ellisii-foot-left.png',ellisiiFootRight:'assets/forest/species/ellisii-foot-right.png'};for(const k of ['bonbon','bosong','jureong','duri'])files['species_'+k]='assets/forest/species/'+k+'.png';
-function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:assets.ellisiiFronds,ellisiiFrondLeft:assets.ellisiiFrondLeft,ellisiiFrondRight:assets.ellisiiFrondRight,ellisiiLeaf:assets.ellisiiLeaf,ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,cover:opt.cover,crownSprout:opt.crownSprout,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
+function draw(c,assets,opt){const k=opt.species;if(!['bonbon','bosong','jureong','duri'].includes(k))return false;for(const name of Object.keys(data)){data[name].im=assets['species_'+name];data[name].snow=opt.snow||0;}A={snow:opt.snow||0,ellisiiBody:assets.ellisiiBody,ellisiiFronds:Leaf.texture(assets.ellisiiFronds,'ellisiiFronds',opt.leafState),ellisiiFrondLeft:Leaf.texture(assets.ellisiiFrondLeft,'ellisiiFrondLeft',opt.leafState),ellisiiFrondRight:Leaf.texture(assets.ellisiiFrondRight,'ellisiiFrondRight',opt.leafState),ellisiiLeaf:Leaf.texture(assets.ellisiiLeaf,'ellisiiLeaf',opt.leafState),ellisiiFootLeft:assets.ellisiiFootLeft,ellisiiFootRight:assets.ellisiiFootRight,body:assets.rigBody,palm:assets.rigPalm,'leg-left':assets.rigLegLeft,'leg-right':assets.rigLegRight,duri:assets.species_duri,duriBounds:[223,121,869,663]};if(k==='duri')initMesh();c.save();c.translate(627,1065.9);c.scale(1254/48,1254/48);actor(c,k,0,0,opt.reduced?1:opt.phase,{mode:opt.kind,growth:1,expr:opt.expression,noShadow:true,reduced:opt.reduced,litterUp:opt.litterUp||0,sit:opt.sit||0,droop:opt.droop||0,cover:opt.cover,crownSprout:opt.crownSprout,leafState:opt.leafState,...(k==='bonbon'&&opt.sit!=null?{rest:opt.sit}:{})});c.restore();return true;}
 return {files,draw};
 });

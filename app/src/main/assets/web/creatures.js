@@ -23,7 +23,7 @@ const MITE={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,GONE:5,GONE_SECONDS:60,PAU
 // 0.6.27 patch 6c: root fly P01 (뿌리날파리) in wet decaying litter, its soil predator 흙지기 (Stratiolaelaps), mealybug P03
 // (솜깍지) between leaves with honeydew, the conditional ant relation (X04) and its predator 점박이 (Cryptolaemus).
 // SRS v2.22 S05.05·S05.06·S05.09 (ECO-05/07/08/11/12/14/15). A friend's pest harm is capped at 2/min in total.
-const GNAT={START:12,MAX:100,BREED:4,DECLINE:6,EGG:90,LARVA:180,ADULT_LIFE:600,FIT_M:70,HOLD_M:50,ORGANIC:4,T_MIN:45,T_MAX:80,HURT:2,NEAR:.12,GONE:5,GONE_SECONDS:60,PAUSE:300},
+const GNAT={START:12,MAX:100,BREED:4,DECLINE:6,EGG:90,LARVA:180,ADULT_LIFE:600,FIT_M:70,HOLD_M:50,ORGANIC:4,T_MIN:45,T_MAX:80,HURT:2,NEAR:.12,LONG_EXPOSURE:120,LONG_MULTIPLIER:3,GONE:5,GONE_SECONDS:60,PAUSE:300},
  SOIL={MIN_PREY:5,M_MIN:35,M_MAX:65,W_MAX:10,EAT:8,U:1},
  MEALY={START:12,MAX:100,GROW:4,DECLINE:6,CLEAN:4,T_MIN:50,T_MAX:80,SAC:20,HONEY:8,HONEY_DECAY:.6,HONEY_MAX:100,HURT:2,GONE:5,GONE_SECONDS:60,PAUSE:300,GAP_FADE:600,GAP_MAX:240},
  LADY={MIN_PREY:20,NOTICE:120,EAT:8,TENDED:.5,HOP:.2},TEND={ON:10,ON_SECONDS:30,OFF:5,OFF_SECONDS:60},HARM_MAX=2,PEST_TYPES=2;
@@ -94,8 +94,25 @@ function miteFit(s,p){const l=leaf(s,p);return live(p)&&!l.inside&&!l.wet&&l.T>=
 function keeperFit(s,p){const l=leaf(s,p);return live(p)&&l.H>=KEEPER.H_MIN&&l.H<=KEEPER.H_MAX;}
 const miteOn=(s,host)=>groups(s).find(g=>g.kind==='mite'&&g.host===host)||null;
 const springOn=(s,pileId)=>groups(s).some(g=>g.kind==='springtail'&&g.pile===pileId);
-// one shared pest-harm budget per friend per second (ECO-05: extra burden from pests at most 2/min in total)
-function harm(s,p,key,amount){if(key==='damage')amount*=trait(p).leaf;const st=state(s),used=st._harm?.[p.id]||0,room=Math.max(0,HARM_MAX/60-used),a=Math.min(room,Math.max(0,amount));if(!a)return 0;(st._harm??={})[p.id]=used+a;p[key]=Math.min(100,Math.max(0,p[key]+(key==='nutrition'?-a:a)));return a;}
+// Share the 2/min cap among the stresses the pests requested this second.
+function applyHarm(p,requested){
+ const total=Object.values(requested).reduce((sum,amount)=>sum+amount,0);
+ const share=total>HARM_MAX/60?(HARM_MAX/60)/total:1;
+ for(const [key,amount] of Object.entries(requested)){
+  const signed=key==='nutrition'?-amount:amount;
+  p[key]=Math.min(100,Math.max(0,p[key]+signed*share));
+ }
+ return total*share;
+}
+function harm(s,p,key,amount){
+ const scaled=amount*(key==='damage'?trait(p).leaf:1);
+ if(!(scaled>0))return 0;
+ const pending=state(s)._harm;
+ if(!pending)return applyHarm(p,{[key]:scaled});
+ if(!pending.has(p))pending.set(p,{});
+ const request=pending.get(p);
+ request[key]=(request[key]||0)+scaled;
+}
 const pestKinds=s=>new Set(groups(s).filter(g=>PESTS.includes(g.kind)).map(g=>g.kind));
 const pestRoom=(s,kind)=>{const k=pestKinds(s);return k.has(kind)||k.size<PEST_TYPES;};
 // root-fly sites: the old litter spot and leaf piles (wet decaying leaves). Moisture is the litter soil M/W (0.6.25).
@@ -179,7 +196,16 @@ function gnatStep(s,g,event){const st=state(s),z=site(s,g.site);if(!z){st.groups
  if(fit&&g.fit>=STABLE&&!winter(s)){const room=Math.max(0,GNAT.MAX-gnatTotal(g));g.eggs+=Math.min(room,GNAT.BREED/60*Math.min(1,g.adults/4));}
  const e2l=g.eggs/GNAT.EGG,l2a=g.larvae/GNAT.LARVA;g.eggs-=e2l;g.larvae+=e2l-l2a;g.adults+=l2a-g.adults/GNAT.ADULT_LIFE;
  if(down||winter(s)){const tot=gnatTotal(g);if(tot>0){const k=Math.max(0,1-GNAT.DECLINE/60/tot);g.eggs*=k;g.larvae*=k;g.adults*=k;}}
- for(const p of s.individuals)if(live(p)&&Math.hypot(p.x-z.x,p.y-z.y)<GNAT.NEAR)harm(s,p,'burden',Math.min(GNAT.HURT,GNAT.HURT*g.larvae/100)/60);
+ const exposure=Object.create(null),wet=M>=GNAT.FIT_M&&g.larvae>=3;
+ for(const p of s.individuals){
+  if(!live(p)||Math.hypot(p.x-z.x,p.y-z.y)>=GNAT.NEAR)continue;
+  if(wet&&!dep('shelter').inside(s,p)){
+   exposure[p.id]=Math.min(GNAT.LONG_EXPOSURE,(g.rootExposure?.[p.id]||0)+1);
+  }
+  const multiplier=exposure[p.id]>=GNAT.LONG_EXPOSURE?GNAT.LONG_MULTIPLIER:1;
+  harm(s,p,'burden',GNAT.HURT*g.larvae*multiplier/6000);
+ }
+ g.rootExposure=exposure;
  // a group that flew in (0.6.38) gets one egg-to-adult cycle (270 s) before the 'almost gone' check counts
  g.low=gnatTotal(g)<GNAT.GONE&&!(g.from&&s.worldTick-g.since<GNAT.EGG+GNAT.LARVA)?g.low+1:0;if(g.low>=GNAT.GONE_SECONDS){st.groups=st.groups.filter(x=>x!==g);st.pause['site:'+g.site]=s.worldTick+GNAT.PAUSE;st.log.cleared++;event?.(s,'creature','낙엽 자리가 말라 뿌리날파리가 거의 사라졌어요.');}}
 // ----- 흙지기 (ECO-07/08/12): root-fly larvae (or eggs) >= 5 at a site whose soil is moist but drained (M 35~65, W<10)
@@ -280,7 +306,7 @@ function step(s,event){if(!s.objects)return;init(s);const st=state(s),L=dep('lit
  for(const id of Object.keys(st.miteReady))if(!s.individuals.some(p=>p.id===id))delete st.miteReady[id];
  for(const p of s.individuals)if(live(p))st.miteReady[p.id]=miteFit(s,p)?Math.min(MITE.DRY_MAX,(st.miteReady[p.id]||0)+1):Math.max(0,(st.miteReady[p.id]||0)-1/MITE.DRY_FADE);
  st.groups=st.groups.filter(g=>!['mite','keeper','mealy','lady'].includes(g.kind)||s.individuals.some(p=>p.id===g.host));
- st._harm={};st._zone={};
+ st._harm=new Map();st._zone={};
  for(const id of Object.keys(st.roveReady))if(!sites(s).some(z=>z.id===id))delete st.roveReady[id];
  const siteIds=new Set(sites(s).map(z=>z.id));for(const k of ['gnatReady','soilReady'])for(const id of Object.keys(st[k]))if(!siteIds.has(id))delete st[k][id];
  for(const z of sites(s))st.gnatReady[z.id]=gnatFit(s,z)?Math.min(600,(st.gnatReady[z.id]||0)+1):0;
@@ -290,6 +316,7 @@ function step(s,event){if(!s.objects)return;init(s);const st=state(s),L=dep('lit
  for(const g of [...st.groups]){if(g.kind==='mite'){miteStep(s,g,event);continue;}if(g.kind==='keeper'){keeperStep(s,g,event);continue;}if(g.kind==='gnat'){gnatStep(s,g,event);continue;}if(g.kind==='soilmite'){soilStep(s,g,event);continue;}if(g.kind==='rove'){roveStep(s,g,event);continue;}if(g.kind==='mealy'){mealyStep(s,g,event);continue;}if(g.kind==='lady'){ladyStep(s,g,event);continue;}if(g.kind==='ant'){colonyStay(s,g,event);continue;}const ok=!!L.pile(s,g.pile)&&springOk(s,L.pile(s,g.pile));g.bad=ok?0:g.bad+1;
   if(g.kind==='springtail'&&!L.pile(s,g.pile))g.bad=LEAVE;
   if(g.bad>=LEAVE){drop(s,g);st.groups=st.groups.filter(x=>x!==g);st.log.left++;event?.(s,'creature','톡토기가 더 촉촉한 곳을 찾아 떠났어요.');}}
+ for(const [p,requested] of st._harm)applyHarm(p,requested);
  for(const g of st.groups)if(g.kind==='ant')antStep(s,g);
  contactStep(s,event);flyStep(s,event);
  keeperArrivals(s,event);soilArrivals(s,event);roveArrivals(s,event);tendStep(s,event);antArrivals(s,event);
@@ -316,7 +343,11 @@ function validate(s){const st=state(s);if(!st)return;const f=v=>Number.isFinite(
   if(['mite','keeper','mealy','lady'].includes(g.kind)&&typeof g.host!=='string')throw Error('잎 위 작은 이웃 기록을 확인해 주세요.');
   if(g.kind==='mite'&&(!f(g.density)||g.density<0||g.density>MITE.MAX||!f(g.low)))throw Error('잎응애 기록을 확인해 주세요.');
   if(['gnat','soilmite','rove'].includes(g.kind)&&typeof g.site!=='string')throw Error('흙 속 작은 이웃 기록을 확인해 주세요.');
-  if(g.kind==='gnat'&&(['eggs','larvae','adults','low','fit'].some(k=>!f(g[k])||g[k]<0)||gnatTotal(g)>GNAT.MAX+1e-6))throw Error('뿌리날파리 기록을 확인해 주세요.');
+  if(g.kind==='gnat'){
+  if(['eggs','larvae','adults','low','fit'].some(k=>!f(g[k])||g[k]<0)||gnatTotal(g)>GNAT.MAX+1e-6)throw Error('뿌리날파리 기록을 확인해 주세요.');
+  if(g.rootExposure!==undefined&&(!g.rootExposure||typeof g.rootExposure!=='object'||Array.isArray(g.rootExposure)||
+   Object.values(g.rootExposure).some(n=>!Number.isInteger(n)||n<1||n>GNAT.LONG_EXPOSURE)))throw Error('뿌리날파리 노출 기록을 확인해 주세요.');
+ }
   if(g.kind==='mealy'&&(!f(g.density)||g.density<0||g.density>MEALY.MAX||!f(g.honey)||g.honey<0||g.honey>MEALY.HONEY_MAX||!f(g.low)))throw Error('솜깍지 기록을 확인해 주세요.');
   if(g.kind==='lady'&&!['adult','larva'].includes(g.stage))throw Error('점박이 기록을 확인해 주세요.');
   if(g.flyAt!==undefined&&!f(g.flyAt))throw Error('뿌리날파리 기록을 확인해 주세요.');
@@ -330,6 +361,7 @@ function pressure(s,p){const g=groups(s);return {leaf:g.some(x=>(x.kind==='mite'
 function brush(s,host,n){let left=n;for(const g of [miteOn(s,host),mealyOn(s,host)]){if(!g||left<=0)continue;const k=Math.min(left,g.density);g.density-=k;left-=k;}return n-left;}
 function onLeaf(s,host){const g=groups(s);return {mite:miteOn(s,host),keeper:g.find(x=>x.kind==='keeper'&&x.host===host)||null,mealy:mealyOn(s,host),lady:g.find(x=>x.kind==='lady'&&x.host===host)||null,ant:g.find(x=>x.kind==='ant'&&x.tend===host)||null};}
 function inSoil(s,siteId){const g=groups(s);return {gnat:gnatAt(s,siteId),soilmite:g.find(x=>x.kind==='soilmite'&&x.site===siteId)||null,rove:g.find(x=>x.kind==='rove'&&x.site===siteId)||null};}
+function rootPressure(s,p){return groups(s).some(g=>g.kind==='gnat'&&g.rootExposure?.[p.id]>=GNAT.LONG_EXPOSURE);}
 function rootsNear(s,p){return sites(s).map(z=>({z,g:gnatAt(s,z.id)})).find(o=>o.g&&Math.hypot(p.x-o.z.x,p.y-o.z.y)<GNAT.NEAR)||null;}
-return {arrive,brush,SEASONAL,winter,ANT,antActive,antSites,colonies,nestSpot,candidates,harm,TOUCH,FLY,contactStep,flyStep,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
+return {arrive,brush,SEASONAL,winter,ANT,antActive,antSites,colonies,nestSpot,candidates,harm,TOUCH,FLY,contactStep,flyStep,PROTECT,CHECK,COOLDOWN,STABLE,LEAVE,ANT_EVERY,CARRY_SECONDS,SPRING,MITE,KEEPER,GNAT,SOIL,MEALY,LADY,TEND,HARM_MAX,PEST_TYPES,ROVE,ZONE_EAT,PILL,hideout,roveFit,pillNear,canopy,pressure,init,step,carried,decomposeBoost,relocate,validate,info,onLeaf,inSoil,rootsNear,rootPressure,groups,antOk,springOk,leaf,miteFit,keeperFit,gnatFit,soilFit,mealyFit,leafGap,sites,site,pestKinds,tendedBy};
 });

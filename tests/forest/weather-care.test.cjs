@@ -5,7 +5,7 @@ function sheltered(){const s=Q.make('WX01');F.advance(s,5);a.equal(s.social.sess
 test('WX-AC02 exact root boundaries, sixty-second grace and residual burden',()=>{// v2.28: the over-wet build-up (+2/min) scales by the species trait (리들리 1.3); recovery (-4/min) does not
  for(const [r,seconds,expected]of [[80,120,2*T.of('ridley').wet],[79.99,120,0],[60,60,0],[59.99,60,-4]]){const[s,p]=fixed();p.B=40;p.Q=r/5;p.burden=10;for(let i=0;i<seconds;i++)W.physiology(s,p);near(p.burden,10+expected);}const[s,p]=fixed();p.B=40;for(let i=0;i<60;i++)W.physiology(s,p);near(p.burden,0);p.Q=15.99;W.physiology(s,p);a.equal(p.wetSeconds,0);});
 test('WX-AC03 recovery is latched through boundary changes and ends only after drying',()=>{const[s,p]=fixed();p.B=40;p.burden=40;W.physiology(s,p);a.equal(p.wetRecovery,true);p.burden=29;p.Q=12;W.physiology(s,p);a.equal(p.wetRecovery,true);p.Q=11.99;W.physiology(s,p);a.equal(p.wetRecovery,false);});
-test('WX-AC05 wind has ten-second grace and exact rate, safe rest has no new injury',()=>{const[s,p]=fixed();s.weather.wind=75;p.Q=0;for(let i=0;i<10;i++)W.physiology(s,p);near(p.damage,0);for(let i=0;i<60;i++)W.physiology(s,p);near(p.damage,2.125*T.of('ridley').wind*T.of('ridley').leaf);s.weather.wind=55;W.physiology(s,p);a.equal(p.gustExposure,10);s.weather.wind=49;W.physiology(s,p);a.equal(p.gustExposure,8);s.weather.wind=75;const before=p.damage;for(let i=0;i<30;i++)W.physiology(s,p,{safeCare:true});near(p.damage,before);});
+test('WX-AC05 wind has ten-second grace and exact rate, safe rest has no new injury',()=>{const[s,p]=fixed();s.weather.wind=75;p.Q=0;for(let i=0;i<10;i++)W.physiology(s,p);near(p.damage,0);for(let i=0;i<60;i++)W.physiology(s,p);near(p.damage,9*T.of('ridley').leaf);s.weather.wind=55;W.physiology(s,p);a.equal(p.gustExposure,10);s.weather.wind=49;W.physiology(s,p);a.equal(p.gustExposure,8);s.weather.wind=75;const before=p.damage;for(let i=0;i<30;i++)W.physiology(s,p,{safeCare:true});near(p.damage,before);});
 test('WX-AC07 actual canopy has one reserved guest and uses approved geometry at every age',()=>{for(const xp of [0,8,40,115]){const s=Q.make('WX01');s.individuals.forEach(p=>p.xp=xp);F.advance(s,8);const h=s.individuals[1],r=s.individuals[0];a.ok(W.host(s,r));a.ok(N.canFit(h,r,r));const third=Q.pet(s,'third','ridley',.62,.43);s.individuals.push(third);F.advance(s,5);a.equal(s.social.sessions.filter(x=>x.type==='CANOPY').length,1);a.equal(third.protectedBy,undefined);F.valid(s);}});
 test('WX-AC08 bracing reduces directional wind, never stacks, exits at seventy',()=>{const s=sheltered(),p=s.individuals[0],h=s.individuals[1];s.weather.wind=65;s.weather.wind_dir=0;F.step(s);near(p.weatherExposure.wind,39);near(p.weatherExposure.rain,.3);s.weather.wind_dir=Math.PI;near(W.wind(s,p),65);s.weather.wind_dir=0;s.weather.wind=70;F.step(s);a.equal(s.social.sessions.length,0);a.equal(h.canopyProgress,0);a.equal(p.target,'shelter');a.equal(W.host(s,p),null);});
 test('WX-AC08 bracing cannot reset on a brief lull and cannot start a new session in high wind',()=>{const s=sheltered(),h=s.individuals[1];s.weather.wind=65;F.advance(s,4);a.equal(h.braceSeconds,4);s.weather.wind=59;F.step(s);a.equal(h.braceSeconds,4);s.weather.wind=65;F.advance(s,6);a.equal(h.braceSeconds,10);a.equal(s.social.sessions.length,0);const n=Q.make('WX01');n.weather.wind=65;F.advance(n,5);a.equal(n.social.sessions.length,0);});
@@ -29,4 +29,29 @@ test('rain canopy replaces an old walk on both cards and releases both friends a
  for(let i=0;i<75;i++)F.step(s);
  for(const p of [host,guest]){a.equal(p.stroll,undefined);a.equal(p.objectTask?.reason,'sleep');}
  F.valid(s);
+});
+
+test('drizzle defers drinking only if it can restore the friend within two minutes; downpours keep the shelter priority',()=>{
+ for(const [species,B,roof,intensity,remaining,expected] of [
+  ['ridley',33,false,35,180,null],
+  ['ridley',33,false,35,20,'water'],
+  ['ridley',30,false,35,180,'water'],
+  ['maria',33,false,35,180,'water'],
+  ['ridley',30,true,35,180,'water'],
+  ['ridley',30,false,60,180,'shelterRain'],
+ ]){
+  const s=F.create(0,7),p=s.individuals[0],rock=F.Objects.patch(s,'rock');
+  s.started=true;s.worldTick=1250;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
+  Object.assign(s.climate,{L:30,T:60});
+  Object.assign(s.weather,{kind:'rain',intensity,wind:20,remaining,transition:0});
+  Object.assign(p,{species,B,x:rock.x,y:rock.y});
+  if(roof){
+   const home=s.shelters.facilities[0],seat=F.Shelter.seat(s,home,p);
+   Object.assign(p,{x:seat.x,y:seat.y,shelter:{phase:'restingInside',facilityId:home.id,x:seat.x,y:seat.y,units:F.Shelter.units(p)}});
+  }
+  // Capture the decision before the short rain case reaches its next weather period.
+  F.advance(s,15,{visible:false});
+  a.equal(p.objectTask?.reason??null,expected,[species,B,roof,intensity,remaining].join(' '));
+  if(roof)a.ok(!F.Shelter.inside(s,p),'a dry friend leaves the shelter for water');
+ }
 });

@@ -36,7 +36,9 @@ function lv(p,k,f){return LEVEL[k][f][tier(p)];}
 function umbrella(h){return {rain:lv(h,'umbrella','rain'),wind:lv(h,'umbrella','wind'),limit:lv(h,'umbrella','limit')};}
 function share(d){return {total:lv(d,'share','total'),nest:lv(d,'share','nest')};}
 const NEXT=[3,6,9,10];
+const REPOSE={energy:40,gain:20,time:20,rest:300,reach:.30,go:30,close:.12};
 const INFO=Object.freeze({
+ dico:{name:'잠깐 쉬고 가',line:'기운이 40% 미만인 친구가 쉬고 있으면 곁에서 20초 함께 쉬고, 그 친구의 기운을 20%p 채워 줘요. (대기 5분)'},
  maria:{name:'같이 수영할래?',line:'잔잔한 낮에 친구를 호수로 이끌어 함께 헤엄쳐요. 약 20초 동안 각자 수분 적정 상한까지 채워요. (대기 5분)'},
  superbum:{name:'빗물 나눔',line:'머리 둥지에 모은 빗물을 목마른 친구에게 걸어가 나눠 줘요.'},
  bosong:{name:'물 찾기',line:'비가 없을 때 촉촉한 흙에서 숨은 물을 찾아 웅덩이를 만들고, 목마른 친구에게 물이 있는 곳을 알려 줘요.'},
@@ -46,7 +48,7 @@ const INFO=Object.freeze({
  bonbon:{name:'촉촉한 잎 곁',line:'이끼·샘터·웅덩이·호숫가 곁이나 비·안개 오는 날이면 둘레 친구들의 잎을 촉촉하게 해 잎응애를 막고, 천적을 빨리 불러요.'}
 });
 const FIRST=Object.freeze({superbum:'슈퍼범이 처음으로 빗물을 나눠 주었어요.',bosong:'베이치가 처음으로 숨은 물을 찾았어요.',neolbi:'엘레판이 처음으로 잎 우산을 펴 주었어요.',jureong:'코로나가 처음으로 낙엽을 모았어요.',ridley:'리들리가 처음으로 친구의 잎을 털어 주었어요.',bonbon:'엘리시 곁의 잎이 촉촉해졌어요.'});
-const KINDS=['dig','guide','rake','brush'],eps=1e-9,DAY=1200;
+const KINDS=['dig','guide','rake','brush','repose'],eps=1e-9,DAY=1200;
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function init(s){s.skills??={puddles:[],nextId:1,seen:{}};s.skills.puddles??=[];s.skills.seen??={};s.skills.nextId??=1;return s.skills;}
 const puddles=s=>s.skills?.puddles||[];
@@ -122,13 +124,53 @@ function assist(s,q){return !!q&&misters(s).some(e=>dist(e,q)<lv(e,'mist','assis
 // ---- puddles (SK-03) ----
 function puddleStep(s){const st=init(s);for(const d of [...st.puddles]){const e=Math.min(d.W,SK.dig.evap);d.W-=e;s.ledger.evaporation+=e;
  if(s.worldTick-d.born>=SK.dig.life||d.W<=eps){const z=[...s.patches,...(s.objects?.stored||[])].find(z=>z.id===d.from),back=z?Math.min(d.W,Math.max(0,z.cap-z.S)):0;if(z)z.S+=back;s.ledger.outflow+=d.W-back;st.puddles=st.puddles.filter(x=>x!==d);for(const p of s.individuals)if(p.guideTo?.id===d.id)delete p.guideTo;}}}
+function restingFriend(r){
+ return !!r&&r.active&&!r.mounted&&!r.skill&&!r.skillHold&&!r.stroll?.perch&&!r.shelter?.facilityId&&
+  !r.shelterRequest&&r.B>=band(r).warnLo&&r.nutrition>=band(r).warnLo&&
+  !r.wetRecovery&&!r.leafRecovery&&(r.restSelf||r.sleepHere||
+  r.action==='rest'&&(r.objectArrived&&r.objectTask?.kind==='rest'||r.stroll?.arrivedAt!=null));
+}
+function startRepose(s,p,held,busy,preview=false){
+ if(!ready(s,p,'repose'))return false;
+ const r=s.individuals.filter(q=>q.id!==p.id&&q.id!==held&&!busy.has(q.id)&&restingFriend(q)&&
+  q.energy<REPOSE.energy&&dist(p,q)<REPOSE.reach&&!s.individuals.some(z=>z.skill?.k==='repose'&&z.skill.target===q.id))
+  .sort((a,b)=>a.energy-b.energy||dist(a,p)-dist(b,p)||a.id.localeCompare(b.id))[0];
+ if(!r)return false;
+ const at=side(s,p,r),Space=dep('spatial');
+ // Throttle a failed attempt even when the nearby occupied rest spot has no path.
+ rest(s,p,'repose',45);
+ if(!preview&&!Space.route(s,p,at))return false;
+ p.skill={k:'repose',target:r.id,x:at.x,y:at.y,start:s.worldTick,phase:preview?'rest':'go'};
+ if(preview)p.skill.at=s.worldTick;
+ return true;
+}
+function runRepose(s,p,t,walk,ctx){
+ const r=s.individuals.find(q=>q.id===t.target);
+ if(!restingFriend(r)||ctx.held===r.id||ctx.busy?.has(r.id)){
+  stop(s,p);return null;
+ }
+ if(t.phase==='go'){
+  const m=walk(t);
+  if(m.arrived||dist(p,t)<.025){
+   if(dist(p,r)>REPOSE.close){stop(s,p);return m;}
+   t.phase='rest';t.at=s.worldTick;
+  }else if(s.worldTick-t.start>=REPOSE.go||t.stall>=4)stop(s,p);
+  return m;
+ }
+ if(dist(p,r)>REPOSE.close){stop(s,p);return null;}
+ if(s.worldTick-t.at<REPOSE.time)return {kind:'repose',distance:0};
+ r.energy=Math.min(100,r.energy+REPOSE.gain);
+ rest(s,p,'repose',REPOSE.rest);bump(s,p,ctx);
+ ctx.event?.(s,'skill',p.name+' · '+r.name+' 곁에서 쉬며 기운을 나눴어요.',{individual:p.id});
+ stop(s,p);return {kind:'repose',distance:0};
+}
 // ---- one tick: puddles, counting the kept skills, starting new ones ----
 function prepare(s,{held=null,busy=new Set(),event,discovery,visible=true}={}){init(s);puddleStep(s);const ctx={event,discovery,visible};
  for(const p of s.individuals){if(p.guideTo&&(p.guideTo.until<=s.worldTick||!p.active||p.B>=band(p).mid))delete p.guideTo;if(p.skill&&!p.active)stop(s,p);if(p.skillHold&&!s.individuals.some(q=>q.skill?.k==='brush'&&q.skill.target===p.id&&q.id===p.skillHold))delete p.skillHold;}
  for(const a of s.social?.sessions||[])if(a.started===s.worldTick&&(a.type==='A04'||a.type==='CANOPY')){const d=s.individuals.find(q=>q.id===a.ids[0]);if(d)bump(s,d,ctx);}
  if(!s.skills.seen.bonbon&&misters(s).some(e=>s.individuals.some(q=>q.id!==e.id&&q.active&&dist(q,e)<lv(e,'mist','range')))){const e=misters(s)[0];bump(s,e,ctx);}
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){if(!free(s,p,held,busy)||!well(s,p))continue;
-  const go=p.species==='bosong'?startBosong(s,p,ctx):p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):false;
+  const go=p.species==='bosong'?startBosong(s,p,ctx):p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):p.species==='dico'?startRepose(s,p,held,busy):false;
   if(go&&p.stroll)delete p.stroll;}}
 function stop(s,p){const t=p.skill;if(!t)return;
  if(t.k==='brush'){const r=s.individuals.find(q=>q.id===t.target);if(r&&r.skillHold===p.id)delete r.skillHold;}
@@ -139,6 +181,7 @@ function act(s,p,ctx={}){const Space=dep('spatial'),Vit=dep('vitals');
  const t=p.skill;if(!t)return null;
  if(!well(s,p)||p.objectTask){stop(s,p);return null;}
  const age=s.worldTick-t.start,walk=to=>{const m=Space.travel(s,p,to);if(m.distance>0)t.stall=0;else if(!m.arrived)t.stall=(t.stall||0)+1;return m;};
+ if(t.k==='repose')return runRepose(s,p,t,walk,ctx);
  if(t.k==='dig'){
   if(t.phase==='go'){const m=walk(t);if(m.arrived){t.phase='sniff';t.at=s.worldTick;}else if(age>SK.dig.go||t.stall>=4)stop(s,p);return m;}
   if(s.worldTick-t.at<SK.dig.sniff)return {kind:'sniff',distance:0};
@@ -171,6 +214,7 @@ function force(s,p){init(s);(p.skillRest??={});for(const k of [...KINDS,'self'])
  if(p.species==='bosong'){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}return false;}
  if(p.species==='jureong'){const c=rakeFor(s,p);if(!c)return false;const Space=dep('spatial');let at=null;for(const q of [{x:c.x,y:c.y+.03},{x:c.x+.04,y:c.y+.02},{x:c.x-.04,y:c.y+.02},{x:c.x,y:c.y}])if(Space.walkable(s,q,p.id)){at=q;break;}if(!at||!Space.route(s,p,at))return false;
   p.skill={k:'rake',sector:c.sector,ids:c.ids.map(l=>l.id),pile:c.pile,anchor:c.anchor,cx:c.x,cy:c.y,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'rake',SK.rake.rest);return true;}
+ if(p.species==='dico')return startRepose(s,p,null,new Set());
  if(p.species==='ridley')return startBrush(s,p,null,new Set());
  return false;}
 // leaves held by a friend: none (코로나 rakes leaves where they lie)
@@ -182,10 +226,12 @@ function status(s,p){const t=p.skill;if(p.skillHold){const h=s.individuals.find(
  if(t.k==='dig')return t.phase==='go'?'숨은 물을 찾으러 가고 있어요':'촉촉한 흙에서 숨은 물을 찾고 있어요';
  if(t.k==='guide'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+'에게 ':'')+'물이 있는 곳을 알려 주고 있어요';}
  if(t.k==='rake')return t.phase==='go'?'흩어진 낙엽을 모으러 가고 있어요':'흩어진 낙엽을 긁어모으고 있어요';
+ if(t.k==='repose'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+' 곁에서 ':'')+(t.phase==='rest'?'함께 쉬고 있어요':'쉴 자리로 가고 있어요');}
  if(t.k==='brush'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+'의 ':'')+(t.phase==='do'?'잎을 털어 주고 있어요':'잎을 털어 주러 가고 있어요');}
  return null;}
 // 1.1.3 card text for the 고유 스킬 칸: what this friend's level gives now, and what the next step adds (UI only)
 const LINE=Object.freeze({
+ dico:()=> '함께 쉬기 20초 · 친구 기운 +20%p · 대기 5분',
  maria:p=>'수영 20초 · 마리아의 수분 '+band(p).hi+'까지 · 동행은 각자 상한 · 대기 5분',
  bosong:p=>'웅덩이 물 최대 '+lv(p,'dig','amount')+' · 찾는 범위 '+lv(p,'dig','reach')+' · 대기 '+lv(p,'dig','rest')/60+'분',
  jureong:p=>'한 번에 낱잎 '+lv(p,'rake','count')+'장 · 기운 '+lv(p,'rake','energy')+'% 이상에서 시작',
@@ -197,10 +243,10 @@ function levelLines(p){const f=LINE[p?.species];if(!f)return null;const L=levelO
  return {level:L,now,next:nextL?{level:nextL,line:f({...p,xp:LEVELS[nextL-1]})}:null};}
 function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='object'||!Array.isArray(st.puddles)||st.puddles.length>SK.dig.max||!Number.isInteger(st.nextId)||st.nextId<1||typeof st.seen!=='object')throw Error('고유 스킬 기록을 확인해 주세요.');
   for(const d of st.puddles)if(typeof d.id!=='string'||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!(d.W>=0&&d.W<=LEVEL.dig.amount.at(-1)+eps)||![...s.patches,...(s.objects?.stored||[])].some(z=>z.id===d.from)||!(d.born<=s.worldTick))throw Error('웅덩이 기록을 확인해 주세요.');}
- for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
+ for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='repose'&&!(typeof t.target==='string'&&Number.isFinite(t.x)&&Number.isFinite(t.y)&&(t.phase==='go'||t.phase==='rest'&&Number.isFinite(t.at)))||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillRest!==undefined&&(typeof p.skillRest!=='object'||Object.entries(p.skillRest).some(([k,v])=>!KINDS.includes(k)&&k!=='self'||!Number.isFinite(v))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush});
+return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush,startRepose});
 });

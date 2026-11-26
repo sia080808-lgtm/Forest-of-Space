@@ -17,7 +17,7 @@ test('ST-AC01a 1.0 육각형 종족값: six stats 1..5, every species totals 18,
 test('ST-AC01b over-wet burden and wind leaf damage scale by species; recovery does not',()=>{
  for(const sp of SPECIES){const t=T.of(sp);
   {const {s,p}=game(sp);Object.assign(p,{x:.5,y:.4,B:60,Q:16,burden:10});for(let i=0;i<120;i++)W.physiology(s,p);near(p.burden,10+2*t.wet);}
-  {const {s,p}=game(sp);Object.assign(p,{x:.5,y:.4,B:60,Q:0,damage:0});s.weather.wind=75;for(let i=0;i<70;i++)W.physiology(s,p);near(p.damage,2.125*t.wind*t.leaf);}}
+  {const {s,p}=game(sp);Object.assign(p,{x:.5,y:.4,B:60,Q:0,damage:0});s.weather.wind=75;for(let i=0;i<70;i++)W.physiology(s,p);near(p.damage,9*t.leaf);}}
 });
 
 test('ST-AC01c pest arrival chances and the leaf harm of spider mites scale by species',()=>{

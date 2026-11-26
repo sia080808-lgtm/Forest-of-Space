@@ -13,7 +13,7 @@ test('AC219-07 moss is like sphagnum: a friend resting on it gets water into 수
 test('AC219-08 moss never lowers a value above its recovery ceiling',()=>{const s=game(),p=task(s,'moss','moss');p.energy=p.mood=90;O.receive(s,p,[]);near(p.energy,90);near(p.mood,90);});
 test('AC219-09 dangerous conditions interrupt moss on next step, dry stock does not',()=>{const s=game(),p=task(s,'moss','moss');p.B=60;p.energy=35;p.mood=30;O.patch(s,'moss').S=0;F.step(s);a.equal(p.objectTask.object,'moss');p.burden=45;F.step(s);a.notEqual(p.objectTask?.object,'moss');});
 test('AC219-10/12 decomposition conserves raw plus compost, boost capped at three',()=>{const s=classic(game()),z=O.patch(s,'litter');z.S=z.cap*.5;s.objects.playBoostUntil=1e6;fixed(s,600,()=>O.resources(s));near(z.O,55);near(z.U,45);near(O.storedLeaf(s),100);near(s.objects.ledger.leafInput,0);});
-test('AC219-11/17 absorption consumes compost exactly, not energy',()=>{const s=classic(game()),p=task(s,'litter','nutrition','nutrition'),z=O.patch(s,'litter');p.nutrition=30;const energy=p.energy,k=F.Objects&&require('../../app/src/main/assets/web/traits.js').ofPet(p).nutr;/* 1.0: rate x the nutrient stat (리들리 4 -> 1.2), up to 50 */fixed(s,600,()=>{const requests=[];O.receive(s,p,requests);O.grant(requests);});near(p.nutrition,Math.min(50,30+10*k));near(z.U,30-Math.min(20,10*k));near(p.energy,energy);near(O.storedLeaf(s),100-Math.min(20,10*k));});
+test('AC219-11/17 absorption consumes compost exactly, not energy',()=>{const s=classic(game()),p=task(s,'litter','nutrition','nutrition'),z=O.patch(s,'litter');p.nutrition=30;const energy=p.energy,k=require('../../app/src/main/assets/web/traits.js').ofPet(p).nutr;const fed=Math.min(20,10*1.5*k);fixed(s,600,()=>{const requests=[];O.receive(s,p,requests);O.grant(requests);});near(p.nutrition,30+fed);near(z.U,30-fed);near(p.energy,energy);near(O.storedLeaf(s),100-fed);});
 test('AC219-13/18 raw and compost are separate actions',()=>{const s=game(),p=s.individuals[0],z=O.patch(s,'litter');z.O=0;z.U=100;a.ok(O.option(s,p,'litter','litterPlay','mood').fail);a.ok(!O.option(s,p,'litter','nutrition','nutrition').fail);z.O=100;z.U=0;a.ok(!O.option(s,p,'litter','litterPlay','mood').fail);a.ok(O.option(s,p,'litter','nutrition','nutrition').fail);});
 test('AC219-14/15 v2.24 fall: daily quota, floor-leaf cap (90 in the 0.7.0 forest) only (compost does not block), no catch-up',()=>{const L=require('../../app/src/main/assets/web/litter.js');
  const s=game(),z=O.patch(s,'litter');z.O=0;z.U=0;s.objects.litter.leaves=[];s.weather.wind=75;fixed(s,1199,()=>{O.resources(s);a.ok(L.floor(s)<=L.LCAP+1e-9);});a.equal(s.objects.arrivedToday,27);near(s.objects.ledger.leafInput,27);/* 0.8.0: a new game starts in spring (45 x0.6) */
@@ -79,4 +79,16 @@ test('a grown 슈퍼범 walks to the open side and takes compost when its origin
  }
  a.ok(waiting&&walking);a.ok(O.at(s,p));a.ok(p.x<q.x);a.match(O.reason(s,p),/영양을 얻고/);
  const requests=[];O.receive(s,p,requests);O.grant(requests);a.ok(p.nutrition>30);near(p.nutrition-30,40-leaves.U);
+});
+
+test('compost feeds 1.5 nutrition per minute before the 0.12 upkeep and debits the real stock',()=>{
+ const s=F.create(0,7),p=s.individuals[0],z=F.Objects.patch(s,'litter');
+ s.started=true;s.worldTick=1250;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
+ Object.assign(s.weather,{kind:'sun',remaining:1000,wind:20,transition:0});
+ z.U=20;
+ Object.assign(p,{species:'maria',B:55,energy:80,mood:80,nutrition:39.9,x:z.x,y:z.y-.035});
+ F.advance(s,60,{visible:false});
+ near(p.nutrition,41.28);
+ near(z.U,18.5);
+ near(s.objects.ledger.absorbed,1.5);
 });

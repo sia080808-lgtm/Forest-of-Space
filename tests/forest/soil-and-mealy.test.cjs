@@ -77,3 +77,38 @@ test('ECO-05 one friend\'s pest harm is capped at 2/min in total; at most two pe
  F.valid(s);const m=F.migrate(JSON.parse(JSON.stringify(s)));a.deepEqual(m.objects.creatures,s.objects.creatures);
  for(const bad of [x=>{x.objects.creatures.groups.find(g=>g.kind==='mealy').honey=140;},x=>{x.objects.creatures.groups.push({id:'cr:y',kind:'lady',host:p.id,stage:'pupa',since:0,bad:0});}]){const t=JSON.parse(JSON.stringify(s));bad(t);a.throws(()=>F.valid(t));}
 });
+
+test('wet root-fly exposure triples larval burden after two minutes, survives a save and resets on leaving',()=>{
+ const s=game(),p=s.individuals[0],z=wetSpot(s,90);
+ Object.assign(p,{x:z.x,y:z.y+.02,B:50,Q:0});
+ const g=gnat(s,{adults:1,larvae:12});
+ function second(){
+  g.adults=1;g.eggs=0;g.larvae=12;
+  tick(s,{M:90,W:2});
+  F.Weather.physiology(s,p,{rootPressure:C.rootPressure(s,p)});
+ }
+ for(let i=0;i<119;i++)second();
+ a.equal(p.burden,0);
+ second();
+ a.ok(p.burden>0.011&&p.burden<.013);
+ a.equal(C.rootPressure(F.migrate(F.clone(s)),p),true);
+ p.x=.1;second();
+ a.equal(p.burden,0);
+ a.equal(C.rootPressure(s,p),false);
+});
+
+test('coexisting pests share the 2/min budget proportionally regardless of group order',()=>{
+ function sample(reverse){
+  const s=game(),p=s.individuals[0],z=wetSpot(s,90);
+  Object.assign(p,{x:z.x,y:z.y+.02,nutrition:75});
+  gnat(s,{larvae:70,rootExposure:{[p.id]:120}});
+  add(s,{kind:'mealy',host:p.id,density:70,honey:0,low:0});
+  if(reverse)s.objects.creatures.groups.reverse();
+  tick(s,{kind:'rain',M:90,W:2});
+  return [p.burden,75-p.nutrition];
+ }
+ const [root,leaf]=sample(false);
+ a.ok(root>0&&leaf>0);
+ a.ok(Math.abs(root+leaf-2/60)<1e-12);
+ a.deepEqual(sample(true),[root,leaf]);
+});
