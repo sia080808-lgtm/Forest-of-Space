@@ -80,3 +80,15 @@ test('a grown 슈퍼범 walks to the open side and takes compost when its origin
  a.ok(waiting&&walking);a.ok(O.at(s,p));a.ok(p.x<q.x);a.match(O.reason(s,p),/영양을 얻고/);
  const requests=[];O.receive(s,p,requests);O.grant(requests);a.ok(p.nutrition>30);near(p.nutrition-30,40-leaves.U);
 });
+
+test('compost feeds 1.5 nutrition per minute before the 0.12 upkeep and debits the real stock',()=>{
+ const s=F.create(0,7),p=s.individuals[0],z=F.Objects.patch(s,'litter');
+ s.started=true;s.worldTick=1250;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
+ Object.assign(s.weather,{kind:'sun',remaining:1000,wind:20,transition:0});
+ z.U=20;
+ Object.assign(p,{species:'maria',B:55,energy:80,mood:80,nutrition:39.9,x:z.x,y:z.y-.035});
+ F.advance(s,60,{visible:false});
+ near(p.nutrition,41.28);
+ near(z.U,18.5);
+ near(s.objects.ledger.absorbed,1.5);
+});

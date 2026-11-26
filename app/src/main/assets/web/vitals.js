@@ -8,8 +8,9 @@
 //    every existing threshold still reads a share of the pool; point changes are scaled by 100/max, so a bigger friend
 //    feels the same knock less. The old mood is folded in: any mood change since the last tick becomes 기운 and mood then
 //    mirrors 기운. Leaf damage still heals as before, but every new point of damage is taken from 기운.
-const dep=name=>typeof module==='object'?require('./'+name+'.js'):({traits:globalThis.ForestTraits,environment:globalThis.ForestEnvironment,shelter:globalThis.ForestShelter,world:globalThis.ForestWorld})[name];
+const dep=name=>typeof module==='object'?require('./'+name+'.js'):({traits:globalThis.ForestTraits,environment:globalThis.ForestEnvironment,shelter:globalThis.ForestShelter,world:globalThis.ForestWorld,social:globalThis.ForestSocial})[name];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const NUTRITION_USE=.12/60,COMPOST_FEED=1.5/60;
 const T=()=>dep('traits');
 function band(p){const L=T().level(p.xp),k=(L-1)*10/9;const lo=Math.round(35-k),hi=Math.round(65+k);return {L,lo,hi,warnLo:lo+5,warnHi:hi-5,mid:50,max:60+Math.round((L-1)*40/9)};}
 function zone(v,b){return v<15?'dangerLow':v<b.lo?'low':v<=b.hi?'ok':v<=85?'high':'dangerHigh';}
@@ -54,6 +55,13 @@ function migrate(p){if(p.vit===2)return false;const q=Math.max(0,p.Q||0),room=10
 function photoGrade(s,p,light,inside){const dark=inside||restingAt(p,'crevice');if(!isDay(s)||dark||!(p.B>15&&p.nutrition>15))return null;
  const [a,c]=T().ofPet(p).light,L=restingAt(p,'rock')&&rockSun(s,p.objectTask?.object)>0?(a+c)/2:coolAt(s,p)?light-COOL.light:light;
  return L>=a&&L<=c?'good':L<a?(L>=a-15?'near':'dark'):(L<=c+15?'near':'strong');}
+const PHOTO_WATER={good:.3,near:.2,strong:.6,dark:0};
+function baseWaterUse(s,p,tr=T().ofPet(p)){
+ return .8*tr.keep*(dep('social').shadeFactor(s,p)>0||coolAt(s,p)?.5:1)/60;
+}
+function photoWaterUse(s,p,light,inside,grade=photoGrade(s,p,light,inside),tr=T().ofPet(p)){
+ return (PHOTO_WATER[grade]||0)*tr.sun/60;
+}
 // one tick for an active friend (engine calls it after the weather physiology)
 function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPet(p),E=dep('environment');migrate(p);
  // fold old mood changes and new leaf damage into 기운
@@ -67,13 +75,13 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
   // photosynthesis (ST34-08): uses water, gives 기운 and growth
   const onRock=restingAt(p,'rock')&&rockSun(s,p.objectTask?.object)>0,dark=inside||restingAt(p,'crevice');
   if(isDay(s)&&!dark&&p.B>15&&p.nutrition>15){const g=photoGrade(s,p,light,inside);
-   const R=[...{good:[.3,.6,1/210],near:[.2,.3,1/420],strong:[.6,.2,1/420],dark:[0,0,0]}[g]];out.grade=g;
+   const R=[...{good:[.6,1/210],near:[.3,1/420],strong:[.2,1/420],dark:[0,0]}[g]];out.grade=g;
    // 1.0.3 슈퍼 광합성 (user): on the sun rock it uses the same water but gives 1.5x the 기운 and growth
-   if(onRock){R[1]*=ROCK_BOOST;R[2]*=ROCK_BOOST;}
-   if(R[0]){const w=Math.min(p.B,R[0]*tr.sun/60);p.B-=w;ledger.physiology+=w;out.water=w;}
-   if(R[1])energyPts(p,R[1]/60);if(g==='strong'&&zb==='low'||g==='strong'&&zb==='dangerLow')energyPts(p,-1/60);
-   if(R[2]){const fit=danger(zb)||danger(zn)?0:bad(zb)||bad(zn)?.5:1,en=p.energy>=70?1.2:p.energy<30?.5:1,season={spring:1.25,winter:.75}[E?.season?.(s)]??1;
-    out.xp=R[2]*fit*en*season;if(p.xp<150){p.growthSeconds+=360*out.xp;while(p.growthSeconds>=360&&p.xp<150){p.growthSeconds-=360;p.xp=Math.min(150,p.xp+1);}if(p.xp>=150)p.growthSeconds=Math.min(p.growthSeconds,359);}}
+   if(onRock){R[0]*=ROCK_BOOST;R[1]*=ROCK_BOOST;}
+   const w=Math.min(p.B,photoWaterUse(s,p,light,inside,g,tr));p.B-=w;ledger.physiology+=w;out.water=w;
+   if(R[0])energyPts(p,R[0]/60);if(g==='strong'&&zb==='low'||g==='strong'&&zb==='dangerLow')energyPts(p,-1/60);
+   if(R[1]){const fit=danger(zb)||danger(zn)?0:bad(zb)||bad(zn)?.5:1,en=p.energy>=70?1.2:p.energy<30?.5:1,season={spring:1.25,winter:.75}[E?.season?.(s)]??1;
+    out.xp=R[1]*fit*en*season;if(p.xp<150){p.growthSeconds+=360*out.xp;while(p.growthSeconds>=360&&p.xp<150){p.growthSeconds-=360;p.xp=Math.min(150,p.xp+1);}if(p.xp>=150)p.growthSeconds=Math.min(p.growthSeconds,359);}}
    if(onRock){const r=Obj().patch(s,p.objectTask.object);r.sun=Math.max(0,r.sun-SUN.use);}}
   // 1.0.1 눈 먹기 (user: "혹독한 겨울에도 눈 오지 않나? 눈 먹으면 되잖아"): snow lying on a friend's own leaves melts into
   // its body at any temperature while it is below the middle of its band (3 a minute), so a cold winter with a frozen
@@ -91,5 +99,5 @@ function step(s,p,{light,inside,moving,held,ledger}){const b=band(p),tr=T().ofPe
 function targets(p){const b=band(p);return {water:{start:b.warnLo,end:b.mid},nutrition:{start:b.warnLo,end:b.mid},energy:{start:40,end:80},band:b};}
 function validate(s){for(const p of s.individuals){if(p.vit!==undefined&&p.vit!==2)throw Error('능력치 기록을 확인해 주세요.');for(const k of ['moodSync','damageSync','compostSeconds'])if(p[k]!==undefined&&!(Number.isFinite(p[k])&&p[k]>=0&&p[k]<=1e9))throw Error('능력치 기록을 확인해 주세요.');}
  if(Obj().patchesOf(s,'rock').some(r=>r.sun!==undefined&&!(Number.isFinite(r.sun)&&r.sun>=0&&r.sun<=100)))throw Error('햇살 바위 기록을 확인해 주세요.');}
-return Object.freeze({ROCK_BOOST,photoGrade,restingAt,band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
+return Object.freeze({ROCK_BOOST,NUTRITION_USE,COMPOST_FEED,baseWaterUse,photoWaterUse,photoGrade,restingAt,band,zone,energyPts,shown,sleepTime,isDay,coolAt,COOL,isCold,chill,rockSun,sunStep,migrate,step,targets,validate,SUN});
 });

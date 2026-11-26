@@ -492,10 +492,8 @@ function choose(s,p,rng){
   if(all.length>1)all.sort((a,b)=>dep('spatial').distance(p,patch(s,a))-dep('spatial').distance(p,patch(s,b)));
   for(const target of all.length?all:[id])definitions.push([target,k,r,free]);
  };
- // 1.2.1 (user: "폭풍인데도 … 비가 많이 와도 아무도 쉼터로 들어가질 않음"): a thirsty friend went to drink before it took cover,
- // and with the spring busy it just wandered in the downpour. Rain on the body is water, so while it rains (outside, 수분 not
- // critical) the friend skips the drink trip and the rain/cold branches below decide where it goes.
- const rainWaters=dep('environment').precipitation(s,'rain')>=.25&&p.B>=20;
+ // Downpours still send friends to cover. In lighter rain, drink if local rainfall cannot restore the suitable band soon.
+ const deferDrink=n.water&&(heavyRain(s,p)&&p.B>=20||W.rainRestoresWater(s,p,dep('environment').precipitation(s,'rain')));
  // 1.2.1: with nothing to drink (empty spring, no snow, dry moss) a thirsty friend no longer stands in the open waiting — it
  // falls through to cover/warmth/rest and comes back when water arrives
  const hasMossWater=patchesOf(s,'moss').some(z=>z.S>=1),hasCreviceWater=patchesOf(s,'crevice').some(z=>z.W>0);
@@ -512,11 +510,11 @@ function choose(s,p,rng){
  }
  if(danger){for(const id of ['shelter','rock','crevice'])add(id,'rest','safety');}
  // SRS v2.36 SK-03: a friend 베이치 showed water to goes only there (no wasted walk to an empty spring)
- else if(n.water&&!rainWaters&&p.guideTo&&p.guideTo.until>s.worldTick&&(p.guideTo.kind==='puddle'?puddleDrink(s,p,current,p.guideTo.id):p.guideTo.kind==='lake'?lakeDrink(s,p,current,true):false))return;
- else if(n.water&&!rainWaters&&p.guideTo&&p.guideTo.until>s.worldTick&&['crevice','spring'].includes(p.guideTo.kind)){const id=p.guideTo.id??p.guideTo.kind;if(p.guideTo.kind==='crevice')add(id,'rootDrink','water',false,true);else{add(id,'drink','water',false,true);add(id,'edgeDrink','water',false,true);}}
- else if(n.water&&!rainWaters&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&puddleDrink(s,p,current,null))return;
- else if(n.water&&!rainWaters&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
- else if(n.water&&!rainWaters&&canDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||sp.water<sp.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&hasMossWater&&p.Q<12)add('moss','moss','water');if(p.B>=20&&hasCreviceWater)add('crevice','rootDrink','water');}
+ else if(n.water&&!deferDrink&&p.guideTo&&p.guideTo.until>s.worldTick&&(p.guideTo.kind==='puddle'?puddleDrink(s,p,current,p.guideTo.id):p.guideTo.kind==='lake'?lakeDrink(s,p,current,true):false))return;
+ else if(n.water&&!deferDrink&&p.guideTo&&p.guideTo.until>s.worldTick&&['crevice','spring'].includes(p.guideTo.kind)){const id=p.guideTo.id??p.guideTo.kind;if(p.guideTo.kind==='crevice')add(id,'rootDrink','water',false,true);else{add(id,'drink','water',false,true);add(id,'edgeDrink','water',false,true);}}
+ else if(n.water&&!deferDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&puddleDrink(s,p,current,null))return;
+ else if(n.water&&!deferDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))&&lakeDrink(s,p,current))return;
+ else if(n.water&&!deferDrink&&canDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||sp.water<sp.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&hasMossWater&&p.Q<12)add('moss','moss','water');if(p.B>=20&&hasCreviceWater)add('crevice','rootDrink','water');}
  // SRS v2.34 생존 우선: once 수분 or 영양 is in its bad band it is fixed before resting (a low 기운 caused by hunger must not
  // keep a friend resting while it starves)
  /* 1.2.6: in heavy rain or a storm the compost spots are closed (unsafe_weather), so a hungry friend wandered in the downpour looking for them; it takes cover first unless 영양 is critical */else if(n.nutrition&&!(heavyRain(s,p)&&p.nutrition>=20)&&(p.nutrition<dep('vitals').band(p).lo||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
@@ -640,7 +638,7 @@ function receive(s,p,requests){
   if(!p.carriedLeaf&&z.O>=.5){z.O-=.5;p.carriedLeaf={amount:.5,pile:t.object,key:'leaf:'+p.id+':'+t.serial};p.objectContact={id:p.carriedLeaf.key+':pick',cue:'pickup',tick:s.worldTick};}
   if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';if(t.object!=='litter')z.playBoostUntil=s.worldTick+120;else s.objects.playBoostUntil=s.worldTick+120;}
  }else if(t.kind==='nutrition'){
-  add(z,'U',Math.min(1/60*dep('traits').ofPet(p).nutr,50-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
+  add(z,'U',Math.min(dep('vitals').COMPOST_FEED*dep('traits').ofPet(p).nutr,50-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
  // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
  if(t.free||t.kind==='splash'){t.remaining--;if(t.remaining<=0)t.complete=true;}

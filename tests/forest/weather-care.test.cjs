@@ -30,3 +30,28 @@ test('rain canopy replaces an old walk on both cards and releases both friends a
  for(const p of [host,guest]){a.equal(p.stroll,undefined);a.equal(p.objectTask?.reason,'sleep');}
  F.valid(s);
 });
+
+test('drizzle defers drinking only if it can restore the friend within two minutes; downpours keep the shelter priority',()=>{
+ for(const [species,B,roof,intensity,remaining,expected] of [
+  ['ridley',33,false,35,180,null],
+  ['ridley',33,false,35,20,'water'],
+  ['ridley',30,false,35,180,'water'],
+  ['maria',33,false,35,180,'water'],
+  ['ridley',30,true,35,180,'water'],
+  ['ridley',30,false,60,180,'shelterRain'],
+ ]){
+  const s=F.create(0,7),p=s.individuals[0],rock=F.Objects.patch(s,'rock');
+  s.started=true;s.worldTick=1250;s.environment.tutorialDone=true;s.recruitment.nextAttempt=1e9;
+  Object.assign(s.climate,{L:30,T:60});
+  Object.assign(s.weather,{kind:'rain',intensity,wind:20,remaining,transition:0});
+  Object.assign(p,{species,B,x:rock.x,y:rock.y});
+  if(roof){
+   const home=s.shelters.facilities[0],seat=F.Shelter.seat(s,home,p);
+   Object.assign(p,{x:seat.x,y:seat.y,shelter:{phase:'restingInside',facilityId:home.id,x:seat.x,y:seat.y,units:F.Shelter.units(p)}});
+  }
+  // Capture the decision before the short rain case reaches its next weather period.
+  F.advance(s,15,{visible:false});
+  a.equal(p.objectTask?.reason??null,expected,[species,B,roof,intensity,remaining].join(' '));
+  if(roof)a.ok(!F.Shelter.inside(s,p),'a dry friend leaves the shelter for water');
+ }
+});

@@ -18,10 +18,9 @@ const Boat=typeof module==='object'?require('./lily-boat.js'):globalThis.ForestL
 const Swim=typeof module==='object'?require('./shore-swim.js'):globalThis.ForestShoreSwim;
 const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
-// SRS v2.34: 영양 now matters (out of band costs 기운), so the base use is set to what the litter can feed: 0.08 a minute
 const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
-const NUTR_USE=.08/60;
-const VERSION='1.2.23', RULES='SRS-2.19-objects', SCHEMA=1;
+const NUTR_USE=Vit.NUTRITION_USE;
+const VERSION='1.2.30', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -82,20 +81,19 @@ function step(s,{visible=true,held=null}={}){
  const rider=s.world?.lake?.boat?.rider;
  for(const p of s.individuals)if(p.stroll?.perch&&(p.id===rider||participants.has(p.id)||p.skill||p.skillHold||p.shelterRequest||p.shelter?.phase!=='outside'))Trees.leavePerch(s,p);
  const transfers=[];for(const p of s.individuals)p.harvestTick=0;Social.collect(s,held,Env.precipitation(s,'rain'),Env.area);Social.nest(s,held,Env.precipitation(s,'rain'));
+ const rainIntensity=Env.precipitation(s,'rain');
  for(const p of s.patches){
-  const weatherWater=Env.water(s,p,W.rainFraction(s,p));let rain=12/60*Env.precipitation(s,'rain')*p.exposure;
+  const cover=W.rainFraction(s,p),weatherWater=Env.water(s,p,cover),rain=W.patchRain(p,rainIntensity);
   // Movable leaf canopy physically shields patches within its radius; intercepted water
   // is routed once to the nearest lower patch, never counted as a second rainfall input.
   s.ledger.rain+=rain;p.rainTotal+=rain;if(rain>0){if(!w.rainEpoch)w.rainEpoch=1;p.lastRainTick=s.worldTick;p.rainEpoch=w.rainEpoch;}
   p.film=clamp(p.film+(rain>0?rain*.20:-(.002+.004*light(s,p)/100+.003*w.wind/100)),0,1);
-  let receiving=rain;const redirected=rain>0?rain*W.rainFraction(s,p):0;receiving-=redirected;
+  let receiving=rain;const redirected=rain*cover;receiving-=redirected;
   const edge=s.patches.filter(z=>z.id!==p.id&&z.y>p.y&&dist(z,p)<.42).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(redirected+weatherWater.roofMelt>0){if(edge)transfers.push([edge,redirected+weatherWater.roofMelt]);else s.ledger.outflow+=redirected+weatherWater.roofMelt;}
   receiving=Social.rain(s,p,receiving,held);
   // SRS v2.34: rain lands on the friend's body (수분) at up to 6/min in heavy rain, faster for friends weak to water;
   // shelters, leaf shade and 엘레판's leaf cut it (rainCover). Taken from this patch's real rainfall (conserved).
-  const roots=s.individuals.filter(q=>q.active&&!q.mounted&&q.B<100&&s.patches.reduce((a,b)=>dist(a,q)<=dist(b,q)?a:b).id===p.id);
-  const requests=roots.map(q=>Math.min(100-q.B,6/60*Env.precipitation(s,'rain')*(1-W.rainCover(s,q))*Traits.ofPet(q).wet));const demand=requests.reduce((a,b)=>a+b,0),fraction=demand>0?Math.min(1,receiving/demand):0;
-  roots.forEach((q,i)=>{const n=requests[i]*fraction;q.B+=n;receiving-=n;});
+  for(const [friend,water] of W.rainReceipts(s,p,receiving,rainIntensity)){friend.B+=water;receiving-=water;}
   receiving+=weatherWater.ground+p.W;p.W=0;const infiltration=Math.min(receiving,p.infiltration/60,p.cap-p.S);p.S+=infiltration;receiving-=infiltration;
   const pool=Math.min(receiving,p.pool);p.W=pool;s.ledger.outflow+=receiving-pool;
   const drain=take(p,Math.min(p.S+p.W,p.drain/60));const lower=s.patches.filter(z=>z.id!==p.id&&z.y>p.y+.015&&dist(z,p)<.32).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(lower)transfers.push([lower,drain]);else s.ledger.outflow+=drain;
@@ -107,13 +105,13 @@ function step(s,{visible=true,held=null}={}){
   p.motion={kind:'idle',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};
   // species traits (SRS v2.28): water use, strong-light use and root absorption scale by the motif fern's traits
   // SRS v2.34: basic water use by the water stat; strong light now costs water through photosynthesis (vitals.js)
-  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,(.8*tr.keep*(Social.shadeFactor(s,p)>0||Vit.coolAt(s,p)?.5:1))/60);p.B-=bodyUse;s.ledger.physiology+=bodyUse;
+  const tr=Traits.ofPet(p),vb=Vit.band(p),bodyUse=Math.min(p.B,Vit.baseWaterUse(s,p,tr));p.B-=bodyUse;s.ledger.physiology+=bodyUse;
   const ground=Obj.groundAt(s,p),inside=Sh.inside(s,p);
   const boost=p.Q>0&&!inside&&!p.mounted?Trees.absorption(s,p,Obj.kindOf(ground?.id)==='moss'):1;
   const absorb=Math.min(p.Q,2/60*tr.absorb*boost,Math.max(0,vb.warnHi-p.B));p.Q-=absorb;p.B+=absorb;
   const safeDry=inside||p.mounted||ground&&Obj.dry(s,ground.id);
   if(safeDry&&p.Q>0){const q=Math.min(p.Q,3/60);p.Q-=q;if(Sh.inside(s,p)||p.mounted)s.ledger.outflow+=q;else put(s,ground,q);}
-  const weatherDamage=W.physiology(s,p,{safeCare:p.mounted});
+  const weatherDamage=W.physiology(s,p,{safeCare:p.mounted,rootPressure:Creatures.rootPressure(s,p)});
   // SRS v2.28 species traits: weather mood (cold or snow / rain on the friend), and 엘레판's tank bonus while its open
   // leaf shelters a friend. Not under a shelter roof or on the mount, where the weather does not reach the friend.
   if(!Sh.inside(s,p)&&!p.mounted){if(tr.cold&&Vit.isCold(s))p.mood=clamp(p.mood+tr.cold*Vit.chill(s,p)/60);if(tr.rain&&(p.weatherExposure?.rain||0)>0)p.mood=clamp(p.mood+tr.rain/60);

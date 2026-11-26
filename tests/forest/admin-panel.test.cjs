@@ -27,6 +27,14 @@ test('1.2.6 스킬 보기 runs every friend\'s skill',()=>{const F=require('../.
  for(const p of s.individuals)Object.assign(p,{B:50,nutrition:50,energy:Math.max(p.energy,60)});
  const want={ridley:'brush:do',bosong:'dig:sniff',jureong:'rake:rake',neolbi:'soc:CANOPY',superbum:'soc:A04',bonbon:'mist'};
  for(const p of s.individuals){const t=F.clone(s),me=()=>t.individuals.find(z=>z.id===p.id);for(let k=0;k<300&&(F.Shelter.inside(t,me())||me().shelter?.facilityId);k++)F.step(t);if(p.species==='neolbi'){assert.throws(()=>A.run(F,F.clone(t),'skillShow',p.id),/젖은 이끼/);for(const z of t.patches)if(z.id==='moss')z.S=0;const h=me(),r=t.individuals.find(z=>z.species==='bonbon');for(let k=0;k<32;k++){const a=k*Math.PI/8,q={x:h.x+Math.cos(a)*(.1+.01*(k>>4)),y:h.y+Math.sin(a)*.06};if(F.Space.walkable(t,q,r.id)){r.x=q.x;r.y=q.y;delete r.walkPlan;break;}}F.valid(t);}   // and a friend is brought beside it   // 1.2.9: by wet moss the umbrella cannot open, and 스킬 보기 now says so
+  if(p.species==='ridley'){
+   // The skill needs a nearby friend. Rain can now send the natural partner to a spring.
+   const guest=t.individuals.find(z=>z.species==='bonbon');
+   for(const [friend,x,y] of [[me(),.47,.38],[guest,.56,.40]]){
+    Object.assign(friend,{x,y,shelter:{phase:'outside',since:t.worldTick}});
+    delete friend.shelterRequest;delete friend.walkPlan;
+   }
+  }
   A.run(F,t,'skillShow',p.id);F.valid(t);const q=t.individuals.find(z=>z.id===p.id),seen=new Set();
   for(let i=0;i<90;i++){F.step(t);if(q.skill)seen.add(q.skill.k+':'+q.skill.phase);const a=t.social.sessions.find(a=>a.ids[0]===q.id);if(a)seen.add('soc:'+a.type);if(S.misters(t).some(e=>e.id===q.id))seen.add('mist');}
   F.valid(t);assert.ok(seen.has(want[p.species]),p.species+' '+[...seen]);}});
