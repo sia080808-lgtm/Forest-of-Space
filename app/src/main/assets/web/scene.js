@@ -462,11 +462,11 @@ class ForestScene {
    if(ride.dew){c.save();c.fillStyle='rgba(172,217,224,.95)';c.beginPath();
     c.arc(face*size*(.18+ride.drop*.12),-size*(.72-ride.drop*.5),1.7,0,Math.PI*2);c.fill();c.restore();}
   }
-  const facing=this.facing?.[p.id]||1;
+  const facing=this.facing?.[p.id];
   if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}
-  // Only young Dico mirrors while walking. The complete rig shares this transform.
-  const mirror=p.species==='dico'?(p.visualStage<2&&moving&&!held&&!swimming?facing:1):
-   ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:facing);
+  // Young Dico's base art faces left. Mirror the complete rig only for rightward walking.
+  const mirror=p.species==='dico'?(p.visualStage<2&&moving&&!held&&!swimming&&facing===1?-1:1):
+   ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:facing||1);
   c.scale(mirror,1);
   const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
   const heldAge=held?Math.max(0,this.inspector?phase%3:phase-(this.carry?.phaseStart??phase)):0,wriggleAge=heldAge-.2,wiggle=held&&!reduced&&wriggleAge>=0&&wriggleAge<.8?Math.sin(wriggleAge*Math.PI*5)*Math.sin(wriggleAge*Math.PI/.8):0;
@@ -1042,7 +1042,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};
-   if(p.species==='dico')this.facing[p.id]=travelDx < -1e-6?-1:1;
+   if(p.species==='dico')this.facing[p.id]=Math.abs(travelDx)>1e-6?Math.sign(travelDx):0;
    else if(!friendship?.face&&path.length>1){
     const dx=path.at(-1).x-path[0].x;
     if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;
