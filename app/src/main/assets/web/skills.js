@@ -56,10 +56,22 @@ const puddles=s=>s.skills?.puddles||[];
 function water(s){return puddles(s).reduce((v,p)=>v+p.W,0);}
 function precip(s){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow');}
 function band(p){return dep('vitals').band(p);}
-function unsafe(s,p){const Sh=dep('shelter');return s.weather.wind>=60||!!p.shelterRequest||!!p.shelter?.facilityId||!!Sh.inside?.(s,p)||dep('vitals').sleepTime(s,p)||precip(s)>=.6;}
-// well enough to help others (SK-01 6): not thirsty, hungry or tired, not recovering and not in danger
-function well(s,p){const b=band(p);return p.active&&!p.mounted&&p.B>=b.warnLo&&p.nutrition>=b.warnLo&&p.energy>=40&&!p.wetRecovery&&!p.leafRecovery&&p.burden<40&&!unsafe(s,p);}
-function free(s,p,held,busy){return p.active&&!p.mounted&&p.id!==held&&!busy.has(p.id)&&!p.objectTask&&!p.skill&&!p.skillHold&&!p.sleepHere&&!p.braceHere&&!p.restSelf&&!(p.stroll&&(p.stroll.lake||p.stroll.puddle))&&!p.guideTo;}
+function unsafe(s,p,postponeShelter=false){
+ const Sh=dep('shelter');
+ const takingShelter=!postponeShelter&&(p.shelterRequest||p.shelter?.facilityId||Sh.inside?.(s,p));
+ return s.weather.wind>=60||takingShelter||dep('vitals').sleepTime(s,p)||precip(s)>=.6;
+}
+// A friend needs enough water, nutrition and energy to help.
+function well(s,p,postponeShelter=false){
+ const b=band(p);
+ return p.active&&!p.mounted&&p.B>=b.warnLo&&p.nutrition>=b.warnLo&&p.energy>=40&&
+  !p.wetRecovery&&!p.leafRecovery&&p.burden<40&&!unsafe(s,p,postponeShelter);
+}
+function free(s,p,held,busy,interruptLeisure=false){
+ return p.active&&!p.mounted&&p.id!==held&&!busy.has(p.id)&&
+  (!p.objectTask||interruptLeisure&&p.objectTask.free)&&!p.skill&&!p.skillHold&&
+  !p.sleepHere&&!p.braceHere&&!p.restSelf&&!(p.stroll&&(p.stroll.lake||p.stroll.puddle))&&!p.guideTo;
+}
 const thirsty=p=>p.active&&!p.mounted&&p.B<band(p).warnLo;
 function ready(s,p,k){return !(p.skillRest?.[k]>s.worldTick);}
 function rest(s,p,k,secs){(p.skillRest??={})[k]=s.worldTick+secs;}
@@ -138,14 +150,27 @@ function canMend(s,p,r,held,busy){
   !Sh.inside(s,r)&&!['entering','exiting','held'].includes(r.shelter?.phase);
  return !unsafe(s,r)&&!(r.objectTask&&!r.objectTask.free);
 }
-function startMend(s,p,held,busy){
- if(!ready(s,p,'mend'))return false;
+function canPostponeShelter(s,p){
+ if(p.objectTask?.object!=='shelter'||!p.objectTask.free)return false;
+ const a=p.shelter;
+ if(['outside','waitingOutside','rerouting'].includes(a?.phase))return true;
+ const Sh=dep('shelter'),f=Sh.facility(s,a?.facilityId);
+ return a?.phase==='moving'&&(!f||!Sh.intersects(f,p));
+}
+function startMend(s,p,held,busy,postponeShelter=false){
+ if(!ready(s,p,'mend')||p.settleUntil>=s.worldTick||p.objectTask&&!p.objectTask.free)return false;
  const Space=dep('spatial'),candidates=s.individuals.filter(q=>canMend(s,p,q,held,busy)&&dist(p,q)<MEND.reach&&
   !s.individuals.some(z=>z.skill?.k==='mend'&&z.skill.target===q.id))
   .sort((a,b)=>b.damage-a.damage||dist(a,p)-dist(b,p)||a.id.localeCompare(b.id));
  for(const r of candidates){
   const at=side(s,p,r);
   if(!Space.route(s,p,at))continue;
+  if(p.objectTask?.free)dep('objects').release(s,p,'interrupt');
+  if(postponeShelter){
+   dep('shelter').release(p,s.worldTick);
+   delete p.shelterRequest;
+   if(s.shelters.nextGuest===p.id)delete s.shelters.nextGuest;
+  }
   p.skill={k:'mend',target:r.id,start:s.worldTick,phase:'go'};
   return true;
  }
@@ -179,6 +204,9 @@ function skillHolder(s,p){
  return s.individuals.find(q=>q.id===p.skillHold&&(q.skill?.k==='brush'||q.skill?.k==='mend')&&
   q.skill.target===p.id&&q.skill.phase==='do');
 }
+function heldForMending(s,p){
+ return !!p.skillHold&&skillHolder(s,p)?.skill.k==='mend';
+}
 function migrate(s){
  for(const p of s.individuals){
   if(p.skill?.k==='repose')stop(s,p);
@@ -194,8 +222,13 @@ function prepare(s,{held=null,busy=new Set(),event,discovery,visible=true}={}){i
   if(p.guideTo&&(p.guideTo.until<=s.worldTick||!p.active||p.B>=band(p).mid))delete p.guideTo;if(p.skill&&!p.active)stop(s,p);if(p.skillHold&&!skillHolder(s,p))delete p.skillHold;}
  for(const a of s.social?.sessions||[])if(a.started===s.worldTick&&(a.type==='A04'||a.type==='CANOPY')){const d=s.individuals.find(q=>q.id===a.ids[0]);if(d)bump(s,d,ctx);}
  if(!s.skills.seen.bonbon&&misters(s).some(e=>s.individuals.some(q=>q.id!==e.id&&q.active&&dist(q,e)<lv(e,'mist','range')))){const e=misters(s)[0];bump(s,e,ctx);}
- for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){if(!free(s,p,held,busy)||!well(s,p))continue;
-  const go=p.species==='bosong'?startBosong(s,p,ctx):p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):p.species==='dico'?startMend(s,p,held,busy):false;
+ for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){
+  const dico=p.species==='dico';
+  if(!free(s,p,held,busy,dico))continue;
+  const postponeShelter=dico&&canPostponeShelter(s,p);
+  if(!well(s,p,postponeShelter))continue;
+  const go=dico?startMend(s,p,held,busy,postponeShelter):p.species==='bosong'?startBosong(s,p,ctx):
+   p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):false;
   if(go&&p.stroll)delete p.stroll;}}
 function stop(s,p,completed=false){const t=p.skill;if(!t)return;
  if(t.k==='mend'&&!completed)rest(s,p,'mend',MEND.rest);
@@ -275,5 +308,5 @@ function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='o
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush,migrate});
+return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,heldForMending,force,soilSpots,pest,side,selfBrush,migrate});
 });
