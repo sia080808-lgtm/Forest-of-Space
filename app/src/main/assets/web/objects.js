@@ -488,6 +488,10 @@ function choose(s,p,rng){
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
  // gives way only when 수분 or 영양 falls 3 below the band (danger and a sharper urgency still interrupt).
  /* 1.2.1: heavy rain or a hard cold ends a drink/feed/rest hold, so the friend can take cover */const weatherCall=rainCover(s,p)||coldCall(s,p);
+ // Keep either friend from starting a free visit during leaf mending.
+ // Safety plans and urgent needs still go through the normal planner.
+ if((p.skill?.k==='mend'||p.skillHold&&dep('skills').heldForMending(s,p))&&
+  (!current||current.free)&&!danger&&!weatherCall&&dep('skills').well(s,p))return;
  // Repeatedly eating can stall below 50 while dense mealybugs feed. Pause a
  // long meal briefly for leaf care, unless water, nutrition or shelter is urgent.
  if(valid&&!danger&&!weatherCall&&current.kind==='nutrition'&&current.arrived&&

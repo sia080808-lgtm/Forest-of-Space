@@ -121,8 +121,8 @@ test('drought keeps the crown and hood attached while both outer hood tips sag',
  }
 });
 
-function mendingWorld(damage=24){
- const s=F.create(0,123);s.worldTick=420;s.started=true;s.recruitment.nextAttempt=1e9;
+function mendingWorld(damage=24,seed=123){
+ const s=F.create(0,seed);s.worldTick=420;s.started=true;s.recruitment.nextAttempt=1e9;
  A.run(F,s,'welcome','dico');
  const [buddy,p]=s.individuals;
  Object.assign(p,{x:.35,y:.71,nutrition:60,B:58,energy:80,mood:80,moodSync:80,
@@ -150,6 +150,64 @@ test('Lv1 Dico approaches and mends a torn leaf once through the engine',()=>{
  F.valid(s);
  const saved=F.migrate(JSON.parse(JSON.stringify(s)));
  assert.equal(saved.individuals.find(o=>o.id===buddy.id).mendedAt,at+3);
+});
+
+test('A nearby torn leaf takes priority over a free visit, even if Dico has reserved a shelter seat',()=>{
+ for(const [seed,openedRequest] of [[1,false],[2,true]]){
+  const {s,p,buddy}=mendingWorld(8,seed);
+  p.nextObjectChoice=s.worldTick;
+  F.step(s);
+  assert.equal(s.shelters.nextRequest>1,openedRequest);
+  assert.equal(p.shelter.phase,'outside');
+  assert.equal(p.shelterRequest,undefined);
+  assert.equal(p.objectTask,undefined);
+  assert.equal(p.skill?.target,buddy.id);
+  F.advance(s,5);
+  assert.equal(buddy.damage,0);
+  F.valid(s);
+ }
+ const {s,p}=mendingWorld(0,2);
+ p.nextObjectChoice=s.worldTick;
+ F.step(s);
+ assert.equal(p.objectTask?.object,'shelter','no injured friend: keep the ordinary visit');
+ assert.equal(p.shelter.phase,'moving');
+});
+
+test('An ordinary object choice cannot cancel Dico on the way or during the three-second stitch',()=>{
+ const {s,p,buddy}=mendingWorld(8,1);
+ p.x=.25;p.nextObjectChoice=s.worldTick+2;
+ F.step(s);
+ assert.equal(p.skill?.phase,'go');
+ while(p.skill?.phase==='go'&&s.worldTick<443)F.step(s);
+ assert.equal(p.skill?.phase,'do');
+ const {at}=p.skill;
+ p.nextObjectChoice=s.worldTick+1;
+ buddy.nextObjectChoice=s.worldTick+1;
+ F.advance(s,2);
+ assert.equal(p.skill?.phase,'do');
+ assert.equal(buddy.skillHold,p.id);
+ assert.equal(buddy.damage,8);
+ F.step(s);
+ assert.equal(buddy.damage,0);
+ assert.equal(buddy.mendedAt,at+3);
+ assert.equal(buddy.skillHold,undefined);
+});
+
+test('An urgent need or strong wind interrupts mending and leaves the friend free',()=>{
+ for(const emergency of ['water','wind']){
+  const {s,p,buddy}=mendingWorld(8,1);
+  F.step(s);
+  assert.equal(p.skill?.phase,'do');
+  if(emergency==='water')p.B=15;
+  else s.weather.wind=76;
+  p.nextObjectChoice=s.worldTick;
+  F.step(s);
+  assert.equal(p.skill,undefined,emergency);
+  assert.equal(buddy.skillHold,undefined,emergency);
+  assert.equal(buddy.damage,8,emergency);
+  assert.equal(buddy.mendedAt,undefined,emergency);
+  assert.equal(p.skillRest.mend,s.worldTick+5,emergency);
+ }
 });
 
 test('Mending upgrades recovery only and locks the same target for 30 seconds',()=>{
