@@ -458,7 +458,13 @@ class ForestScene {
    if(ride.dew){c.save();c.fillStyle='rgba(172,217,224,.95)';c.beginPath();
     c.arc(face*size*(.18+ride.drop*.12),-size*(.72-ride.drop*.5),1.7,0,Math.PI*2);c.fill();c.restore();}
   }
-  if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}   /* 0.8.7: smelling the grass, leaning forward; (user "킁킁 할 때 살짝 까닥") every 1.1 s three quick little nods (킁킁킁), then a pause */c.scale(ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:this.facing?.[p.id]||1),1);   /* 0.8.7 (user: "왼쪽으로 갈 땐 왼쪽 보고 오른쪽으로 갈 땐 오른쪽"): 엘레판 also faces where it walks, except while its leaf umbrella is open or closing (the friends' seats under it are on its right) */const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
+  const facing=this.facing?.[p.id]||1;
+  if(kind==='moss'&&!s.settings.reducedMotion)c.rotate(Math.sin(this.phase*1.4)*.025);if(kind==='sniff'&&!s.settings.reducedMotion){const u=((phase%1.1)+1.1)%1.1,nod=u<.45?Math.abs(Math.sin(u/.15*Math.PI))*.09:0;c.rotate(((p.species==='neolbi'||p.species==='superbum'?.07:.14)+nod)*(this.facing?.[p.id]||1));}
+  // Only young Dico mirrors while walking. The complete rig shares this transform.
+  const mirror=p.species==='dico'?(p.visualStage<2&&moving&&!held&&!swimming?facing:1):
+   ride?.direction||(p.species==='neolbi'&&(p.canopy||(p.canopyProgress||0)>0||p.canopyClosing)?1:facing);
+  c.scale(mirror,1);
+  const drink=kind==='drink'||kind==='splash'&&p.motion?.water>0&&Math.sin(phase*3)>.35,rest=kind==='rest'||kind==='moss',groom=kind==='groom',land=kind==='land';
   const heldAge=held?Math.max(0,this.inspector?phase%3:phase-(this.carry?.phaseStart??phase)):0,wriggleAge=heldAge-.2,wiggle=held&&!reduced&&wriggleAge>=0&&wriggleAge<.8?Math.sin(wriggleAge*Math.PI*5)*Math.sin(wriggleAge*Math.PI/.8):0;
   const context=held||swimming?null:Forest.Space.context(s,pos);if(moving&&!reduced){if(context==='duck'||kind==='duck'){c.translate(0,1.5*growth);c.rotate(-.10);}if(context==='step'||kind==='step')c.translate(0,-Math.abs(stride)*2*growth);if(context==='avoid'||kind==='avoid')c.rotate(stride*.045);}
   const visual=this.visual||(this.visual={}),v=visual[p.id]||(visual[p.id]={rest:rest?1:0,phase:phase});
@@ -934,15 +940,17 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
   };
   const riders=[];// friends drawn on top of the sun rock this frame (0.6.31)
   for(const p of s.individuals.filter(x=>x.active).sort((a,b)=>drawOrder(a)-drawOrder(b))){
-   const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y},segmentDx;
+   const motion=p.motion,path=motion?.path||[p];let pos={x:p.x,y:p.y},travelDx=0;
    if(motion?.tick===s.worldTick&&motion.distance>0){
-    let remaining=motion.distance*Math.min(1,fraction/(motion.duration||1));pos={...path[0]};
+    const duration=motion.duration||1;
+    let remaining=motion.distance*Math.min(1,fraction/duration);pos={...path[0]};
     for(let i=1;i<path.length;i++){
      const from=path[i-1],to=path[i],d=Forest.Space.distance(from,to);
      if(!d)continue;
      const n=Math.min(d,remaining);
-     segmentDx=to.x-from.x;
-     pos={x:from.x+segmentDx*n/d,y:from.y+(to.y-from.y)*n/d};
+     const dx=to.x-from.x;
+     if(fraction<duration)travelDx=dx;
+     pos={x:from.x+dx*n/d,y:from.y+(to.y-from.y)*n/d};
      remaining-=n;if(remaining<=0)break;
     }
    }
@@ -978,7 +986,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    if(target||ns){if(!ns)ns=this.nookS[p.id]={e:0,last:this.phase,to:target};const dt=Math.max(0,Math.min(.25,this.phase-ns.last));ns.last=this.phase;if(target)ns.to=target;
     const d=Forest.Space.distance(pos,ns.to),dur=s.settings.reducedMotion?0:Math.max(.6,d/(Forest.Space.GU*.6)),stp=dur?dt/dur:1,was=ns.e;ns.e=target?Math.min(1,ns.e+stp):Math.max(0,ns.e-stp);
     if(ns.e<=0&&!target)delete this.nookS[p.id];else{const k=ns.e*ns.e*(3-2*ns.e);pos={x:pos.x+(ns.to.x-pos.x)*k,y:pos.y+(ns.to.y-pos.y)*k};nook=ns.to;seated=ns.e>=1;
-     if(ns.e!==was||(ns.e>0&&ns.e<1)){kind='slow';this.facing=this.facing||{};const dx=(ns.to.x-p.x)*(target?1:-1);if(Math.abs(dx)>.0005)this.facing[p.id]=dx<0?-1:1;}
+     if(ns.e!==was||(ns.e>0&&ns.e<1)){kind='slow';this.facing=this.facing||{};const dx=(ns.to.x-p.x)*(target?1:-1);if(ns.e!==was)travelDx=dx;if(Math.abs(dx)>.0005)this.facing[p.id]=dx<0?-1:1;}
      const g=this.creviceGeom();behind=seated||!!g&&pos.y*this.h<g.px(0,352).y;}}
    const shelf=s.mode==='game'&&p.stroll?.shelf&&this.carry?.id!==p.id&&Forest.World.stoneShelf(s,p.stroll.shelfId);
    let perch=null;
@@ -1008,9 +1016,9 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    this.display[p.id]=pos;const carry=this.carry?.id===p.id&&this.carry.mode==='drag';
 
    this.facing=this.facing||{};
-   if(!friendship?.face&&path.length>1){
-    // Dico turns with the segment currently drawn, even if the rest of the route bends back.
-    const dx=p.species==='dico'&&segmentDx!==undefined?segmentDx:path.at(-1).x-path[0].x;
+   if(p.species==='dico')this.facing[p.id]=travelDx < -1e-6?-1:1;
+   else if(!friendship?.face&&path.length>1){
+    const dx=path.at(-1).x-path[0].x;
     if(Math.abs(dx)>.001)this.facing[p.id]=dx<0?-1:1;
    }
    if(p.skill?.k==='brush'&&p.skill.phase==='do'){const r=s.individuals.find(q=>q.id===p.skill.target);if(r)this.facing[p.id]=r.x<p.x?-1:1;}   /* 1.2.7: 리들리 faces the friend whose leaves it taps */
