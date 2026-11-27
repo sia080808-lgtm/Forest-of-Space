@@ -86,7 +86,7 @@ function drawSet(c,a,set,p,opt,t,part){
   if(k==='crown')return Leaf.texture(im,set==='wet'?'superbumWetCrown':'superbumCrown',opt.leafState);
   return k.startsWith('skirt')?Leaf.texture(im,k,opt.leafState):im;
  },snow=opt.snow||0,E=snow>0?(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects):null;
- const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
+ const img=(k,snowy)=>{const im=L(k);if(!im)return;c.drawImage(im,0,0,480,420);Leaf.markTear(c,im,0,0,480,420);if(snowy&&E)E.snow(c,im,snow,0,0,480,420);};
  // The pendant leaves hang from the cheeks: their top stays attached and only the lower part swings (drawn in thin
  // horizontal strips, each shifted more the further it hangs), so a leaf bends instead of coming apart from the face.
  const bend=(k,py,ang,lift,snowy)=>{const im=L(k);if(!im)return;if(Math.abs(ang)<1e-4&&Math.abs(lift)<1e-4){img(k,snowy);return;}

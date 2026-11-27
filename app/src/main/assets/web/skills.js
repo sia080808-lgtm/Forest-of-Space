@@ -9,7 +9,7 @@
 //   엘리시 촉촉한 잎 곁: beside moss it keeps nearby leaves moist (no spider mites) and calls natural enemies sooner
 // Water and leaves only move (water balance and the floor-leaf count stay the same). The engine calls prepare once a
 // tick and act for each active friend; rendering only reads.
-const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',vitals:'ForestVitals',litter:'ForestLitter',objects:'ForestObjects',creatures:'ForestCreatures',shelter:'ForestShelter',world:'ForestWorld',environment:'ForestEnvironment'}[n]];
+const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{spatial:'ForestSpace',vitals:'ForestVitals',litter:'ForestLitter',objects:'ForestObjects',creatures:'ForestCreatures',shelter:'ForestShelter',world:'ForestWorld',environment:'ForestEnvironment','leaf-state':'ForestLeafState'}[n]];
 const SK=Object.freeze({
  dig:Object.freeze({species:'bosong',rest:600,reach:.6,soil:.8,minS:1.5,amount:8,take:.7,life:600,evap:.1/60,max:2,go:40,sniff:6,cost:1,springLow:.5}),
  guide:Object.freeze({rest:180,go:60,hold:120}),
@@ -24,6 +24,7 @@ const LEVEL=Object.freeze({
  dig:{amount:[8,10,12,14,14],reach:[.6,.6,.75,.75,.75],rest:[600,600,600,480,480]},
  rake:{count:[1,2,3,4,5],energy:[50,50,40,40,40]},
  brush:{amount:[15,30,50,75,100],reach:[.4,.4,.5,.5,.5],rest:[180,180,180,120,120]},
+ mend:{amount:[10,14,18,22,26]},
  mist:{range:[.15,.18,.21,.25,.25],humid:[15,15,20,20,20],assist:[.25,.25,.25,.3,.3]},
  share:{total:[10,12,14,16,16],nest:[40,40,45,50,50]},
  umbrella:{rain:[.5,.6,.7,.8,.8],wind:[.4,.45,.55,.65,.65],limit:[70,70,75,80,80]}
@@ -36,9 +37,9 @@ function lv(p,k,f){return LEVEL[k][f][tier(p)];}
 function umbrella(h){return {rain:lv(h,'umbrella','rain'),wind:lv(h,'umbrella','wind'),limit:lv(h,'umbrella','limit')};}
 function share(d){return {total:lv(d,'share','total'),nest:lv(d,'share','nest')};}
 const NEXT=[3,6,9,10];
-const REPOSE={energy:40,gain:20,time:20,rest:300,reach:.30,go:30,close:.12};
+const MEND=Object.freeze({time:3,rest:5,repeat:30,reach:.30,go:30});
 const INFO=Object.freeze({
- dico:{name:'잠깐 쉬고 가',line:'기운이 40% 미만인 친구가 쉬고 있으면 곁에서 20초 함께 쉬고, 그 친구의 기운을 20%p 채워 줘요. (대기 5분)'},
+ dico:{name:'잎 수선',line:'작은 거미와 함께 찢어진 친구의 잎을 3초 동안 꿰매요. 수선 시작부터 5초마다 쓸 수 있고, 같은 친구는 수선 성공 후 30초가 지나야 다시 도와줘요.'},
  maria:{name:'같이 수영할래?',line:'잔잔한 낮에 친구를 호수로 이끌어 함께 헤엄쳐요. 약 20초 동안 각자 수분 적정 상한까지 채워요. (대기 5분)'},
  superbum:{name:'빗물 나눔',line:'머리 둥지에 모은 빗물을 목마른 친구에게 걸어가 나눠 줘요.'},
  bosong:{name:'물 찾기',line:'비가 없을 때 촉촉한 흙에서 숨은 물을 찾아 웅덩이를 만들고, 목마른 친구에게 물이 있는 곳을 알려 줘요.'},
@@ -47,8 +48,8 @@ const INFO=Object.freeze({
  ridley:{name:'잎 털어 주기',line:'잎응애·솜깍지가 붙은 친구의 잎을 손으로 털어 줘요. 머리를 쓰다듬어 정돈할 때는 자기 잎도 같은 만큼 털어 내요. 짐꾼개미도 리들리를 따라와요.'},
  bonbon:{name:'촉촉한 잎 곁',line:'이끼·샘터·웅덩이·호숫가 곁이나 비·안개 오는 날이면 둘레 친구들의 잎을 촉촉하게 해 잎응애를 막고, 천적을 빨리 불러요.'}
 });
-const FIRST=Object.freeze({superbum:'슈퍼범이 처음으로 빗물을 나눠 주었어요.',bosong:'베이치가 처음으로 숨은 물을 찾았어요.',neolbi:'엘레판이 처음으로 잎 우산을 펴 주었어요.',jureong:'코로나가 처음으로 낙엽을 모았어요.',ridley:'리들리가 처음으로 친구의 잎을 털어 주었어요.',bonbon:'엘리시 곁의 잎이 촉촉해졌어요.'});
-const KINDS=['dig','guide','rake','brush','repose'],eps=1e-9,DAY=1200;
+const FIRST=Object.freeze({dico:'디코가 처음으로 친구의 찢어진 잎을 수선했어요.',superbum:'슈퍼범이 처음으로 빗물을 나눠 주었어요.',bosong:'베이치가 처음으로 숨은 물을 찾았어요.',neolbi:'엘레판이 처음으로 잎 우산을 펴 주었어요.',jureong:'코로나가 처음으로 낙엽을 모았어요.',ridley:'리들리가 처음으로 친구의 잎을 털어 주었어요.',bonbon:'엘리시 곁의 잎이 촉촉해졌어요.'});
+const KINDS=['dig','guide','rake','brush','mend'],eps=1e-9,DAY=1200;
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function init(s){s.skills??={puddles:[],nextId:1,seen:{}};s.skills.puddles??=[];s.skills.seen??={};s.skills.nextId??=1;return s.skills;}
 const puddles=s=>s.skills?.puddles||[];
@@ -124,64 +125,89 @@ function assist(s,q){return !!q&&misters(s).some(e=>dist(e,q)<lv(e,'mist','assis
 // ---- puddles (SK-03) ----
 function puddleStep(s){const st=init(s);for(const d of [...st.puddles]){const e=Math.min(d.W,SK.dig.evap);d.W-=e;s.ledger.evaporation+=e;
  if(s.worldTick-d.born>=SK.dig.life||d.W<=eps){const z=[...s.patches,...(s.objects?.stored||[])].find(z=>z.id===d.from),back=z?Math.min(d.W,Math.max(0,z.cap-z.S)):0;if(z)z.S+=back;s.ledger.outflow+=d.W-back;st.puddles=st.puddles.filter(x=>x!==d);for(const p of s.individuals)if(p.guideTo?.id===d.id)delete p.guideTo;}}}
-function restingFriend(r){
- return !!r&&r.active&&!r.mounted&&!r.skill&&!r.skillHold&&!r.stroll?.perch&&!r.shelter?.facilityId&&
-  !r.shelterRequest&&r.B>=band(r).warnLo&&r.nutrition>=band(r).warnLo&&
-  !r.wetRecovery&&!r.leafRecovery&&(r.restSelf||r.sleepHere||
-  r.action==='rest'&&(r.objectArrived&&r.objectTask?.kind==='rest'||r.stroll?.arrivedAt!=null));
+function canMend(s,p,r,held,busy){
+ if(!r||r.id===p.id||!r.active||r.mounted||r.id===held||busy?.has(r.id)||r.skill||
+  r.skillHold&&r.skillHold!==p.id||r.settleUntil>=s.worldTick||r.sleepHere||r.braceHere||r.stroll?.perch||r.stroll?.shelf)
+  return false;
+ const Leaf=dep('leaf-state'),Sh=dep('shelter');
+ if(!(Leaf.flags(r)&Leaf.TORN)||s.worldTick-(r.mendedAt??-Infinity)<MEND.repeat)return false;
+ // An injured friend may already be seeking a resting spot in calm weather.
+ // Mend it while it is still outdoors, without taking over urgent care.
+ const recovering=r.objectTask?.reason==='safety'&&r.B>=40&&r.nutrition>=40&&!r.wetRecovery&&r.burden<40;
+ if(recovering)return s.weather.wind<60&&precip(s)<.6&&!dep('vitals').sleepTime(s,r)&&
+  !Sh.inside(s,r)&&!['entering','exiting','held'].includes(r.shelter?.phase);
+ return !unsafe(s,r)&&!(r.objectTask&&!r.objectTask.free);
 }
-function startRepose(s,p,held,busy,preview=false){
- if(!ready(s,p,'repose'))return false;
- const r=s.individuals.filter(q=>q.id!==p.id&&q.id!==held&&!busy.has(q.id)&&restingFriend(q)&&
-  q.energy<REPOSE.energy&&dist(p,q)<REPOSE.reach&&!s.individuals.some(z=>z.skill?.k==='repose'&&z.skill.target===q.id))
-  .sort((a,b)=>a.energy-b.energy||dist(a,p)-dist(b,p)||a.id.localeCompare(b.id))[0];
- if(!r)return false;
- const at=side(s,p,r),Space=dep('spatial');
- // Throttle a failed attempt even when the nearby occupied rest spot has no path.
- rest(s,p,'repose',45);
- if(!preview&&!Space.route(s,p,at))return false;
- p.skill={k:'repose',target:r.id,x:at.x,y:at.y,start:s.worldTick,phase:preview?'rest':'go'};
- if(preview)p.skill.at=s.worldTick;
- return true;
-}
-function runRepose(s,p,t,walk,ctx){
- const r=s.individuals.find(q=>q.id===t.target);
- if(!restingFriend(r)||ctx.held===r.id||ctx.busy?.has(r.id)){
-  stop(s,p);return null;
+function startMend(s,p,held,busy){
+ if(!ready(s,p,'mend'))return false;
+ const Space=dep('spatial'),candidates=s.individuals.filter(q=>canMend(s,p,q,held,busy)&&dist(p,q)<MEND.reach&&
+  !s.individuals.some(z=>z.skill?.k==='mend'&&z.skill.target===q.id))
+  .sort((a,b)=>b.damage-a.damage||dist(a,p)-dist(b,p)||a.id.localeCompare(b.id));
+ for(const r of candidates){
+  const at=side(s,p,r);
+  if(!Space.route(s,p,at))continue;
+  p.skill={k:'mend',target:r.id,start:s.worldTick,phase:'go'};
+  return true;
  }
+ if(candidates.length)rest(s,p,'mend',MEND.rest);
+ return false;
+}
+function runMend(s,p,t,walk,ctx){
+ const r=s.individuals.find(q=>q.id===t.target);
+ if(!canMend(s,p,r,ctx.held,ctx.busy)){stop(s,p);return null;}
  if(t.phase==='go'){
-  const m=walk(t);
-  if(m.arrived||dist(p,t)<.025){
-   if(dist(p,r)>REPOSE.close){stop(s,p);return m;}
-   t.phase='rest';t.at=s.worldTick;
-  }else if(s.worldTick-t.start>=REPOSE.go||t.stall>=4)stop(s,p);
+  const at=side(s,p,r),m=walk(at);
+  if(m.arrived||dist(p,at)<.02){
+   // Fix the two positions just for the stitch, as at a leaf brushing.
+   t.phase='do';t.at=s.worldTick;r.skillHold=p.id;
+   t.x=r.x;t.y=r.y;
+   if(r.stroll)delete r.stroll;
+   rest(s,p,'mend',MEND.rest);
+  }else if(s.worldTick-t.start>=MEND.go||t.stall>=4)stop(s,p);
   return m;
  }
- if(dist(p,r)>REPOSE.close){stop(s,p);return null;}
- if(s.worldTick-t.at<REPOSE.time)return {kind:'repose',distance:0};
- r.energy=Math.min(100,r.energy+REPOSE.gain);
- rest(s,p,'repose',REPOSE.rest);bump(s,p,ctx);
- ctx.event?.(s,'skill',p.name+' · '+r.name+' 곁에서 쉬며 기운을 나눴어요.',{individual:p.id});
- stop(s,p);return {kind:'repose',distance:0};
+ if(r.x!==t.x||r.y!==t.y||r.skillHold!==p.id){stop(s,p);return null;}
+ if(s.worldTick-t.at<MEND.time)return {kind:'idle',distance:0};
+ const Leaf=dep('leaf-state');
+ r.damage=Math.max(0,r.damage-lv(p,'mend','amount'));
+ Leaf.update(r);if(r.leafRecovery&&r.damage<20)r.leafRecovery=false;
+ r.mendedAt=s.worldTick;bump(s,p,ctx);
+ ctx.event?.(s,'skill',p.name+' · '+r.name+'의 찢어진 잎을 꿰매 줬어요.',{individual:p.id});
+ stop(s,p,true);return {kind:'idle',distance:0};
+}
+function skillHolder(s,p){
+ return s.individuals.find(q=>q.id===p.skillHold&&(q.skill?.k==='brush'||q.skill?.k==='mend')&&
+  q.skill.target===p.id&&q.skill.phase==='do');
+}
+function migrate(s){
+ for(const p of s.individuals){
+  if(p.skill?.k==='repose')stop(s,p);
+  if(p.skillRest)delete p.skillRest.repose;
+ }
 }
 // ---- one tick: puddles, counting the kept skills, starting new ones ----
 function prepare(s,{held=null,busy=new Set(),event,discovery,visible=true}={}){init(s);puddleStep(s);const ctx={event,discovery,visible};
- for(const p of s.individuals){if(p.guideTo&&(p.guideTo.until<=s.worldTick||!p.active||p.B>=band(p).mid))delete p.guideTo;if(p.skill&&!p.active)stop(s,p);if(p.skillHold&&!s.individuals.some(q=>q.skill?.k==='brush'&&q.skill.target===p.id&&q.id===p.skillHold))delete p.skillHold;}
+ for(const p of s.individuals){
+  const t=p.skill;
+  if(t?.k==='mend'&&(p.id===held||busy.has(p.id)||p.settleUntil>=s.worldTick||p.objectTask||
+   !well(s,p)||!canMend(s,p,s.individuals.find(r=>r.id===t.target),held,busy)))stop(s,p);
+  if(p.guideTo&&(p.guideTo.until<=s.worldTick||!p.active||p.B>=band(p).mid))delete p.guideTo;if(p.skill&&!p.active)stop(s,p);if(p.skillHold&&!skillHolder(s,p))delete p.skillHold;}
  for(const a of s.social?.sessions||[])if(a.started===s.worldTick&&(a.type==='A04'||a.type==='CANOPY')){const d=s.individuals.find(q=>q.id===a.ids[0]);if(d)bump(s,d,ctx);}
  if(!s.skills.seen.bonbon&&misters(s).some(e=>s.individuals.some(q=>q.id!==e.id&&q.active&&dist(q,e)<lv(e,'mist','range')))){const e=misters(s)[0];bump(s,e,ctx);}
  for(const p of [...s.individuals].sort((a,b)=>a.id.localeCompare(b.id))){if(!free(s,p,held,busy)||!well(s,p))continue;
-  const go=p.species==='bosong'?startBosong(s,p,ctx):p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):p.species==='dico'?startRepose(s,p,held,busy):false;
+  const go=p.species==='bosong'?startBosong(s,p,ctx):p.species==='jureong'?startRake(s,p):p.species==='ridley'?startBrush(s,p,held,busy):p.species==='dico'?startMend(s,p,held,busy):false;
   if(go&&p.stroll)delete p.stroll;}}
-function stop(s,p){const t=p.skill;if(!t)return;
- if(t.k==='brush'){const r=s.individuals.find(q=>q.id===t.target);if(r&&r.skillHold===p.id)delete r.skillHold;}
+function stop(s,p,completed=false){const t=p.skill;if(!t)return;
+ if(t.k==='mend'&&!completed)rest(s,p,'mend',MEND.rest);
+ if(t.k==='brush'||t.k==='mend'){const r=s.individuals.find(q=>q.id===t.target);if(r&&r.skillHold===p.id)delete r.skillHold;}
  delete p.skill;p.nextObjectChoice=s.worldTick;}
 // the engine calls this for every active friend; a returned motion means the friend spent this tick on a skill
 function act(s,p,ctx={}){const Space=dep('spatial'),Vit=dep('vitals');
- if(p.skillHold){const h=s.individuals.find(q=>q.id===p.skillHold&&q.skill?.k==='brush'&&q.skill.target===p.id&&q.skill.phase==='do');if(h)return {kind:'idle',distance:0};delete p.skillHold;}
+ if(p.skillHold){const h=skillHolder(s,p);if(h)return {kind:'idle',distance:0};delete p.skillHold;}
  const t=p.skill;if(!t)return null;
  if(!well(s,p)||p.objectTask){stop(s,p);return null;}
  const age=s.worldTick-t.start,walk=to=>{const m=Space.travel(s,p,to);if(m.distance>0)t.stall=0;else if(!m.arrived)t.stall=(t.stall||0)+1;return m;};
- if(t.k==='repose')return runRepose(s,p,t,walk,ctx);
+ if(t.k==='mend')return runMend(s,p,t,walk,ctx);
  if(t.k==='dig'){
   if(t.phase==='go'){const m=walk(t);if(m.arrived){t.phase='sniff';t.at=s.worldTick;}else if(age>SK.dig.go||t.stall>=4)stop(s,p);return m;}
   if(s.worldTick-t.at<SK.dig.sniff)return {kind:'sniff',distance:0};
@@ -214,24 +240,24 @@ function force(s,p){init(s);(p.skillRest??={});for(const k of [...KINDS,'self'])
  if(p.species==='bosong'){for(const z of soilSpots(s,p)){const at=puddleSpot(s,z,p);if(at&&dep('spatial').route(s,p,at)){p.skill={k:'dig',from:z.id,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'dig',lv(p,'dig','rest'));return true;}}return false;}
  if(p.species==='jureong'){const c=rakeFor(s,p);if(!c)return false;const Space=dep('spatial');let at=null;for(const q of [{x:c.x,y:c.y+.03},{x:c.x+.04,y:c.y+.02},{x:c.x-.04,y:c.y+.02},{x:c.x,y:c.y}])if(Space.walkable(s,q,p.id)){at=q;break;}if(!at||!Space.route(s,p,at))return false;
   p.skill={k:'rake',sector:c.sector,ids:c.ids.map(l=>l.id),pile:c.pile,anchor:c.anchor,cx:c.x,cy:c.y,x:at.x,y:at.y,phase:'go',start:s.worldTick};rest(s,p,'rake',SK.rake.rest);return true;}
- if(p.species==='dico')return startRepose(s,p,null,new Set());
+ if(p.species==='dico')return startMend(s,p,null,new Set());
  if(p.species==='ridley')return startBrush(s,p,null,new Set());
  return false;}
 // leaves held by a friend: none (코로나 rakes leaves where they lie)
 function carried(){return 0;}
 // card line for a friend using or receiving a skill (render / UI only)
-function status(s,p){const t=p.skill;if(p.skillHold){const h=s.individuals.find(q=>q.id===p.skillHold);if(h)return h.name+ga(h.name)+' 잎을 털어 주고 있어요';}
+function status(s,p){const t=p.skill;if(p.skillHold){const h=s.individuals.find(q=>q.id===p.skillHold);if(h)return h.name+ga(h.name)+(h.skill?.k==='mend'?' 잎을 꿰매 주고 있어요':' 잎을 털어 주고 있어요');}
  if(p.guideTo){const b=s.individuals.find(q=>q.id===p.guideTo.by);const n=b?b.name:'친구';return n+ga(n)+' 알려 준 물로 가고 있어요';}
  if(!t)return misters(s).some(e=>e.id===p.id)?'촉촉한 잎 곁을 지키고 있어요':null;
  if(t.k==='dig')return t.phase==='go'?'숨은 물을 찾으러 가고 있어요':'촉촉한 흙에서 숨은 물을 찾고 있어요';
  if(t.k==='guide'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+'에게 ':'')+'물이 있는 곳을 알려 주고 있어요';}
  if(t.k==='rake')return t.phase==='go'?'흩어진 낙엽을 모으러 가고 있어요':'흩어진 낙엽을 긁어모으고 있어요';
- if(t.k==='repose'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+' 곁에서 ':'')+(t.phase==='rest'?'함께 쉬고 있어요':'쉴 자리로 가고 있어요');}
+ if(t.k==='mend'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+'의 ':'')+(t.phase==='do'?'찢어진 잎을 꿰매고 있어요':'잎을 수선하러 가고 있어요');}
  if(t.k==='brush'){const r=s.individuals.find(q=>q.id===t.target);return (r?r.name+'의 ':'')+(t.phase==='do'?'잎을 털어 주고 있어요':'잎을 털어 주러 가고 있어요');}
  return null;}
 // 1.1.3 card text for the 고유 스킬 칸: what this friend's level gives now, and what the next step adds (UI only)
 const LINE=Object.freeze({
- dico:()=> '함께 쉬기 20초 · 친구 기운 +20%p · 대기 5분',
+ dico:p=>'손상 바 +'+lv(p,'mend','amount')+' · 5초마다 · 같은 친구는 30초 뒤',
  maria:p=>'수영 20초 · 마리아의 수분 '+band(p).hi+'까지 · 동행은 각자 상한 · 대기 5분',
  bosong:p=>'웅덩이 물 최대 '+lv(p,'dig','amount')+' · 찾는 범위 '+lv(p,'dig','reach')+' · 대기 '+lv(p,'dig','rest')/60+'분',
  jureong:p=>'한 번에 낱잎 '+lv(p,'rake','count')+'장 · 기운 '+lv(p,'rake','energy')+'% 이상에서 시작',
@@ -243,10 +269,11 @@ function levelLines(p){const f=LINE[p?.species];if(!f)return null;const L=levelO
  return {level:L,now,next:nextL?{level:nextL,line:f({...p,xp:LEVELS[nextL-1]})}:null};}
 function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='object'||!Array.isArray(st.puddles)||st.puddles.length>SK.dig.max||!Number.isInteger(st.nextId)||st.nextId<1||typeof st.seen!=='object')throw Error('고유 스킬 기록을 확인해 주세요.');
   for(const d of st.puddles)if(typeof d.id!=='string'||!Number.isFinite(d.x)||!Number.isFinite(d.y)||!(d.W>=0&&d.W<=LEVEL.dig.amount.at(-1)+eps)||![...s.patches,...(s.objects?.stored||[])].some(z=>z.id===d.from)||!(d.born<=s.worldTick))throw Error('웅덩이 기록을 확인해 주세요.');}
- for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='repose'&&!(typeof t.target==='string'&&Number.isFinite(t.x)&&Number.isFinite(t.y)&&(t.phase==='go'||t.phase==='rest'&&Number.isFinite(t.at)))||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
+ for(const p of s.individuals){const t=p.skill;if(t!==undefined&&(!t||!KINDS.includes(t.k)||!Number.isFinite(t.start)||t.start>s.worldTick||t.k==='mend'&&!(typeof t.target==='string'&&(t.phase==='go'||t.phase==='do'&&Number.isSafeInteger(t.at)&&t.at>=t.start&&t.at<=s.worldTick&&Number.isFinite(t.x)&&Number.isFinite(t.y)))||t.k==='rake'&&!(Array.isArray(t.ids)&&t.ids.length<=8&&Number.isInteger(t.sector)&&(t.pile==null||typeof t.pile==='string'))))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.skillRest!==undefined&&(typeof p.skillRest!=='object'||Object.entries(p.skillRest).some(([k,v])=>!KINDS.includes(k)&&k!=='self'||!Number.isFinite(v))))throw Error('고유 스킬 기록을 확인해 주세요.');
+  if(p.mendedAt!==undefined&&!(Number.isSafeInteger(p.mendedAt)&&p.mendedAt>=0&&p.mendedAt<=s.worldTick))throw Error('잎 수선 기록을 확인해 주세요.');
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush,startRepose});
+return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,force,soilSpots,pest,side,selfBrush,migrate});
 });

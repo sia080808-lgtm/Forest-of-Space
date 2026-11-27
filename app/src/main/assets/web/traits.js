@@ -40,7 +40,7 @@ const TEXT={
  jureong:{good:['물에 강하고 과습이 잘 안 와요','물과 거름을 아주 잘 빨아들여요'],bad:['추위에 가장 약해요','강한 볕과 벌레에 약해요']},
  superbum:{good:['둥지잎으로 빗물을 모아요 · 물에 강해요','추위에 강해요'],bad:['넓은 잎이 바람을 받아요','둥지잎 안쪽에 깍지벌레가 숨어요','몸이 커서 영양이 많이 들어요']},
  maria:{good:['물에 강하고 호숫가의 은은한 볕을 좋아해요','친구 한 명과 헤엄쳐 각자 적정 상한까지 수분을 채워요'],bad:['넓은 잎이 강풍에 약하고 추위를 타요']},
- dico:{good:['잎이 튼튼해서 바람에 강해요','거름을 빠르게 빨아들여요','기운이 떨어진 친구 곁에서 함께 쉬어요'],bad:['젖은 뿌리와 추위, 해충에 약해요']},
+ dico:{good:['잎이 튼튼해서 바람에 강해요','거름을 빠르게 빨아들여요','작은 거미와 함께 친구의 찢어진 잎을 수선해요'],bad:['젖은 뿌리와 추위, 해충에 약해요']},
  duri:{good:['무난하고 튼튼해요'],bad:['특별히 약한 곳은 없어요']}};
 function text(species){return TEXT[species]||{good:[],bad:[]};}
 return Object.freeze({KEYS,NAMES,HEX,WEAK,GAIN,COLD,LIGHT,RAIN,LEVELS,level,hex,of,ofPet,TANK_MOOD,TANK_MOOD_MAX,TEXT,text});

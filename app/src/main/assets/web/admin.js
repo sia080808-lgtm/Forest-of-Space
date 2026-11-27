@@ -109,7 +109,7 @@ function fireflies(F,s){if(!F.World.lakeOpen(s))throw Error('호수 물가가 �
 const ACTIONS=Object.freeze({skillShow,time,advance,season,weather,climate,climateAuto,level,resetLevels,stats,set,skillReady,summon,welcome,dismiss,openLake,fillLake,fireflies,unlockShelter,unlockObjects,spring,compost,leaves,floorLeaves,rockSun,creature,clearCreatures});
 function run(F,s,name,...args){const fn=ACTIONS[name];if(!fn)throw Error('알 수 없는 관리자 기능이에요.');const msg=fn(F,s,...args);F.event(s,'admin','관리자 · '+msg);return msg;}
 const MOTIONS=Object.freeze({
- leafCondition:'잎 상태 보기',repose:'잠깐 쉬고 가',
+ leafCondition:'잎 상태 보기',mend:'잎 수선',
  appearance:'모습 보기',walk:'함께 산책',dance:'빙글빙글 춤추기',chat:'느티나무 아래 수다',fish:'수양버들 아래 송사리 보기',
  spore:'포자낭 맺히기',perch:'나무 착생과 수태 이불',willowPerch:'수양버들 착생',generation:'포자 채집·심기와 2세',swim:'마리아와 함께 수영'
 });
@@ -167,18 +167,29 @@ function motionPreview(F,kind,species,reducedMotion=false){
    next(){i=(i+1)%states.length;const [,B,nutrition,damage]=states[i];Object.assign(p,{B,nutrition,damage});}
   };
  }
- if(kind==='repose'){
+ if(kind==='mend'){
   if(species!=='dico')throw Error('디코의 스킬이에요.');
   const S=typeof module==='object'?require('./skills.js'):globalThis.ForestSkills;
-  const friend={...F.clone(p),id:'preview-rest-friend',species:'ridley',name:'리들리',
-   x:p.x+.08,energy:35,mood:35,moodSync:35,action:'rest',restSelf:true};
-  s.individuals.push(friend);S.startRepose(s,p,null,new Set(),true);
-  let elapsed=0,done=false;
-  return {state:s,kind,species,point:spot,time:0,
+  const friend={...F.clone(p),id:'preview-mend-friend',species:'ridley',name:'리들리',
+   x:p.x+.085,damage:12,motion:{kind:'idle',distance:0}};
+  s.individuals.push(friend);
+  let elapsed=0,done=false,young=false;
+  const reset=()=>{
+   delete p.skill;delete friend.skillHold;delete friend.mendedAt;
+   Object.assign(p,spot,{xp:young?0:150,visualStage:young?0:3,motion:{kind:'idle',distance:0}});
+   friend.damage=12;F.Leaf.update(friend);
+   elapsed=0;done=!S.force(s,p);
+  };
+  reset();
+  return {state:s,kind,species,point:{x:spot.x+.04,y:spot.y},time:0,
    update(dt){this.time+=dt;elapsed+=dt;while(elapsed>=1&&!done){elapsed--;s.worldTick++;
-    p.motion=S.act(s,p)||{kind:'idle',distance:0};friend.motion={kind:'rest',distance:0};done=!p.skill;}},
-   status(){return done?'리들리 기운 35% → 55%':'디코가 곁에서 쉬고 있어요 · 기운 35%';},
-   nextLabel(){return '';},next(){}
+    p.motion=S.act(s,p)||{kind:'idle',distance:0};done=!p.skill;
+   }},
+   status(){const age=young?'어린 디코':'성체 디코',meter=Math.round(100-friend.damage);
+    return done?age+' · 리들리 손상 88 → '+meter:age+' · '+S.status(s,p)+' · 손상 '+meter;
+   },
+   nextLabel(){return young?'성체 보기':'어린 모습 보기';},
+   next(){young=!young;reset();}
   };
  }
  if(kind==='appearance')return {state:s,kind,species,point:spot,time:0,

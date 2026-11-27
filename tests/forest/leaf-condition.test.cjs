@@ -27,17 +27,20 @@ test('gale damage uses the ten-second grace period and a single species resistan
  }
 });
 
-test('Dico recruit is a valid friend, and its isolated skill restores 20 points after exactly twenty seconds',()=>{
+test('Dico recruit is valid and the skill preview works for both ages',()=>{
  const lvl=T.HEX.dico;
  assert.equal(Object.values(lvl).reduce((a,b)=>a+b,0),18);
  const s=F.create(0);A.run(F,s,'welcome','dico');F.valid(s);
- const p=A.motionPreview(F,'repose','dico'),buddy=p.state.individuals[1],dico=p.state.individuals[0];
- assert.equal(buddy.energy,35);p.update(19);assert.equal(buddy.energy,35);
- p.update(1);
- assert.equal(buddy.energy,55);assert.equal(dico.skill,undefined);
- assert.equal(dico.skillRest.repose,p.state.worldTick+300);
+ const p=A.motionPreview(F,'mend','dico'),buddy=p.state.individuals[1],dico=p.state.individuals[0];
+ p.update(3);assert.equal(buddy.damage,12);
+ p.update(1);assert.equal(buddy.damage,0);assert.equal(dico.skill,undefined);
+ assert.equal(dico.skillRest.mend,p.state.worldTick+2);
  assert.equal(S.today(p.state,dico),1);
- p.update(15);assert.equal(buddy.energy,55);
+ assert.match(p.nextLabel(),/어린/);
+ p.next();p.update(4);
+ assert.equal(dico.visualStage,0);assert.equal(buddy.damage,2);
+ assert.equal(Leaf.flags(buddy)&Leaf.TORN,0);
+ assert.match(p.status(),/88 → 98/);
 });
 
 test('all eight active species draw three distinct leaf conditions and reuse cached layers',async()=>{
@@ -46,7 +49,12 @@ test('all eight active species draw three distinct leaf conditions and reuse cac
  const render=(species,leafState,young=false)=>{
   ctx.resetTransform();ctx.clearRect(0,0,152,160);
   ctx.translate(76,141);ctx.scale(.076,.076);ctx.translate(-627,-1065.9);
+  const cuts=[];
+  ctx.onLeafTear=points=>cuts.push(points);
   R.draw(ctx,assets,{species,young,leafState,kind:'idle',phase:1,reduced:true});
+  delete ctx.onLeafTear;
+  assert.equal(cuts.length>0,Boolean(leafState&Leaf.TORN),species+' exposes the rendered cut for mending');
+  assert.ok(cuts.every(points=>points.length===2&&points.flat().every(Number.isFinite)));
   return Buffer.from(ctx.getImageData(0,0,152,160).data);
  };
  for(const [species] of F.SPECIES.filter(([id])=>!F.Recruitment.retired.includes(id))){
@@ -102,24 +110,78 @@ test('drought keeps the crown and hood attached while both outer hood tips sag',
  }
 });
 
-test('Dico approaches a resting friend in normal play, grants energy once and observes cooldown',()=>{
+function mendingWorld(damage=24){
  const s=F.create(0,123);s.worldTick=420;s.started=true;s.recruitment.nextAttempt=1e9;
  A.run(F,s,'welcome','dico');
  const [buddy,p]=s.individuals;
  Object.assign(p,{x:.35,y:.71,nutrition:60,B:58,energy:80,mood:80,moodSync:80,
-  action:'wander',nextObjectChoice:40999});
+  xp:0,visualStage:0,action:'wander',nextObjectChoice:40999});
  Object.assign(buddy,{species:'superbum',name:'슈퍼범',x:.45,y:.71,nutrition:65,B:60,
-  energy:26,mood:26,moodSync:26,action:'rest',restSelf:true,nextObjectChoice:40999});
+  damage,energy:65,mood:65,moodSync:65,action:'rest',restSelf:true,nextObjectChoice:40999});
+ return {s,buddy,p};
+}
+
+test('Lv1 Dico approaches and mends a torn leaf once through the engine',()=>{
+ const {s,buddy,p}=mendingWorld();
  F.step(s);
  assert.equal(p.skill.target,buddy.id);
  assert.ok(p.x>.35);
- F.advance(s,19);
- assert.ok(buddy.energy<30);
+ while(p.skill?.phase==='go'&&s.worldTick<430)F.step(s);
+ assert.equal(p.skill?.phase,'do');
+ const at=p.skill.at;
+ F.advance(s,2);assert.ok(buddy.damage>23);
  F.step(s);
- assert.ok(buddy.energy>46&&buddy.energy<48);
- assert.equal(p.skillRest.repose,s.worldTick+300);
+ assert.ok(buddy.damage>13&&buddy.damage<=14);
+ assert.equal(buddy.mendedAt,at+3);
+ assert.equal(buddy.skillHold,undefined);
+ assert.equal(p.skillRest.mend,at+5);
  assert.equal(S.today(s,p),1);
  F.valid(s);
+ const saved=F.migrate(JSON.parse(JSON.stringify(s)));
+ assert.equal(saved.individuals.find(o=>o.id===buddy.id).mendedAt,at+3);
+});
+
+test('Mending upgrades recovery only and locks the same target for 30 seconds',()=>{
+ for(const [xp,amount] of [[0,10],[3,10],[8,14],[25,14],[40,18],[85,18],[115,22],[150,26]]){
+  const {s,p,buddy}=mendingWorld(34);
+  p.xp=xp;assert.ok(S.force(s,p));S.act(s,p);
+  assert.equal(p.skill?.phase,'do');
+  s.worldTick+=3;S.act(s,p);
+  assert.equal(buddy.damage,34-amount);
+  assert.equal(p.skillRest.mend,s.worldTick+2);
+  const other={...F.clone(buddy),id:'other',x:.55,mendedAt:undefined,damage:12};
+  s.individuals.push(other);
+  const completed=s.worldTick;
+  s.worldTick=completed+1;S.prepare(s);assert.equal(p.skill,undefined);
+  s.worldTick=completed+2;S.prepare(s);assert.equal(p.skill?.target,other.id);
+  S.stop(s,p);other.damage=0;Leaf.update(other);
+  s.worldTick=completed+29;S.prepare(s);assert.equal(p.skill,undefined);
+  s.worldTick=completed+30;S.prepare(s);assert.equal(p.skill?.target,buddy.id);
+ }
+});
+
+test('Mending reserves the most damaged nearby friend and releases them if Dico is picked up',()=>{
+ const {s,p,buddy}=mendingWorld();
+ const mild={...F.clone(buddy),id:'mild',x:.51,damage:12};
+ const other={...F.clone(p),id:'other-dico',x:.62,y:.76};
+ s.individuals.push(mild,other);
+ assert.ok(S.force(s,p));assert.equal(p.skill.target,buddy.id);
+ assert.ok(S.force(s,other));assert.equal(other.skill.target,mild.id);
+ S.act(s,p);assert.equal(buddy.skillHold,p.id);
+ s.worldTick++;S.prepare(s,{held:p.id});
+ assert.equal(buddy.skillHold,undefined);assert.equal(p.skill,undefined);
+ assert.equal(buddy.damage,24);assert.equal(buddy.mendedAt,undefined);
+ assert.equal(p.skillRest.mend,s.worldTick+5);
+});
+
+test('Migration clears the old Dico skill and lets existing saves keep playing',()=>{
+ const {s,p,buddy}=mendingWorld();
+ p.skill={k:'repose',target:buddy.id,start:s.worldTick,phase:'rest'};
+ p.skillRest={repose:s.worldTick+300};
+ const saved=F.migrate(JSON.parse(JSON.stringify(s)));
+ const dico=saved.individuals.find(o=>o.id===p.id);
+ assert.equal(dico.skill,undefined);assert.equal(dico.skillRest?.repose,undefined);
+ F.valid(saved);
 });
 
 test('Dico swaps the open face for two closed lids and keeps the body joined during both steps',async()=>{

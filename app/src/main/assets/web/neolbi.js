@@ -15,7 +15,7 @@ function barrier(p){const g=geometry(p);return {id:'canopy:'+p.id,x:g.cx,y:p.y-1
 
 function front(c,im,open,state){
  const i=Math.round(Math.max(0,Math.min(1,open))*20),r=[i%7*670,Math.floor(i/7)*450,670,450];
- if(state)c.drawImage(Leaf.texture(im,'neolbiOpen',state,r),0,0,335,225);
+ if(state){const leaf=Leaf.texture(im,'neolbiOpen',state,r);c.drawImage(leaf,0,0,335,225);Leaf.markTear(c,leaf,0,0,335,225);}
  else c.drawImage(im,...r,0,0,335,225);
 }
 const snowFrames=new WeakMap();function frontSnow(c,im,open,amount){if(!amount)return;const E=typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects,i=Math.round(Math.max(0,Math.min(1,open))*20);let tiles=snowFrames.get(im);if(!tiles){tiles=[];snowFrames.set(im,tiles);}if(!tiles[i]){const tile=E.canvas(670,450);tile.getContext('2d').drawImage(im,i%7*670,Math.floor(i/7)*450,670,450,0,0,670,450);tiles[i]=tile;}E.snow(c,tiles[i],amount,0,0,335,225);}

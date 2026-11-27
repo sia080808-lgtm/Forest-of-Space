@@ -54,7 +54,7 @@ function leafLayer(c,d,t,p){
   const k=d===data.bosong?'bosong':'jureong',f=d.fol,im=Leaf.texture(d.im,k,p.leafState,d.leaf);
   c.save();c.translate(0,-d.h*.78);c.rotate((p.leafAngle||0)+Math.sin(t*d.tempo*1.5)*.012);c.translate(0,d.h*.78);
   const shade=im===d.im?null:im;
-  if(shade)c.drawImage(shade,...f);else img(c,d,d.leaf,...f);
+  if(shade){c.drawImage(shade,...f);Leaf.markTear(c,shade,...f);}else img(c,d,d.leaf,...f);
   if(shade&&d.snow>0)(typeof module==='object'?require('./world-effects.js'):globalThis.ForestEffects).snow(c,shade,d.snow,...f);
   c.restore();return;
  }
@@ -76,13 +76,17 @@ function ellisiiActor(c,x,y,t,p){const d=data.bonbon,g=p.growth??.65,m=p.mode||'
  // Feet stay on the ground while walking: each foot lifts in turn and steps forward a little; when held they dangle.
  const footPose=i=>{if(m==='held')return {dx:0,dy:0,rot:Math.sin(t*9+i*Math.PI)*.35};if(walk&&!still){const ph=Math.sin(step+i*Math.PI);return {dx:ph*.35,dy:-Math.max(0,ph)*(run?1.1:.8),rot:0};}return {dx:0,dy:0,rot:0};};
  const bodyY=bob+rest*.7,tilt=(p.tilt||0)+(m==='held'?Math.sin(t*5)*.075:walk?beat*.03:0);
+ const drawFrond=name=>{
+  const image=Leaf.texture(layer(name),'ellisii'+name,p.leafState&Leaf.TORN);
+  draw(image,true,ELLI.frondRect);Leaf.markTear(c,image,...ELLI.frondRect);
+ };
  for(const [i,n] of [[0,'FootLeft'],[1,'FootRight']]){const f=footPose(i),fx=ELLI.feet[i].x;c.save();c.translate(fx+f.dx,(m==='held'?bodyY:0)+f.dy-1.2);c.rotate(f.rot);c.translate(-fx,1.2);draw(layer(n));c.restore();}
  c.translate(0,bodyY);c.rotate(tilt);const squash=walk?1-Math.abs(beat)*.025:rest?.985:1;c.scale(1/Math.sqrt(squash),squash);
  const fronds=()=>{
  const wilt=p.leafState&Leaf.DRY,dr=p.droop||0;if(layer('FrondLeft')&&(m==='groom'&&!still||dr>0||wilt)){for(const [i,n,pv] of [[0,'FrondLeft',[3.66,-20.7]],[1,'FrondRight',[5.49,-20.1]]]){
    // 0.6.34: grooming, 엘리시 nods its two fertile fronds (separate layers since 0.6.34) quickly, one after the other
-   const droop=wilt?.46:.26*dr,groom=m==='groom'&&!still?.22*Math.max(0,Math.sin(t*10+i*Math.PI)):0;const a=(i?1:-1)*(droop+groom);c.save();c.translate(pv[0],pv[1]);c.rotate(a);c.translate(-pv[0],-pv[1]);draw(layer(n),true,ELLI.frondRect);c.restore();}}
- else if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);draw(layer('Fronds'),true,ELLI.frondRect);c.restore();}
+   const droop=wilt?.46:.26*dr,groom=m==='groom'&&!still?.22*Math.max(0,Math.sin(t*10+i*Math.PI)):0;const a=(i?1:-1)*(droop+groom);c.save();c.translate(pv[0],pv[1]);c.rotate(a);c.translate(-pv[0],-pv[1]);drawFrond(n);c.restore();}}
+ else if(layer('Fronds')){const sway=still?0:Math.sin(t*d.tempo*1.5)*(m==='held'?.06:.025)+(walk?beat*.02:0);c.save();c.translate(ELLI.pivot.x,ELLI.pivot.y);c.rotate(sway);c.translate(-ELLI.pivot.x,-ELLI.pivot.y);drawFrond('Fronds');c.restore();}
  };
  if(!p.cover)fronds();
  const body=layer('Body');draw(body);

@@ -64,7 +64,7 @@ function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,w
  for(const [i,x,w] of [[-1,235,73],[1,380,73]])paint(x,547,w,38,x+stride*i*8,547-Math.max(0,stride*i)*24);
  c.translate(0,sit*20+droop*15-Math.abs(stride)*10);
  c.rotate((expression==='focused'?.052:0)+shift*.0015);
- paintLeaf(0,0,656,554);
+ paintLeaf(0,0,656,554);Leaf.markTear(c,leaf,0,0,image.width,image.height);
  if(cover){
   cover();paintLeaf(302,354,145,55);
  }
@@ -175,17 +175,18 @@ function drawDico(c,image,opt){
  }
  c.drawImage(body,0,spec.leafHeight);
  cover?.();
+ opt.beforeFronds?.(c,young);
  Leaf.draw(c,fronds,spec.key,leafState,0,0);
  dicoFace(c,spec,closed);
  c.restore();
 }
-function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm,leafState=0,young=false}={}){
+function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,beforeFronds,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm,leafState=0,young=false}={}){
  const origin=bodyCover&&c.getTransform();
  const cover=bodyCover&&(()=>{
   c.save();c.setTransform(origin);bodyCover(c);c.restore();
  });
  if(species==='maria'&&assets.maria)return drawMaria(c,assets.maria,{kind,phase,reduced,expression,cover,sit,droop,snow,wetFilm,leafState});
- if(species==='dico'&&assets.dico)return drawDico(c,young&&assets.dicoYoung||assets.dico,{kind,phase,reduced,expression,cover,sit,leafState,young:young&&!!assets.dicoYoung});
+ if(species==='dico'&&assets.dico)return drawDico(c,young&&assets.dicoYoung||assets.dico,{kind,phase,reduced,expression,cover,sit,leafState,beforeFronds,young:young&&!!assets.dicoYoung});
  if(species==='superbum')return Superbum.draw(c,assets,{kind,phase,reduced,expression,seed,snow,restBlend,water,side,huddle,sit,droop,cover,crownSprout,leafState});
  if(species==='neolbi')return Neolbi.draw(c,assets,{kind,phase,reduced,wiggle,expression,canopy,wind,rain,deferFront,onHood,personality,clip,hasProp,snow,sit,droop,cover,leafState});
  if(Species.draw(c,assets,{kind,phase,reduced,wiggle,expression,species,snow,litterUp,sit,droop,cover,crownSprout,leafState}))return;
