@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ridleydesk.mobile" android:versionCode="121" android:versionName="1.2.35">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ridleydesk.mobile" android:versionCode="122" android:versionName="1.2.36">
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="35" />
     <application android:label="여백의 숲" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|uiMode">
