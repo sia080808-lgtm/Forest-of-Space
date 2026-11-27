@@ -75,6 +75,23 @@ test('each of the seven friends uses its own rear sprite on the south shelf',asy
  }
 });
 
+test('Dico growth stages and Maria use their back sprites on the south shelf',async()=>{
+ const {createCanvas,loadImage}=require('@napi-rs/canvas'),path=require('node:path');
+ const {scene,s,calls}=sceneFixture();
+ const art=scene.assets.shelfDicoMariaBacks=await loadImage(path.resolve(__dirname,'../../app/src/main/assets/web/assets/forest/shelf-backs-dico-maria.webp'));
+ a.deepEqual([art.width,art.height],[480,160]);
+ const canvas=createCanvas(160,160),c=canvas.getContext('2d');
+ for(const [species,visualStage,sprite] of [['dico',1,1],['dico',3,0],['maria',3,2]]){
+  calls.length=0;
+  const p={...s.individuals[0],species,visualStage};
+  a.equal(scene.shelfBack(p,{x:2.63,y:1.43}),true);
+  a.deepEqual(calls.find(call=>call.k==='drawImage').args.slice(0,5),[art,sprite*160,0,160,160]);
+  c.clearRect(0,0,160,160);
+  c.drawImage(art,sprite*160,0,160,160,0,0,160,160);
+  a.ok(c.getImageData(32,88,96,72).data.some((value,i)=>i%4===3&&value>200));
+ }
+});
+
 test('stone shelf uses four seasonal tiles at a shared seat position and falls back to its base art',async()=>{
  const {loadImage}=require('@napi-rs/canvas'),path=require('node:path');
  const {scene,s,calls}=sceneFixture();
