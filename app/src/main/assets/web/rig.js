@@ -92,12 +92,12 @@ function drawMaria(c,image,{kind,phase,reduced,expression,cover,sit,droop,snow,w
 const DICO={
  adult:{
   key:'dico',leafHeight:286,face:[[122,344,139,389],[197,344,215,389],[155,383,184,396]],
-  eyes:[[129.5,366.5],[206,366.5]],mouth:[169,389],stroke:8,eyeHeight:30,walkFaceOffset:30,
+  eyes:[[129.5,366.5],[206,366.5]],mouth:[169,389],stroke:8,eyeHeight:30,
   feet:[[[84,487],[94,491],[111,495],[132,498]],[[200,498],[219,494],[236,490],[248,486]]],rootOverlap:13
  },
  young:{
   key:'dicoYoung',leafHeight:193,face:[[59,256,73,287],[110,255,123,287],[77,284,102,296]],
-  eyes:[[65.9,272],[116,272]],mouth:[89.4,289.6],stroke:5.5,eyeHeight:18,walkFaceOffset:48,
+  eyes:[[65.9,272],[116,272]],mouth:[89.4,289.6],stroke:5.5,eyeHeight:18,
   feet:[[[38,352],[49,357],[62,361],[76,364]],[[119,364],[131,362],[147,357],[157,351]]],rootOverlap:9
  }
 };
@@ -139,8 +139,8 @@ function splitDico(image,spec){
  const layers={body,fronds,feet};
  dicoLayers.set(image,layers);return layers;
 }
-function dicoFace(c,spec,closed,offset){
- c.save();c.translate(offset,0);c.strokeStyle='#f0e5ca';c.lineCap='round';
+function dicoFace(c,spec,closed){
+ c.save();c.strokeStyle='#f0e5ca';c.lineCap='round';
  for(const [x,y] of spec.eyes){
   c.lineWidth=closed?spec.stroke*.7:spec.stroke;c.beginPath();
   if(closed){
@@ -161,15 +161,11 @@ function dicoFace(c,spec,closed,offset){
 function drawDico(c,image,opt){
  const {kind,phase,reduced,expression,cover,sit,leafState,young}=opt,spec=young?DICO.young:DICO.adult;
  const {body,fronds,feet}=splitDico(image,spec),w=image.width,h=image.height,cx=w*.5;
- const walking=WALKING_KINDS.includes(kind);
  const stride=pose(kind,phase,reduced).left,sway=reduced?0:Math.sin(phase*1.6)*.018;
  const resting=kind==='rest'||kind==='sleep'||kind==='repose'||kind==='moss';
  const closed=resting||expression==='sleepy'||!reduced&&mod(phase,4.8)>4.66;
  c.save();
- // Pose to the right in local coordinates. The scene mirrors the entire rig for leftward travel.
- c.translate(627,1065.9);c.scale(1.79*520/h,1.79*520/h);
- if(walking)c.rotate(.10);
- c.translate(-cx,-h*.96);
+ c.translate(627,1065.9);c.scale(1.79*520/h,1.79*520/h);c.translate(-cx,-h*.96);
  c.translate(0,(sit||resting?10:0)*h/520-Math.abs(stride)*3*h/520);
  c.translate(cx,h*.66);c.rotate(sway);c.translate(-cx,-h*.66);
  for(const [i,foot] of feet.entries()){
@@ -180,7 +176,7 @@ function drawDico(c,image,opt){
  c.drawImage(body,0,spec.leafHeight);
  cover?.();
  Leaf.draw(c,fronds,spec.key,leafState,0,0);
- dicoFace(c,spec,closed,walking?spec.walkFaceOffset:0);
+ dicoFace(c,spec,closed);
  c.restore();
 }
 function drawCore(c,assets,{kind='idle',phase=0,reduced=false,wiggle=0,bodyAlpha=1,expression,species='ridley',personality,clip,hasProp=false,canopy=0,wind=0,rain=false,deferFront=false,onHood,seed=0,snow=0,restBlend=kind==='rest'?1:0,water=0,side=1,litterUp=0,huddle=0,sit=0,droop=0,leafTilt=0,bodyCover,crownSprout,wetFilm,leafState=0,young=false}={}){
