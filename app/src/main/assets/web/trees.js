@@ -21,8 +21,7 @@ const active=s=>all(s).filter(t=>!t.stored);
 const stored=s=>all(s).filter(t=>t.stored);
 const number=id=>Number(id.slice(id.lastIndexOf('-')+1));
 const name=id=>TYPES[kind(id)].name+' '+number(id);
-const region=type=>type==='willow'?'lakeshore':'south';
-const unlocked=(s,type)=>Object.hasOwn(TYPES,type)&&(region(type)==='south'?World.southOpen(s):World.lakeOpen(s));
+const unlocked=(s,type)=>Object.hasOwn(TYPES,type)&&(type!=='willow'||World.lakeOpen(s));
 const count=(s,type,positions={})=>new Set([...all(s).map(t=>t.id),...Object.keys(positions)].filter(id=>kind(id)===type)).size;
 const nextId=(s,type,positions={})=>Object.keys(IDS).find(id=>kind(id)===type&&!Object.hasOwn(positions,id)&&!all(s).some(t=>t.id===id));
 function drafts(s,positions={}){
@@ -41,21 +40,28 @@ const trunk=t=>({id:t.id,type:'tree',x:t.x,y:t.y,rx:kind(t.id)==='zelkova'?.05:.
 const extent=t=>{const k=trunk(t);return {x0:k.x-k.rx,x1:k.x+k.rx,y0:k.y-k.ry,y1:k.y+k.ry};};
 function spotError(s,t){
  const type=kind(t.id),r=World.walk(s);
- if(!unlocked(s,type))return (region(type)==='south'?'남쪽 숲이':'호수가')+' 열리면 '+TYPES[type].name+'를 심을 수 있어요.';
+ if(!unlocked(s,type))return '호수가 열리면 수양버들을 심을 수 있어요.';
  if(!Number.isFinite(t.x)||!Number.isFinite(t.y)||t.x<r.x0+.10||t.x>r.x1-.10||t.y<r.y0+.055||t.y>r.y1-.08)return '나무를 숲 가장자리 안쪽에 심어주세요.';
- if(region(type)==='south')return t.y<World.REGIONS.south.y0+.025?TYPES[type].name+'는 남쪽 숲에 심어주세요.':null;
+ if(type!=='willow'){
+  const inForest=World.inside(s,t,World.REGIONS.forest);
+  const inSouth=World.southOpen(s)&&t.y>=World.REGIONS.south.y0+.025;
+  return inForest||inSouth?null:TYPES[type].name+'는 이끼 숲이나 남쪽 숲에 심어주세요.';
+ }
  const d=World.waterD(t.x,t.y);
  return d<World.LAKE.edge+.07||d>World.LAKE.edge+.32?'수양버들은 호숫가의 땅에 심어주세요.':null;
 }
-function candidates(s,type){
+function candidates(s,type,view){
  if(!unlocked(s,type))return [];
- if(region(type)==='south'){
+ if(type!=='willow'){
+  const forest=[];
+  for(const y of [.77,.60,.94,.43,.26,.10])for(const x of [.64,.86,.42,.20,1.04,.02])forest.push({x,y});
+  if(!World.southOpen(s))return forest;
   const preferred=type==='zelkova'
    ?[[.63,1.55],[1.65,1.58],[2.70,1.48],[.18,1.76],[1.18,1.77],[2.22,1.75],[2.96,1.76]]
    :[[1.65,1.58]];
-  const points=preferred.map(([x,y])=>({x,y}));
-  for(const y of [1.44,1.72,1.56,1.34,1.78])for(const x of [.05,.36,.67,.98,1.29,1.60,1.91,2.22,2.53,2.84,3.12])points.push({x,y});
-  return points;
+  const south=preferred.map(([x,y])=>({x,y}));
+  for(const y of [1.44,1.72,1.56,1.34,1.78])for(const x of [.05,.36,.67,.98,1.29,1.60,1.91,2.22,2.53,2.84,3.12])south.push({x,y});
+  return World.inside(s,view,World.REGIONS.forest)?[...forest,...south]:[...south,...forest];
  }
  const {cx,cy,ru,rv}=World.LAKE,points=[];
  for(const r of [1.21,1.31])for(const degrees of [126,48,170,14,90,212,320,267,148,32,242,296,0,180,68,108]){
@@ -180,5 +186,5 @@ function validate(s){
   ids.add(t.id);
  }
 }
-return Object.freeze({PERCH_RETURN,perchEntry,perchSeat,perchOwner,canAssign,fitsPerch,leavePerch,assignPerch,migratePerches,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,region,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
+return Object.freeze({PERCH_RETURN,perchEntry,perchSeat,perchOwner,canAssign,fitsPerch,leavePerch,assignPerch,migratePerches,TYPES,ABSORPTION,kind,data,all,active,stored,number,name,unlocked,count,nextId,drafts,direction,canopy,inside,trunk,extent,spotError,candidates,season,leafiness,protection,effects,absorption,validate});
 });

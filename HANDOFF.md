@@ -1,3 +1,13 @@
+# 2026-11-27 · 이끼 숲 나무 심기
+
+- 작업 ID: MOSS-FOREST-TREES. 초기 이끼 숲과 열린 남쪽 숲에 느티나무·산벚나무를 심을 수 있게 했다. 수양버들의 호수 개방과 호숫가 땅 조건을 유지했다.
+- 저장소: sia080808-lgtm/Forest-of-Space. 브랜치: [feat/trees-in-moss-forest](https://github.com/sia080808-lgtm/Forest-of-Space/tree/feat/trees-in-moss-forest). 기준 `48cdc1449a04c4adb643b67db6ab0fd107e9b702`, [기능 커밋](https://github.com/sia080808-lgtm/Forest-of-Space/commit/8e0f805baec247bf78b9e4ef11407811ce53d7a7).
+- `trees.js`: 배치 및 저장 검증에 기존 숲을 추가했고, 꾸미기에서 이끼 숲을 보고 있으면 해당 구역을 먼저 탐색한다. `forest-app.js`: 안내와 버튼 조건을 갱신했다. `scene.js`: 남쪽 숲의 줄기 장식은 실제 배치 구역으로 판단한다.
+- 검증: 나무·배치·패키지·렌더 관련 테스트 및 `npm run test:ui` 통과. Chromium 390px에서 초기 숲에 두 종류를 심고 저장한 뒤 재접속하여 확인했다. 호수를 연 뒤 수양버들도 심었다.
+- 원격 작업 브랜치에서 PR 검토 단계. Android 실기기 및 APK 배포는 추후 확인.
+
+---
+
 # 2026-11-27 · 친구 카드 온도와 손상 표시
 
 - 작업 ID: FRIEND-CARD-TEMPERATURE. 승인된 시안대로 왼쪽은 기운·손상·성장, 오른쪽은 수분·영양·온도로 배치했다.

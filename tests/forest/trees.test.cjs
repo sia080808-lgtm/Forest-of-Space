@@ -21,14 +21,30 @@ function plantAvailable(s,type){
 }
 test('regional placement, stored copies and old saves share the same layout validation',()=>{
  const old=F.create(0,18);
- assert.throws(()=>F.layout(old,{'zelkova-1':zelkova}),/남쪽 숲/);
- assert.throws(()=>F.layout(old,{'cherry-1':zelkova}),/남쪽 숲/);
  assert.throws(()=>F.layout(old,{'willow-1':willow}),/호수가 열리면/);
  assert.equal(F.migrate(F.clone(old)).world.trees,undefined);
+ const moss=F.World.REGIONS.forest;
+ for(const type of ['zelkova','cherry']){
+  assert(T.unlocked(old,type),'planting is available from the starting forest');
+  const id=plantAvailable(old,type);
+  const tree=T.active(old).find(t=>t.id===id);
+  assert(F.World.inside(old,tree,moss));
+  assert.deepEqual(T.active(F.migrate(F.clone(old))).find(t=>t.id===id),tree);
+  F.storeObject(old,id);
+  assert.deepEqual(F.unstoreObject(old,id),{x:tree.x,y:tree.y});
+ }
+ const lakeside=F.create(0,18);
+ F.World.openLake(lakeside);
+ assert.equal(F.World.southOpen(lakeside),false);
+ assert.throws(()=>F.layout(lakeside,{'cherry-1':{x:.65,y:1.55}}),/숲 가장자리/);
+ assert.throws(()=>F.layout(lakeside,{'willow-1':{x:.64,y:.77}}),/호숫가의 땅/);
+ F.layout(lakeside,{'willow-1':willow});
  const s=game();
  assert.deepEqual(Object.fromEntries(Object.entries(T.TYPES).map(([type,{limit}])=>[type,limit])),{zelkova:5,willow:20,cherry:20});
  assert.throws(()=>F.layout(s,{'willow-1':{x:F.World.LAKE.cx,y:F.World.LAKE.cy}}),/호숫가의 땅/);
- assert.throws(()=>F.layout(s,{'zelkova-1':{x:1.65,y:.55}}),/남쪽 숲/);
+ assert.throws(()=>F.layout(s,{'zelkova-1':{x:1.65,y:.55}}),/이끼 숲이나 남쪽 숲/);
+ const candidate=T.candidates(s,'zelkova',{x:.5,y:.5})[0];
+ assert(F.World.inside(s,candidate,moss),'start near the moss forest when that region is in view');
  for(const [type,d] of Object.entries(T.TYPES)){
   const first=plantAvailable(s,type);
   const point=T.active(s).find(t=>t.id===first);

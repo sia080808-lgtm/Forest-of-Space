@@ -342,7 +342,7 @@ const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예�
 function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const items=scene.editorItems();if(!items.some(x=>x.id===scene.selectedPatch))scene.selectedPatch=items[0]?.id||'spring';const p=items.find(x=>x.id===scene.selectedPatch);
  const tree=F.Trees.kind(p.id),type=F.Objects.kindOf(p.id),shelf=F.World.SHELF_IDS.includes(p.id);
  const copyId=shelf?F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id)):F.Objects.nextCopyId(state,p.id,scene.preview);
- let message=(tree==='zelkova'?'남쪽 숲에 심어요. 강한 볕과 비바람을 줄여요.':tree==='willow'?'호숫가에 심어요. 빗방울을 막고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.':tree==='cherry'?'남쪽 숲에 심어요. 계절마다 모습과 그늘이 달라져요.':null)||EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=[...(state.objects?.stored||[]),...F.Trees.stored(state).map(t=>({...t,name:F.Trees.name(t.id)}))],sheds=state.shelters.stored||[],canStore=tree?F.Trees.active(state).some(t=>t.id===p.id):F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
+ let message=(tree==='zelkova'?'이끼 숲과 남쪽 숲에 심을 수 있어요. 강한 볕과 비바람을 줄여요.':tree==='willow'?'호숫가에 심어요. 빗방울을 막고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.':tree==='cherry'?'이끼 숲과 남쪽 숲에 심을 수 있어요. 계절마다 모습과 그늘이 달라져요.':null)||EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=[...(state.objects?.stored||[]),...F.Trees.stored(state).map(t=>({...t,name:F.Trees.name(t.id)}))],sheds=state.shelters.stored||[],canStore=tree?F.Trees.active(state).some(t=>t.id===p.id):F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
  const flip=scene.preview[p.id]?.flip??p.flip??false;
  const copies=[...items,...stored].filter(x=>shelf?F.World.SHELF_IDS.includes(x.id):F.Objects.kindOf(x.id)===type).length;
  const addButton=shelf||F.Objects.COPY_KINDS.includes(type)
@@ -350,7 +350,7 @@ function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const 
 
  const treeButtons=Object.entries(F.Trees.TYPES).map(([id,d])=>{
   const ready=F.Trees.unlocked(state,id),count=F.Trees.count(state,id,scene.preview);
-  const label=ready?d.name+' 심기 · '+count+'/'+d.limit:d.name+' · '+(F.Trees.region(id)==='south'?'남쪽 숲 발견 후':'호수 발견 후');
+  const label=ready?d.name+' 심기 · '+count+'/'+d.limit:d.name+' · 호수 발견 후';
   return '<button class="chip" data-action="tree-add" data-id="'+id+'" '+(ready&&count<d.limit?'':'disabled')+'>'+escape(label)+'</button>';
  }).join('');
  const shelters=scene.editorShelters().map(f=>
@@ -541,7 +541,7 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(a==='tree-add'&&scene.editing){
   const type=b.dataset.id,id=F.Trees.nextId(state,type,scene.preview);
   if(!id)return;
-  for(const point of F.Trees.candidates(state,type)){
+  for(const point of F.Trees.candidates(state,type,{x:scene.camera.cx,y:scene.camera.cy})){
    try{F.validateLayout(state,{...scene.preview,[id]:point});}catch{continue;}
    scene.preview[id]=point;scene.selectedPatch=id;renderEditor();return;
   }
