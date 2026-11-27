@@ -166,22 +166,22 @@ test('the cherry cocoon sits over the body and feet, under front foliage layers'
  }
 });
 
-test('only young Dico mirrors the entire rig while walking left',async()=>{
+test('only young Dico mirrors the left-facing base rig while walking right',async()=>{
  const {loadImage}=require('@napi-rs/canvas'),path=require('node:path');
  const {scene,s,calls}=sceneFixture(),R=require('../../app/src/main/assets/web/rig.js');
  const web=path.resolve(__dirname,'../../app/src/main/assets/web');
  for(const key of ['dico','dicoYoung'])scene.assets[key]=await loadImage(path.join(web,R.files[key]));
  s.settings.reducedMotion=true;
  const p=s.individuals[0];Object.assign(p,{species:'dico',B:55,energy:65,nutrition:55});
- for(const stage of [1,2,3]){
+ for(const stage of [0,1,2,3]){
   p.visualStage=stage;
   const layers=[];
-  for(const [kind,direction,swimming] of [['walk',-1,false],['walk',1,false],['idle',-1,false],['rest',-1,false],['walk',-1,true]]){
+  for(const [kind,direction,swimming] of [['walk',-1,false],['walk',1,false],['walk',0,false],['idle',1,false],['rest',1,false],['walk',1,true]]){
    calls.length=0;scene.facing={[p.id]:direction};
    scene.pet(p,{x:.5,y:.5},kind,.2,false,false,0,swimming);
    const mirrored=calls.filter(q=>q.k==='scale'&&q.args[0]===-1&&q.args[1]===1);
-   a.equal(mirrored.length,stage===1&&kind==='walk'&&direction===-1&&!swimming?1:0);
-   if(kind==='walk'&&!swimming)layers.push(calls.filter(q=>['drawImage','moveTo','lineTo'].includes(q.k)));
+   a.equal(mirrored.length,stage<2&&kind==='walk'&&direction===1&&!swimming?1:0,JSON.stringify({stage,kind,direction,swimming}));
+   if(kind==='walk'&&direction!==0&&!swimming)layers.push(calls.filter(q=>['drawImage','moveTo','lineTo'].includes(q.k)));
   }
   a.deepEqual(layers[0],layers[1],'both directions use the same face, feet and body');
  }
