@@ -210,6 +210,54 @@ test('An urgent need or strong wind interrupts mending and leaves the friend fre
  }
 });
 
+test('Healthy Dico mends a friend resting outdoors in the deep night, then rests again',()=>{
+ for(const [energy,success] of [[96,true],[46,false]]){
+  const {s,p,buddy}=mendingWorld(8);
+  s.worldTick=3310;s.environment.tutorialDone=true;
+  Object.assign(s.weather,{kind:'sun',wind:8,remaining:240,intensity:0});
+  Object.assign(p,{x:.78,y:.73,xp:25,visualStage:1,B:45,nutrition:50,energy});
+  Object.assign(buddy,{x:.66,y:.73,energy:75});
+  const O=F.Objects;
+  F.layout(s,{rock:{x:.58,y:.68}});
+  Object.assign(O.patch(s,'rock'),{S:0,W:0});
+  Object.assign(O.patch(s,'shade'),{S:1,W:0});
+  for(const [q,spot] of [[p,'shade'],[buddy,'rock']]){
+   const plan=O.option(s,q,spot,'rest','sleep');
+   assert.equal(plan.fail,undefined);
+   Object.assign(q,{x:plan.x,y:plan.y,action:'rest',target:spot,nextObjectChoice:s.worldTick+50});
+   q.objectTask={...plan,since:s.worldTick,serial:s.objects.nextSession++,remaining:60,deadline:s.worldTick+150};
+   assert.ok(O.at(s,q));
+  }
+  assert.equal(F.Environment.timeKey(s),'deep');
+  F.step(s);
+  assert.equal(p.skill?.target,success?buddy.id:undefined);
+  F.advance(s,10);
+  assert.equal(Number.isInteger(buddy.mendedAt),success);
+  assert.equal(p.objectTask?.reason,'sleep');
+  assert.equal(buddy.objectTask?.object,'rock');
+  assert.equal(buddy.skillHold,undefined);
+  if(success)assert.equal(buddy.damage,0);
+  F.valid(s);
+ }
+});
+
+test('Dico mends during nonurgent feeding and resumes eating afterward',()=>{
+ for(const [nutrition,success] of [[46,true],[35,false]]){
+  const {s,p,buddy}=mendingWorld(8);
+  s.environment.tutorialDone=true;
+  Object.assign(s.weather,{kind:'sun',wind:8,remaining:240,intensity:0});
+  Object.assign(p,{x:.43,y:.71,xp:25,visualStage:1,B:45,nutrition,energy:95,
+   objectNeeds:{nutrition:true},nextObjectChoice:s.worldTick});
+  Object.assign(buddy,{x:.50,y:.71,energy:75});
+  Object.assign(F.Objects.patch(s,'litter'),{U:15,S:1,W:0});
+  F.advance(s,8);
+  assert.equal(Number.isInteger(buddy.mendedAt),success);
+  assert.equal(buddy.damage,success?0:8);
+  assert.equal(p.objectTask?.kind,'nutrition');
+  F.valid(s);
+ }
+});
+
 test('Mending upgrades recovery only and locks the same target for 30 seconds',()=>{
  for(const [xp,amount] of [[0,10],[3,10],[8,14],[25,14],[40,18],[85,18],[115,22],[150,26]]){
   const {s,p,buddy}=mendingWorld(34);
