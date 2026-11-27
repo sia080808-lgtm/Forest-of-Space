@@ -2,6 +2,21 @@ import {Window} from 'happy-dom';
 import {createRequire} from 'node:module';import fs from 'node:fs';import assert from 'node:assert/strict';const require=createRequire(import.meta.url),F=require('../app/src/main/assets/web/engine.js');
 const web=new URL('../app/src/main/assets/web/',import.meta.url).pathname,win=new Window({url:'https://app.test',settings:{disableJavaScriptFileLoading:true,enableJavaScriptEvaluation:true,suppressInsecureJavaScriptEnvironmentWarning:true}});
 let saved=F.create(Date.now(),88);saved.started=true;let failed=false,now=0;
+const initialSave=F.clone(saved),maria=saved.individuals[0];
+saved.worldTick=3710;
+Object.assign(maria,{species:'maria',name:'마리아',xp:23,visualStage:1,x:.15,y:.336,B:44,nutrition:36.95,energy:100,mood:100});
+const pile={id:'pile:60',x:.45,y:.59,O:6,U:15,S:20,cap:100,W:0,playBoostUntil:0,born:0};
+pile.sector=F.Litter.sectorOf(pile);
+saved.objects.litter.piles.push(pile);
+F.Objects.choose(saved,maria,()=>.9);
+assert.equal(maria.objectTask?.object,pile.id);
+saved.recruitment.pending.push('bonbon');
+F.Recruitment.tick(saved,{Space:F.Space,Social:F.Social,rng:()=>0,event:F.event,personality:F.personality});
+F.Recruitment.open(saved);
+F.advance(saved,210);
+assert.equal(saved.recruitment.visitor.ready,true);
+F.pause(saved,saved.savedAt);
+const interruptedVisit=F.clone(saved);
 win.RidleyNative={read:()=>JSON.stringify(saved),save:text=>{if(failed)return false;saved=JSON.parse(text);return true;},archive:()=>true,theme:()=>{}};
 win.performance.now=()=>now;win.requestAnimationFrame=()=>1;
 win.HTMLCanvasElement.prototype.getBoundingClientRect=()=>({width:420,height:690,left:0,top:72,right:420,bottom:762});
@@ -16,6 +31,31 @@ assert.ok(win.RidleyApp,'boot');assert.equal(win.document.getElementById('world'
 const click=sel=>{const b=win.document.querySelector(sel);assert.ok(b,sel);b.click();};
 // 1.2.1: the title screen shows on every launch, even for a started forest, and '숲에 들어가기' closes it
 assert.equal(win.document.getElementById('welcome').hidden,false,'title screen on launch');click('#enter');assert.equal(win.document.getElementById('welcome').hidden,true);
+function checkInterruptedVisit(){
+ const s=getState(),p=s.individuals[0];
+ scene.onSelect('pet',p.id);
+ const label=win.document.querySelector('#select-card .select-head p');
+ assert.match(label.textContent,/낙엽더미로 갈 준비/);
+ const tick=s.worldTick;
+ F.step(s);
+ win.__qa.update();
+ assert.equal(s.worldTick,tick+1,'the garden runs after restoring a save from an open guest encounter');
+ assert.ok(p.motion.distance>0,'Maria resumes walking to the pile');
+ assert.equal(s.recruitment.visitor.open,false);
+ assert.equal(s.recruitment.visitor.ready,true);
+ assert.equal(s.recruitment.visitor.seconds,interruptedVisit.recruitment.visitor.seconds);
+ assert.deepEqual(F.clone(s.recruitment.progress.bonbon),interruptedVisit.recruitment.progress.bonbon);
+ assert.match(label.textContent,/낙엽더미로 가고/);
+}
+checkInterruptedVisit();
+function importSave(snapshot){
+ win.RidleyApp.offerImport(JSON.stringify(snapshot));
+ click('[data-dialog="1"]');
+}
+importSave(interruptedVisit);
+checkInterruptedVisit();
+importSave(initialSave);
+console.log('PASS: launch and backup import resume garden movement while preserving an interrupted guest encounter');
 {
  const s=getState(),ed=win.document.getElementById('editor');
  assert.equal(F.World.lakeOpen(s),false);
