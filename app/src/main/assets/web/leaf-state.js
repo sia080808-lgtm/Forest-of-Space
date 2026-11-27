@@ -15,7 +15,7 @@ function update(p){
 }
 
 // A small raster is painted once per leaf layer and condition, then reused by the animated rig.
-const cache=new WeakMap(),MAX_SIDE=256;
+const cache=new WeakMap(),tearPoints=new WeakMap(),MAX_SIDE=256;
 const make=(w,h)=>{
  const cv=typeof document==='undefined'?require('@napi-rs/canvas').createCanvas(w,h):document.createElement('canvas');
  cv.width=w;cv.height=h;return cv;
@@ -69,6 +69,7 @@ function tear(canvas,side,at,depth){
  c.quadraticCurveTo(x-side*reach*.44,y+gap*.37,x-side*reach*.32,y+gap*.92);
  c.quadraticCurveTo(x+side*gap*.4,y+gap*1.22,outer,y+gap*2.3);
  c.closePath();c.fill();c.restore();
+ return [[x-side*reach*.32,y-gap*.55],[x-side*reach*.25,y+gap*1.08]];
 }
 // Normalized coordinates in each source layer. The middle range stays on the
 // head. Only free edges and the portion above a stem's hinge can bend.
@@ -87,7 +88,7 @@ const wiltShapes={
  dicoYoung:{base:[.36,.62],tips:[.20,.79],drop:[.14,.18],stem:[.84,.20,.095],paleFade:.22}
 };
 const smooth=x=>{const u=Math.max(0,Math.min(1,x));return u*u*(3-2*u);};
-function wilt(canvas,leaf,shape){
+function wilt(canvas,leaf,shape,points){
  const w=leaf.width,h=leaf.height,c=canvas.getContext('2d');
  const src=leaf.getContext('2d').getImageData(0,0,w,h).data,out=c.createImageData(w,h);
  const [hinge,fold,lean]=shape.stem||[0,0,0], [start,fall,pinch]=shape.sag||[1,0,0];
@@ -103,8 +104,9 @@ function wilt(canvas,leaf,shape){
   return (lo+hi)/2;
  });
  const [left,right]=shape.base,[lTip,rTip]=shape.tips,[lDrop,rDrop]=shape.drop;
+ const dropAt=u=>u<left?lDrop*smooth((left-u)/(left-lTip||1)):rDrop*smooth((u-right)/(rTip-right||1));
  for(let x=0;x<w;x++){
-  const u=(x+.5)/w,drop=u<left?lDrop*smooth((left-u)/(left-lTip||1)):rDrop*smooth((u-right)/(rTip-right||1));
+  const u=(x+.5)/w,drop=dropAt(u);
   for(let y=0;y<h;y++){
    const target=((y+.5)/h-drop)/(1-drop);
    if(target<top)continue;
@@ -118,6 +120,12 @@ function wilt(canvas,leaf,shape){
  // The output is an independently warped leaf overlay. The original body
  // pixels of a flat sprite remain beneath it.
  const bent=make(w,h);bent.getContext('2d').putImageData(out,0,0);c.drawImage(bent,0,0);
+ return points?.map(([x,y])=>{
+  const v=y/h,inset=pinch*smooth((v-start)/(1-start||1));
+  const u=x/w*(1-2*inset)+lean*smooth((hinge-v)/(hinge||1))+inset;
+  const drop=dropAt(u);
+  return [u*w,(yAt(v)*(1-drop)+drop)*h];
+ });
 }
 function interpolate(src,dst,w,h,x,y,to){
  const x0=Math.floor(x),y0=Math.floor(y),rx=x-x0,ry=y-y0;
@@ -148,19 +156,25 @@ function texture(src,key,state,rect){
  c.drawImage(src,...r,0,0,w,h);
  const apart=full||dry;
  const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0,shape?.paleFade,wetCrown):canvas;
- if(state&TORN&&options[leafKey])tear(leaf,...options[leafKey]);
+ let points=state&TORN&&options[leafKey]?tear(leaf,...options[leafKey]):null;
  if(apart){
-  if(dry)wilt(canvas,leaf,shape);
+  if(dry)points=wilt(canvas,leaf,shape,points);
   else c.drawImage(leaf,0,0);
  }
+ if(points)tearPoints.set(canvas,points.map(([x,y])=>[x/w,y/h]));
  entries.set(id,canvas);
  // Canopy sheets share an image across 21 frames; keep the small cache bounded even with all combinations.
  if(entries.size>48)entries.delete(entries.keys().next().value);
  return canvas;
 }
+function markTear(c,im,x,y,w,h){
+ const points=c.onLeafTear&&tearPoints.get(im);
+ if(points)c.onLeafTear(points.map(([u,v])=>[x+u*w,y+v*h]));
+}
 function draw(c,src,key,state,x,y,w=src?.width,h=src?.height){
  if(!src)return;
- c.drawImage(texture(src,key,state),x,y,w,h);
+ const im=texture(src,key,state);c.drawImage(im,x,y,w,h);
+ markTear(c,im,x,y,w,h);
 }
-return Object.freeze({DRY,PALE,TORN,DAMAGE_ON,DAMAGE_OFF,flags,update,texture,draw});
+return Object.freeze({DRY,PALE,TORN,DAMAGE_ON,DAMAGE_OFF,flags,update,texture,markTear,draw});
 });

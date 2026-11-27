@@ -109,10 +109,13 @@ win.RidleyApp.nativePause();assert.ok(saved.offline);win.RidleyApp.nativeResume(
   assert.equal(scene.inspector.status(),label);
  }
  assert.equal(win.RidleyApp.back(),true);
- click('[data-action="admin-motion-play"][data-id="repose"]');
- scene.inspector.update(20.5);
- assert.match(scene.inspector.status(),/35% → 55%/);
- assert.equal(scene.inspector.state.individuals[1].energy,55);
+ click('[data-action="admin-motion-play"][data-id="mend"]');
+ scene.inspector.update(4.5);
+ assert.match(scene.inspector.status(),/88 → 100/);
+ assert.equal(scene.inspector.state.individuals[1].damage,0);
+ click('[data-action="admin-motion-next"]');
+ scene.inspector.update(4.5);
+ assert.match(scene.inspector.status(),/어린 디코.*88 → 98/);
  assert.equal(win.RidleyApp.back(),true);
  assert.ok(panel.querySelector('[data-action="admin-motion-species"][data-id="maria"]'));
  assert.ok(panel.querySelector('[data-action="admin-motion-play"][data-id="swim"]'));
