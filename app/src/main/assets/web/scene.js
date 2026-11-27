@@ -824,7 +824,7 @@ ringGlow(t){const r=this.ringPass,n=r?Math.min(1,Math.max(0,(.95-r.light)/(.95-.
    c.save();c.globalAlpha*=.15+.09*contrast;
    c.drawImage(this.treeRootWash(t.id,seed),rootX-rootW,y-rootH,rootW*2,rootH*2);
    c.restore();
-   if(leaves>.2&&T.region(type)==='south'){
+   if(leaves>.2&&type!=='willow'&&Forest.World.inside(s,t,Forest.World.REGIONS.south)){
     const grass=this.sa('fern4');
     if(grass){
      c.save();c.globalAlpha*=Math.min(.48,leaves*.64);

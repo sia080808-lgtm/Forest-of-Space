@@ -17,6 +17,21 @@ const click=sel=>{const b=win.document.querySelector(sel);assert.ok(b,sel);b.cli
 // 1.2.1: the title screen shows on every launch, even for a started forest, and '숲에 들어가기' closes it
 assert.equal(win.document.getElementById('welcome').hidden,false,'title screen on launch');click('#enter');assert.equal(win.document.getElementById('welcome').hidden,true);
 {
+ const s=getState(),ed=win.document.getElementById('editor');
+ assert.equal(F.World.lakeOpen(s),false);
+ click('[data-tab="decorate"]');
+ for(const type of ['zelkova','cherry']){
+  click('[data-action="tree-add"][data-id="'+type+'"]');
+  assert.equal(scene.selectedPatch,type+'-1');
+  assert.ok(F.World.inside(s,scene.preview[type+'-1'],F.World.REGIONS.forest));
+  assert.match(ed.textContent,/이끼 숲과 남쪽 숲에 심을 수 있어요/);
+ }
+ assert.equal(ed.querySelector('[data-action="tree-add"][data-id="willow"]').disabled,true);
+ assert.equal(ed.querySelector('[data-action="save-layout"]').disabled,false);
+ click('[data-action="cancel-layout"]');
+ assert.equal(F.Trees.active(s).length,0);
+}
+{
  const s=getState(),oldTick=s.worldTick;
  const doc=win.document,clock=doc.getElementById('forest-clock');
  assert.match(doc.getElementById('welcome-when').textContent,/ · .* · /,'welcome retains the time-of-day description and weather');
