@@ -56,21 +56,27 @@ const puddles=s=>s.skills?.puddles||[];
 function water(s){return puddles(s).reduce((v,p)=>v+p.W,0);}
 function precip(s){const E=dep('environment');return E.precipitation(s,'rain')+E.precipitation(s,'snow');}
 function band(p){return dep('vitals').band(p);}
-function unsafe(s,p,postponeShelter=false){
+function unsafeOutside(s,p,postponeShelter=false){
  const Sh=dep('shelter');
  const takingShelter=!postponeShelter&&(p.shelterRequest||p.shelter?.facilityId||Sh.inside?.(s,p));
- return s.weather.wind>=60||takingShelter||dep('vitals').sleepTime(s,p)||precip(s)>=.6;
+ return s.weather.wind>=60||takingShelter||precip(s)>=.6;
 }
-// A friend needs enough water, nutrition and energy to help.
+// An energetic Dico can step away from a short outdoor rest, even at night.
 function well(s,p,postponeShelter=false){
- const b=band(p);
+ const b=band(p),dico=p.species==='dico';
+ const needsSleep=dep('vitals').sleepTime(s,p)&&(!dico||p.energy<50);
  return p.active&&!p.mounted&&p.B>=b.warnLo&&p.nutrition>=b.warnLo&&p.energy>=40&&
-  !p.wetRecovery&&!p.leafRecovery&&p.burden<40&&!unsafe(s,p,postponeShelter);
+  !p.wetRecovery&&!p.leafRecovery&&p.burden<40&&!needsSleep&&!unsafeOutside(s,p,postponeShelter);
 }
-function free(s,p,held,busy,interruptLeisure=false){
- return p.active&&!p.mounted&&p.id!==held&&!busy.has(p.id)&&
-  (!p.objectTask||interruptLeisure&&p.objectTask.free)&&!p.skill&&!p.skillHold&&
-  !p.sleepHere&&!p.braceHere&&!p.restSelf&&!(p.stroll&&(p.stroll.lake||p.stroll.puddle))&&!p.guideTo;
+function outdoorRest(task){return task?.reason==='sleep'&&task.object!=='shelter';}
+function canPauseForMending(p){
+ const task=p.objectTask;
+ return !task||task.free||outdoorRest(task)||task.reason==='nutrition'&&p.nutrition>=band(p).warnLo;
+}
+function free(s,p,held,busy,forMending=false){
+ return p.active&&!p.mounted&&p.id!==held&&!busy.has(p.id)&&!p.skill&&!p.skillHold&&
+  (forMending?canPauseForMending(p):!p.objectTask&&!p.sleepHere)&&
+  !p.braceHere&&!p.restSelf&&!(p.stroll&&(p.stroll.lake||p.stroll.puddle))&&!p.guideTo;
 }
 const thirsty=p=>p.active&&!p.mounted&&p.B<band(p).warnLo;
 function ready(s,p,k){return !(p.skillRest?.[k]>s.worldTick);}
@@ -139,16 +145,18 @@ function puddleStep(s){const st=init(s);for(const d of [...st.puddles]){const e=
  if(s.worldTick-d.born>=SK.dig.life||d.W<=eps){const z=[...s.patches,...(s.objects?.stored||[])].find(z=>z.id===d.from),back=z?Math.min(d.W,Math.max(0,z.cap-z.S)):0;if(z)z.S+=back;s.ledger.outflow+=d.W-back;st.puddles=st.puddles.filter(x=>x!==d);for(const p of s.individuals)if(p.guideTo?.id===d.id)delete p.guideTo;}}}
 function canMend(s,p,r,held,busy){
  if(!r||r.id===p.id||!r.active||r.mounted||r.id===held||busy?.has(r.id)||r.skill||
-  r.skillHold&&r.skillHold!==p.id||r.settleUntil>=s.worldTick||r.sleepHere||r.braceHere||r.stroll?.perch||r.stroll?.shelf)
+  r.skillHold&&r.skillHold!==p.id||r.settleUntil>=s.worldTick||r.braceHere||r.stroll?.perch||r.stroll?.shelf)
   return false;
  const Leaf=dep('leaf-state'),Sh=dep('shelter');
  if(!(Leaf.flags(r)&Leaf.TORN)||s.worldTick-(r.mendedAt??-Infinity)<MEND.repeat)return false;
+ const task=r.objectTask;
+ if((r.sleepHere||outdoorRest(task))&&r.energy<40)return false;
  // An injured friend may already be seeking a resting spot in calm weather.
  // Mend it while it is still outdoors, without taking over urgent care.
- const recovering=r.objectTask?.reason==='safety'&&r.B>=40&&r.nutrition>=40&&!r.wetRecovery&&r.burden<40;
- if(recovering)return s.weather.wind<60&&precip(s)<.6&&!dep('vitals').sleepTime(s,r)&&
+ const recovering=task?.reason==='safety'&&r.B>=40&&r.nutrition>=40&&!r.wetRecovery&&r.burden<40;
+ if(recovering)return s.weather.wind<60&&precip(s)<.6&&
   !Sh.inside(s,r)&&!['entering','exiting','held'].includes(r.shelter?.phase);
- return !unsafe(s,r)&&!(r.objectTask&&!r.objectTask.free);
+ return !unsafeOutside(s,r)&&(!task||task.free||outdoorRest(task));
 }
 function canPostponeShelter(s,p){
  if(p.objectTask?.object!=='shelter'||!p.objectTask.free)return false;
@@ -158,14 +166,14 @@ function canPostponeShelter(s,p){
  return a?.phase==='moving'&&(!f||!Sh.intersects(f,p));
 }
 function startMend(s,p,held,busy,postponeShelter=false){
- if(!ready(s,p,'mend')||p.settleUntil>=s.worldTick||p.objectTask&&!p.objectTask.free)return false;
+ if(!ready(s,p,'mend')||p.settleUntil>=s.worldTick||!canPauseForMending(p))return false;
  const Space=dep('spatial'),candidates=s.individuals.filter(q=>canMend(s,p,q,held,busy)&&dist(p,q)<MEND.reach&&
   !s.individuals.some(z=>z.skill?.k==='mend'&&z.skill.target===q.id))
   .sort((a,b)=>b.damage-a.damage||dist(a,p)-dist(b,p)||a.id.localeCompare(b.id));
  for(const r of candidates){
   const at=side(s,p,r);
   if(!Space.route(s,p,at))continue;
-  if(p.objectTask?.free)dep('objects').release(s,p,'interrupt');
+  if(p.objectTask)dep('objects').release(s,p,'interrupt');
   if(postponeShelter){
    dep('shelter').release(p,s.worldTick);
    delete p.shelterRequest;
@@ -204,8 +212,10 @@ function skillHolder(s,p){
  return s.individuals.find(q=>q.id===p.skillHold&&(q.skill?.k==='brush'||q.skill?.k==='mend')&&
   q.skill.target===p.id&&q.skill.phase==='do');
 }
-function heldForMending(s,p){
- return !!p.skillHold&&skillHolder(s,p)?.skill.k==='mend';
+function keepMending(s,p){
+ if(p.skill?.k==='mend')return !p.objectTask&&well(s,p);
+ const holder=p.skillHold&&skillHolder(s,p);
+ return holder?.skill?.k==='mend'&&canMend(s,holder,p);
 }
 function migrate(s){
  for(const p of s.individuals){
@@ -308,5 +318,5 @@ function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='o
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,heldForMending,force,soilSpots,pest,side,selfBrush,migrate});
+return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,keepMending,force,soilSpots,pest,side,selfBrush,migrate});
 });
