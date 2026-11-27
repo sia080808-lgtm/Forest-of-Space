@@ -65,7 +65,18 @@ test('all eight active species draw three distinct leaf conditions and reuse cac
    assert.deepEqual(render(species,state),pixels,species+' / repeat '+state);
    if(state===Leaf.TORN){
     let cut=0;for(let i=3;i<normal.length;i+=4)if(normal[i]>230&&pixels[i]<100)cut++;
-    assert.ok(cut>7,species+' retains a readable torn edge ('+cut+' pixels)');
+    if(species==='neolbi'){
+     // The new notch opens onto the rear hood, so the complete silhouette stays intact.
+     assert.equal(cut,0);
+     const front=Leaf.texture(assets.neolbiFront,'neolbiFront',Leaf.TORN);
+     const ctx=front.getContext('2d'),torn=ctx.getImageData(0,0,front.width,front.height).data;
+     const source=createCanvas(front.width,front.height).getContext('2d');
+     source.drawImage(assets.neolbiFront,0,0,front.width,front.height);
+     const intact=source.getImageData(0,0,front.width,front.height).data;
+     let opened=0;
+     for(let i=3;i<torn.length;i+=4)if(intact[i]>230&&torn[i]<100)opened++;
+     assert.ok(opened>25,'the notch opens in the front hood');
+    }else assert.ok(cut>7,species+' retains a readable torn edge ('+cut+' pixels)');
    }
   }
  }
@@ -248,12 +259,15 @@ test('Ellisii curls both free fronds without exposing the dark crown',async()=>{
 test('nutrition fades Superbum foliage but keeps its water and fades both sides of Maria’s face opening',async()=>{
  const [wet,maria]=await Promise.all(['superbum_wet_crown','maria'].map(k=>loadImage(path.join(web,R.files[k]))));
  const pale=Leaf.texture(wet,'superbumWetCrown',Leaf.PALE);
+ const damaged=Leaf.texture(wet,'superbumWetCrown',Leaf.TORN);
  const base=createCanvas(pale.width,pale.height),c=base.getContext('2d');
  c.drawImage(wet,0,0,pale.width,pale.height);
  const sample=(im,src,x,y)=>Array.from(im.getContext('2d').getImageData(
   Math.round(x*im.width/src.width),Math.round(y*im.height/src.height),1,1).data);
  assert.deepEqual(sample(pale,wet,240,163),sample(base,wet,240,163),'wet crown keeps its water colour');
  assert.notDeepEqual(sample(pale,wet,160,80),sample(base,wet,160,80),'the leaf itself fades');
+ const waterBand=im=>im.getContext('2d').getImageData(80,82,93,22).data;
+ assert.deepEqual(waterBand(damaged),waterBand(base),'tears and bandage stay clear of the water');
 
  const c2=createCanvas(656,600).getContext('2d'),scale=594/309;
  for(const cover of [undefined,()=>{}]){

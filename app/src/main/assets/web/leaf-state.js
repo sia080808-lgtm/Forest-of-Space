@@ -138,13 +138,111 @@ function interpolate(src,dst,w,h,x,y,to){
  }
  if(alpha){dst[to]=red/alpha;dst[to+1]=green/alpha;dst[to+2]=blue/alpha;dst[to+3]=alpha;}
 }
-const options={
- ridley:[-1,.23,.30],maria:[1,.23,.34],dico:[1,.37,.20],dicoYoung:[-1,.34,.20],
- ellisiiFronds:[-1,.28,.36],ellisiiFrondLeft:[-1,.27,.39],ellisiiFrondRight:[1,.28,.34],
- neolbiRear:[-1,.49,.35],neolbiFront:[-1,.67,.22],neolbiOpen:[-1,.49,.26],
- superbumCrown:[1,.29,.35],bosong:[1,.22,.39],jureong:[1,.77,.31]
+// Each nick starts at the actual edge nearest its anchor. The inward angle is
+// in screen degrees; depth and opening are fractions of the shorter texture side.
+const ellisiiDamage={
+ cuts:[[.24,.18,45,.064,.045],[.30,.105,62,.070,.048],[.42,.06,72,.043,.033]],
+ patch:[.62,.128,-18,.145]
 };
+const damageArt={
+ ridley:{
+  cuts:[[.25,.22,53,.047,.039],[.382,.145,96,.038,.032],[.566,.214,148,.051,.040]],
+  patch:[.349,.537,-17,.105]
+ },
+ ellisiiFronds:ellisiiDamage,
+ ellisiiFrondLeft:ellisiiDamage,
+ neolbiFront:{cuts:[[.668,.227,69,.048,.042],[.594,.235,112,.029,.027]],patch:[.315,.533,15,.112]},
+ neolbiOpen:{cuts:[[.668,.132,71,.044,.037],[.607,.142,108,.027,.023]],patch:[.380,.467,10,.095]},
+ bosong:{
+  cuts:[[.967,.039,151,.062,.048],[.514,.082,35,.050,.038],[.079,.230,53,.044,.034]],
+  patch:[.609,.572,-9,.142]
+ },
+ jureong:{
+  cuts:[[.439,.031,74,.078,.058],[.504,.073,112,.069,.044],[.595,.211,153,.054,.042]],
+  patch:[.535,.299,10,.111]
+ },
+ superbumCrown:{
+  cuts:[[.166,.171,39,.099,.061],[.201,.123,62,.056,.040],[.641,.091,112,.060,.035],[.878,.324,146,.097,.063]],
+  patch:[.753,.285,3,.126]
+ },
+ superbumWetCrown:{
+  cuts:[[.171,.157,39,.081,.049],[.201,.109,64,.055,.036],[.653,.074,109,.057,.033],[.881,.257,145,.080,.047]],
+  patch:[.752,.226,3,.118]
+ },
+ dico:{
+  cuts:[[.255,.155,38,.108,.084],[.168,.446,8,.068,.055],[.819,.324,152,.103,.074]],
+  patch:[.689,.555,10,.134]
+ },
+ dicoYoung:{
+  cuts:[[.638,.035,108,.081,.057],[.320,.178,27,.065,.049]],
+  patch:[.556,.472,-6,.135]
+ }
+};
+const unchangedWhenTorn=new Set(['neolbiRear','ellisiiFrondRight','ellisiiLeaf','skirt-left','skirt-right']);
+function clothOutline(c,left,top,w,h){
+ const right=left+w,bottom=top+h,r=h*.27;
+ c.beginPath();c.moveTo(left+r,top);c.lineTo(right-r,top);
+ c.quadraticCurveTo(right,top,right,top+r);c.lineTo(right,bottom-r);
+ c.quadraticCurveTo(right,bottom,right-r,bottom);c.lineTo(left+r,bottom);
+ c.quadraticCurveTo(left,bottom,left,bottom-r);c.lineTo(left,top+r);
+ c.quadraticCurveTo(left,top,left+r,top);c.closePath();
+}
+function paintDamage(canvas,art){
+ const {width:w,height:h}=canvas,c=canvas.getContext('2d'),unit=Math.min(w,h);
+ const pixels=c.getImageData(0,0,w,h).data;
+ const alpha=(x,y)=>{
+  const ix=Math.round(x),iy=Math.round(y);
+  return ix<0||iy<0||ix>=w||iy>=h?0:pixels[(iy*w+ix)*4+3];
+ };
+ let points;
+ for(const [u,v,angle,length,opening] of art.cuts){
+  const x=u*w,y=v*h,a=angle*Math.PI/180,dx=Math.cos(a),dy=Math.sin(a);
+  const width=opening*unit,depth=length*unit;
+  const radius=Math.ceil(unit*.1);
+  // Probe across the contour in the intended cutting direction. Do not create
+  // an interior hole if the edge is absent in this canopy pose.
+  let best=null;
+  for(let i=-radius;i<=radius;i++){
+   if(alpha(x+i*dx,y+i*dy)<115&&alpha(x+(i+2)*dx,y+(i+2)*dy)>175&&
+    (best===null||Math.abs(i)<Math.abs(best)))best=i;
+  }
+  if(best===null)continue;
+  const px=x+best*dx,py=y+best*dy;
+  const to=(along,across)=>[px+dx*along-dy*across,py+dy*along+dx*across];
+  if(alpha(...to(depth,.08*width))<175)continue;
+  const top=[-.57*width,-.54*width],base=[-.57*width,.48*width];
+  c.save();c.translate(px,py);c.rotate(a);
+  c.globalCompositeOperation='destination-out';
+  c.beginPath();c.moveTo(...top);c.lineTo(width*.14,-width*.34);
+  c.lineTo(depth*.45,-width*.23);c.lineTo(depth*.60,-width*.28);c.lineTo(depth,width*.08);
+  c.quadraticCurveTo(depth*.64,width*.22,width*.20,width*.28);
+  c.lineTo(...base);c.closePath();c.fill();
+  c.globalCompositeOperation='source-atop';
+  c.strokeStyle='rgba(243,221,166,.58)';c.lineWidth=Math.max(.65,unit*.004);
+  c.lineCap='round';c.beginPath();c.moveTo(width*.12,-width*.39);
+  c.lineTo(depth*.46,-width*.29);c.lineTo(depth*.61,-width*.33);c.stroke();c.restore();
+  points??=[to(depth*.45,-width*.26),to(depth*.45,width*.29)];
+ }
+ const [u,v,angle,extent]=art.patch,x=u*w,y=v*h;
+ if(alpha(x,y)>215){
+  const length=unit*extent,width=length*.32;
+  c.save();c.translate(x,y);c.rotate(angle*Math.PI/180);
+  c.globalCompositeOperation='source-atop';c.lineWidth=Math.max(.55,unit*.003);
+  for(const [turn,color] of [[-.76,'#cdbb98'],[.79,'#eee0bc']]){
+   c.save();c.rotate(turn);
+   c.fillStyle='rgba(86,63,42,.26)';
+   clothOutline(c,-length*.51,-width*.44,length*1.02,width*1.07);c.fill();
+   c.fillStyle=color;c.strokeStyle='#a39674';
+   clothOutline(c,-length/2,-width/2,length,width);c.fill();c.stroke();
+   c.fillStyle='rgba(255,246,222,.42)';c.fillRect(-length*.14,-width*.34,length*.28,width*.68);
+   c.restore();
+  }
+  c.restore();
+ }
+ return points;
+}
 function texture(src,key,state,rect){
+ if(unchangedWhenTorn.has(key))state&=~TORN;
  if(!src||!state)return src;
  const id=key+'|'+state+(rect?'|'+rect.join(','):'');
  let entries=cache.get(src);if(!entries){entries=new Map();cache.set(src,entries);}
@@ -156,7 +254,11 @@ function texture(src,key,state,rect){
  c.drawImage(src,...r,0,0,w,h);
  const apart=full||dry;
  const leaf=apart||state&PALE?layerPixels(canvas,full,!!(state&PALE),apart,dry?shape.topLeaf:0,shape?.paleFade,wetCrown):canvas;
- let points=state&TORN&&options[leafKey]?tear(leaf,...options[leafKey]):null;
+ let points=null;
+ if(state&TORN){
+  if(damageArt[key])points=paintDamage(leaf,damageArt[key]);
+  else if(leafKey==='maria')points=tear(leaf,1,.23,.34);
+ }
  if(apart){
   if(dry)points=wilt(canvas,leaf,shape,points);
   else c.drawImage(leaf,0,0);
