@@ -6,6 +6,7 @@ const Neolbi=typeof module==='object'?require('./neolbi.js'):globalThis.ForestNe
 const Motion=typeof module==='object'?require('./neolbi-motion.js'):globalThis.ForestNeolbiMotion;
 const W=typeof module==='object'?require('./weather-care.js'):globalThis.ForestWeatherCare;
 const supported=['ridley','bonbon','neolbi','bosong','jureong','duri','superbum','maria','dico'],R=.13;
+const PARTNER_REST=30,SOCIAL_REST=10;
 function init(s){W.init(s);s.social??={version:1,serial:0,sessions:[],cooldowns:{},observations:{}};for(const p of s.individuals)p.sources??={rain:0,other:0,unknown:p.V};return s;}
 function credit(p,n,source){const amount=Math.max(0,Math.min(n,SH(p).nest-p.V));p.sources[source]+=amount;p.V+=amount;return amount;}
 function debit(p,n){const amount=Math.max(0,Math.min(n,p.V)),parts={};for(const k of ['rain','other','unknown']){parts[k]=p.V>0?p.sources[k]*amount/p.V:0;p.sources[k]=Math.max(0,p.sources[k]-parts[k]);}p.V=Math.max(0,p.V-amount);return {amount,parts};}
@@ -43,7 +44,7 @@ function shadeFactor(s,q){let count=Obj().patchesOf(s,'shade').some(z=>Math.hypo
 function unionArea(ps){let count=0;for(let y=.15;y<=.91;y+=.0125)for(let x=.08;x<=.92;x+=.0125)if(ps.some(p=>shadeAt(p,{x,y})))count++;return count;}
 function expanded(ps){return ps.length>=2&&unionArea(ps)>Math.max(...ps.map(p=>unionArea([p])))+2;}
 function available(s,p){return p.id!==s.world?.lake?.boat?.rider&&!s.world?.lake?.swim?.ids.includes(p.id)&&!s.social.sessions.some(a=>a.ids.includes(p.id));}
-function stop(s,session,reason){s.social.sessions=s.social.sessions.filter(x=>x!==session);s.social.cooldowns[session.key]=s.worldTick+120;for(const id of session.ids){const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;p.socialUntil=s.worldTick+15;p.canopy=false;delete p.socialRole;delete p.protectedBy;if(reason==='unsafe'||reason==='interrupted'||reason==='layout'){p.canopyProgress=0;p.action='rest';p.target='shelter';}}}session.reason=reason;}
+function stop(s,session,reason){s.social.sessions=s.social.sessions.filter(x=>x!==session);s.social.cooldowns[session.key]=s.worldTick+PARTNER_REST;for(const id of session.ids){const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;p.socialUntil=s.worldTick+SOCIAL_REST;p.canopy=false;delete p.socialRole;delete p.protectedBy;if(reason==='unsafe'||reason==='interrupted'||reason==='layout'){p.canopyProgress=0;p.action='rest';p.target='shelter';}}}session.reason=reason;}
 function cancel(s,id){(typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship)?.cancel(s,id);init(s);for(const a of [...s.social.sessions])if(a.ids.includes(id))stop(s,a,'interrupted');delete s.social.observations.EC03;const p=s.individuals.find(x=>x.id===id);if(p){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
 function invalidate(s){(typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship)?.cancel(s);init(s);for(const a of [...s.social.sessions])stop(s,a,'layout');s.social.observations={};for(const p of s.individuals){delete p.personalityClip;if(p.species==='neolbi'){p.canopy=false;p.canopyProgress=0;}delete p.canopyClosing;}}
 function bedtime(s,p){
@@ -58,7 +59,9 @@ function canopyReason(s,p){
  if(a.phase==='exit')return '엘레판의 잎 아래에서 나오고 있어요';
  return '비와 바람을 피할 잎 아래 자리로 가고 있어요';
 }
-function start(s,type,ps){const ids=ps.map(p=>p.id),key=type+':'+[...ids].sort().join(':');if((s.social.cooldowns[key]||0)>s.worldTick||ps.some(p=>(p.socialUntil||0)>s.worldTick))return;
+const socialKey=(type,ids)=>type+':'+[...ids].sort().join(':');
+const rested=(s,key,ps)=>!(s.social.cooldowns[key]>s.worldTick)&&!ps.some(p=>p.socialUntil>s.worldTick);
+function start(s,type,ps){const ids=ps.map(p=>p.id),key=socialKey(type,ids);if(!rested(s,key,ps))return;
  if(s.objects){const O=typeof module==='object'?require('./objects.js'):globalThis.ForestObjects;for(const p of ps){
   O.release(s,p,'replace');
   if(type==='CANOPY'||type==='A12'||p.stroll?.shelf){delete p.stroll;delete p.walkPlan;}
@@ -81,7 +84,15 @@ function prepare(s,held){init(s);const participants=new Set();for(const p of s.i
  const free=s.individuals.filter(p=>(!s.objects||!p.objectTask||p.objectTask.free)&&p.id!==held&&!p.shelter?.facilityId&&available(s,p));
  // 물 나눔 (A04): 슈퍼범 with more than 10 in its nest brings water to the thirstiest friend (below its 수분 warning line) it can reach.
  // Old sessions with an Ellisii donor stay retired.
- for(const d of free.filter(p=>p.species==='superbum'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){if(!available(s,d))continue;const r=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&(!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&p.active&&!p.mounted&&thirsty(p)&&p.burden<40&&available(s,p)).sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id))[0];if(r&&Space.route(s,d,r)){const a=start(s,'A04',[d,r]);if(a)a.ids.forEach(id=>participants.add(id));}}
+ for(const d of free.filter(p=>p.species==='superbum'&&safe(p,s)&&p.V>10).sort((a,b)=>a.id.localeCompare(b.id))){
+  if(!available(s,d)||d.socialUntil>s.worldTick)continue;
+  const recipients=s.individuals.filter(p=>p.id!==held&&!p.shelter?.facilityId&&
+   (!p.objectTask||p.objectTask.free||p.objectTask.reason==='water')&&p.id!==d.id&&
+   p.active&&!p.mounted&&thirsty(p)&&p.burden<40&&available(s,p))
+   .sort((a,b)=>a.B-b.B||a.id.localeCompare(b.id));
+  const r=recipients.find(p=>rested(s,socialKey('A04',[d.id,p.id]),[d,p])&&Space.route(s,d,p));
+  if(r)start(s,'A04',[d,r]).ids.forEach(id=>participants.add(id));
+ }
  const shadeFriends=free.filter(p=>!bedtime(s,p)&&!p.stroll?.lake&&!p.stroll?.puddle&&!p.stroll?.shelf);
  const ns=shadeFriends.filter(p=>p.species==='neolbi'&&(safe(p,s)||W.leafFit(s,p)&&s.weather.wind<60)&&available(s,p)).sort((a,b)=>a.id.localeCompare(b.id));
  if(ns.length>=2){const pair=ns.slice(0,2),d=Space.distance(...pair);if(d>.055&&d<R*1.8&&expanded(pair)){const r=shadeFriends.filter(p=>!pair.includes(p)&&safe(p,s)&&available(s,p)).sort((a,b)=>Space.distance(a,pair[0])-Space.distance(b,pair[0]))[0];if(r){const seat=restPoint(s,pair,r);const a=seat&&start(s,'A12',[...pair,r]);if(a){a.seat=seat;a.ids.forEach(id=>participants.add(id));pair.forEach(p=>p.canopy=true);}}}}
@@ -126,7 +137,13 @@ function tick(s,{visible,record,event}){for(const a of [...s.social.sessions]){i
  if(a.phase==='approach'){if(approachStep(s,r,q,a)){a.phase='rest';a.elapsed=0;}else if(s.worldTick-a.started>30)stop(s,a,'no-path');continue;}
  if(a.phase==='rest'){if(!ns.some(p=>shadeAt(p,r))){stop(s,a,'left-shade');continue;}r.motion.kind='rest';r.energy=Math.min(75,r.energy+1.5/60);a.steps++;if(visible)a.observed=(a.observed||0)+1;else a.observed=0;if(a.observed>=20)record(s,'EC03','엘레판 둘이 넓힌 그늘에서 친구가 편안히 쉬었어요.',true,{participants:a.ids,area:unionArea(ns),individualArea:Math.max(...ns.map(p=>unionArea([p]))),restSeconds:a.observed});if(a.steps>=20)stop(s,a,'complete');}
  }}
- const keys=Object.keys(s.social.cooldowns);for(const k of keys)if(s.social.cooldowns[k]<s.worldTick-120)delete s.social.cooldowns[k];}
+ const keys=Object.keys(s.social.cooldowns);for(const k of keys)if(s.social.cooldowns[k]<=s.worldTick)delete s.social.cooldowns[k];}
+function migrate(s){
+ for(const p of s.individuals)if(Number.isFinite(p.socialUntil))p.socialUntil=Math.min(p.socialUntil,s.worldTick+SOCIAL_REST);
+ for(const [key,until] of Object.entries(s.social?.cooldowns||{})){
+  if(Number.isFinite(until))s.social.cooldowns[key]=Math.min(until,s.worldTick+PARTNER_REST);
+ }
+}
 function roster(s,id,active){init(s);const p=s.individuals.find(x=>x.id===id);if(!p)throw Error('친구를 찾지 못했어요.');if(p.active===active)return;if(active){if(s.individuals.filter(x=>x.active).length>=50)throw Error('정원에는 쉰 친구까지 함께해요.');p.active=true;const candidates=[p];for(let y=.3;y<.85;y+=.08)for(let x=.13;x<.88;x+=.08)candidates.push({x,y});const q=candidates.map(q=>Space.placement(s,id,q,false)).find(q=>q.ok);if(!q){p.active=false;throw Error('친구가 머물 자리를 비워주세요.');}p.x=q.x;p.y=q.y;}else {if(s.individuals.filter(x=>x.active).length<=1)throw Error('정원에 한 친구는 남겨주세요.');cancel(s,id);(typeof module==='object'?require('./shore-swim.js'):globalThis.ForestShoreSwim).cancel(s,id);if(s.objects)(typeof module==='object'?require('./objects.js'):globalThis.ForestObjects).release(s,p,'inactive');p.active=false;}delete p.motion;}
 function validate(s){
  const finite=(v,min=0,max=1e15)=>Number.isFinite(v)&&v>=min&&v<=max;
@@ -150,5 +167,5 @@ function validate(s){
   if(!object(p.sources)||Object.keys(p.sources).length!==3||['rain','other','unknown'].some(k=>!finite(p.sources[k],0,50))||Math.abs(p.sources.rain+p.sources.other+p.sources.unknown-p.V)>1e-7||(p.socialUntil!==undefined&&!finite(p.socialUntil)))fail();
  }
 }
-return {NEST,nest,NEST_EVAP,NEST_SIP,collect,init,canopyReason,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
+return {NEST,nest,NEST_EVAP,NEST_SIP,collect,init,canopyReason,credit,debit,rain,ellisiiHabitat,prepare,tick,cancel,invalidate,roster,migrate,validate,shadeFactor,shades,expanded,unionArea,shadeAt,seat,restPoint,supported,R};
 });

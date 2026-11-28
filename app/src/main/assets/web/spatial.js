@@ -179,7 +179,9 @@ function keptPlan(s,p,destination){const wp=p.walkPlan;if(!wp||!wp.pts||s.worldT
  if(Math.abs(wp.tx-destination.x)>1e-9||Math.abs(wp.ty-destination.y)>1e-9)return null;
  while(wp.pts.length>1&&distance(p,wp.pts[0])<1e-6)wp.pts.shift();
  const was=LEGACY;LEGACY=!!wp.legacy;try{const obs=obstacles(s),ok=q=>segment(s,p,q,p.id,obs)&&clearFriends(s,p,p,q);
-  if(wp.pts.length>1&&ok(destination))return [destination];return ok(wp.pts[0])?wp.pts:null;}finally{LEGACY=was;}}
+  if(wp.pts.length>1&&ok(destination))return [destination];
+   // travel consumes reached waypoints in the stored plan. Iterate a separate path.
+   return ok(wp.pts[0])?wp.pts.slice():null;}finally{LEGACY=was;}}
 function planFor(s,p,destination){const kept=keptPlan(s,p,destination);if(kept)return kept;if(kept===false)return null;
  let legacy=false,plan=routeOnce(s,p,destination,p.id,true);if(!plan&&!LEGACY){LEGACY=true;try{plan=routeOnce(s,p,destination,p.id,true);legacy=!!plan;}finally{LEGACY=false;}}
  p.walkPlan=plan?{tx:destination.x,ty:destination.y,at:s.worldTick,legacy,pts:plan.map(q=>({x:q.x,y:q.y}))}:{tx:destination.x,ty:destination.y,at:s.worldTick,legacy:false,pts:[],fx:p.x,fy:p.y};return plan;}

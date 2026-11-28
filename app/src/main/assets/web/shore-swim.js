@@ -6,8 +6,13 @@
  if(typeof module==='object')module.exports=api;else root.ForestShoreSwim=api;
 })(globalThis,function(dep){
 'use strict';
-const SWIM_SECONDS=20,COOLDOWN=300,APPROACH_TIMEOUT=14,DELAY=1,ENTRY=2,EXIT=2,SHAKE=2;
-const FINISH=DELAY+ENTRY+SWIM_SECONDS+EXIT,END=FINISH+SHAKE;
+const SWIM_SECONDS=10,COOLDOWN=120,SAME_PAIR=300,PRE_ENTRY=30;
+const APPROACH_TIMEOUT=14,DELAY=1,ENTRY=2,EXIT=2,SHAKE=2,LEGACY_SWIM_SECONDS=20;
+const finishAt=seconds=>DELAY+ENTRY+seconds+EXIT;
+const endAt=seconds=>finishAt(seconds)+SHAKE;
+const END=endAt(SWIM_SECONDS);
+const swimTime=a=>a.duration??LEGACY_SWIM_SECONDS;
+const pairKey=(a,b)=>[a,b].sort().join(':');
 const get=s=>s.world?.lake?.swim;
 const busy=(s,id)=>get(s)?.ids.includes(id)||false;
 const clamp=t=>Math.max(0,Math.min(1,t));
@@ -31,16 +36,16 @@ function ready(s,p,held){
   !V.sleepTime(s,p)&&!O.coldCall(s,p)&&
   !s.social.sessions.some(a=>a.ids.includes(p.id))&&!dep('friendship').busy(s,p.id);
 }
-function bodyPoint(lane,age){
+function bodyPoint(lane,age,seconds){
  const t=age-lane.delay;
  if(t<ENTRY)return {...mix(lane.bank,lane.water,ease(t/ENTRY)),depth:ease(t/ENTRY)};
- if(t<ENTRY+SWIM_SECONDS){
-  const a=(t-ENTRY)/SWIM_SECONDS*Math.PI*2;
+ if(t<ENTRY+seconds){
+  const a=(t-ENTRY)/seconds*Math.PI*2;
   const x=lane.water.x-lane.tx*.074*Math.sin(a)+lane.nx*.095*(1-Math.cos(a));
   const y=lane.water.y-lane.ty*.074*Math.sin(a)+lane.ny*.095*(1-Math.cos(a));
   return {x,y,depth:1};
  }
- const u=ease((t-ENTRY-SWIM_SECONDS)/EXIT);
+ const u=ease((t-ENTRY-seconds)/EXIT);
  return {...mix(lane.water,lane.bank,u),depth:1-u};
 }
 // The two short loops are checked once, including the gap between companions.
@@ -61,8 +66,8 @@ function plan(s,maria,buddy,near){
    nx,ny,tx:tx*sign,ty:ty*sign,delay:i*DELAY
   }));
   let valid=true;
-  for(let t=0;t<=FINISH;t+=.5){
-   const [a,b]=lanes.map(lane=>bodyPoint(lane,t));
+  for(let t=0;t<=finishAt(SWIM_SECONDS);t+=.5){
+   const [a,b]=lanes.map(lane=>bodyPoint(lane,t,SWIM_SECONDS));
    if(!W.inside(s,a)||!W.inside(s,b)||S.distance(a,b)<(S.diameter(maria)+S.diameter(buddy))/2||
       (a.depth===1&&!W.inWater(s,a))||(b.depth===1&&!W.inWater(s,b))){valid=false;break;}
   }
@@ -71,9 +76,16 @@ function plan(s,maria,buddy,near){
  return null;
 }
 function finish(s,a){
- delete s.world.lake.swim;
+ const lake=s.world.lake;
+ delete lake.swim;
+ const entered=a.started!==null&&s.worldTick>a.started;
+ if(entered){
+  const pairs=lake.swimPairs??={};
+  for(const [key,until] of Object.entries(pairs))if(until<=s.worldTick)delete pairs[key];
+  pairs[pairKey(...a.ids)]=s.worldTick+SAME_PAIR;
+ }
  for(const p of s.individuals)if(a.ids.includes(p.id)){
-  p.swimAfter=s.worldTick+(a.started==null?30:COOLDOWN);
+  p.swimAfter=s.worldTick+(entered?COOLDOWN:PRE_ENTRY);
   if(p.active)p.nextObjectChoice=s.worldTick;
   delete p.walkPlan;
  }
@@ -83,20 +95,21 @@ function check(s,held){
  const a=get(s);
  if(!a)return;
  if(!calm(s)||a.layout!==s.layoutRevision||a.ids.some(id=>!ready(s,s.individuals.find(p=>p.id===id),held))||
-    (a.started==null?s.worldTick-a.offered>APPROACH_TIMEOUT:s.worldTick-a.started>END))finish(s,a);
+    (a.started==null?s.worldTick-a.offered>APPROACH_TIMEOUT:s.worldTick-a.started>endAt(swimTime(a))))finish(s,a);
 }
 function offer(s,held){
  if(s.worldTick%10!==0||get(s)||s.world?.lake?.boat?.rider||!s.individuals.some(p=>p.active&&p.species==='maria')||!calm(s))return;
- const S=dep('spatial'),W=dep('world');
+ const S=dep('spatial'),W=dep('world'),pairs=s.world.lake.swimPairs;
  for(const maria of s.individuals){
-  if(maria.species!=='maria'||maria.swimAfter>s.worldTick||!ready(s,maria,held)||
+  if(maria.species!=='maria'||maria.swimAfter>s.worldTick||maria.socialUntil>s.worldTick||!ready(s,maria,held)||
      maria.stroll?.perch||maria.stroll?.shelf||maria.stroll?.board||maria.stroll?.lake)continue;
   if(maria.x<W.LAKE.cx-W.LAKE.ru-.35||maria.x>W.LAKE.cx+W.LAKE.ru+.35||
      Math.abs(maria.y-W.LAKE.cy)>W.LAKE.rv+.24||W.inWater(s,maria))continue;
   const near=W.nearShore(s,maria);
   if(!near||S.distance(maria,near)>.22)continue;
   // Prefer a nearby free friend who will benefit, regardless of their species.
-  const candidates=s.individuals.filter(p=>p!==maria&&!(p.swimAfter>s.worldTick)&&S.distance(p,near)<.32&&
+  const candidates=s.individuals.filter(p=>p!==maria&&!(p.swimAfter>s.worldTick)&&!(p.socialUntil>s.worldTick)&&
+   !(pairs?.[pairKey(maria.id,p.id)]>s.worldTick)&&S.distance(p,near)<.32&&
    (maria.B<50||p.B<50)&&ready(s,p,held)&&!W.inWater(s,p)&&
    !p.stroll?.board&&!p.stroll?.perch&&!p.stroll?.shelf&&!p.stroll?.lake);
   candidates.sort((a,b)=>a.B-b.B||S.distance(a,near)-S.distance(b,near)||a.id.localeCompare(b.id));
@@ -104,7 +117,7 @@ function offer(s,held){
    const lanes=plan(s,maria,p,near);
    if(!lanes)continue;
    for(const q of [maria,p]){delete q.stroll;delete q.walkPlan;}
-   s.world.lake.swim={ids:[maria.id,p.id],lanes,offered:s.worldTick,started:null,layout:s.layoutRevision};
+   s.world.lake.swim={ids:[maria.id,p.id],lanes,offered:s.worldTick,started:null,layout:s.layoutRevision,duration:SWIM_SECONDS};
    return;
   }
  }
@@ -125,8 +138,8 @@ function act(s,p,event){
   if(dep('spatial').distance(p,a.lanes[i].bank)>.001)Object.assign(p.motion,dep('spatial').travel(s,p,a.lanes[i].bank));
   return true;
  }
- const age=s.worldTick-a.started-a.lanes[i].delay,remaining=ENTRY+SWIM_SECONDS-age;
- const complete=s.worldTick-a.started===END;
+ const seconds=swimTime(a),age=s.worldTick-a.started-a.lanes[i].delay,remaining=ENTRY+seconds-age;
+ const complete=s.worldTick-a.started===endAt(seconds);
  if(age>=ENTRY&&remaining>0||complete){
   const gap=Math.max(0,dep('vitals').band(p).hi-p.B);
   const amount=gap/(complete?1:remaining);
@@ -139,14 +152,14 @@ function act(s,p,event){
 function pose(s,id,fraction){
  const a=get(s),i=a?.ids.indexOf(id)??-1;
  if(i<0||a.started==null)return null;
- const age=s.worldTick-a.started+fraction-1,lane=a.lanes[i],point=bodyPoint(lane,age);
- const next=bodyPoint(lane,age+.04),prev=bodyPoint(lane,age-.04);
+ const seconds=swimTime(a),age=s.worldTick-a.started+fraction-1,lane=a.lanes[i],point=bodyPoint(lane,age,seconds);
+ const next=bodyPoint(lane,age+.04,seconds),prev=bodyPoint(lane,age-.04,seconds);
  const dx=next.x-prev.x,dy=next.y-prev.y;
  const speed=Math.hypot(dx*360,dy*576);
  const local=age-lane.delay;
  const glance=i===0&&local>1&&local<2.7;
- const drying=clamp((local-ENTRY-SWIM_SECONDS-EXIT)/SHAKE);
- return {...point,i,dx,dy,speed,glance,face:glance?(lane.nx<0?1:-1):speed>.012&&Math.abs(dx)>.00004?(dx<0?-1:1):(local>22?-Math.sign(lane.nx):Math.sign(lane.nx))||1,
+ const drying=clamp((local-ENTRY-seconds-EXIT)/SHAKE);
+ return {...point,i,dx,dy,speed,glance,face:glance?(lane.nx<0?1:-1):speed>.012&&Math.abs(dx)>.00004?(dx<0?-1:1):(local>ENTRY+seconds?-Math.sign(lane.nx):Math.sign(lane.nx))||1,
   shake:drying>0&&drying<1?drying:0};
 }
 function reason(s,p){
@@ -154,20 +167,30 @@ function reason(s,p){
  const a=get(s);
  if(a.started==null)return p.id===a.ids[0]?'친구를 데리고 물가로 가고 있어요':'마리아를 따라 물가로 가고 있어요';
  const age=s.worldTick-a.started;
- return age>=FINISH?'물가에 올라와 잎을 털고 있어요':age<ENTRY+DELAY?'친구와 함께 물에 들어가고 있어요':'친구와 나란히 헤엄치며 수분을 채워요';
+ return age>=finishAt(swimTime(a))?'물가에 올라와 잎을 털고 있어요':age<ENTRY+DELAY?'친구와 함께 물에 들어가고 있어요':'친구와 나란히 헤엄치며 수분을 채워요';
+}
+function migrate(s){
+ for(const p of s.individuals)if(Number.isSafeInteger(p.swimAfter))p.swimAfter=Math.min(p.swimAfter,s.worldTick+COOLDOWN);
 }
 function validate(s){
+ const pairs=s.world?.lake?.swimPairs;
+ const validId=id=>/^[-A-Za-z0-9_]{1,100}$/.test(id);
+ if(pairs!==undefined&&(!pairs||typeof pairs!=='object'||Array.isArray(pairs)||
+  Object.entries(pairs).some(([key,until])=>{
+   const [a,b,extra]=key.split(':');
+   return extra!==undefined||!validId(a??'')||!validId(b??'')||a>=b||!Number.isSafeInteger(until)||until<0;
+  })))throw Error('함께 수영한 친구의 대기 기록을 확인해 주세요.');
  for(const p of s.individuals)if(p.swimAfter!=null&&(!Number.isSafeInteger(p.swimAfter)||p.swimAfter<0))throw Error('수영 대기 기록을 확인해 주세요.');
  const a=get(s);
  if(a==null)return;
  const W=dep('world'),tick=t=>Number.isSafeInteger(t)&&t>=0&&t<=s.worldTick;
  if(!W.lakeOpen(s)||!Array.isArray(a.ids)||a.ids.length!==2||a.ids[0]===a.ids[1]||
     !a.ids.every(id=>s.individuals.some(p=>p.id===id))||s.individuals.find(p=>p.id===a.ids[0])?.species!=='maria'||
-    !tick(a.offered)||a.started!==null&&(!tick(a.started)||a.started<a.offered)||
+    a.duration!==undefined&&a.duration!==SWIM_SECONDS||!tick(a.offered)||a.started!==null&&(!tick(a.started)||a.started<a.offered)||
     !Number.isSafeInteger(a.layout)||a.layout<0||!Array.isArray(a.lanes)||a.lanes.length!==2||
     a.lanes.some((l,i)=>!l||!l.bank||!l.water||!W.inside(s,l.bank)||!W.inside(s,l.water)||l.delay!==i*DELAY||
      ['nx','ny','tx','ty'].some(k=>!Number.isFinite(l[k])||Math.abs(l[k])>1.01)))
   throw Error('수영 기록을 확인해 주세요.');
 }
-return {SWIM_SECONDS,COOLDOWN,END,busy,check,offer,begin,act,pose,reason,validate,cancel};
+return {SWIM_SECONDS,COOLDOWN,END,busy,check,offer,begin,act,pose,reason,migrate,validate,cancel};
 });
