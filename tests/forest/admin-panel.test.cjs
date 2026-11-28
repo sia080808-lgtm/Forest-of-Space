@@ -27,7 +27,6 @@ test('1.2.6 스킬 보기 runs every friend\'s skill',()=>{const F=require('../.
  for(const p of s.individuals)Object.assign(p,{B:50,nutrition:50,energy:Math.max(p.energy,60)});
  const want={ridley:'brush:do',bosong:'dig:sniff',jureong:'rake:rake',neolbi:'soc:CANOPY',superbum:'soc:A04',bonbon:'mist'};
  for(const p of s.individuals){const t=F.clone(s),me=()=>t.individuals.find(z=>z.id===p.id);for(let k=0;k<300&&(F.Shelter.inside(t,me())||me().shelter?.facilityId);k++)F.step(t);if(p.species==='neolbi'){
-   assert.throws(()=>A.run(F,F.clone(t),'skillShow',p.id),/젖은 이끼/);
    const h=me(),guest=t.individuals.find(z=>z.species==='bonbon');
    for(const plant of t.individuals)plant.active=plant===h||plant===guest;
    for(const patch of t.patches)patch.S=patch.W=0;
@@ -37,6 +36,12 @@ test('1.2.6 스킬 보기 runs every friend\'s skill',()=>{const F=require('../.
     Object.assign(friend,{x,y,B:60,nutrition:60,energy:75});
    }
    F.valid(t);
+   const wet=F.clone(t);
+   const seat=F.Social.restPoint(wet,[wet.individuals.find(z=>z.id===h.id)],wet.individuals.find(z=>z.id===guest.id));
+   assert.ok(seat);
+   const moss=F.Objects.patch(wet,'moss');
+   Object.assign(moss,seat,{S:moss.cap*.6});
+   assert.throws(()=>A.run(F,wet,'skillShow',p.id),/젖은 이끼/);
   }
   if(p.species==='ridley'){
    // The skill needs a nearby friend. Rain can now send the natural partner to a spring.
