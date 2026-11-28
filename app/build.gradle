@@ -6,8 +6,8 @@ android {
         applicationId 'com.ridleydesk.mobile'
         minSdk 29
         targetSdk 35
-        versionCode 129
-        versionName '1.2.43'
+        versionCode 130
+        versionName '1.2.44'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 }
