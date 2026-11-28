@@ -462,6 +462,12 @@ function perchTarget(s,p){
  // travel() plans the route once and shares the ordinary walk's stall/deadline checks.
  return {...q,perch:tree.id};
 }
+function startGroom(s,p){
+ p.action='groom';
+ p.target=null;
+ p.actionSeconds=p.species==='ridley'?dep('skills').SK.brush.time:8;
+ p.nextObjectChoice=s.worldTick+p.actionSeconds;
+}
 function choose(s,p,rng){
  if(!p.active||p.mounted)return;
  const W=dep('weather-care'),Sh=dep('shelter'),n=needs(p);p.objectNeeds=n;
@@ -488,16 +494,14 @@ function choose(s,p,rng){
  // drinking, feeding and resting every 5 seconds and finished none of them. A drink or feed runs until its target; a rest
  // gives way only when 수분 or 영양 falls 3 below the band (danger and a sharper urgency still interrupt).
  /* 1.2.1: heavy rain or a hard cold ends a drink/feed/rest hold, so the friend can take cover */const weatherCall=rainCover(s,p)||coldCall(s,p);
- // Finish leaf care before assigning another outdoor rest or meal.
- // A safety plan or urgent need still takes priority.
- if((p.skill?.k==='mend'||p.skill?.k==='brush'||p.skillHold)&&!danger&&!weatherCall&&grade>1&&
-  dep('skills').keepLeafCare(s,p))return;
+ // Let these skills finish before assigning normal visits. Urgent care still takes priority.
+ if((p.skill||p.skillHold)&&!danger&&!weatherCall&&grade>1&&dep('skills').keepSkill(s,p))return;
  // Repeatedly eating can stall below 50 while dense mealybugs feed. Pause a
  // long meal briefly for leaf care, unless water, nutrition or shelter is urgent.
  if(valid&&!danger&&!weatherCall&&current.kind==='nutrition'&&current.arrived&&
    s.worldTick-(current.fedSince??current.since)>=MEALY_FEED_BREAK&&p.nutrition>=20&&
    p.B>=dep('vitals').band(p).warnLo&&(dep('creatures').onLeaf(s,p.id).mealy?.density||0)>=20){
-  release(s,p,'complete');p.action='groom';p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;
+  release(s,p,'complete');startGroom(s,p);return;
  }
  if(!current&&!danger&&!weatherCall&&grade>1&&p.objectWait?.reason==='blocked_path'&&
    p.stroll?.amble&&p.stroll.arrivedAt==null&&p.stroll.deadline>s.worldTick)return;
@@ -560,7 +564,7 @@ function choose(s,p,rng){
    p.stroll={...seat,since:s.worldTick,deadline:s.worldTick+150,linger:32};
    p.perchAfter=s.worldTick+dep('trees').PERCH_RETURN;p.nextObjectChoice=s.worldTick+5;return;
   }
-  const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');p.action='groom';p.target=null;p.actionSeconds=8;p.nextObjectChoice=s.worldTick+8;return;}
+  const roll=rng(s,'behavior'),groomUp=P.leaf?.55:.25;const doneFree=!current||current.free&&!valid;if(roll<groomUp&&doneFree){if(current)release(s,p,'complete');startGroom(s,p);return;}
   const winterOuting=s.weather.kind==='sun'&&iceWeather(s);
   const walkChance=winterOuting ? .65 : STROLL.chance;
   if(doneFree&&!P.mite&&roll>=groomUp&&roll<groomUp+walkChance){
