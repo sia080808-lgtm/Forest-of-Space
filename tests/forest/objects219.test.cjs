@@ -167,3 +167,49 @@ test('a friend pacing in place on the way to a litter pile releases the reservat
  F.advance(s,20);
  a.ok(p.nutrition>25,'another reachable compost spot is available');
 });
+
+function compostVisit(species,stock){
+ const s=game(),p=s.individuals[0];
+ s.worldTick=3700;
+ Object.assign(s.weather,{kind:'sun',remaining:220,wind:10,transition:0});
+ Object.assign(p,{species,x:.52,y:.64,B:58,energy:85,mood:85,nutrition:32,xp:23,visualStage:2});
+ const bed=O.patch(s,'litter');
+ bed.U=stock;bed.O=0;bed.S=15;
+ const pile={id:'pile:60',x:p.x,y:p.y,O:8,U:.01,S:50,cap:100,W:0,playBoostUntil:0,born:0};
+ pile.sector=F.Litter.sectorOf(pile);s.objects.litter.piles.push(pile);
+ const spot=O.option(s,p,pile.id,'nutrition','nutrition');
+ a.ok(!spot.fail,spot.fail);
+ p.objectTask={...spot,serial:s.objects.nextSession++,since:s.worldTick,remaining:25,grade:2,deadline:s.worldTick+30};
+ p.nextObjectChoice=s.worldTick+5;p.action='feed';p.target=pile.id;
+ return {s,p,pile,bed};
+}
+
+test('a feeding tick that uses the last compost never reports that the friend is preparing to go',()=>{
+ for(const species of ['superbum','neolbi','ridley']){
+  const {s,p,pile}=compostVisit(species,0);
+  F.step(s,{visible:false});
+  a.equal(p.objectTask?.arrived,true,species);
+  a.equal(p.motion.distance,0,species);
+  a.equal(pile.U,0,species);
+  a.ok(s.objects.ledger.absorbed>0,species);
+  a.match(O.reason(s,p),/분해된 낙엽에서 영양을 얻고/,species);
+  a.doesNotMatch(O.reason(s,p),/갈 준비/,species);
+  F.advance(s,8,{visible:false});
+  a.equal(p.objectTask?.object,pile.id,'trace compost can still be eaten when it is the only reachable supply');
+  a.ok(F.valid(s));
+ }
+});
+
+test('an existing saved feeding task leaves trickle compost for a reachable stocked litter bed',()=>{
+ const {s,p,pile,bed}=compostVisit('superbum',20);
+ F.step(s,{visible:false});
+ a.equal(p.objectTask?.arrived,true);
+ a.equal(pile.U,0);
+ const loaded=F.migrate(JSON.parse(JSON.stringify(s))),friend=loaded.individuals[0],initial=friend.nutrition;
+ F.advance(loaded,60,{visible:false});
+ a.equal(friend.objectTask?.object,bed.id);
+ a.ok(loaded.objects.ledger.absorbed>.6);
+ a.ok(friend.nutrition>initial+.6,'the friend takes compost at the stocked site');
+ a.doesNotMatch(O.reason(loaded,friend),/갈 준비/);
+ a.ok(F.valid(loaded));
+});

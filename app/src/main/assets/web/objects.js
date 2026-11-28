@@ -233,9 +233,19 @@ function option(s,p,id,kind,reason,free=false,avoidFriends=false){
  }
  return best||{object:id,kind,fail};
 }
-// Piles with something to use come first (nearest to the old spot order is by id for determinism); the old litter spot stays usable.
-// Only the two nearest usable piles are routed (routing every pile each choice is costly); the old spot stays a fallback.
-function litterSpots(s,key,p){const ps=dep('litter').piles(s).filter(z=>!litterPathCooling(s,p,z.id)&&(key==='O'?z.O>=.5:z.U>eps)).sort((a,b)=>(p?Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y):0)||a.id.localeCompare(b.id)).slice(0,2).map(z=>z.id);return [...ps,'litter'];}
+const feedingRate=p=>dep('vitals').COMPOST_FEED*dep('traits').ofPet(p).nutr;
+// A few seconds' worth of compost is a meal. Prefer that over the trace a
+// pile has just made this tick, but keep the trace viable if no meal can be reached.
+const mealStock=(p,z)=>!!z&&z.U>=Math.min(10*feedingRate(p),Math.max(eps,50-p.nutrition));
+function litterSpots(s,key,p){
+ const fed=key==='U',beds=patchesOf(s,'litter');
+ const nearest=z=>p?Math.hypot(z.x-p.x,z.y-p.y):0;
+ const piles=dep('litter').piles(s).filter(z=>!litterPathCooling(s,p,z.id)&&(fed?z.U>eps:z.O>=.5))
+  .sort((a,b)=>(fed&&p?Number(mealStock(p,b))-Number(mealStock(p,a)):0)||
+   nearest(a)-nearest(b)||a.id.localeCompare(b.id));
+ // Bound route searches to two piles; the placed litter beds are also candidates.
+ return [...piles.slice(0,2).map(z=>z.id),...(fed?beds.map(z=>z.id):['litter'])];
+}
 // 0.8.5 빈 땅 산책 (user: "1번 ㄱㄱ"): a free friend sometimes walks out to the open ground of the wide forest (0.7.0 ring
 // outside the old garden), lingers there for a while and then chooses again. It only happens on a free choice (no need,
 // not night, not rain), keeps no object or resource, and any need, night, rain or danger ends it.
@@ -505,7 +515,10 @@ function choose(s,p,rng){
  }
  if(!current&&!danger&&!weatherCall&&grade>1&&p.objectWait?.reason==='blocked_path'&&
    p.stroll?.amble&&p.stroll.arrivedAt==null&&p.stroll.deadline>s.worldTick)return;
- if(valid&&!emergencyChange&&!danger&&!weatherCall&&s.worldTick-(current.since??s.worldTick)<HOLD){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
+ const mealOptions=current?.kind==='nutrition'&&current.arrived&&patch(s,current.object)?.U<feedingRate(p)&&n.nutrition
+  ?litterSpots(s,'U',p):null;
+ const lookForMeal=mealOptions?.some(id=>id!==current.object&&!litterPathCooling(s,p,id)&&mealStock(p,patch(s,id)));
+ if(valid&&!emergencyChange&&!danger&&!weatherCall&&!lookForMeal&&s.worldTick-(current.since??s.worldTick)<HOLD){const lo=dep('vitals').band(p).lo;if(['water','nutrition'].includes(current.reason)||current.reason==='energy'&&p.B>=lo-3&&p.nutrition>=lo-3){p.nextObjectChoice=s.worldTick+5;return;}}
  if(valid&&!emergencyChange&&current.reason==='safety'&&danger){p.nextObjectChoice=s.worldTick+5;return;}
  if(!current&&!danger&&!Object.values(n).some(Boolean)&&p.action==='groom'&&p.actionSeconds>0)return;
  if(!current&&s.worldTick<(p.nextObjectChoice||0)&&!danger&&grade>1)return;
@@ -540,7 +553,7 @@ function choose(s,p,rng){
  else if(n.water&&!deferDrink&&canDrink&&(p.B<dep('vitals').band(p).lo||!n.energy&&!n.nutrition||p.B/50<=Math.min(p.energy/80,p.nutrition/50))){add('spring',p.wetRecovery||p.burden>=40||sp.water<sp.capacity*.2?'edgeDrink':'drink','water');add('spring','edgeDrink','water');if(p.B>=20&&hasMossWater&&p.Q<12)add('moss','moss','water');if(p.B>=20&&hasCreviceWater)add('crevice','rootDrink','water');}
  // SRS v2.34 생존 우선: once 수분 or 영양 is in its bad band it is fixed before resting (a low 기운 caused by hunger must not
  // keep a friend resting while it starves)
- /* 1.2.6: in heavy rain or a storm the compost spots are closed (unsafe_weather), so a hungry friend wandered in the downpour looking for them; it takes cover first unless 영양 is critical */else if(n.nutrition&&!(heavyRain(s,p)&&p.nutrition>=20)&&(p.nutrition<dep('vitals').band(p).lo||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
+ /* 1.2.6: in heavy rain or a storm the compost spots are closed (unsafe_weather), so a hungry friend wandered in the downpour looking for them; it takes cover first unless 영양 is critical */else if(n.nutrition&&!(heavyRain(s,p)&&p.nutrition>=20)&&(p.nutrition<dep('vitals').band(p).lo||!n.energy||p.nutrition/50<p.energy/80)){for(const id of lastInfested(mealOptions||litterSpots(s,'U',p)))add(id,'nutrition','nutrition');}
  // SRS v2.34 선제 행동: a friend dries off when over-wet (sun rock while it holds sun, shelter, crevice); in rain it
  // shelters before 수분 would pass its warning line within a minute (rain lovers wait until the top of the band)
  else if(!rainy(s)&&p.B>dep('vitals').band(p).hi&&!sleepTime(s,p)){for(const id of ['rock','shelter','crevice'])add(id,'rest','dry');}
@@ -583,9 +596,12 @@ function choose(s,p,rng){
   for(let j=0;j<free.length;j++){const [id,k]=free[(j+first)%free.length];add(id,k,'free',true);}
  }
  const options=[];for(const d of definitions){const o=option(s,p,...d);options.push(o);if(d[3]&&!o.fail)break;}p.objectDebug=options.map(o=>({object:o.object,kind:o.kind,...(o.score!=null?{score:o.score}:{}),reason:o.fail||'eligible'}));
- const candidates=options.filter(o=>!o.fail);if(!definitions[0]?.[3])candidates.sort((a,b)=>b.score-a.score||a.object.localeCompare(b.object));
+ const stocked=o=>o?.kind==='nutrition'&&mealStock(p,patch(s,o.object));
+ const candidates=options.filter(o=>!o.fail);
+ if(!definitions[0]?.[3])candidates.sort((a,b)=>Number(stocked(b))-Number(stocked(a))||b.score-a.score||a.object.localeCompare(b.object));
  let next=candidates[0];
- if(valid&&!emergencyChange&&next&&current.reason===next.reason&&((s.worldTick-current.since<3)||next.score<(current.score??-1e3)+15))next=null;
+ if(valid&&!emergencyChange&&next&&current.reason===next.reason&&!(lookForMeal&&stocked(next))&&
+   (s.worldTick-current.since<3||next.score<(current.score??-1e3)+15))next=null;
  if(!next&&valid&&!emergencyChange){p.nextObjectChoice=s.worldTick+5;return;}
  if(next){if(current?.object===next.object&&current.kind===next.kind&&valid){current.score=next.score;if(current.reason!==next.reason){current.reason=next.reason;current.free=next.free;current.grade=grade;}   /* 0.8.5: already at the same spot for another reason (a free visit to the shelter when the heavy rain starts) keeps the spot but takes the new reason */p.nextObjectChoice=s.worldTick+5;return;}
   delete p.stroll;const debug=p.objectDebug;release(s,p,'replace');p.objectDebug=debug;const serial=s.objects.nextSession++;
@@ -681,7 +697,7 @@ function receive(s,p,requests){
   if(p.carriedLeaf){recover('mood',3,80);p.energy=clamp(p.energy-1/60);p.motion.kind='litter';if(t.object!=='litter')z.playBoostUntil=s.worldTick+120;else s.objects.playBoostUntil=s.worldTick+120;}
  }else if(t.kind==='nutrition'){
   t.fedSince??=s.worldTick;
-  add(z,'U',Math.min(dep('vitals').COMPOST_FEED*dep('traits').ofPet(p).nutr,50-p.nutrition),n=>{p.nutrition+=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
+  add(z,'U',Math.min(feedingRate(p),50-p.nutrition),n=>{p.nutrition+=n;p.motion.nutrition=n;s.objects.ledger.absorbed+=n;if(p.nutrition>=50-eps){t.complete=true;p.objectNeeds.nutrition=false;}});p.motion.kind='groom';
  }else if(t.kind==='rootDrink')p.motion.kind='drink';
  // ELL-SPC-03: Ellisii (legacy key 'bonbon') no longer stores spring water in V; water sharing (A04) is retired. Existing V is preserved.
  if(t.free||t.kind==='splash'){t.remaining--;if(t.remaining<=0)t.complete=true;}
@@ -744,6 +760,8 @@ function reason(s,p){const friend=dep('friendship').pose(s,p);if(friend)return f
  if(w)return ({empty_water:'비가 와서 물이 모이길 기다려요',no_play_leaves:'낙엽이 더 모이길 기다려요',no_nutrients:'낙엽이 천천히 거름이 되고 있어요',capacity:'편히 머물 빈 자리를 찾고 있어요',shape:'몸에 맞는 자리를 찾고 있어요',blocked_path:'오브젝트로 갈 수 있는 길을 찾고 있어요',sleep_here:'쉴 자리가 없어 그 자리에서 잠들었어요',brace_here:'바람이 세서 그 자리에 몸을 낮추고 있어요',unsafe_weather:'안전하게 머물 곳을 찾고 있어요'})[w.reason]||'필요한 자원이 있는 자리를 찾고 있어요';
  if(!t)return null;
  if(t.object==='shelter')return dep('shelter').label(s,p);
+ // The grant can drain the pile to zero after a successful feeding tick.
+ if(t.kind==='nutrition'&&p.motion?.tick===s.worldTick&&p.motion.nutrition>0)return '분해된 낙엽에서 영양을 얻고 있어요';
  if(!at(s,p)){
   const motion=p.motion?.tick===s.worldTick?p.motion:null;
   if(motion?.kind==='held')return '친구를 옮기는 중이에요';
