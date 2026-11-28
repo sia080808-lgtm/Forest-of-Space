@@ -74,8 +74,10 @@ function canPauseForMending(p){
  return !task||task.free||outdoorRest(task)||task.reason==='nutrition'&&p.nutrition>=band(p).warnLo;
 }
 function free(s,p,held,busy,forMending=false){
+ const task=p.objectTask;
+ const canLeave=forMending?canPauseForMending(p):!p.sleepHere&&(!task||p.species===SK.brush.species&&task.free);
  return p.active&&!p.mounted&&p.id!==held&&!busy.has(p.id)&&!p.skill&&!p.skillHold&&
-  (forMending?canPauseForMending(p):!p.objectTask&&!p.sleepHere)&&
+  canLeave&&
   !p.braceHere&&!p.restSelf&&!(p.stroll&&(p.stroll.lake||p.stroll.puddle))&&!p.guideTo;
 }
 const thirsty=p=>p.active&&!p.mounted&&p.B<band(p).warnLo;
@@ -127,7 +129,9 @@ function pest(s,q){const o=dep('creatures').onLeaf(s,q.id);return Math.max(o.mit
 const ga=n=>{const c=n.charCodeAt(n.length-1)-44032;return c>=0&&c<11172&&c%28?'이':'가';};
 function startBrush(s,p,held,busy){if(!ready(s,p,'brush'))return false;const Sh=dep('shelter');
  const r=s.individuals.filter(q=>q.id!==p.id&&q.active&&!q.mounted&&q.id!==held&&!busy.has(q.id)&&!q.skill&&!q.skillHold&&!(q.objectTask&&!q.objectTask.free)&&!Sh.inside?.(s,q)&&!q.shelter?.facilityId&&dist(q,p)<lv(p,'brush','reach')&&pest(s,q)>=SK.brush.min).sort((a,b)=>pest(s,b)-pest(s,a)||a.id.localeCompare(b.id))[0];
- if(!r||!dep('spatial').route(s,p,side(s,p,r)))return false;p.skill={k:'brush',target:r.id,phase:'go',start:s.worldTick};return true;}
+ if(!r||!dep('spatial').route(s,p,side(s,p,r)))return false;
+ if(p.objectTask?.free)dep('objects').release(s,p,'interrupt');
+ p.skill={k:'brush',target:r.id,phase:'go',start:s.worldTick};return true;}
 /* 1.2.6: the spot beside the friend must also be clear of the other friends — it could fall inside a third friend's body (a big 슈퍼범 next to it), the walk there never found a way and the brush gave up every time *//* 1.2.7: 리들리 now taps with the curled tip of its front leaf (about 0.69 of its drawn width ahead of its centre), so it stands where that tip just meets the friend's leaves (rig.js tapFx) */function side(s,p,r){const Space=dep('spatial'),Sh=dep('shelter'),sz=q=>Space.diameter(q)/.0666667,gap=Math.max(.4*(Space.diameter(p)+Space.diameter(r))+.01,.046*Sh.growth(p)*sz(p)+.0347*Sh.growth(r)*sz(r)-.005),   /* never closer than the walk lets two friends stand */clear=q=>Space.walkable(s,q,p.id)&&!s.individuals.some(z=>z.id!==p.id&&z.id!==r.id&&z.active&&!z.mounted&&Math.hypot(z.x-q.x,z.y-q.y)<.4*(Space.diameter(p)+Space.diameter(z)));const L=p.x<=r.x?-1:1;for(const [dx,dy] of [[L,.004],[-L,.004],[L*.7,.04],[-L*.7,.04],[0,.06]]){const q={x:r.x+dx*gap,y:r.y+dy};if(clear(q))return q;}for(const dx of [L,-L]){const q={x:r.x+dx*gap,y:r.y+.004};if(Space.walkable(s,q,p.id))return q;}return {x:r.x+(p.x<=r.x?-gap:gap),y:r.y};}
 // ---- 엘리시 촉촉한 잎 곁 (always on while it holds) ----
 // 1.2.7 (user: "엘리시는 이끼에서만 스킬쓰나" → "1,2로 가고"): besides moss, 엘리시 keeps leaves moist beside other water —
@@ -212,8 +216,8 @@ function skillHolder(s,p){
  return s.individuals.find(q=>q.id===p.skillHold&&(q.skill?.k==='brush'||q.skill?.k==='mend')&&
   q.skill.target===p.id&&q.skill.phase==='do');
 }
-function keepMending(s,p){
- if(p.skill?.k==='mend')return !p.objectTask&&well(s,p);
+function keepLeafCare(s,p){
+ if(p.skill?.k==='mend'||p.skill?.k==='brush')return !p.objectTask&&well(s,p);
  const holder=p.skillHold&&skillHolder(s,p);
  return holder?.skill?.k==='mend'&&canMend(s,holder,p);
 }
@@ -318,5 +322,5 @@ function validate(s){const st=s.skills;if(st!==undefined){if(!st||typeof st!=='o
   if(p.skillDay!==undefined&&!(Number.isInteger(p.skillDay?.d)&&Number.isInteger(p.skillDay?.n)&&p.skillDay.n>=0))throw Error('고유 스킬 기록을 확인해 주세요.');
   if(p.guideTo!==undefined&&!(p.guideTo&&['puddle','crevice','lake','spring'].includes(p.guideTo.kind)&&Number.isFinite(p.guideTo.until)&&Number.isFinite(p.guideTo.x)&&Number.isFinite(p.guideTo.y)))throw Error('물 안내 기록을 확인해 주세요.');
   if(p.skillHold!==undefined&&typeof p.skillHold!=='string')throw Error('고유 스킬 기록을 확인해 주세요.');}}
-return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,keepMending,force,soilSpots,pest,side,selfBrush,migrate});
+return Object.freeze({SK,MEND,LEVEL,levelOf,tier,lv,umbrella,share,levelLines,INFO,init,puddles,water,prepare,act,stop,carried,status,validate,moistLeaf,assist,misters,today,waterFor,well,keepLeafCare,force,soilSpots,pest,side,selfBrush,migrate});
 });

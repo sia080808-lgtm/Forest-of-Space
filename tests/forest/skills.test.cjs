@@ -59,6 +59,29 @@ test('SK-AC06 리들리 brushes 15 off a friend whose leaves carry pests, holdin
  const st=s.objects.creatures;st.groups.push({id:'cr:'+st.nextId++,kind:'mite',host:e.id,since:0,bad:0,lastWork:0,carry:null,density:30,low:0});
  let held=0;for(let i=0;i<60;i++){run(s,1);if(e.skillHold===r.id)held++;}a.equal(C.onLeaf(s,e.id).mite.density,15);a.ok(held>=19&&held<=21,'held '+held);a.ok(r.skillRest.brush>s.worldTick);a.equal(K.today(s,r),1);});
 
+test('Ridley leaves an optional shade visit and finishes brushing mealybugs in normal play',()=>{
+ const s=game(),O=F.Objects;
+ const r=s.individuals[0],buddy=friend(s,'bonbon',.57,.71,{xp:15});
+ Object.assign(r,{x:.42,y:.74,B:60,energy:90,mood:90,nutrition:60,action:'rest',target:'shade'});
+ const visit=O.option(s,r,'shade','rest','free',true);
+ a.ok(!visit.fail,visit.fail);
+ r.objectTask={...visit,serial:s.objects.nextSession++,since:s.worldTick,remaining:40,deadline:s.worldTick+60,grade:2};
+ r.nextObjectChoice=s.worldTick+40;
+ buddy.nextObjectChoice=s.worldTick+1;
+ const st=s.objects.creatures;
+ const mealy={id:'cr:'+st.nextId++,kind:'mealy',host:buddy.id,since:s.worldTick,bad:0,lastWork:0,carry:null,density:35,low:0,honey:0};
+ st.groups.push(mealy);
+ F.step(s);
+ a.equal(r.skill?.k,'brush');
+ a.equal(r.objectTask,undefined,'the optional shade visit releases its reservation');
+ for(let i=0;i<35&&K.today(s,r)===0;i++)F.step(s);
+ a.equal(K.today(s,r),1,'the normal object chooser lets Ridley finish the skill');
+ a.ok(mealy.density<23,'the completed brush reduced the mealybug density');
+ a.equal(buddy.skillHold,undefined);
+ a.equal(r.skillRest.brush,s.worldTick+180);
+ a.ok(F.valid(s));
+});
+
 test('SK-AC07 beside moss a well 엘리시 moistens the leaves near it and calls natural enemies sooner',()=>{const s=game();solo(s);const moss=s.patches.find(z=>z.id==='moss');const e=friend(s,'bonbon',moss.x+.05,moss.y+.03,{xp:0}),q=friend(s,'ridley',e.x+.08,e.y),far=friend(s,'ridley',e.x+.5,e.y);
  a.equal(K.moistLeaf(s,q),15);a.equal(K.moistLeaf(s,far),0);a.ok(K.assist(s,q));a.ok(!K.assist(s,far));e.energy=20;a.equal(K.moistLeaf(s,q),0,'not while tired');});
 
