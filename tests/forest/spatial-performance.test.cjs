@@ -35,3 +35,23 @@ test('a route carried over from an earlier tick is invalidated when the lake tha
  let from=a;
  for(const point of route){assert(S.segment(next,from,point,id));from=point;}
 });
+
+test('a kept route toward compost uses the rest of the walking step after reaching a waypoint',()=>{
+ const s=F.create(0,3),p=s.individuals[0],O=F.Objects;
+ s.worldTick=3800;
+ Object.assign(s.weather,{kind:'sun',wind:20});
+ Object.assign(p,{x:.45,y:.60,energy:90,B:55,mood:90,nutrition:20,action:'feed'});
+ O.patch(s,'litter').U=45;
+ s.individuals.push({...F.clone(p),id:'blocker',species:'superbum',x:.52,y:.62});
+ const goal=O.option(s,p,'litter','nutrition','nutrition',false,true);
+ assert(!goal.fail,goal.fail);
+ const route=S.route(s,p,goal,p.id,true);
+ assert.equal(route.length,2);
+ const stride=S.gait(p,s).speed;
+ assert(S.distance(p,route[0])<stride);
+ p.walkPlan={tx:goal.x,ty:goal.y,at:s.worldTick-1,legacy:false,pts:route.map(({x,y})=>({x,y}))};
+ const step=S.travel(s,p,goal);
+ assert.equal(step.path.length,3,'the reached waypoint must not skip the next target');
+ assert(Math.abs(step.distance-stride)<1e-9);
+ assert.equal(p.walkPlan.pts.length,1);
+});

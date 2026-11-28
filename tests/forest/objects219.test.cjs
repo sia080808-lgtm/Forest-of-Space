@@ -137,3 +137,33 @@ test('a long meal under dense mealybugs pauses for leaf grooming and can resume'
  F.advance(s,12,{visible:false});
  a.equal(p.objectTask?.kind,'nutrition');
 });
+
+test('a friend pacing in place on the way to a litter pile releases the reservation and tries somewhere else',()=>{
+ const s=game(),p=s.individuals[0],L=F.Litter,S=F.Space;
+ s.worldTick=3700;Object.assign(s.weather,{kind:'sun',remaining:200,wind:10,transition:0});
+ Object.assign(p,{x:.46,y:.49,B:60,energy:90,mood:90,nutrition:25,action:'feed'});
+ const pile={id:'pile:60',x:.52,y:.67,O:8,U:10,S:20,cap:100,W:0,playBoostUntil:0,born:0};
+ pile.sector=L.sectorOf(pile);s.objects.litter.piles.push(pile);
+ const q=O.option(s,p,pile.id,'nutrition','nutrition');
+ a.ok(!q.fail,q.fail);
+ p.objectTask={...q,serial:s.objects.nextSession++,since:s.worldTick,remaining:25,grade:2,deadline:s.worldTick+240};
+ p.nextObjectChoice=s.worldTick+100;p.target=pile.id;
+ const x=p.x,travel=S.travel;
+ try{
+  // A changing obstruction makes each reported walking step cancel out the previous one.
+  S.travel=(garden,actor,destination)=>{
+   if(actor!==p||destination!==p.objectTask||destination.object!==pile.id)return travel(garden,actor,destination);
+   const before={x:p.x,y:p.y};p.x=p.x===x?x+.009:x;
+   return {kind:'walk',path:[before,{x:p.x,y:p.y}],distance:.009,duration:.2,arrived:false};
+  };
+  F.step(s);a.match(O.reason(s,p),/낙엽더미로 가고 있어요/);
+  F.advance(s,16);
+  a.notEqual(p.objectTask?.object,pile.id);
+  a.equal(p.objectWait?.reason,'blocked_path');
+  a.ok(p.litterRouteRetry.some(r=>r.object===pile.id&&r.until>s.worldTick));
+  a.doesNotMatch(O.reason(s,p),/낙엽더미로 가고 있어요/);
+  a.ok(F.valid(s));
+ }finally{S.travel=travel;}
+ F.advance(s,20);
+ a.ok(p.nutrition>25,'another reachable compost spot is available');
+});

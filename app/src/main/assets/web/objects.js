@@ -3,7 +3,7 @@
 const World=typeof module==='object'?require('./world.js'):globalThis.ForestWorld;
 const dep=n=>typeof module==='object'?require('./'+n+'.js'):globalThis[{trees:'ForestTrees',recruitment:'ForestRecruitment',friendship:'ForestFriendship',spatial:'ForestSpace',shelter:'ForestShelter','weather-care':'ForestWeatherCare',environment:'ForestEnvironment',social:'ForestSocial',litter:'ForestLitter',creatures:'ForestCreatures',traits:'ForestTraits',world:'ForestWorld',vitals:'ForestVitals',skills:'ForestSkills','lily-boat':'ForestLilyBoat'}[n]];
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v)),eps=1e-8;
-const LITTER_PATH_RETRY=45,MEALY_FEED_BREAK=180;
+const LITTER_PATH_RETRY=45,LITTER_PROGRESS_SECONDS=8,LITTER_PROGRESS_DISTANCE=.02,MEALY_FEED_BREAK=180;
 const capacities={moss:[5,7,9],spring:[60,90,120],litter:[100,150,200]},BASE_DAILY=[45,68,90],OLD_DAILY=[20,30,40];
 // 0.8.0 (SRS v2.31): leaves per day follow the season (spring x0.6, summer x0.8, autumn x2, winter x0.3, rounded up). A day's
 // quota is fixed by the season at the start of that day. None of these values is 20/30/40, so the 0.6.x mapping never
@@ -609,23 +609,35 @@ function prepare(s,held,rng){
  trackShelfMeeting(s);
 }
 function at(s,p){const t=p.objectTask;if(!t)return false;if(t.object==='shelter')return dep('shelter').inside(s,p);return dep('spatial').distance(p,t)<.001&&fits(s,p,t.object,p,t.kind)&&effectsValid(s,p,t);}
+// Small steps around an obstruction can cancel each other out. Sample
+// displacement over several ticks so a real detour has time to make progress.
+function litterWalkStalled(s,p,t,Space){
+ const last=t.litterProgress;
+ if(last&&s.worldTick-last.at<LITTER_PROGRESS_SECONDS)return false;
+ t.litterProgress={x:p.x,y:p.y,at:s.worldTick};
+ return !!last&&Space.distance(p,last)<LITTER_PROGRESS_DISTANCE;
+}
 function move(s,p){
  const t=p.objectTask;if(!t)return null;const Space=dep('spatial');if(t.object==='shelter')return null;
  const m=Space.travel(s,p,t);
  if(p.canopyClosing)return m;
+ const litter=kindOf(t.object)==='litter';
+ const pacing=litter&&!m.arrived&&litterWalkStalled(s,p,t,Space);
+ if(m.arrived&&t.litterProgress)delete t.litterProgress;
  if(m.distance>0)t.stalled=0;else if(!m.arrived)t.stalled=(t.stalled||0)+1;
- if(!m.arrived&&(t.stalled>=3||s.worldTick>t.deadline)){
+ if(!m.arrived&&(pacing||t.stalled>=3||s.worldTick>t.deadline)){
   t.replans=(t.replans||0)+1;t.stalled=0;t.deadline=s.worldTick+15;
-  if(t.replans===1&&kindOf(t.object)==='litter'){
-   // A friend may have occupied the chosen side since this trip was planned.
+  if(t.replans===1&&litter){
+   // Try another side and discard the cached detour even if the same spot wins.
+   t.litterProgress={x:p.x,y:p.y,at:s.worldTick};
+   delete p.walkPlan;
    const spot=option(s,p,t.object,t.kind,t.reason,t.free,true);
    if(!spot.fail&&(spot.x!==t.x||spot.y!==t.y)){
     t.x=spot.x;t.y=spot.y;t.deadline=s.worldTick+Math.ceil(spot.travelSeconds)+10;
-    delete p.walkPlan;
    }
   }
   if(t.replans>1){
-   if(kindOf(t.object)==='litter'){
+   if(litter){
     const recent=(p.litterRouteRetry||[]).filter(r=>r.until>s.worldTick&&r.object!==t.object);
     p.litterRouteRetry=[...recent,{object:t.object,until:s.worldTick+LITTER_PATH_RETRY}].slice(-3);
     delete p.walkPlan;
