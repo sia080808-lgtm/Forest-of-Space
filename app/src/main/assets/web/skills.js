@@ -258,6 +258,7 @@ function runMend(s,p,t,walk,ctx){
   if(m.arrived||dist(p,at)<.02){
    // Fix the two positions just for the stitch, as at a leaf brushing.
    t.phase='do';t.at=s.worldTick;r.skillHold=p.id;
+   init(s).seen.mendingSpider??=s.worldTick;
    t.x=r.x;t.y=r.y;
    if(r.stroll)delete r.stroll;
    rest(s,p,'mend',MEND.rest);

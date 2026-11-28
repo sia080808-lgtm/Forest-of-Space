@@ -140,6 +140,7 @@ test('Lv1 Dico approaches and mends a torn leaf once through the engine',()=>{
  while(p.skill?.phase==='go'&&s.worldTick<430)F.step(s);
  assert.equal(p.skill?.phase,'do');
  const at=p.skill.at;
+ assert.equal(s.skills.seen.mendingSpider,at);
  F.advance(s,2);assert.ok(buddy.damage>23);
  F.step(s);
  assert.ok(buddy.damage>13&&buddy.damage<=14);
@@ -150,6 +151,7 @@ test('Lv1 Dico approaches and mends a torn leaf once through the engine',()=>{
  F.valid(s);
  const saved=F.migrate(JSON.parse(JSON.stringify(s)));
  assert.equal(saved.individuals.find(o=>o.id===buddy.id).mendedAt,at+3);
+ assert.equal(saved.skills.seen.mendingSpider,at);
 });
 
 test('A nearby torn leaf takes priority over a free visit, even if Dico has reserved a shelter seat',()=>{
