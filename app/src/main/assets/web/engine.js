@@ -20,7 +20,7 @@ const Skills=typeof module==='object'?require('./skills.js'):globalThis.ForestSk
 const Friendship=typeof module==='object'?require('./friendship.js'):globalThis.ForestFriendship;
 const Leaf=typeof module==='object'?require('./leaf-state.js'):globalThis.ForestLeafState;
 const NUTR_USE=Vit.NUTRITION_USE;
-const VERSION='1.2.42', RULES='SRS-2.19-objects', SCHEMA=1;
+const VERSION='1.2.43', RULES='SRS-2.19-objects', SCHEMA=1;
 const LEVELS=[0,3,8,15,25,40,60,85,115,150];
 const PATCHES=[
  {id:'rock',name:'햇살 바위',cap:2,pool:12,infiltration:4,drain:6,exposure:1,x:.73,y:.32},
@@ -327,24 +327,57 @@ function storeTree(s,id){
  Trees.assignPerch(s,id,null);
  t.stored=true;Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에 넣었어요.');return s;
 }
-function unstoreTree(s,id){
- const t=Trees.stored(s).find(q=>q.id===id);
- if(!t)throw Error('보관함에 없는 나무예요.');
- const trial={...s,world:{...s.world,trees:Trees.all(s).filter(q=>q.id!==id)}};
- for(const {x,y} of [t,...Trees.candidates(s,Trees.kind(id))]){
-  try{layoutPlan(trial,{[id]:{x,y}});}catch{continue;}
-  Object.assign(t,{x,y});delete t.stored;
-  Friendship.cancel(s);s.layoutRevision++;event(s,'layout',Trees.name(id)+' · 보관함에서 꺼냈어요.');return {x,y};
- }
- throw Error('나무를 꺼내 놓을 빈자리가 없어요.');
-}
 function storeObject(s,id){if(Trees.kind(id))return storeTree(s,id);if(!STORABLE.includes(Obj.kindOf(id)))throw Error(id==='spring'?'샘터는 숲에 꼭 있어야 해요.':id==='litter'?'낙엽 자리는 거름이 모이는 곳이라 숲에 두어요.':'보관할 수 없는 자리예요.');const i=s.patches.findIndex(p=>p.id===id);if(i<0)throw Error('이미 보관함에 있어요.');
  Social.invalidate(s);Obj.invalidate(s);const [p]=s.patches.splice(i,1);(s.objects.stored??=[]).push(p);for(const q of s.individuals)delete q.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에 넣었어요. 물은 그대로 남아 있어요.');return s;}
-function unstoreObject(s,id){if(Trees.kind(id))return unstoreTree(s,id);const st=s.objects?.stored||[],i=st.findIndex(p=>p.id===id);if(i<0)throw Error('보관함에 없는 자리예요.');const p=st[i],wb=World.walk(s),spots=[{x:p.x,y:p.y}];
- for(let r=.06;r<=.9;r+=.06)for(let k=0;k<12;k++){const a=k/12*Math.PI*2;spots.push({x:.5+Math.cos(a)*r,y:.55+Math.sin(a)*r*.8});}
- for(const q of spots){if(q.x<wb.x0||q.x>wb.x1||q.y<wb.y0||q.y>wb.y1)continue;const trial={...s,patches:[...s.patches,{...p,x:q.x,y:q.y}]};try{shelfLayout(s,{},trial.patches,Obj.springs(s));validateLayout(trial,{});}catch(e){continue;}
-  Social.invalidate(s);Obj.invalidate(s);st.splice(i,1);if(!st.length)delete s.objects.stored;s.patches.push({...p,x:q.x,y:q.y});for(const z of s.individuals)delete z.motion;s.layoutRevision++;Obj.relayout(s);event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');return {x:q.x,y:q.y};}
- throw Error('꺼내 놓을 빈자리가 없어요. 다른 사물을 조금 옮겨 주세요.');}
+function validateRestore(s,id,point){
+ const tree=Trees.stored(s).find(t=>t.id===id);
+ if(tree){
+  const trial={...s,world:{...s.world,trees:Trees.all(s).filter(t=>t.id!==id)}};
+  layoutPlan(trial,{[id]:point});
+  return;
+ }
+ const stored=s.objects?.stored?.find(p=>p.id===id);
+ if(!stored)throw Error('보관함에 없는 자리예요.');
+ if(!World.inside(s,point))throw Error('숲 가장자리 안쪽에 놓아주세요.');
+ if(s.shelters.facilities.some(f=>World.inside(s,point,Sh.setupBounds(f))))throw Error('쉼터와 출입 공간을 비워주세요.');
+ const trial={...s,patches:[...s.patches,{...stored,x:point.x,y:point.y}]};
+ if(s.individuals.some(p=>p.active&&Space.walkable(s,p)&&!Space.walkable(trial,p)))throw Error('친구가 있는 자리를 비워주세요.');
+ shelfLayout(s,{},trial.patches,Obj.springs(s));
+ validateLayout(trial,{});
+}
+function restoreSpot(s,id){
+ const tree=Trees.stored(s).find(t=>t.id===id);
+ const item=tree||s.objects?.stored?.find(p=>p.id===id);
+ if(!item)throw Error('보관함에 없는 자리예요.');
+ const spots=tree?[item,...Trees.candidates(s,Trees.kind(id))]:[item];
+ if(!tree)for(let r=.06;r<=.9;r+=.06)for(let k=0;k<12;k++){
+  const a=k/12*Math.PI*2;
+  spots.push({x:.5+Math.cos(a)*r,y:.55+Math.sin(a)*r*.8});
+ }
+ for(const {x,y} of spots){
+  try{validateRestore(s,id,{x,y});return {x,y};}catch{}
+ }
+ throw Error(tree?'나무를 꺼내 놓을 빈자리가 없어요.':'꺼내 놓을 빈자리가 없어요. 다른 사물을 조금 옮겨 주세요.');
+}
+function unstoreObject(s,id,point=restoreSpot(s,id)){
+ validateRestore(s,id,point);
+ const {x,y}=point,tree=Trees.stored(s).find(t=>t.id===id);
+ if(tree){
+  Object.assign(tree,{x,y});delete tree.stored;
+  Friendship.cancel(s);s.layoutRevision++;
+  event(s,'layout',Trees.name(id)+' · 보관함에서 꺼냈어요.');
+  return {x,y};
+ }
+ const stored=s.objects.stored,index=stored.findIndex(p=>p.id===id);
+ Social.invalidate(s);Obj.invalidate(s);
+ const [p]=stored.splice(index,1);
+ if(!stored.length)delete s.objects.stored;
+ s.patches.push({...p,x,y});
+ for(const z of s.individuals)delete z.motion;
+ s.layoutRevision++;Obj.relayout(s);
+ event(s,'layout',p.name+' · 보관함에서 꺼냈어요.');
+ return {x,y};
+}
 function relocate(s,id,point){const result=Space.placement(s,id,point,false);if(!result.ok)throw Error(result.message);Social.cancel(s,id);const p=s.individuals.find(x=>x.id===id);Boat.leaveForMove(s,p);Swim.cancel(s,id);Obj.release(s,p,'move');Sh.release(p,s.worldTick);p.x=result.x;p.y=result.y;const f=Sh.cover(s,p);if(f)p.shelter={phase:'entering',facilityId:f.id,x:p.x,y:p.y,units:Sh.units(p),since:s.worldTick,expires:s.worldTick+10,revision:f.revision,stalled:0};p.settleUntil=s.worldTick+1;p.motion={kind:'land',path:[{x:p.x,y:p.y}],distance:0,water:0,tick:s.worldTick};event(s,'move',p.name+' · 새로운 자리를 살펴봐요.',{individual:id});return s;}
 function valid(s){
  if(!s||s.schema!==1||s.app!=='ForestOfSpace'||s.rules!==RULES)throw Error('이 버전에서 읽을 수 있는 여백의 숲 백업이 아니에요.');
@@ -394,5 +427,5 @@ function welcomeNeolbi(s){
 }
 
 function transaction(s,change,write){const next=clone(s);change(next);valid(next);if(!write(next))throw Error('저장하지 못했어요. 변경은 적용되지 않았어요.');return next;}
-return {Boat,Swim,World,Trees,Leaf,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject,objectDrafts};
+return {Boat,Swim,World,Trees,Leaf,Creatures,Litter:typeof module==='object'?require('./litter.js'):globalThis.ForestLitter,Objects:Obj,Environment:Env,Recruitment:Rec,Shelter:Sh,welcomeNeolbi,VERSION,RULES,PATCHES,SPECIES,LEVELS,create,step,advance,pause,resume,offlineStep,level,health,moisture,totalWater,light,layout,relocate,Space,Social,Weather:W,roster:Social.roster,validateLayout,valid,migrate,transaction,clone,personality,event,dist,STORABLE,storeObject,unstoreObject,restoreSpot,validateRestore,objectDrafts};
 });

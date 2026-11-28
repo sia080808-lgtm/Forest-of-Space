@@ -86,7 +86,11 @@ document.addEventListener('pointerdown',()=>audio.unlock(),{passive:true});
 document.addEventListener('keydown',()=>audio.unlock(),{passive:true});
 document.addEventListener('click',e=>{if(!inspector&&foreground&&e.target.closest('button'))audio.marker('ui:'+performance.now(),'click','ui');},{passive:true});
 scene.onSelect=(kind,id)=>{if(kind==='pet'&&adminOpen&&adminOn){/* 1.2.1: tapping a friend picks it without leaving the open tab (보기 · 스킬 범위 stays put) */adminFriend=id;scene.selected=id;adminFocus(id);renderAdmin();return;}if(kind==='pet'){selected=id;patchSelected=null;scene.selected=id;showCard();}else if(editor&&!facilityDraft&&kind==='facility'){editFacility(id,'move');}else if(editor&&!facilityDraft&&(kind==='patch'||kind==='spring')&&!String(id).startsWith('pile')){scene.selectedPatch=id;renderEditor();}else if(kind==='patch'||kind==='spring'||kind==='facility'){selected=null;scene.selected=null;patchSelected=id;showCard();}else closeCard();};
-scene.onMove=(id)=>{scene.selectedPatch=id;renderEditor();};
+scene.onMove=id=>{
+ scene.selectedPatch=id;
+ if(editorCategory!=='all'&&editorCategory!==editGroup(id))editorCategory='all';
+ renderEditor();revealEditorCard(id);
+};
 function targets(){const root=$('targets');root.replaceChildren();for(const p of state.individuals.filter(p=>p.active)){const b=document.createElement('button');b.className='pet-target';b.dataset.pet=p.id;b.setAttribute('aria-label',p.name+' · '+speciesName(p)+' 선택');b.addEventListener('click',()=>scene.onSelect('pet',p.id));const label=document.createElement('span');label.className='pet-label';label.hidden=!state.settings.showName&&!state.settings.showLevel;label.textContent=[state.settings.showName?p.name:'',state.settings.showLevel?'Lv.'+F.level(p):''].filter(Boolean).join(' · ');b.append(label);root.append(b);}}
 function closeCard(){delete $('select-card').dataset.key;delete $('select-card').dataset.objectId;delete $('select-card').dataset.objectHtml;$('select-card').classList.remove('object-card');selected=null;patchSelected=null;scene.selected=null;$('select-card').hidden=true;}
 function updateObjectCard(card,id){const html=ForestObjectCards.render(state,id,icon('close'));if(!html){closeCard();return;}
@@ -110,7 +114,7 @@ const slides=new Map(),slideSel=new Set(),slideCls=n=>typeof n.className==='stri
 function slideKey(el){let k='',n=el;while(n&&n!==document.body){if(n.id){k='#'+n.id+k;break;}const c=slideCls(n),par=n.parentElement,i=par?[...par.children].filter(x=>x.tagName===n.tagName&&slideCls(x).join('.')===c.join('.')).indexOf(n):0;k='>'+n.tagName+(c.length?'.'+c.join('.'):'')+':'+i+k;n=par;}return tab+'|'+k;}
 document.addEventListener('scroll',e=>{const el=e.target;if(!(el instanceof Element)||el.scrollWidth<=el.clientWidth+1)return;slides.set(slideKey(el),el.scrollLeft);const c=slideCls(el);slideSel.add(el.tagName.toLowerCase()+(c.length?'.'+c.map(x=>CSS.escape(x)).join('.'):''));},true);
 new MutationObserver(ms=>{if(!slides.size)return;const sel=[...slideSel].join(',');for(const m of ms)for(const nd of m.addedNodes){if(!(nd instanceof Element))continue;for(const el of [...(nd.matches(sel)?[nd]:[]),...nd.querySelectorAll(sel)]){const v=slides.get(slideKey(el));if(v!=null&&el.scrollLeft!==v&&el.scrollWidth>el.clientWidth+1)el.scrollLeft=v;}}}).observe(document.body,{childList:true,subtree:true});
-function switchTab(next){stopMotionPreview();if(next!==tab){slides.clear();slideSel.clear();pageView='';}setTimeout(()=>renderAdmin(),0);if(tab==='visit'&&next!=='visit'&&state.recruitment.visitor?.open)commit(s=>F.Recruitment.close(s));editorReturn=null;scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;scene.camera.setBottomOcclusion(0);$('world').classList.remove('editing-layout');carry.cancel();audio.cancelShots();scene.silentTick=state.worldTick;if(editor){editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;}tab=next;closeCard();$('world').hidden=next!=='world';$('page').hidden=next==='world';scene.paused=next!=='world'||!foreground;$('nav').querySelectorAll('button').forEach(b=>{const active=b.dataset.tab===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(next==='world'){scene.measure();targets();}else renderPage();}
+function switchTab(next){stopMotionPreview();if(next!==tab){slides.clear();slideSel.clear();pageView='';}setTimeout(()=>renderAdmin(),0);if(tab==='visit'&&next!=='visit'&&state.recruitment.visitor?.open)commit(s=>F.Recruitment.close(s));editorReturn=null;clearPlacement();scene.camera.setBottomOcclusion(0);$('world').classList.remove('editing-layout');carry.cancel();audio.cancelShots();scene.silentTick=state.worldTick;if(editor){editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;}tab=next;closeCard();$('world').hidden=next!=='world';$('page').hidden=next==='world';scene.paused=next!=='world'||!foreground;$('nav').querySelectorAll('button').forEach(b=>{const active=b.dataset.tab===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(next==='world'){scene.measure();targets();}else renderPage();}
 // 1.2.6: choosing an item on a page (a climate card low in 설정, a friend's switch in 자세히 보기, a 도감 entry) rebuilt the page and
 // sent it back to the top. The same view keeps its scroll; a different tab, 도감 tab or friend starts at the top.
 let pageView='';function renderPage(){const page=$('page'),view=tab+'|'+(tab==='dex'?dex:'')+'|'+(tab==='detail'?selected:''),keep=view===pageView?page.scrollTop:0;renderPageNow();pageView=view;page.scrollTop=keep;}
@@ -120,35 +124,79 @@ function renderPageNow(){$('page').classList.remove('st');const page=$('page'),p
  else if(tab==='detail'){const x=state.individuals.find(x=>x.id===selected)||p;page.innerHTML='<button class="text-button" data-action="detail-back">‹ 돌아가기</button><div class="detail-hero"><img src="'+portrait(x.species)+'" alt="'+speciesName(x)+'"><h2>'+escape(x.name)+' <span class="badge">Lv.'+F.level(x)+'</span></h2><p class="sub">'+speciesName(x)+' · '+F.SPECIES.find(z=>z[0]===x.species)[3]+'</p></div><div class="panel"><p data-activity-for="'+escape(x.id)+'">'+escape(actionReason(x))+'</p>'+stats(x)+'<div class="data-grid"><div><small>성장 경험</small><strong>'+x.xp+' XP</strong></div><div><small>좋아하는 볕</small><strong>'+window.ForestTraits.ofPet(x).light.join('~')+'</strong></div></div></div>'+'<div id="spore-detail">'+sporeDetails(x)+'</div>'+hexHtml(x)+skillHtml(x)+traitHtml(x.species)+'<p class="sub">낮에 볕을 받아 광합성을 하면 물을 조금 쓰고 기운과 성장 경험을 얻어요. 좋아하는 밝기에서 가장 잘 자라요.</p><button class="secondary" data-action="rename">별명 바꾸기</button><button class="secondary" data-action="roster" data-id="'+escape(x.id)+'">'+(x.active?'대기로 옮기기':'정원에 들이기')+'</button><button class="primary" data-action="find-pet">정원에서 보기</button>';}
  else if(tab==='dex'){page.innerHTML='<h2>숲의 도감</h2><p class="sub">직접 마주친 순간들을 모아요.</p><div class="chips">'+[['species','식물 친구'],['neighbors','작은 이웃'],['regions','지역 발견']].map(([key,label])=>'<button class="chip '+(key===dex?'active':'')+'" data-dex="'+key+'">'+label+'</button>').join('')+'</div>';
   if(dex==='species')page.innerHTML+='<div class="dex-grid">'+F.SPECIES.filter(([id])=>!F.Recruitment.retired.includes(id)||state.individuals.some(p=>p.species===id)).map(([id,name,latin,desc])=>{const owned=state.individuals.some(p=>p.species===id);return '<button class="dex-card '+(owned?'':'locked')+'" data-action="species" data-species="'+id+'">'+(owned?'<img src="'+portrait(id)+'" data-fit="'+portrait(id)+'" alt="'+name+'">':'<div class="unknown">잎</div>')+'<div>'+name+'</div><small>'+(owned?'우리 정원의 친구':'다음 만남을 기다려요')+'</small></button>';}).join('')+'</div>';
-  else if(dex==='neighbors'){const seen=state.objects?.creatures?.seen||{};
-   // SRS NAM-03: say the current relationship, never 'good/bad bug'; ECO-09: name, class, role, why it is here, food, when it leaves
-   const N=[['돌돌이','Armadillidium vulgare · 육상 등각류(갑각류)','비 갠 뒤 촉촉한 이끼 곁, 물이 고이지 않은 바위틈에 쉬러 와요. 머무는 동안 바위틈 근처 낙엽 분해를 조금(×1.1) 도와요. 친구가 가까이 오면 공처럼 말려요.',!!state.discoveries.neighbor],
-    ['짐꾼개미','개미 · 곤충','리들리마다 곁 흙더미에 군락을 이뤄(숲에 3군락까지) 낮에 둥지 둘레의 흩어진 낙엽을 낙엽더미로 날라요. 밤이나 비·눈·강풍에는 둥지에서 쉬고, 솜깍지의 감로가 많으면 그 곁을 지켜요.',!!seen.ant],
-    ['톡토기','Collembola · 톡토기류','촉촉한 낙엽더미에 머물며 그 더미의 분해를 1.25배 도와요. 엘리시가 가까이 있으면 더 잘 찾아와요.',!!seen.springtail],
-    ['잎응애','Tetranychus 계열 · 진드기류','덥고 마른 잎(뜨거운 햇살 바위, 목마름)에 자리를 잡고 늘어나면 잎이 지쳐요. 잎이 촉촉해지거나 친구가 잎을 정돈하면 줄어요.',!!seen.mite],
-    ['잎지기','Phytoseiulus persimilis · 진드기류','잎응애가 실제로 있고 잎이 적당히 촉촉할 때 찾아와 잎응애를 먹어요. 먹이가 없으면 떠나요.',!!seen.keeper],
-    ['뿌리날파리','Bradysia 계열 · 곤충','젖어서 썩어 가는 낙엽에 알을 낳아요. 유충이 그 자리 친구의 뿌리를 귀찮게 해요. 낙엽이 마르면 줄어요.',!!seen.gnat],
-    ['흙지기','Stratiolaelaps scimitus · 진드기류','물이 빠진 촉촉한 흙에서 뿌리날파리 유충과 알을 먹어요. 잎응애는 맡지 않아요.',!!seen.soilmite],
-    ['쏙쏙이','Dalotia coriaria · 반날개(곤충)','바위틈이나 햇살 바위를 은신처로 삼아 젖은 낙엽의 뿌리날파리 유충을 찾아요. 가끔 바위 뒤로 쏙 숨어요.',!!seen.rove],
-    ['솜깍지','알주머니형 깍지벌레 · 곤충','따뜻한 잎 사이에 붙어 영양을 조금 빼앗고, 많아지면 알주머니와 달콤한 감로를 남겨요.',!!seen.mealy],
-    ['점박이','Cryptolaemus montrouzieri · 곤충','솜깍지 알주머니가 있을 때 찾아와 살펴본 뒤 유충이 솜깍지를 먹어요. 개미가 감로를 지키면 느려져요.',!!seen.lady]];
-   // 0.6.32: each entry shows its picture once met (a dark silhouette until then) and the page counts the met ones
-    const pics={'돌돌이':'pillbug','짐꾼개미':'ant-body','톡토기':'springtail-rest','잎응애':'spidermite','잎지기':'predatory-mite','뿌리날파리':'root-gnat','흙지기':'soil-mite','쏙쏙이':'rove-beetle','솜깍지':'mealybug','점박이':'ladybird'};
-    page.innerHTML+='<p class="sub">만난 이웃 '+N.filter(x=>x[3]).length+' / '+N.length+' · 숲에 한 번이라도 찾아오면 채워져요.</p>'+N.map(([n,sci,role,met])=>'<div class="panel neighbour-entry'+(met?'':' unmet')+'"><img src="assets/forest/creatures/'+pics[n]+'.png" data-fit="assets/forest/creatures/'+pics[n]+'.png" alt="'+(met?n:'아직 못 만난 이웃')+'"><div><h3>'+(met?n:n+' <span class="badge">아직 못 만났어요</span>')+'</h3><p>'+role+'</p><p class="sub">'+sci+' · 도감 그림은 확대 표현이에요.</p></div></div>').join('');
-    // 0.9.4 물가 이웃 도감: the seven lake neighbours, filled once each has been at the lake (world.lake.seen); the picture
-    // is the first frame of its in-game strip
-    {const ls=state.world?.lake?.seen||{},open=F.World.lakeOpen(state),L=[['소금쟁이','strider','긴 다리로 물 위를 미끄러지듯 맴돌아요. 큰비와 강풍에는 숨어요.',['strider']],['물달팽이','snail','물가 가까이 기어 다니다가 시든 수련을 먹어 치워요.',['snail']],['개구리','frog','봄 물가의 알이 올챙이를 거쳐 개구리가 돼요. 수련 잎이나 물가에 앉았다가 퐁 뛰어들어요.',['eggs','tadpole','frog']],['잠자리','dragonfly','여름 아침 부들 줄기에서 애벌레가 날개를 말리고 날아올라요. 장구벌레를 먹어요.',['nymph','dragonfly']],['물방개','beetle','여름 물속을 천천히 헤엄쳐요. 가끔 올챙이를 먹어요.',['beetle']],['송사리','medaka','여름 물 위에 작은 떼로 둥글게 헤엄쳐요. 장구벌레를 먹어요.',['medaka']],['장구벌레','larva','잔잔하고 따뜻한 물에 생겨요. 곁에 서 있으면 성가셔서 기운이 조금 떨어져요.',['larva']]].map(([n,pic,role,kinds])=>[n,pic,role,kinds.some(k=>ls[k]!=null)]);
-     page.innerHTML+='<h3>물가 이웃</h3><p class="sub">'+(open?'만난 물가 이웃 '+L.filter(x=>x[3]).length+' / '+L.length+' · 호수에 한 번이라도 나타나면 채워져요.':'숲 동쪽 물가가 열리면 만날 수 있어요.')+'</p>'+L.map(([n,pic,role,met])=>'<div class="panel neighbour-entry lake-entry'+(met?'':' unmet')+'"><img src="assets/forest/lake/life-'+pic+'.png" data-fit="assets/forest/lake/life-'+pic+'.png" data-frames="'+(pic==='eggs'?1:6)+'" style="object-fit:cover;object-position:0 50%" alt="'+(met?n:'아직 못 만난 이웃')+'"><div><h3>'+(met?n:n+' <span class="badge">아직 못 만났어요</span>')+'</h3><p>'+role+'</p></div></div>').join('');}}
-  else {// 1.2.0 (user: "생활기록은 없애고 … 환경 발견은 호수지역, 이끼의 숲 이런 새로운 지역 발견 도감"): one entry per region of
-   // the world; open regions show their painting, regions not reached yet stay blank with a hint
-   const open=state.world?.regions||['forest'],ls=state.world?.lake?.seen||{},lakeMet=['strider','snail',['eggs','tadpole','frog'],['nymph','dragonfly'],'beetle','medaka','larva'].filter(k=>[].concat(k).some(x=>ls[x]!=null)).length,nb=Object.values(state.objects?.creatures?.seen||{}).filter(Boolean).length;
-   const R=[['forest','이끼의 숲','assets/forest/garden.png','22% 16%;background-size:150%','처음 친구들과 정원을 꾸린 숲이에요. 샘터와 쉼터, 이끼와 바위가 있고, 고사리 덤불 사이로 넓은 빈 땅이 둘러싸고 있어요.','함께 지내는 친구 '+state.individuals.filter(x=>x.active).length+'명 · 만난 작은 이웃 '+Math.min(nb,10)+'종',''],
-    ['lakeshore','동쪽 호수','assets/forest/lake/lake-floor.png','50% 50%','숲 동쪽 끝에 펼쳐진 호수와 물가예요. 여름엔 수련이 피고 개구리·잠자리가 지내요. 목마른 친구는 물가에서 물을 마셔요. 추운 겨울엔 얼어서 걸어 다닐 수 있어요.','만난 물가 이웃 '+lakeMet+' / 7','첫 봄이 지나면 숲 동쪽에서 촉촉한 바람이 불어와요.'],
-    ['sea','남쪽 바다','','','','','아직 길이 이어지지 않았어요.'],['mountain','서쪽 산','','','','','아직 길이 이어지지 않았어요.'],['snow','북쪽 눈밭','','','','','아직 길이 이어지지 않았어요.']];
-   page.innerHTML+='<p class="sub">발견한 지역 '+R.filter(r=>open.includes(r[0])).length+' / '+R.length+' · 숲이 자라면 새로운 곳으로 길이 열려요.</p>'+R.map(([id,name,pic,pos,desc,note,hint])=>open.includes(id)?'<div class="panel region-entry"><div class="region-art" style="background-image:url('+pic+');background-position:'+pos+'"></div><h3>'+name+'</h3><p>'+desc+'</p><p class="sub">'+note+'</p></div>':'<div class="panel region-entry unmet"><div class="region-art"><span>?</span></div><h3>'+name+' <span class="badge">아직 발견하지 못했어요</span></h3><p class="sub">'+hint+'</p></div>').join('');}
+  else if(dex==='neighbors'){
+   const forest=forestNeighbors(),lake=lakeNeighbors();
+   page.innerHTML+='<p class="sub">만난 이웃 '+countSeen(forest)+' / '+forest.length+' · 숲에서 한 번 만나면 기록돼요.</p>'
+    +forest.map(entry=>neighborCard(entry)).join('')+'<h3>물가 이웃</h3><p class="sub">'
+    +(F.World.lakeOpen(state)?'만난 물가 이웃 '+countSeen(lake)+' / '+lake.length:'숲 동쪽 물가가 열리면 만날 수 있어요.')
+    +'</p>'+lake.map(entry=>neighborCard(entry,true)).join('');
+  }else page.innerHTML+=regionCards();
  }
  else if(tab==='settings')settingsPage(page);
  fitArt(page);
+}
+const countSeen=entries=>entries.filter(entry=>entry.met).length;
+function forestNeighbors(){
+ const seen=state.objects?.creatures?.seen||{},skillSeen=state.skills?.seen;
+ const entries=[
+  ['돌돌이','pillbug','Armadillidium vulgare · 육상 등각류(갑각류)','비 갠 뒤 촉촉한 이끼 곁, 물이 고이지 않은 바위틈에 쉬러 와요. 머무는 동안 바위틈 근처 낙엽 분해를 조금(×1.1) 도와요. 친구가 가까이 오면 공처럼 말려요.',!!state.discoveries.neighbor],
+  ['짐꾼개미','ant-body','개미 · 곤충','리들리마다 곁 흙더미에 군락을 이뤄(숲에 3군락까지) 낮에 둥지 둘레의 흩어진 낙엽을 낙엽더미로 날라요. 밤이나 비·눈·강풍에는 둥지에서 쉬고, 솜깍지의 감로가 많으면 그 곁을 지켜요.',!!seen.ant],
+  ['톡토기','springtail-rest','Collembola · 톡토기류','촉촉한 낙엽더미에 머물며 그 더미의 분해를 1.25배 도와요. 엘리시가 가까이 있으면 더 잘 찾아와요.',!!seen.springtail],
+  ['잎응애','spidermite','Tetranychus 계열 · 진드기류','덥고 마른 잎(뜨거운 햇살 바위, 목마름)에 자리를 잡고 늘어나면 잎이 지쳐요. 잎이 촉촉해지거나 친구가 잎을 정돈하면 줄어요.',!!seen.mite],
+  ['잎지기','predatory-mite','Phytoseiulus persimilis · 진드기류','잎응애가 실제로 있고 잎이 적당히 촉촉할 때 찾아와 잎응애를 먹어요. 먹이가 없으면 떠나요.',!!seen.keeper],
+  ['뿌리날파리','root-gnat','Bradysia 계열 · 곤충','젖어서 썩어 가는 낙엽에 알을 낳아요. 유충이 그 자리 친구의 뿌리를 귀찮게 해요. 낙엽이 마르면 줄어요.',!!seen.gnat],
+  ['흙지기','soil-mite','Stratiolaelaps scimitus · 진드기류','물이 빠진 촉촉한 흙에서 뿌리날파리 유충과 알을 먹어요. 잎응애는 맡지 않아요.',!!seen.soilmite],
+  ['쏙쏙이','rove-beetle','Dalotia coriaria · 반날개(곤충)','바위틈이나 햇살 바위를 은신처로 삼아 젖은 낙엽의 뿌리날파리 유충을 찾아요. 가끔 바위 뒤로 쏙 숨어요.',!!seen.rove],
+  ['솜깍지','mealybug','알주머니형 깍지벌레 · 곤충','따뜻한 잎 사이에 붙어 영양을 조금 빼앗고, 많아지면 알주머니와 달콤한 감로를 남겨요.',!!seen.mealy],
+  ['점박이','ladybird','Cryptolaemus montrouzieri · 곤충','솜깍지 알주머니가 있을 때 찾아와 살펴본 뒤 유충이 솜깍지를 먹어요. 개미가 감로를 지키면 느려져요.',!!seen.lady],
+  ['작은 거미','mending-spider','거미류','디코가 찢어진 잎을 수선할 때 나와요. 가느다란 거미줄로 찢어진 부분을 꿰매요.',skillSeen?.mendingSpider!=null||skillSeen?.dico!=null]
+ ];
+ return entries.map(([name,pic,classification,description,met])=>({
+  name,description,met,classification,picture:'assets/forest/creatures/'+pic+'.png'
+ }));
+}
+function lakeNeighbors(){
+ const seen=state.world?.lake?.seen||{};
+ const entries=[
+  ['소금쟁이','strider','긴 다리로 물 위를 미끄러지듯 맴돌아요. 큰비와 강풍에는 숨어요.',['strider']],
+  ['물달팽이','snail','물가 가까이 기어 다니다가 시든 수련을 먹어 치워요.',['snail']],
+  ['개구리','frog','봄 물가의 알이 올챙이를 거쳐 개구리가 돼요. 수련 잎이나 물가에 앉았다가 퐁 뛰어들어요.',['eggs','tadpole','frog']],
+  ['잠자리','dragonfly','여름 아침 부들 줄기에서 애벌레가 날개를 말리고 날아올라요. 장구벌레를 먹어요.',['nymph','dragonfly']],
+  ['물방개','beetle','여름 물속을 천천히 헤엄쳐요. 가끔 올챙이를 먹어요.',['beetle']],
+  ['송사리','medaka','여름 물 위에 작은 떼로 둥글게 헤엄쳐요. 장구벌레를 먹어요.',['medaka']],
+  ['장구벌레','larva','잔잔하고 따뜻한 물에 생겨요. 곁에 서 있으면 성가셔서 기운이 조금 떨어져요.',['larva']]
+ ];
+ return [...entries.map(([name,pic,description,kinds])=>({
+  name,description,met:kinds.some(kind=>seen[kind]!=null),picture:'assets/forest/lake/life-'+pic+'.png',frames:6
+ })),{
+  name:'반딧불이',description:'맑고 바람이 잔잔한 여름밤, 호숫가에서 작은 빛을 반짝여요.',
+  met:!!state.discoveries['lake-fireflies'],picture:'assets/forest/creatures/firefly.png'
+ }];
+}
+function neighborCard({name,description,met,picture,frames,classification},lake=false){
+ return '<div class="panel neighbour-entry'+(lake?' lake-entry':'')+(met?'':' unmet')+'"><img src="'+picture+'" data-fit="'+picture
+  +'"'+(frames?' data-frames="'+frames+'" style="object-fit:cover;object-position:0 50%"':'')
+  +' alt="'+(met?name:'아직 못 만난 이웃')+'"><div><h3>'+name+(met?'':' <span class="badge">아직 못 만났어요</span>')
+  +'</h3><p>'+description+'</p>'+(classification?'<p class="sub">'+classification+' · 도감 그림은 확대 표현이에요.</p>':'')
+  +'</div></div>';
+}
+function regionCards(){
+ const lake=lakeNeighbors();
+ const regions=[
+  ['이끼의 숲',true,'assets/forest/garden.png','22% 16%;background-size:150%',
+   '처음 친구들과 정원을 꾸린 숲이에요. 샘터와 쉼터, 이끼와 바위가 고사리 덤불 사이에 있어요.',
+   '함께 지내는 친구 '+state.individuals.filter(p=>p.active).length+'명 · 만난 작은 이웃 '+countSeen(forestNeighbors())+'종',''],
+  ['동쪽 호수',F.World.lakeOpen(state),'assets/forest/lake/lake-floor.png','50% 50%',
+   '수련이 피는 호수와 둘레 물가예요. 친구들이 물가에서 물을 마시고, 추운 겨울에는 언 호수 위를 걸어요.',
+   '만난 물가 이웃 '+countSeen(lake)+' / '+lake.length,'첫 봄이 지나면 숲 동쪽에 물가가 열려요.'],
+  ['남쪽 숲',F.World.southOpen(state),'assets/forest/south-guide.webp','50% 50%',
+   '이끼의 숲과 동쪽 호수 아래로 이어지는 숲이에요. 이끼 덮인 바위쉼터와 친구 둘이 함께 앉는 돌선반이 있어요.',
+   '','첫 여름이 지나면 숲과 호수 남쪽으로 길이 열려요.']
+ ];
+ return '<p class="sub">발견한 지역 '+regions.filter(([,open])=>open).length+' / '+regions.length+'</p>'
+  +regions.map(([name,open,pic,pos,desc,note,hint])=>open
+   ?'<div class="panel region-entry"><div class="region-art" style="background-image:url('+pic+');background-position:'+pos+'"></div><h3>'+name+'</h3><p>'+desc+'</p>'+(note?'<p class="sub">'+note+'</p>':'')+'</div>'
+   :'<div class="panel region-entry unmet"><div class="region-art" aria-hidden="true"><span>?</span></div><h3>'+name+' <span class="badge">아직 발견하지 못했어요</span></h3><p class="sub">'+hint+'</p></div>').join('');
 }
 // 1.2.0 (user: "도감 케릭터 및 작은 친구들 크기 제각각인데 동일하게"): guide pictures have very different empty margins,
 // so each one is cropped to its painted area (lake strips: the first of 6 frames) and fitted into the same square
@@ -333,38 +381,149 @@ function drawVisit(t){const canvas=$('visit-canvas'),v=state.recruitment.visitor
 function toggle(k,value){return '<button class="switch" role="switch" aria-label="'+({mounted:'목부작으로 쉬기',showName:'이름 표시',showLevel:'레벨 표시',showState:'선택 카드 상태 표시',showSpeech:'생활 안내 표시',showFrame:'고사리 액자',reducedMotion:'움직임 줄이기'}[k])+'" aria-checked="'+value+'" data-toggle="'+k+'"></button>';}
 function syncEditorViewport(){const canvas=$('garden').getBoundingClientRect(),panel=editor?$('editor'):null;scene.camera.setBottomOcclusion(panel&&!panel.hidden?Math.max(0,canvas.bottom-panel.getBoundingClientRect().top):0);scene.cameraChanged();}
 const editorViewportObserver=new ResizeObserver(syncEditorViewport);editorViewportObserver.observe($('editor'));editorViewportObserver.observe($('garden'));
-/* 1.2.6: the 꾸미기 panel keeps its scroll when it is rebuilt for the same object */let editorView='';function renderEditor(){const ed=$('editor'),view=(facilityDraft?'facility':'')+'|'+scene.selectedPatch,keep=view===editorView?ed.scrollTop:0;renderEditorNow();editorView=view;ed.scrollTop=keep;}
-// 1.2.6 꾸미기 (user: "꾸미기에서 쉼터도 옮기기 가능하게", "오브젝트들 보관하기(월드에서 없애기)", "꾸미기 창에 보관함", "꾸미기창 gui 직관적이게"):
-// one panel — what is in the forest (objects and shelters), the chosen one with its move pad and 보관하기, and the 보관함 with 꺼내기.
-// A shelter opens its own move view (drag, flip, 보관하기) and comes back here when done.
-const treeAbsorptionPct=Math.round((F.Trees.ABSORPTION-1)*100);
-const EDIT_TIP={'stone-shelf':'두 친구가 나란히 앉아 쉬는 자리예요.',spring:'돌과 물, 물 마시는 위치를 함께 옮겨요. 숲에 꼭 있어야 해서 보관할 수 없어요.',moss:'물을 조금 머금고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.',rock:'볕을 모아 두는 바위예요. 친구가 위에 올라가 쉬어요.',shade:'주변의 빛을 줄이는 실제 그늘이에요.',crevice:'바람과 비를 피하는 틈이에요. 이끼와 그늘을 가까이 두면 좋아요.',litter:'낙엽이 거름이 되는 자리예요. 숲에 꼭 있어야 해서 보관할 수 없어요.'};
-function renderEditorNow(){if(facilityDraft)return renderFacilityEditor();const items=scene.editorItems();if(!items.some(x=>x.id===scene.selectedPatch))scene.selectedPatch=items[0]?.id||'spring';const p=items.find(x=>x.id===scene.selectedPatch);
- const tree=F.Trees.kind(p.id),type=F.Objects.kindOf(p.id),shelf=F.World.SHELF_IDS.includes(p.id);
- const copyId=shelf?F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id)):F.Objects.nextCopyId(state,p.id,scene.preview);
- let message=(tree==='zelkova'?'이끼 숲과 남쪽 숲에 심을 수 있어요. 강한 볕과 비바람을 줄여요.':tree==='willow'?'호숫가에 심어요. 빗방울을 막고 뿌리 수분 흡수를 '+treeAbsorptionPct+'% 높여요.':tree==='cherry'?'이끼 숲과 남쪽 숲에 심을 수 있어요. 계절마다 모습과 그늘이 달라져요.':null)||EDIT_TIP[shelf?'stone-shelf':type]||'',bad=false;try{F.validateLayout(state,scene.preview);}catch(e){message=e.message;bad=true;}const folded=$('editor').classList.contains('folded'),stored=[...(state.objects?.stored||[]),...F.Trees.stored(state).map(t=>({...t,name:F.Trees.name(t.id)}))],sheds=state.shelters.stored||[],canStore=tree?F.Trees.active(state).some(t=>t.id===p.id):F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id);
- const flip=scene.preview[p.id]?.flip??p.flip??false;
- const copies=[...items,...stored].filter(x=>shelf?F.World.SHELF_IDS.includes(x.id):F.Objects.kindOf(x.id)===type).length;
- const addButton=shelf||F.Objects.COPY_KINDS.includes(type)
-  ?'<button class="secondary ed-store" data-action="'+(shelf?'shelf-copy':'object-add')+'" '+(copyId?'':'disabled')+'>추가 · '+copies+'/3</button>':'';
-
+let editorCategory='all',editorMore=false,editorReturn=null;
+const EDIT_GROUPS=[['all','전체'],['object','오브젝트'],['shelter','쉼터'],['tree','나무']];
+const EDIT_ART=['moss','shade','crevice','shelter','rock','spring','litter','stone-shelf','rock-shelter','zelkova','willow','cherry'];
+const editGroup=id=>F.Trees.kind(id)?'tree':id.startsWith('shelter-')?'shelter':'object';
+const editKind=id=>F.Trees.kind(id)||(F.World.SHELF_IDS.includes(id)?'stone-shelf':F.Objects.kindOf(id));
+const SHIFT={left:[-.025,0],right:[.025,0],up:[0,-.025],down:[0,.025]};
+function editorPad(action){
+ return '<div class="position-pad" aria-label="선택한 자리 이동">'
+  +[['left','←','왼쪽'],['up','↑','위'],['down','↓','아래'],['right','→','오른쪽']].map(([id,arrow,label])=>
+   '<button '+(action?'data-action="'+action+'" data-dir':'data-move')+'="'+id+'" aria-label="'+label+'으로 조금 이동">'+arrow+'</button>').join('')+'</div>';
+}
+function editorMenu(content){
+ return '<button class="ed-menu secondary" data-action="editor-more" aria-label="더 많은 배치 조작" aria-expanded="'+editorMore+'">···</button>'
+  +(editorMore?'<div class="ed-options">'+content+'</div>':'');
+}
+function editThumb(kind){
+ const index=EDIT_ART.indexOf(kind);
+ return '<span class="ed-thumb" aria-hidden="true" style="background-position:'+((index%4)*100/3)+'% '+(Math.floor(index/4)*50)+'%"></span>';
+}
+function editorCard({id,name,kind,action,kept},selected){
+ return '<button class="ed-card'+(kept?' kept':'')+'" '+(action?'data-action="'+action+'" data-id':'data-patch')+'="'+id
+  +'"'+(!action?' aria-pressed="'+selected+'"':'')+'>'+(kept?'<small>보관 중</small>':'')
+  +editThumb(kind)+'<span class="ed-card-name">'+escape(name)+'</span></button>';
+}
+function editorCards(items){
+ const objects=items.map(p=>({...p,kind:editKind(p.id)}));
+ const stored=[...(state.objects?.stored||[]),...F.Trees.stored(state).map(t=>({...t,name:F.Trees.name(t.id)}))].map(p=>({
+  ...p,name:p.name+(F.Objects.isCopy(p.id)?' '+p.id.at(-1):''),kind:editKind(p.id),action:'unstore-object',kept:true
+ }));
+ const shelters=scene.editorShelters().map(f=>({
+  id:f.id,name:f.label,kind:F.Shelter.isRock(f)?'rock-shelter':'shelter',action:'edit-shelter'
+ }));
+ const keptShelters=state.shelters.stored.map(f=>({
+  id:f.id,name:F.Shelter.name(f),kind:F.Shelter.isRock(f)?'rock-shelter':'shelter',action:'unstore-shelter',kept:true
+ }));
+ const cards=[...objects,...stored,...shelters,...keptShelters];
+ const first=['moss','shade','crevice','shelter-0'];
+ const order=id=>first.includes(id)?first.indexOf(id):first.length;
+ return cards.sort((a,b)=>order(a.id)-order(b.id));
+}
+function renderEditor(){
+ if(facilityDraft)return renderFacilityEditor();
+ if(scene.restorePreview)return renderRestoreEditor();
+ const ed=$('editor'),rail=ed.querySelector('.ed-rail'),left=rail?.scrollLeft||0,top=ed.scrollTop;
+ const items=scene.editorItems(),cards=editorCards(items);
+ const visible=cards.filter(p=>editorCategory==='all'||editorCategory===editGroup(p.id));
  const treeButtons=Object.entries(F.Trees.TYPES).map(([id,d])=>{
   const ready=F.Trees.unlocked(state,id),count=F.Trees.count(state,id,scene.preview);
-  const label=ready?d.name+' 심기 · '+count+'/'+d.limit:d.name+' · 호수 발견 후';
-  return '<button class="chip" data-action="tree-add" data-id="'+id+'" '+(ready&&count<d.limit?'':'disabled')+'>'+escape(label)+'</button>';
+  return '<button class="ed-card ed-add" data-action="tree-add" data-id="'+id+'" '+(ready&&count<d.limit?'':'disabled')+'>'
+   +editThumb(id)+'<span class="ed-card-name">'+d.name+' 심기</span><small>'+(ready?count+'/'+d.limit:'호수 발견 후')+'</small></button>';
  }).join('');
- const shelters=scene.editorShelters().map(f=>
-  '<button class="chip ed-shed" data-action="edit-shelter" data-id="'+escape(f.id)+'">'+escape(f.label)+'</button>'
- ).join('');
- const canAdd=F.Shelter.standardRoom(state)&&(state.shelters.unlocked||F.Shelter.storedFor(state,'add'));
- $('editor').innerHTML='<div class="ed-head"><b>꾸미기</b><span>고른 것을 끌거나 화살표로 옮겨요</span><button class="editor-fold" data-action="fold-editor" aria-expanded="'+!folded+'">'+(folded?'펼치기':'접기')+'</button></div>'
-  +'<div class="ed-lbl">숲에 놓인 것</div><div class="chips">'+items.map(x=>'<button class="chip '+(p.id===x.id?'active':'')+'" data-patch="'+x.id+'">'+escape(x.name)+'</button>').join('')+'</div>'
-  +'<div class="ed-lbl">쉼터</div><div class="chips">'+shelters
-  +'<button class="chip" data-action="facility-add" '+(canAdd?'':'disabled')+'>쉼터 추가</button></div>'
-  +'<div class="ed-lbl">나무</div><div class="chips">'+treeButtons+'</div>'
-  +'<div class="ed-sel"><div class="ed-sel-top"><b>'+escape(p.name)+'</b>'+(canStore?'<button class="secondary ed-store" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')+(shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+flip+'">⇋ 좌우 뒤집기</button>':'')+addButton+'</div><p class="'+(bad?'bad':'')+'">'+(bad?'× ':'')+escape(message)+'</p><div class="position-pad" aria-label="선택한 자리 이동">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([id,label])=>'<button data-move="'+id+'" aria-label="'+label+' 이동">'+label+'</button>').join('')+'</div></div>'
-  +'<div class="ed-lbl">보관함 <small>'+(stored.length+sheds.length)+'</small></div><div class="ed-box">'+(stored.length+sheds.length?stored.map(x=>'<div class="ed-kept"><span>'+escape(x.name+(F.Objects.isCopy(x.id)?' '+x.id.at(-1):''))+'</span><button class="secondary" data-action="unstore-object" data-id="'+x.id+'">꺼내기</button></div>').join('')+sheds.map(x=>'<div class="ed-kept"><span>⌂ '+escape(F.Shelter.name(x))+' · '+F.Shelter.capacity(x)/4+'공간</span><button class="secondary" data-action="unstore-shelter" data-id="'+escape(x.id)+'">꺼내기</button></div>').join(''):'<p class="ed-empty">보관한 사물이 여기에 모여요. 숲에서 빼 두고 싶은 것을 골라 보관하기를 눌러요.</p>')+'</div>'
-  +'<div class="button-pair"><button class="secondary" data-action="cancel-layout">취소</button><button class="primary" data-action="save-layout" '+(bad?'disabled':'')+'>배치 완료</button></div>';
+ const canAdd=F.Shelter.standardRoom(state)&&state.shelters.unlocked&&!F.Shelter.storedFor(state,'add');
+ const addShelter='<button class="ed-card ed-add" data-action="facility-add" '+(canAdd?'':'disabled')+'>'+editThumb('shelter')+'<span class="ed-card-name">쉼터 추가</span></button>';
+ let p=items.find(x=>x.id===scene.selectedPatch);
+ if(!p||editorCategory!=='all'&&editorCategory!==editGroup(p.id)){
+  p=items.find(x=>editorCategory==='all'||editorCategory===editGroup(x.id));
+  scene.selectedPatch=p?.id||null;
+ }
+ let error='';
+ if(Object.keys(scene.preview).length)try{F.validateLayout(state,scene.preview);}catch(e){error=e.message;}
+ const type=p?editKind(p.id):null,shelf=type==='stone-shelf';
+ const canStore=p&&(F.Trees.kind(p.id)?F.Trees.active(state).some(t=>t.id===p.id):F.STORABLE.includes(type)&&!!F.Objects.patch(state,p.id));
+ let copy='';
+ if(p&&(shelf||F.Objects.COPY_KINDS.includes(type))){
+  const id=shelf?F.World.SHELF_IDS.find(id=>!items.some(item=>item.id===id)):F.Objects.nextCopyId(state,p.id,scene.preview);
+  const count=cards.filter(x=>x.kind===type).length;
+  copy='<button class="secondary" data-action="'+(shelf?'shelf-copy':'object-add')+'" '+(id?'':'disabled')+'>복사 · '+count+'/3</button>';
+ }
+ const flip=shelf?'<button class="secondary" data-action="shelf-mirror" aria-pressed="'+!!p.flip+'">좌우 뒤집기</button>':'';
+ const more=p?editorMenu('<div class="ed-extra">'+flip+copy+'</div>'+editorPad()):'';
+ const folded=ed.classList.contains('folded');
+ ed.innerHTML='<div class="ed-head"><h2>꾸미기</h2><button class="ed-icon editor-fold" data-action="fold-editor" aria-expanded="'+!folded+'" aria-label="'+(folded?'펼치기':'접기')+'">'+(folded?'⌃':'⌄')+'</button><button class="ed-icon" data-action="cancel-layout" aria-label="꾸미기 닫기">'+icon('close')+'</button></div>'
+  +'<div class="ed-body"><div class="ed-tabs" aria-label="꾸미기 종류">'+EDIT_GROUPS.map(([id,label])=>'<button data-action="editor-group" data-id="'+id+'" aria-pressed="'+(id===editorCategory)+'">'+label+'</button>').join('')+'</div>'
+  +'<div class="ed-rail" aria-label="꾸미기 사물">'+visible.map(card=>editorCard(card,card.id===p?.id)).join('')
+  +(editorCategory==='all'||editorCategory==='shelter'?addShelter:'')+(editorCategory==='all'||editorCategory==='tree'?treeButtons:'')+'</div>'
+  +(error?'<p class="ed-error" role="status">'+escape(error)+'</p>':'')
+  +'<div class="ed-actions">'+more+(canStore?'<button class="secondary" data-action="store-object" data-id="'+p.id+'">보관하기</button>':'')
+  +'<button class="primary ed-confirm" data-action="save-layout" '+(error?'disabled':'')+'>배치 완료</button></div></div>';
+ ed.querySelector('.ed-rail').scrollLeft=left;
+ ed.scrollTop=top;
+}
+function revealEditorCard(id){
+ const card=$('editor').querySelector('[data-patch="'+id+'"]'),rail=card?.parentElement;
+ if(!card||!rail)return;
+ const bounds=rail.getBoundingClientRect(),item=card.getBoundingClientRect();
+ if(item.left<bounds.left)rail.scrollLeft-=bounds.left-item.left;
+ if(item.right>bounds.right)rail.scrollLeft+=item.right-bounds.right;
+}
+function focusPlacement(point){
+ const cam=scene.camera,p=cam.screen(point);
+ if(p.x>=40&&p.x<=scene.vw-40&&p.y>=56&&p.y<=cam.visibleHeight-35)return;
+ cam.pan(scene.vw/2-p.x,cam.visibleHeight*.6-p.y);
+ scene.cameraChanged();
+}
+function setupPlacementDrag(draft,contains,render){
+ let grab=null,queued=false;
+ scene.placementGrab=point=>{
+  if(!contains(point))return false;
+  grab={dx:draft.x-point.x,dy:draft.y-point.y};
+  return true;
+ };
+ scene.placementDrag=point=>{
+  if(!grab)return;
+  draft.x=Math.round((point.x+grab.dx)*400)/400;
+  draft.y=Math.round((point.y+grab.dy)*400)/400;
+  if(!queued){queued=true;requestAnimationFrame(()=>{
+   queued=false;
+   if(draft===facilityDraft||draft===scene.restorePreview)render();
+  });}
+ };
+}
+function saveEditorReturn(){
+ editorReturn={preview:scene.preview,sel:scene.selectedPatch,folded:$('editor').classList.contains('folded'),left:$('editor').querySelector('.ed-rail')?.scrollLeft||0};
+ $('editor').classList.remove('folded');
+ scene.preview={};
+}
+function startRestore(id){
+ if(!editor||facilityDraft||scene.restorePreview)return;
+ const tree=F.Trees.kind(id),item=tree?F.Trees.stored(state).find(p=>p.id===id):state.objects?.stored?.find(p=>p.id===id);
+ if(!item)return;
+ let position;
+ try{position=F.restoreSpot(state,id);}catch{position={x:item.x,y:item.y};}
+ saveEditorReturn();editorMore=false;
+ const draft=scene.restorePreview={...item,...position,name:tree?F.Trees.name(id):item.name};
+ scene.editing=false;
+ scene.inputLocked=true;
+ setupPlacementDrag(draft,point=>Math.abs(point.x-draft.x)<.16&&point.y>draft.y-(tree?F.Trees.data(draft).height:.16)&&point.y<draft.y+.075,renderRestoreEditor);
+ renderRestoreEditor();
+ syncEditorViewport();
+ focusPlacement(draft);
+}
+function placementPanel(title,valid,message,action,more=''){
+ return '<div class="ed-head ed-placement"><button class="ed-icon" data-action="cancel-layout" aria-label="꾸미기로 돌아가기">'+icon('back')+'</button><h2>'+escape(title)+'</h2>'
+  +'<span class="ed-status'+(valid?'':' ed-error')+'">'+(valid?'✓ 배치 가능':'배치 불가')+'</span></div>'
+  +'<p class="ed-placement-tip" role="status">'+escape(message)+'</p><div class="ed-actions">'+more
+  +'<button class="secondary" data-action="cancel-layout">취소</button><button class="primary ed-confirm" data-action="'+action+'" '+(valid?'':'disabled')+'>배치 확정</button></div>';
+}
+function renderRestoreEditor(){
+ const d=scene.restorePreview;
+ let error='';
+ try{F.validateRestore(state,d.id,d);}catch(e){error=e.message;}
+ d.valid=!error;
+ $('editor').innerHTML=placementPanel(d.name+' 배치',!error,error||'사물을 끌어 위치를 고르세요.','restore-object-save',editorMenu(editorPad('restore-shift')));
 }
 function adjacentCopyPosition(subject,tryPlacement){
  for(const [dx,dy] of [[.55,0],[-.55,0],[0,.18],[0,-.18],[.35,.21],[-.35,.21],[.75,0],[-.75,0],[1,0],[-1,0],[0,.32],[0,-.32]]){
@@ -375,10 +534,8 @@ function adjacentCopyPosition(subject,tryPlacement){
 }
 const placeFacility=kind=>['add','move','restore','copy'].includes(kind);
 function editFacility(id,kind){
- if(!editor||facilityDraft)return;
- editorReturn={preview:scene.preview,sel:scene.selectedPatch,folded:$('editor').classList.contains('folded')};
- $('editor').classList.remove('folded');
- scene.preview={};
+ if(!editor||facilityDraft||scene.restorePreview)return;
+ saveEditorReturn();
  startFacilityEdit(id,kind);
 }
 function startFacilityEdit(id,kind){const f=F.Shelter.facility(state,id),stored=F.Shelter.storedFor(state,kind,id),subject=kind==='add'?stored:stored||f;facilityDraft={id,kind,x:subject?.x??.45,y:subject?.y??.70,flip:!!subject?.flip};
@@ -390,13 +547,61 @@ function startFacilityEdit(id,kind){const f=F.Shelter.facility(state,id),stored=
  }
  if(kind==='copy'&&subject)Object.assign(facilityDraft,adjacentCopyPosition(subject,p=>F.Shelter.plan(state,id,kind,p)));
  /* 1.2.0 (user: "손가락으로 드래그 앤 드롭으로도 추가"): while adding or moving, the shelter preview can be dragged; elsewhere the map still pans */
- if(placeFacility(kind)){let grab=null,queued=false;scene.facilityGrab=p=>{const pv=scene.facilityPreview||facilityDraft,t=F.Shelter.transform(pv);if(p.x*360<t.x||p.x*360>t.x+220+t.extra||p.y*576<t.y+40||p.y*576>t.y+330*t.sy+30)return false;grab={dx:facilityDraft.x-p.x,dy:facilityDraft.y-p.y};return true;};
-  scene.facilityDrag=p=>{if(!grab||!facilityDraft)return;facilityDraft.x=Math.round((p.x+grab.dx)*400)/400;facilityDraft.y=Math.round((p.y+grab.dy)*400)/400;scene.facilityPreview={...scene.facilityPreview,x:facilityDraft.x,y:facilityDraft.y,flip:facilityDraft.flip};if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;if(facilityDraft)renderFacilityEditor();});}};}
- else{scene.facilityGrab=null;scene.facilityDrag=null;}scene.editing=false;scene.inputLocked=true;$('editor').hidden=false;$('targets').hidden=true;renderFacilityEditor();syncEditorViewport();}
-function renderFacilityEditor(){const d=facilityDraft,old=F.Shelter.facility(state,d.id),subject=F.Shelter.storedFor(state,d.kind,d.id)||(d.kind==='add'?null:old);let proposal=null,valid=true,message='미리보기의 입구와 주변 공간을 살펴보고 확정해 주세요.';try{proposal=F.Shelter.plan(state,d.id,d.kind,{x:d.x,y:d.y,flip:d.flip});}catch(e){valid=false;message=e.message;}scene.facilityPreview=proposal||{...subject,id:d.kind==='copy'?'new-preview':subject?.id||'new-preview',level:d.kind==='expand'?Math.min(3,old.level+1):subject?.level||1,x:d.x,y:d.y,flip:d.flip};if(valid&&placeFacility(d.kind))message='쉼터를 손가락으로 끌어 옮기거나 화살표로 조금씩 옮겨요. 입구와 주변 공간을 살펴보고 확정해 주세요.';$('editor').innerHTML='<strong>'+escape(F.Shelter.name(scene.facilityPreview))+' '+({add:'추가',restore:'꺼내기',move:'옮기기',expand:'확장',flip:'좌우 뒤집기',copy:'복사'})[d.kind]+' · '+F.Shelter.capacity(scene.facilityPreview)/4+'공간</strong><p class="'+(valid?'':'bad')+'">'+escape(message)+'</p>'+(placeFacility(d.kind)?'<div class="position-pad">'+[['left','←'],['up','↑'],['down','↓'],['right','→']].map(([k,t])=>'<button data-action="facility-shift" data-dir="'+k+'">'+t+'</button>').join('')+'</div>':'')+(d.kind!=='expand'?'<button class="secondary facility-flip" data-action="facility-mirror" aria-pressed="'+d.flip+'">⇋ 좌우 뒤집기'+(d.flip?' · 뒤집힘':'')+'</button>':'')+(d.kind==='move'&&old&&old.level<3?'<button class="secondary facility-flip" data-action="facility-expand" '+(state.shelters.unlocked?'':'disabled')+'>공간 넓히기</button>':'')+(d.kind==='move'&&old?'<button class="secondary facility-flip" data-action="facility-copy" '+(F.Shelter.canCopy(state,old)?'':'disabled')+'>복사</button>':'')+(d.kind==='move'&&old&&!old.base?'<button class="secondary facility-flip" data-action="facility-store-edit">보관하기</button>':'')+'<div class="button-pair"><button data-action="cancel-layout">'+(editorReturn?'꾸미기로':'취소')+'</button><button class="primary" data-action="facility-save" '+(valid?'':'disabled')+'>배치 확정</button></div>';}
-function startEditor(){switchTab('world');$('world').classList.add('editing-layout');editor=true;scene.editing=true;scene.preview={};scene.selectedPatch='moss';$('editor').hidden=false;$('targets').hidden=true;renderEditor();syncEditorViewport();notice('요소를 고른 뒤 중심 점을 끌어보세요. 빈 곳을 밀면 아래쪽도 볼 수 있어요.');}
-let editorReturn=null;function resumeEditor(){const r=editorReturn;editorReturn=null;scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;editor=true;scene.editing=true;scene.preview=r?.preview||{};scene.selectedPatch=r?.sel||'moss';$('editor').classList.toggle('folded',!!r?.folded);$('world').classList.add('editing-layout');$('editor').hidden=false;$('targets').hidden=true;renderEditor();syncEditorViewport();}
-function endEditor(){editorReturn=null;scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.facilityGrab=null;scene.facilityDrag=null;$('world').classList.remove('editing-layout');editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;syncEditorViewport();}
+ if(placeFacility(kind)){
+  setupPlacementDrag(facilityDraft,p=>{
+   const t=F.Shelter.transform(scene.facilityPreview);
+   return p.x*360>=t.x&&p.x*360<=t.x+220+t.extra&&p.y*576>=t.y+40&&p.y*576<=t.y+330*t.sy+30;
+  },renderFacilityEditor);
+ }else{scene.placementGrab=null;scene.placementDrag=null;}
+ scene.editing=false;scene.inputLocked=true;editorMore=false;
+ $('editor').hidden=false;$('targets').hidden=true;renderFacilityEditor();syncEditorViewport();
+ if(placeFacility(kind))focusPlacement(facilityDraft);
+}
+function renderFacilityEditor(){
+ const d=facilityDraft,old=F.Shelter.facility(state,d.id),subject=F.Shelter.storedFor(state,d.kind,d.id)||(d.kind==='add'?null:old);
+ let proposal=null,error='';
+ try{proposal=F.Shelter.plan(state,d.id,d.kind,d);}catch(e){error=e.message;}
+ scene.facilityPreview=proposal||{...subject,id:d.kind==='copy'?'new-preview':subject?.id||'new-preview',
+  level:d.kind==='expand'?Math.min(3,old.level+1):subject?.level||1,x:d.x,y:d.y,flip:d.flip};
+ const title=F.Shelter.name(scene.facilityPreview)+' '+({add:'추가',restore:'꺼내기',move:'옮기기',expand:'확장',flip:'좌우 뒤집기',copy:'복사'})[d.kind];
+ const flip=d.kind==='expand'?'':'<button class="secondary" data-action="facility-mirror" aria-pressed="'+d.flip+'">좌우 뒤집기</button>';
+ const extra=d.kind==='move'&&old
+  ?(old.level<3?'<button class="secondary" data-action="facility-expand" '+(state.shelters.unlocked?'':'disabled')+'>공간 넓히기</button>':'')
+   +'<button class="secondary" data-action="facility-copy" '+(F.Shelter.canCopy(state,old)?'':'disabled')+'>복사</button>'
+   +(!old.base?'<button class="secondary" data-action="facility-store-edit">보관하기</button>':''):'';
+ const more=d.kind==='expand'?'':editorMenu('<div class="ed-extra">'+flip+extra+'</div>'+editorPad('facility-shift'));
+ $('editor').innerHTML=placementPanel(title,!error,error||(placeFacility(d.kind)?'쉼터를 끌어 위치를 고르세요.':'입구와 주변 공간을 살펴보세요.'),'facility-save',more);
+}
+function clearPlacement(){
+ scene.inputLocked=false;facilityDraft=null;scene.facilityPreview=null;scene.restorePreview=null;
+ scene.placementGrab=null;scene.placementDrag=null;scene.drag=null;editorMore=false;
+}
+function markDecorating(active){
+ for(const id of ['world','decorate']){
+  const b=$('nav').querySelector('[data-tab="'+id+'"]'),selected=active?id==='decorate':id==='world';
+  b.classList.toggle('active',selected);
+  if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+ }
+}
+function startEditor(){
+ switchTab('world');$('world').classList.add('editing-layout');
+ editor=true;scene.editing=true;scene.preview={};scene.selectedPatch='moss';editorCategory='all';
+ $('editor').classList.remove('folded');$('editor').hidden=false;$('targets').hidden=true;
+ renderEditor();$('editor').querySelector('.ed-rail').scrollLeft=0;markDecorating(true);syncEditorViewport();
+}
+function resumeEditor(id){
+ const r=editorReturn;editorReturn=null;clearPlacement();editor=true;scene.editing=true;
+ scene.preview=r?.preview||{};scene.selectedPatch=id||r?.sel||'moss';
+ $('editor').classList.toggle('folded',!!r?.folded);$('world').classList.add('editing-layout');
+ $('editor').hidden=false;$('targets').hidden=true;renderEditor();
+ $('editor').querySelector('.ed-rail').scrollLeft=r?.left||0;
+ if(id)revealEditorCard(id);
+ syncEditorViewport();
+}
+function endEditor(){
+ editorReturn=null;clearPlacement();$('world').classList.remove('editing-layout');
+ editor=false;scene.editing=false;scene.preview={};$('editor').hidden=true;$('targets').hidden=false;markDecorating(false);syncEditorViewport();
+}
 function dialog(title,text,buttons,input){carry.cancel();audio.cancelShots();const root=$('dialog-root');root.innerHTML='<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">'+escape(title)+'</h2><p>'+escape(text)+'</p>'+(input?'<input id="dialog-input" maxlength="20" aria-label="친구 별명" value="'+escape(input)+'">':'')+'<div class="button-pair">'+buttons.map((b,i)=>'<button class="'+(i===buttons.length-1?'primary':'secondary')+'" data-dialog="'+i+'">'+escape(b.label)+'</button>').join('')+'</div></section></div>';buttons.forEach((b,i)=>root.querySelector('[data-dialog="'+i+'"]').onclick=()=>b.fn());root.querySelector('input,button').focus();root.onkeydown=e=>{if(e.key==='Escape')closeDialog();if(e.key==='Tab'){const nodes=[...root.querySelectorAll('input,button')];const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};}
 function closeDialog(){const clockOpen=$('forest-clock-detail');$('dialog-root').replaceChildren();pendingImport=null;if(clockOpen)$('forest-clock').focus();}
 
@@ -528,22 +733,37 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
   if(F.Shelter.canCopy(state,f))startFacilityEdit(f.id,'copy');
   return;
  }
- if(a==='facility-shift'&&facilityDraft){const d=facilityDraft,v={left:[-.025,0],right:[.025,0],up:[0,-.025],down:[0,.025]}[b.dataset.dir];d.x+=v[0];d.y+=v[1];renderFacilityEditor();return;}
+ if(a==='editor-group'){
+  editorCategory=b.dataset.id;editorMore=false;renderEditor();$('editor').querySelector('.ed-rail').scrollLeft=0;
+  $('editor').querySelector('[aria-pressed="true"][data-action="editor-group"]').focus({preventScroll:true});return;
+ }
+ if(a==='editor-more'){editorMore=!editorMore;renderEditor();$('editor').querySelector('.ed-menu').focus({preventScroll:true});return;}
+ if(a==='facility-shift'||a==='restore-shift'){
+  const d=a==='facility-shift'?facilityDraft:scene.restorePreview;
+  if(d){const [x,y]=SHIFT[b.dataset.dir];d.x+=x;d.y+=y;renderEditor();}
+  return;
+ }
  if(a==='facility-save'&&facilityDraft){const d=facilityDraft;commit(s=>F.Shelter.build(s,d.id,d.kind,{x:d.x,y:d.y,flip:d.flip}),()=>{if(editorReturn)resumeEditor();else endEditor();notice('쉼터 공간을 바꿨어요.');});return;}
  if(a==='edit-shelter'){editFacility(b.dataset.id,'move');return;}
  if(a==='unstore-shelter'){editFacility(b.dataset.id,'restore');return;}
- if(a==='store-object'){const id=b.dataset.id;commit(s=>F.storeObject(s,id),()=>{delete scene.preview[id];renderEditor();notice('보관함에 넣었어요. 꺼내기를 누르면 다시 숲에 놓여요.');});return;}
- if(a==='unstore-object'){const id=b.dataset.id;commit(s=>{F.unstoreObject(s,id);},()=>{scene.selectedPatch=id;renderEditor();notice('숲에 다시 놓았어요. 끌어서 자리를 잡아 주세요.');});return;}
+ if(a==='store-object'){const id=b.dataset.id;commit(s=>F.storeObject(s,id),()=>{delete scene.preview[id];renderEditor();notice('보관했어요. 보관 중 카드를 눌러 다시 배치할 수 있어요.');});return;}
+ if(a==='unstore-object'){startRestore(b.dataset.id);return;}
+ if(a==='restore-object-save'&&scene.restorePreview){
+  const {id,x,y}=scene.restorePreview;
+  commit(s=>F.unstoreObject(s,id,{x,y}),()=>{resumeEditor(id);notice('숲에 다시 놓았어요.');});
+  if(scene.restorePreview)renderRestoreEditor();
+  return;
+ }
  if(a==='facility-store-edit'&&facilityDraft?.kind==='move'){const id=facilityDraft.id;commit(s=>F.Shelter.build(s,id,'store'),()=>{if(editorReturn)resumeEditor();else endEditor();notice('쉼터를 보관함에 넣었어요.');});return;}
  if(b.dataset.tab){if(b.dataset.tab==='decorate')startEditor();else switchTab(b.dataset.tab);return;}
  if(b.dataset.dex){dex=b.dataset.dex;renderPage();return;}
- if(b.dataset.patch){scene.selectedPatch=b.dataset.patch;renderEditor();return;}
+ if(b.dataset.patch){editorMore=false;scene.onMove(b.dataset.patch);const point=scene.editorItems().find(p=>p.id===b.dataset.patch);if(point)focusPlacement(point);return;}
  if(a==='tree-add'&&scene.editing){
   const type=b.dataset.id,id=F.Trees.nextId(state,type,scene.preview);
   if(!id)return;
   for(const point of F.Trees.candidates(state,type,{x:scene.camera.cx,y:scene.camera.cy})){
    try{F.validateLayout(state,{...scene.preview,[id]:point});}catch{continue;}
-   scene.preview[id]=point;scene.selectedPatch=id;renderEditor();return;
+   scene.preview[id]=point;scene.selectedPatch=id;renderEditor();revealEditorCard(id);focusPlacement(point);return;
   }
   notice('나무를 심을 자리가 부족해요. 주변 사물을 옮겨주세요.');return;
  }
@@ -552,7 +772,7 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
   const id=source&&F.Objects.nextCopyId(state,source.id,scene.preview);
   if(id){
    scene.preview[id]=adjacentCopyPosition(source,p=>F.validateLayout(state,{...scene.preview,[id]:p}));
-   scene.selectedPatch=id;renderEditor();
+   scene.selectedPatch=id;renderEditor();revealEditorCard(id);focusPlacement(scene.preview[id]);
   }
   return;
  }
@@ -566,12 +786,12 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
    scene.preview[id]=adjacentCopyPosition(item,p=>F.validateLayout(state,{...scene.preview,[id]:p}));
    scene.selectedPatch=id;
   }
-  renderEditor();return;
+  renderEditor();revealEditorCard(scene.selectedPatch);return;
  }
  if(b.dataset.move&&scene.editing){
   const id=scene.selectedPatch,item=scene.editorItems().find(p=>p.id===id);
   if(!item)return;
-  const p={...item,...scene.preview[id]},delta={left:[-.025,0],right:[.025,0],up:[0,-.025],down:[0,.025]}[b.dataset.move];
+  const p={...item,...scene.preview[id]},delta=SHIFT[b.dataset.move];
   scene.preview[id]={...scene.preview[id],x:p.x+delta[0],y:p.y+delta[1]};renderEditor();return;
  }
  if(b.dataset.toggle){const k=b.dataset.toggle;commit(s=>{if(k==='mounted'){const p=s.individuals.find(p=>p.id===selected)||s.individuals[0];F.Social.cancel(s,p.id);F.Objects.release(s,p,'mounted');p.mounted=!p.mounted;}else s.settings[k]=!(s.settings[k]??(k==='showFrame'));},()=>{renderPage();targets();});return;}
@@ -599,8 +819,9 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
  if(a==='recruit-target'){commit(s=>s.recruitment.target=b.dataset.species,renderPage);return;}
 
  if(a==='rename'){const p=state.individuals.find(x=>x.id===selected)||state.individuals[0];dialog('어떻게 부를까요?','종 이름은 '+speciesName(p)+'로 유지돼요.',[{label:'취소',fn:closeDialog},{label:'이름 저장',fn:()=>{const name=$('dialog-input').value.trim();if(!name){notice('별명을 한 글자 이상 적어주세요.');return;}commit(s=>{const pet=s.individuals.find(x=>x.id===p.id);pet.name=name;pet.customName=true;},()=>{closeDialog();renderPage();targets();});}}],p.name);}
+ if(a==='save-layout'&&!Object.keys(scene.preview).length){endEditor();return;}
  if(a==='save-layout')commit(s=>F.layout(s,scene.preview),()=>{endEditor();notice('자리를 바꿨어요. 실제 변화를 지켜봐 주세요.');});
- if(a==='cancel-layout'){if(facilityDraft&&editorReturn)resumeEditor();else endEditor();}
+ if(a==='cancel-layout'){if(editorReturn)resumeEditor();else endEditor();}
  if(a==='species'){const species=F.SPECIES.find(x=>x[0]===b.dataset.species);dialog(species[1],species[2]+'\n\n'+species[3]+skillText(species[0])+traitText(species[0])+(!state.individuals.some(p=>p.species===species[0])?'\n\n'+F.Recruitment.conditions(state,species[0],F.Space,F.Social).reason+'\n'+F.Recruitment.goals[species[0]]:''),[{label:'닫기',fn:closeDialog}]);}
  if(a==='export')exportData(state);
  if(a==='export-legacy')exportData(state.legacy);
@@ -611,12 +832,12 @@ function handle(e){const b=e.target.closest('button');if(!b)return;const a=b.dat
 function pause(){if(inspector){stopMotionPreview();renderAdmin();}stopRecording();if(!state||!ready)return;carry.cancel();audio.pause();foreground=false;scene.paused=true;F.pause(state);if(!write(state))saveFailure();last=performance.now();acc=0;}
 function nativeResume(){if(!ready)return;foreground=true;audio.unlock();scene.tick=null;const next=F.clone(state),summary=F.resume(next);if(!write(next)){saveFailure();return;}state=next;for(const p of state.individuals)delete p.motion;last=performance.now();acc=0;scene.paused=tab!=='world'||!$('welcome').hidden;if(summary.seconds>60)notice('쉬는 동안 기운을 천천히 회복했어요.'+(summary.xp?' 성장 +'+summary.xp+' XP':''));update();}
 function saveFailure(){carry.cancel();audio.pause();storageFailed=true;notice('저장 공간을 확인해 주세요. 기록을 지키기 위해 생활을 잠시 멈췄어요.');dialog('저장하지 못했어요','기존 저장은 유지돼요. 저장 공간을 확보한 뒤 다시 시도해 주세요.',[{label:'다시 저장',fn:()=>{if(write(state)){storageFailed=false;closeDialog();notice('기록을 저장했어요.');}}}]);}
-function back(){if(carry.session){carry.cancel();return true;}if($('dialog-root').children.length){closeDialog();return true;}if(inspector){stopMotionPreview();renderAdmin();return true;}if(adminOpen&&tab==='world'){adminOpen=false;renderAdmin();return true;}if(editor){endEditor();return true;}if(selected||patchSelected){closeCard();if(tab==='detail')switchTab('friends');return true;}if(tab==='admin'){switchTab('settings');return true;}if(tab!=='world'){switchTab('world');return true;}return false;}
+function back(){if(carry.session){carry.cancel();return true;}if($('dialog-root').children.length){closeDialog();return true;}if(inspector){stopMotionPreview();renderAdmin();return true;}if(adminOpen&&tab==='world'){adminOpen=false;renderAdmin();return true;}if(editor){if(editorReturn)resumeEditor();else endEditor();return true;}if(selected||patchSelected){closeCard();if(tab==='detail')switchTab('friends');return true;}if(tab==='admin'){switchTab('settings');return true;}if(tab!=='world'){switchTab('world');return true;}return false;}
 window.RidleyApp={nativePause:pause,nativeResume,back,notice,offerImport};
 function tick(now){requestAnimationFrame(tick);if(inspector){const label=$('admin-motion-status'),value=inspector.status();if(label&&label.textContent!==value)label.textContent=value;last=now;return;}if(!ready||!foreground||storageFailed||!$('welcome').hidden){last=now;return;}const elapsed=(now-last)/1000;last=now;if(tab==='visit')drawVisit(now/1000);if(elapsed>5){F.pause(state,state.savedAt);nativeResume();return;}if(adminAdvanceStep()){adminOverlay(now);return;}acc=Math.min(24,acc+elapsed*(adminOn?adminSpeed:1));
  // If a frame falls behind, spread the remaining simulation ticks across frames.
  const start=performance.now();let steps=0;while(acc>=1&&(!steps||performance.now()-start<8)){acc--;steps++;const next=copyForTick(state);if(adminOn&&adminLock){next.weather.remaining=Math.max(next.weather.remaining||0,30);next.weather.strongSeconds=0;}   /* 1.2.11: a locked strong wind keeps blowing (the natural 90 s fade to 45 is skipped) */
- const t0=performance.now();F.step(next,{visible:tab==='world',held:carry.held});adminPerf.tick=adminPerf.tick*.8+(performance.now()-t0)*.2;if(carry.held&&(next.weather.wind>=60||next.individuals.find(p=>p.id===carry.held)?.B<20)){carry.cancel();carry.suppressUntil=performance.now()+700;notice('안전을 위해 원래 자리에서 대피해요.');}lastSave++;const important=next.events.some(e=>['transfer','object-upgrade','spore'].includes(e.type)&&e.tick===next.worldTick)||JSON.stringify(next.discoveries)!==JSON.stringify(state.discoveries)||next.individuals.some((p,i)=>JSON.stringify(p.carriedLeaf)!==JSON.stringify(state.individuals[i]?.carriedLeaf)||p.xp!==state.individuals[i].xp||p.sporeSac!==state.individuals[i].sporeSac||JSON.stringify(p.first)!==JSON.stringify(state.individuals[i].first));if(lastSave>=5||important){lastSave=0;if(!write(next)){saveFailure();break;}}state=next;update();}adminFollowStep();adminOverlay(now);audio.sync(state,tab==='world'&&foreground&&$('welcome').hidden,scene.springVisible());}
+ const t0=performance.now();F.step(next,{visible:tab==='world',held:carry.held});adminPerf.tick=adminPerf.tick*.8+(performance.now()-t0)*.2;if(carry.held&&(next.weather.wind>=60||next.individuals.find(p=>p.id===carry.held)?.B<20)){carry.cancel();carry.suppressUntil=performance.now()+700;notice('안전을 위해 원래 자리에서 대피해요.');}lastSave++;const important=next.events.some(e=>['transfer','object-upgrade','spore'].includes(e.type)&&e.tick===next.worldTick)||next.skills?.seen?.mendingSpider!==state.skills?.seen?.mendingSpider||JSON.stringify(next.discoveries)!==JSON.stringify(state.discoveries)||next.individuals.some((p,i)=>JSON.stringify(p.carriedLeaf)!==JSON.stringify(state.individuals[i]?.carriedLeaf)||p.xp!==state.individuals[i].xp||p.sporeSac!==state.individuals[i].sporeSac||JSON.stringify(p.first)!==JSON.stringify(state.individuals[i].first));if(lastSave>=5||important){lastSave=0;if(!write(next)){saveFailure();break;}}state=next;update();}adminFollowStep();adminOverlay(now);audio.sync(state,tab==='world'&&foreground&&$('welcome').hidden,scene.springVisible());}
 /* 1.2.8 entry screen: the art layer starts once the game art is loaded; the season line shows today's forest; a tap skips the intro */
 function welcomeStart(){$('welcome-when').textContent=$('season').textContent+' · '+CLOCK_PHASES[F.Environment.timeKey(state)][1]+' · '+$('weather').textContent;globalThis.ForestWelcome?.start({assets:scene.assets,reduced:!!state?.settings?.reducedMotion});}
 function welcomeSkip(e){if(e.target.closest('#enter'))return;$('welcome').classList.remove('w-play');globalThis.ForestWelcome?.skip();}
